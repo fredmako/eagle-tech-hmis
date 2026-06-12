@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* Custom utility variables for the health application */
+@layer base {
+  :root {
+    --primary-color: #0d9488; /* Teal-600 */
+    --primary-hover: #0f766e; /* Teal-700 */
+  }
+  
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased selection:bg-teal-500 selection:text-white;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}

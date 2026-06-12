@@ -11,6 +11,8 @@ import Pharmacy from './components/Pharmacy';
 import Billing from './components/Billing';
 import Reports from './components/Reports';
 import Admin from './components/Admin';
+import PatientDashboard from './components/PatientDashboard';
+import Ward from './components/Ward';
 
 import {
   LayoutDashboard,
@@ -24,7 +26,9 @@ import {
   FileSpreadsheet,
   Settings,
   LogOut,
-  Activity
+  Activity,
+  Clipboard,
+  Bed
 } from 'lucide-react';
 
 export default function App() {
@@ -75,6 +79,8 @@ export default function App() {
     { id: 'pharmacy', label: 'Pharmacy Desk', icon: Pill, roles: ['pharmacist', 'admin'] },
     { id: 'billing', label: 'Cashier / Billing', icon: DollarSign, roles: ['cashier', 'admin'] },
     { id: 'reports', label: 'MOH Reports', icon: FileSpreadsheet, roles: ['admin'] },
+    { id: 'patient_dashboard', label: 'Patient Dashboard', icon: Clipboard, roles: ['*'] },
+    { id: 'ward', label: 'Inpatient Ward', icon: Bed, roles: ['nurse', 'clinician', 'admin'] },
     { id: 'admin', label: 'Admin Settings', icon: Settings, roles: ['admin'] }
   ];
 
@@ -161,6 +167,8 @@ export default function App() {
           {activeTab === 'pharmacy' && <Pharmacy user={user} onComplete={() => setActiveTab('dashboard')} />}
           {activeTab === 'billing' && <Billing user={user} onComplete={() => setActiveTab('dashboard')} />}
           {activeTab === 'reports' && <Reports user={user} />}
+          {activeTab === 'patient_dashboard' && <PatientDashboard />}
+          {activeTab === 'ward' && <Ward user={user} />}
           {activeTab === 'admin' && <Admin user={user} />}
         </div>
       </main>

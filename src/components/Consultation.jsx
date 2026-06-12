@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../appwriteClient';
 import { Activity, ShieldAlert, CheckCircle, Search, FileText, ClipboardList } from 'lucide-react';
 
 export default function Consultation({ user, onComplete }) {

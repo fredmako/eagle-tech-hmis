@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../appwriteClient';
 import { Search, UserPlus, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function Registration({ user, onNavigateToQueue }) {

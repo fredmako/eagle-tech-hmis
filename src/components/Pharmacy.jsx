@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../appwriteClient';
 import { Pill, AlertCircle, CheckCircle, RefreshCw, Layers } from 'lucide-react';
 
 export default function Pharmacy({ user, onComplete }) {

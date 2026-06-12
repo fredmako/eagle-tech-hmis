@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../appwriteClient';
 import { Settings, Shield, UserPlus, ListTodo, CheckCircle } from 'lucide-react';
 
 export default function Admin({ user }) {

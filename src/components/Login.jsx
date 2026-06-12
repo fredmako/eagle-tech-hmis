@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../appwriteClient';
 import { Activity, ShieldAlert, CheckCircle } from 'lucide-react';
 
 export default function Login({ onLoginSuccess }) {

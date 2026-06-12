@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../appwriteClient';
 import { FileSpreadsheet, Download, RefreshCw, CheckCircle, ShieldAlert, BarChart2 } from 'lucide-react';
 
 export default function Reports({ user }) {

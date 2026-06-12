@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../appwriteClient';
 import { FlaskConical, AlertCircle, CheckCircle, Save, CheckSquare } from 'lucide-react';
 
 export default function Orders({ user, onComplete }) {

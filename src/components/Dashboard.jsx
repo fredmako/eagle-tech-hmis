@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../appwriteClient';
 import { Users, Hourglass, Activity, ShieldAlert, CheckCircle, RefreshCw, Send } from 'lucide-react';
 
 export default function Dashboard({ user, onNavigate }) {

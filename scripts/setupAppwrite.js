@@ -1,4 +1,4 @@
-import { Client, Databases, Permission, Role } from 'appwrite';
+import { Client, Databases, Permission, Role } from 'node-appwrite';
 import fs from 'fs';
 import path from 'path';
 
@@ -105,7 +105,7 @@ const setup = async () => {
         { type: 'string', key: 'next_of_kin_name', size: 255, required: false },
         { type: 'string', key: 'next_of_kin_phone', size: 50, required: false },
         { type: 'string', key: 'next_of_kin_relation', size: 50, required: false },
-        { type: 'boolean', key: 'consent_given', required: true, default: false }
+        { type: 'boolean', key: 'consent_given', required: false, default: false }
       ]
     },
     {
@@ -159,7 +159,7 @@ const setup = async () => {
         { type: 'string', key: 'instructions', size: 1000, required: false },
         { type: 'string', key: 'status', size: 50, required: true },
         { type: 'string', key: 'results', size: 1000, required: false },
-        { type: 'float', key: 'price', required: true, default: 0.0 }
+        { type: 'float', key: 'price', required: false, default: 0.0 }
       ]
     },
     {
@@ -167,8 +167,8 @@ const setup = async () => {
       name: 'Invoices',
       attributes: [
         { type: 'string', key: 'visit_id', size: 100, required: true },
-        { type: 'float', key: 'total_amount', required: true, default: 0.0 },
-        { type: 'float', key: 'amount_paid', required: true, default: 0.0 },
+        { type: 'float', key: 'total_amount', required: false, default: 0.0 },
+        { type: 'float', key: 'amount_paid', required: false, default: 0.0 },
         { type: 'string', key: 'status', size: 50, required: true },
         { type: 'string', key: 'payment_method', size: 50, required: false }
       ]

@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700;900&display=swap');
 @import "tailwindcss";
 
 /* Custom utility variables for the health application */
@@ -11,4 +12,55 @@
     @apply bg-slate-950 text-slate-100 antialiased selection:bg-teal-500 selection:text-white;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
+}
+
+/* Midnight Navy Theme Overrides */
+.theme-navy .bg-slate-950 { background-color: #020813 !important; }
+.theme-navy .bg-slate-900 { background-color: #0b132b !important; }
+.theme-navy .bg-slate-950\/40 { background-color: #0d1b3e/30 !important; }
+.theme-navy .border-slate-800 { border-color: #1c2541 !important; }
+.theme-navy .border-slate-850 { border-color: #1c2541 !important; }
+.theme-navy .text-teal-400 { color: #60a5fa !important; }
+.theme-navy .text-teal-500 { color: #3b82f6 !important; }
+.theme-navy .bg-teal-500 { background-color: #3b82f6 !important; color: #020813 !important; }
+.theme-navy .bg-teal-600 { background-color: #2563eb !important; }
+.theme-navy input, .theme-navy select, .theme-navy textarea {
+  background-color: #020813 !important;
+  border-color: #1c2541 !important;
+}
+
+/* Light Emerald Medical Theme Overrides */
+.theme-emerald .bg-slate-950 { background-color: #f8fafc !important; }
+.theme-emerald .bg-slate-900 { background-color: #ffffff !important; }
+.theme-emerald .bg-slate-950\/40 { background-color: #f1f5f9 !important; }
+.theme-emerald .border-slate-800 { border-color: #cbd5e1 !important; }
+.theme-emerald .border-slate-850 { border-color: #e2e8f0 !important; }
+.theme-emerald .text-slate-100 { color: #0f172a !important; }
+.theme-emerald .text-slate-250 { color: #1e293b !important; }
+.theme-emerald .text-slate-200 { color: #1e293b !important; }
+.theme-emerald .text-slate-300 { color: #334155 !important; }
+.theme-emerald .text-slate-350 { color: #334155 !important; }
+.theme-emerald .text-slate-400 { color: #475569 !important; }
+.theme-emerald .text-slate-450 { color: #64748b !important; }
+.theme-emerald .text-teal-400 { color: #059669 !important; }
+.theme-emerald .text-teal-500 { color: #047857 !important; }
+.theme-emerald .bg-teal-500 { background-color: #10b981 !important; color: #ffffff !important; }
+.theme-emerald .bg-teal-600 { background-color: #059669 !important; }
+.theme-emerald input, .theme-emerald select, .theme-emerald textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Font Families */
+.font-outfit {
+  font-family: 'Outfit', sans-serif !important;
+}
+
+.font-roboto {
+  font-family: 'Roboto', sans-serif !important;
+}
+
+.font-sans {
+  font-family: 'Inter', sans-serif !important;
 }

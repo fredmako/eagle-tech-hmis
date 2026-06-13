@@ -15,6 +15,8 @@ import PatientDashboard from './components/PatientDashboard';
 import Ward from './components/Ward';
 import SaaSOnboarding from './components/SaaSOnboarding';
 import LandingPage from './components/LandingPage';
+import Preferences from './components/Preferences';
+import translations from './translations';
 
 import {
   LayoutDashboard,
@@ -31,7 +33,8 @@ import {
   Activity,
   Clipboard,
   Bed,
-  ShieldCheck
+  ShieldCheck,
+  Sliders
 } from 'lucide-react';
 
 export default function App() {
@@ -39,6 +42,32 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [preselectedPatient, setPreselectedPatient] = useState(null);
   const [publicView, setPublicView] = useState('landing'); // 'landing', 'login', 'signup'
+
+  const [theme, setTheme] = useState(() => localStorage.getItem('egesa_theme') || 'slate');
+  const [lang, setLang] = useState(() => localStorage.getItem('egesa_lang') || 'en');
+  const [font, setFont] = useState(() => localStorage.getItem('egesa_font') || 'sans');
+
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme);
+    localStorage.setItem('egesa_theme', newTheme);
+  };
+
+  const handleLangChange = (newLang) => {
+    setLang(newLang);
+    localStorage.setItem('egesa_lang', newLang);
+  };
+
+  const handleFontChange = (newFont) => {
+    setFont(newFont);
+    localStorage.setItem('egesa_font', newFont);
+  };
+
+  const t = (key) => {
+    if (translations[lang] && translations[lang][key]) {
+      return translations[lang][key];
+    }
+    return (translations['en'] && translations['en'][key]) || key;
+  };
 
   const renderLogo = (logoUrl) => {
     if (!logoUrl) {
@@ -165,23 +194,31 @@ export default function App() {
   };
 
   if (!user) {
-    if (publicView === 'signup') {
-      return <SaaSOnboarding onBackToLogin={() => setPublicView('landing')} />;
-    }
-    if (publicView === 'login') {
+    const publicContent = (() => {
+      if (publicView === 'signup') {
+        return <SaaSOnboarding onBackToLogin={() => setPublicView('landing')} />;
+      }
+      if (publicView === 'login') {
+        return (
+          <Login 
+            onLoginSuccess={handleLoginSuccess} 
+            onNavigateToSaaS={() => setPublicView('signup')} 
+            onNavigateToLanding={() => setPublicView('landing')}
+          />
+        );
+      }
       return (
-        <Login 
-          onLoginSuccess={handleLoginSuccess} 
-          onNavigateToSaaS={() => setPublicView('signup')} 
-          onNavigateToLanding={() => setPublicView('landing')}
+        <LandingPage 
+          onNavigateToLogin={() => setPublicView('login')} 
+          onNavigateToSignup={() => setPublicView('signup')} 
         />
       );
-    }
+    })();
+
     return (
-      <LandingPage 
-        onNavigateToLogin={() => setPublicView('login')} 
-        onNavigateToSignup={() => setPublicView('signup')} 
-      />
+      <div className={`theme-${theme} font-${font} min-h-screen bg-slate-950 text-slate-100`}>
+        {publicContent}
+      </div>
     );
   }
 
@@ -198,7 +235,8 @@ export default function App() {
     { id: 'reports', label: 'MOH Reports', icon: FileSpreadsheet, roles: ['admin'] },
     { id: 'patient_dashboard', label: 'Patient Dashboard', icon: Clipboard, roles: ['*'] },
     { id: 'ward', label: 'Inpatient Ward', icon: Bed, roles: ['nurse', 'clinician', 'admin'] },
-    { id: 'admin', label: 'Admin Settings', icon: Settings, roles: ['admin'] }
+    { id: 'admin', label: 'Admin Settings', icon: Settings, roles: ['admin'] },
+    { id: 'settings', label: 'System Preferences', icon: Sliders, roles: ['*'] }
   ];
 
   // Filter menu based on user role
@@ -207,7 +245,7 @@ export default function App() {
   );
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div className={`flex h-screen bg-slate-950 text-slate-100 overflow-hidden theme-${theme} font-${font}`}>
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
         {/* Brand logo header */}
@@ -215,10 +253,10 @@ export default function App() {
           {renderLogo(user.facility_logo)}
           <div className="truncate flex-1">
             <span className="font-bold tracking-wide text-xs text-white block uppercase truncate leading-tight">
-              {user.facility_name || 'Egesa Health'}
+              {user.facility_name || 'Eagle Tech Hospital Management Systems'}
             </span>
-            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mt-0.5 truncate leading-none">
-              Eagle Tech solutions
+            <span className="text-[9px] text-slate-505 font-bold uppercase tracking-wider block mt-0.5 truncate leading-none">
+              {t('poweredBy')}
             </span>
           </div>
         </div>
@@ -239,7 +277,7 @@ export default function App() {
                 }`}
               >
                 <Icon size={16} />
-                <span>{item.label}</span>
+                <span>{t(item.id)}</span>
               </button>
             );
           })}
@@ -262,7 +300,7 @@ export default function App() {
             className="w-full flex items-center justify-center gap-2 border border-slate-800 hover:border-red-500/20 bg-slate-900/50 hover:bg-red-500/5 hover:text-red-400 py-1.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition duration-150"
           >
             <LogOut size={13} />
-            <span>Sign Out</span>
+            <span>{t('signOut')}</span>
           </button>
         </div>
       </aside>
@@ -289,6 +327,16 @@ export default function App() {
           {activeTab === 'patient_dashboard' && <PatientDashboard />}
           {activeTab === 'ward' && <Ward user={user} />}
           {activeTab === 'admin' && <Admin user={user} />}
+          {activeTab === 'settings' && (
+            <Preferences
+              currentTheme={theme}
+              onChangeTheme={handleThemeChange}
+              currentLang={lang}
+              onChangeLang={handleLangChange}
+              currentFont={font}
+              onChangeFont={handleFontChange}
+            />
+          )}
         </div>
       </main>
     </div>

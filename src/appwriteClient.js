@@ -23,7 +23,7 @@ const MOCK_STORAGE_KEY = 'egesa_health_mock_db';
 
 const getInitialMockData = () => {
   const defaultFacilities = [
-    { id: 'f1', name: 'Egesa Medical Clinic', code: 'EMC-001' },
+    { id: 'f1', name: 'Eagle Tech Medical Clinic', code: 'EMC-001' },
     { id: 'f2', name: 'Meso Referral Hospital', code: 'MRH-002' }
   ];
 

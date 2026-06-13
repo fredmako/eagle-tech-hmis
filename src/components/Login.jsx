@@ -125,7 +125,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
           full_name: data.user.user_metadata?.full_name || roleLabel,
           role: roleName,
           facility_id: selectedFacility,
-          facility_name: activeFac?.name || 'Egesa Medical Clinic',
+          facility_name: activeFac?.name || 'Eagle Tech Medical Clinic',
           facility_logo: activeFac?.logo_url || null
         };
         sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUser));
@@ -284,7 +284,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
             onClick={onNavigateToSaaS}
             className="text-[11px] font-semibold text-slate-400 hover:text-teal-400 transition"
           >
-            Need Egesa Health for your hospital? <span className="text-teal-400 font-bold hover:underline">Register here</span>
+            Need Eagle Tech Hospital Management Systems for your hospital? <span className="text-teal-400 font-bold hover:underline">Register here</span>
           </button>
         </div>
 

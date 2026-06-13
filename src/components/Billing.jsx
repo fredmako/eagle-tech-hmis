@@ -210,7 +210,7 @@ export default function Billing({ user, onComplete }) {
                 </div>
 
                 <div className="text-center pb-4 border-b border-dashed border-slate-800">
-                  <h4 className="font-bold text-slate-200 uppercase tracking-wider">EGESA MEDICAL CLINIC</h4>
+                  <h4 className="font-bold text-slate-200 uppercase tracking-wider">EAGLE TECH MEDICAL CLINIC</h4>
                   <p className="text-[10px] text-slate-500">MOH Register ID: EMC-001 | Tel: +254 712 345 678</p>
                   <p className="text-[9px] text-slate-600 font-mono mt-1">Receipt No: RCPT-{Math.floor(10000 + Math.random() * 90000)} | Date: {new Date().toLocaleString()}</p>
                 </div>

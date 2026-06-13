@@ -80,7 +80,7 @@ export default function Reports({ user }) {
 
   const handleExportCSV = () => {
     // Generate simple MOH 717 CSV content
-    const headers = 'MOH 717 Outpatient Register - Egesa Medical Clinic\nDate,Patient Name,Facility ID,Age,Gender,Diagnosis,Vitals Temp,Total Billed,Payment Method\n';
+    const headers = 'MOH 717 Outpatient Register - Eagle Tech Medical Clinic\nDate,Patient Name,Facility ID,Age,Gender,Diagnosis,Vitals Temp,Total Billed,Payment Method\n';
     
     const rows = visits.map(v => {
       const p = patients.find(pt => pt.id === v.patient_id);

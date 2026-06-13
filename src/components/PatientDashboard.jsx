@@ -289,14 +289,38 @@ export default function PatientDashboard() {
                               {vOrders.some(o => o.type === 'lab') && (
                                 <div className="bg-slate-900/20 border border-slate-850 p-2.5 rounded-lg space-y-1.5">
                                   <span className="font-bold text-slate-400 uppercase tracking-wide text-[9px] flex items-center gap-1"><FlaskConical size={10} /> Investigations</span>
-                                  {vOrders.filter(o => o.type === 'lab').map(o => (
-                                    <div key={o.id} className="flex justify-between items-center text-[11px]">
-                                      <span className="text-slate-350">{o.item_name}</span>
-                                      <span className={o.status === 'completed' ? 'text-green-400 font-semibold' : 'text-yellow-450'}>
-                                        {o.status === 'completed' ? `Result: ${o.results}` : 'Pending'}
-                                      </span>
-                                    </div>
-                                  ))}
+                                  {vOrders.filter(o => o.type === 'lab').map(o => {
+                                    let meta = {};
+                                    if (o.results && o.results.startsWith('{')) {
+                                      try { meta = JSON.parse(o.results); } catch (e) {}
+                                    }
+                                    return (
+                                      <div key={o.id} className="border-b border-slate-800/40 pb-1.5 last:border-0 last:pb-0 text-[11px] space-y-1">
+                                        <div className="flex justify-between items-center">
+                                          <span className="font-semibold text-slate-350">{o.item_name}</span>
+                                          <span className={`px-1.5 py-0.2 rounded text-[8px] font-bold uppercase tracking-wider ${
+                                            o.status === 'released' || o.status === 'completed' ? 'bg-green-500/10 text-green-450 border border-green-500/15' :
+                                            o.status === 'rejected' ? 'bg-red-500/10 text-red-450 border border-red-500/15' :
+                                            'bg-yellow-500/10 text-yellow-450 border border-yellow-500/15'
+                                          }`}>
+                                            {o.status || 'ordered'}
+                                          </span>
+                                        </div>
+                                        {o.status === 'rejected' && (
+                                          <p className="text-[10px] text-red-400">Reason: {meta.rejection_reason || 'Hemolyzed Sample'}</p>
+                                        )}
+                                        {meta.barcode && (
+                                          <p className="text-[9px] text-slate-500 font-mono">Barcode: {meta.barcode}</p>
+                                        )}
+                                        {(o.status === 'released' || o.status === 'completed') && (
+                                          <div className="bg-slate-900/60 p-1.5 rounded border border-slate-850/65 mt-1 font-sans">
+                                            <p className="text-[10px] text-slate-200 font-medium">Result: {meta.values || o.results}</p>
+                                            {meta.verifier && <p className="text-[8px] text-teal-400 mt-0.5">Verified by: {meta.verifier}</p>}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               )}
 
@@ -304,12 +328,35 @@ export default function PatientDashboard() {
                               {vOrders.some(o => o.type === 'prescription') && (
                                 <div className="bg-slate-900/20 border border-slate-850 p-2.5 rounded-lg space-y-1.5">
                                   <span className="font-bold text-slate-400 uppercase tracking-wide text-[9px] flex items-center gap-1"><Pill size={10} /> Prescriptions</span>
-                                  {vOrders.filter(o => o.type === 'prescription').map(o => (
-                                    <div key={o.id} className="flex justify-between items-start text-[11px] gap-2">
-                                      <span className="text-slate-350">{o.item_name}</span>
-                                      <span className="text-[10px] text-slate-500 truncate max-w-[50%]">{o.instructions}</span>
-                                    </div>
-                                  ))}
+                                  {vOrders.filter(o => o.type === 'prescription').map(o => {
+                                    let meta = {};
+                                    if (o.results && o.results.startsWith('{')) {
+                                      try { meta = JSON.parse(o.results); } catch (e) {}
+                                    }
+                                    return (
+                                      <div key={o.id} className="border-b border-slate-800/40 pb-1.5 last:border-0 last:pb-0 text-[11px] space-y-1">
+                                        <div className="flex justify-between items-start gap-1">
+                                          <div>
+                                            <span className="font-semibold text-slate-350">{o.item_name}</span>
+                                            <p className="text-[10px] text-slate-500">{o.instructions}</p>
+                                          </div>
+                                          <span className={`px-1.5 py-0.2 rounded text-[8px] font-bold uppercase tracking-wider shrink-0 ${
+                                            o.status === 'dispensed' ? 'bg-green-500/10 text-green-455 border border-green-500/15' :
+                                            o.status === 'out_of_stock' ? 'bg-red-500/10 text-red-455 border border-red-500/15' :
+                                            'bg-yellow-500/10 text-yellow-455 border border-yellow-500/15'
+                                          }`}>
+                                            {o.status || 'prescribed'}
+                                          </span>
+                                        </div>
+                                        {o.status === 'dispensed' && meta.dispensed_batch && (
+                                          <div className="text-[9px] text-slate-500 font-mono mt-0.5 flex justify-between bg-slate-900/30 p-1 rounded border border-slate-850/30">
+                                            <span>Batch: {meta.dispensed_batch}</span>
+                                            <span>Qty: {meta.dispensed_qty || '10 tabs'}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               )}
                             </div>

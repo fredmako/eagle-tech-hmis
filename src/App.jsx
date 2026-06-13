@@ -37,11 +37,55 @@ export default function App() {
   const [preselectedPatient, setPreselectedPatient] = useState(null);
 
   useEffect(() => {
-    // Check session on load
-    const loggedUser = sessionStorage.getItem('egesa_health_active_user');
-    if (loggedUser) {
-      setUser(JSON.parse(loggedUser));
-    }
+    const checkActiveSession = async () => {
+      // 1. Try quick local session cache first
+      const loggedUser = sessionStorage.getItem('egesa_health_active_user');
+      if (loggedUser) {
+        setUser(JSON.parse(loggedUser));
+        return;
+      }
+
+      // 2. Fall back to live server check (useful for OAuth redirects)
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (data && data.user) {
+          const { data: profiles } = await supabase.from('profiles').select('*').eq('id', data.user.id);
+          const profile = profiles && profiles[0];
+
+          const finalProfile = profile || {
+            id: data.user.id,
+            full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Google User',
+            role: 'admin', // Default access role
+            facility_id: 'f1'
+          };
+
+          // If the profile document doesn't exist yet (new OAuth user), provision it
+          if (!profile) {
+            await supabase.from('profiles').insert({
+              id: finalProfile.id,
+              full_name: finalProfile.full_name,
+              role: finalProfile.role,
+              facility_id: finalProfile.facility_id
+            });
+          }
+
+          const loggedUserObj = {
+            id: data.user.id,
+            full_name: finalProfile.full_name,
+            role: finalProfile.role,
+            facility_id: finalProfile.facility_id,
+            facility_name: 'Egesa Medical Clinic'
+          };
+
+          sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUserObj));
+          setUser(loggedUserObj);
+        }
+      } catch (err) {
+        console.error('Session retrieval failed:', err);
+      }
+    };
+
+    checkActiveSession();
   }, []);
 
   const handleLoginSuccess = (userData) => {

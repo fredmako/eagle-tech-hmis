@@ -547,6 +547,28 @@ const appwriteAuth = {
     }
   },
 
+  signInWithGoogle: async () => {
+    if (isRealAppwrite) {
+      try {
+        const successUrl = window.location.origin;
+        const failureUrl = window.location.origin;
+        account.createOAuth2Session('google', successUrl, failureUrl);
+        return { error: null };
+      } catch (err) {
+        return { error: err.message };
+      }
+    } else {
+      // Mock Google Login in Sandbox Mode - logs in as Admin
+      const db = loadMockDB();
+      const user = db.profiles.find(u => u.role === 'admin');
+      if (user) {
+        sessionStorage.setItem('egesa_health_active_user', JSON.stringify(user));
+        return { data: { user: { id: user.id, email: 'google.admin@egesa.com', user_metadata: { full_name: user.full_name, role: user.role } } }, error: null };
+      }
+      return { error: 'Sandbox Admin profile not found' };
+    }
+  },
+
   getUser: async () => {
     if (isRealAppwrite) {
       try {

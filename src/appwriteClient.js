@@ -176,7 +176,7 @@ const getInitialMockData = () => {
       consent_given: true,
       created_at: new Date(Date.now() - 3600000 * 4).toISOString()
     }
-  ];Block;
+  ];
 
   const defaultVisits = [
     {

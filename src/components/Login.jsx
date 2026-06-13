@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../appwriteClient';
+import { useAuth } from '../context/AuthContext';
 import { sendNotification, getSmtpConfig } from '../notificationService';
 import { Activity, ShieldAlert, CheckCircle, UserPlus, Clock, LogOut, UserCheck } from 'lucide-react';
 
 export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLanding }) {
+  const { login, signup, logout, submitRoleRequest } = useAuth();
   const [facilities, setFacilities] = useState([]);
   const [selectedFacility, setSelectedFacility] = useState('');
   const [email, setEmail] = useState('');
@@ -177,58 +179,20 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     setError('');
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-
-      if (error) throw new Error(error);
-
+      const result = await login(email, password);
       // Reset failed attempts on success
       setFailedAttempts(0);
 
-      // Successfully logged in
-      if (data && data.user) {
-        // Retrieve local profile info
-        const { data: profiles, error: profErr } = await supabase.from('profiles').select('*').eq('id', data.user.id);
-        if (profErr) throw profErr;
-        
-        const profile = profiles && profiles[0];
-
-        if (profile) {
-          // Profile exists! Navigate directly using approved role and facility context
-          const activeFac = facilities.find(f => f.id === profile.facility_id);
-          const loggedUser = {
-            id: data.user.id,
-            full_name: profile.full_name || data.user.user_metadata?.full_name || 'Healthcare Worker',
-            role: profile.role || 'receptionist',
-            facility_id: profile.facility_id,
-            facility_name: activeFac?.name || 'Default Facility',
-            facility_logo: activeFac?.logo_url || null
-          };
-          
-          sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUser));
-          onLoginSuccess(loggedUser);
-        } else {
-          // No profile configured! Check for pending role request
-          const { data: requests, error: reqErr } = await supabase.from('role_requests').select('*').eq('user_id', data.user.id);
-          if (reqErr) throw reqErr;
-
-          const pendingReq = requests && requests.find(r => r.status === 'pending');
-
-          setTempUser(data.user);
-          setHasNoProfile(true);
-          setRequestName(data.user.user_metadata?.full_name || '');
-          if (facilities.length > 0) {
-            setRequestFacility(facilities[0].id);
-          }
-
-          if (pendingReq) {
-            setPendingRequest(pendingReq);
-          } else {
-            setPendingRequest(null);
-          }
+      if (result.status === 'no_profile') {
+        setTempUser(result.user);
+        setHasNoProfile(true);
+        setRequestName(result.user.name || '');
+        if (facilities.length > 0) {
+          setRequestFacility(facilities[0].id);
         }
+        setPendingRequest(result.pendingRequest || null);
+      } else if (result.status === 'success') {
+        onLoginSuccess(result.user);
       }
     } catch (err) {
       const nextFailCount = failedAttempts + 1;
@@ -264,24 +228,13 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     setError('');
 
     try {
-      const { error: signupErr } = await supabase.auth.signUp({
-        email: signUpEmail,
-        password: signUpPassword,
-        name: signUpName
-      });
-
-      if (signupErr) throw new Error(signupErr);
+      await signup(signUpEmail, signUpPassword, signUpName);
 
       // Auto login user after signing up
-      const { data: loginData, error: loginErr } = await supabase.auth.signInWithPassword({
-        email: signUpEmail,
-        password: signUpPassword
-      });
+      const result = await login(signUpEmail, signUpPassword);
 
-      if (loginErr) throw loginErr;
-
-      if (loginData && loginData.user) {
-        setTempUser(loginData.user);
+      if (result.status === 'no_profile') {
+        setTempUser(result.user);
         setHasNoProfile(true);
         setRequestName(signUpName);
         if (facilities.length > 0) {
@@ -309,20 +262,13 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     setRequestSuccess('');
 
     try {
-      const randId = Math.random().toString(36).substring(2, 15);
-      const newRequest = {
-        id: randId,
-        user_id: tempUser.id,
-        email: tempUser.email,
-        full_name: requestName.trim(),
-        facility_id: requestFacility,
-        requested_role: requestRole,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      };
-
-      const { error: reqErr } = await supabase.from('role_requests').insert(newRequest);
-      if (reqErr) throw reqErr;
+      const newRequest = await submitRoleRequest(
+        tempUser.id,
+        requestName.trim(),
+        tempUser.email,
+        requestFacility,
+        requestRole
+      );
 
       setPendingRequest(newRequest);
       setRequestSuccess('Operational role request successfully submitted! Pending administrator approval.');
@@ -336,7 +282,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
   const handleLogoutRequestScreen = async () => {
     setLoading(true);
     try {
-      await supabase.auth.signOut();
+      logout();
       // Clear session states
       setTempUser(null);
       setHasNoProfile(false);

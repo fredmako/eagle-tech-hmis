@@ -14,6 +14,11 @@ export default function Billing({ user, onComplete }) {
   
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  const [mpesaPhone, setMpesaPhone] = useState('');
+  const [checkoutId, setCheckoutId] = useState('');
+  const [mpesaStatus, setMpesaStatus] = useState(''); // '', 'sent', 'paid', 'failed'
+  const [isSimulated, setIsSimulated] = useState(false);
   
   // Receipt print view trigger
   const [showReceipt, setShowReceipt] = useState(false);
@@ -64,7 +69,7 @@ export default function Billing({ user, onComplete }) {
       setOrders(ords || []);
       
       if (activeInvoice) {
-        setAmountPaid(activeInvoice.total_amount.toString());
+        setAmountPaid((parseFloat(activeInvoice.total_amount) + 350).toString());
       }
     } catch (err) {
       console.error('Error loading billing records:', err);
@@ -75,49 +80,127 @@ export default function Billing({ user, onComplete }) {
     e.preventDefault();
     if (!selectedVisit || !invoice) return;
 
-    const paidVal = parseFloat(amountPaid);
-    if (isNaN(paidVal) || paidVal < invoice.total_amount) {
-      setMessage({ type: 'error', text: `Please enter full invoice payment of ${invoice.total_amount}/-.` });
-      return;
-    }
+    const paidVal = parseFloat(amountPaid || (parseFloat(invoice.total_amount) + 350));
 
     setLoading(true);
     setMessage({ type: '', text: '' });
 
     try {
-      // 1. Update invoice to paid
-      const { error: invErr } = await supabase.from('invoices').update({
-        amount_paid: paidVal,
-        status: 'paid',
-        payment_method: paymentMethod
-      }).eq('id', invoice.id);
+      if (paymentMethod === 'mpesa') {
+        if (!mpesaPhone.trim()) {
+          setMessage({ type: 'error', text: 'M-Pesa phone number is required.' });
+          setLoading(false);
+          return;
+        }
 
-      if (invErr) throw invErr;
+        // Trigger STK Push via backend API
+        const response = await fetch('http://localhost:5000/api/mpesa/stkpush', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: mpesaPhone,
+            amount: paidVal,
+            reference: invoice.id
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'M-Pesa STK Push request failed');
+        }
 
-      // 2. Redirect patient to Pharmacy queue to collect drugs
-      // If there are prescription items ordered, redirect to pharmacy.
-      // If no drugs were ordered, complete visit.
-      const hasPrescriptions = orders.some(o => o.type === 'prescription');
-      const nextDept = hasPrescriptions ? 'pharmacy' : 'completed';
+        setCheckoutId(data.CheckoutRequestID);
+        setIsSimulated(!!data.simulated);
+        setMpesaStatus('sent');
+        setMessage({ type: 'success', text: 'M-Pesa prompt sent to phone successfully!' });
+      } else {
+        // Standard Manual Flow (Cash or Insurance)
+        if (isNaN(paidVal) || paidVal < (parseFloat(invoice.total_amount) + 350)) {
+          setMessage({ type: 'error', text: `Please enter full invoice payment of ${(parseFloat(invoice.total_amount) + 350).toFixed(2)}/-.` });
+          setLoading(false);
+          return;
+        }
 
-      const { error: visitErr } = await supabase.from('visits').update({
-        department: nextDept,
-        status: nextDept === 'completed' ? 'completed' : 'waiting'
-      }).eq('id', selectedVisit.id);
+        const { error: invErr } = await supabase.from('invoices').update({
+          amount_paid: paidVal,
+          status: 'paid',
+          payment_method: paymentMethod
+        }).eq('id', invoice.id);
 
-      if (visitErr) throw visitErr;
+        if (invErr) throw invErr;
 
-      setMessage({ type: 'success', text: 'Invoice payment recorded successfully!' });
-      setShowReceipt(true);
+        // Redirect patient to Pharmacy queue or Complete
+        const hasPrescriptions = orders.some(o => o.type === 'prescription');
+        const nextDept = hasPrescriptions ? 'pharmacy' : 'completed';
 
-      // Log invoice payment
-      await supabase.from('audit_logs').insert({
-        action: 'Invoice Settlement',
-        details: `Recorded payment of ${paidVal}/- via ${paymentMethod.toUpperCase()} for patient ${selectedVisit.patient?.name}`
-      });
+        const { error: visitErr } = await supabase.from('visits').update({
+          department: nextDept,
+          status: nextDept === 'completed' ? 'completed' : 'waiting'
+        }).eq('id', selectedVisit.id);
 
+        if (visitErr) throw visitErr;
+
+        setMessage({ type: 'success', text: 'Invoice payment recorded successfully!' });
+        setShowReceipt(true);
+
+        // Log invoice payment
+        await supabase.from('audit_logs').insert({
+          action: 'Invoice Settlement',
+          details: `Recorded payment of ${paidVal}/- via ${paymentMethod.toUpperCase()} for patient ${selectedVisit.patient?.name}`
+        });
+      }
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Billing error.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckMpesaStatus = async () => {
+    setLoading(true);
+    try {
+      const { data: invs } = await supabase.from('invoices').select('*').eq('id', invoice.id);
+      const inv = invs && invs[0];
+      if (inv && inv.status === 'paid') {
+        // Payment was recorded! Let's update the visit department
+        const hasPrescriptions = orders.some(o => o.type === 'prescription');
+        const nextDept = hasPrescriptions ? 'pharmacy' : 'completed';
+
+        await supabase.from('visits').update({
+          department: nextDept,
+          status: nextDept === 'completed' ? 'completed' : 'waiting'
+        }).eq('id', selectedVisit.id);
+
+        // Refresh active invoice state
+        setInvoice(inv);
+        setMpesaStatus('paid');
+        setShowReceipt(true);
+        setMessage({ type: 'success', text: 'Payment confirmed successfully!' });
+      } else {
+        setMessage({ type: 'error', text: 'Payment confirmation not found yet. Please try again in a moment.' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Error checking payment status.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSimulateMpesaSuccess = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/mpesa/simulate-success', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ CheckoutRequestID: checkoutId })
+      });
+      if (res.ok) {
+        // Check status immediately
+        await handleCheckMpesaStatus();
+      } else {
+        setMessage({ type: 'error', text: 'Failed to simulate payment success.' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Simulation request error.' });
     } finally {
       setLoading(false);
     }
@@ -432,7 +515,43 @@ export default function Billing({ user, onComplete }) {
               </div>
             )}
 
-            {showReceipt ? (
+            {mpesaStatus === 'sent' ? (
+              /* M-Pesa STK Pending Status Card */
+              <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4 text-center">
+                <div className="flex justify-center">
+                  <div className="h-10 w-10 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-200">M-Pesa STK Prompt Sent</h4>
+                  <p className="text-xs text-slate-500 mt-1">Please enter your M-Pesa PIN on your phone to approve payment of <strong>KES {(parseFloat(invoice?.total_amount || 0) + 350).toFixed(2)}</strong>.</p>
+                  <p className="text-[10px] text-slate-600 font-mono mt-1">Checkout ID: {checkoutId}</p>
+                </div>
+                <div className="flex flex-col gap-2 pt-2">
+                  <button
+                    onClick={handleCheckMpesaStatus}
+                    className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg shadow transition"
+                  >
+                    Confirm Payment Received
+                  </button>
+                  
+                  {isSimulated && (
+                    <button
+                      onClick={handleSimulateMpesaSuccess}
+                      className="w-full bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 font-semibold text-xs py-2 px-4 rounded-lg transition"
+                    >
+                      🧪 Simulate Successful Payment Result
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={() => setMpesaStatus('')}
+                    className="w-full text-slate-550 hover:text-white text-xs font-semibold"
+                  >
+                    Cancel / Back to Payment Forms
+                  </button>
+                </div>
+              </div>
+            ) : showReceipt ? (
               /* Receipt Print View */
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 relative overflow-hidden">
                 {/* PAID Watermark */}
@@ -547,18 +666,31 @@ export default function Billing({ user, onComplete }) {
                     </select>
                   </div>
 
-                  {/* Cash Amount Paid */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Amount Received (KSH) *</label>
-                    <input
-                      type="number"
-                      value={amountPaid}
-                      onChange={(e) => setAmountPaid(e.target.value)}
-                      placeholder="e.g. 1000"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
-                      required
-                    />
-                  </div>
+                  {paymentMethod === 'mpesa' ? (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">M-Pesa Mobile Number *</label>
+                      <input
+                        type="text"
+                        value={mpesaPhone}
+                        onChange={(e) => setMpesaPhone(e.target.value)}
+                        placeholder="e.g. 254712345678 or 0712345678"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
+                        required
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Amount Received (KSH) *</label>
+                      <input
+                        type="number"
+                        value={amountPaid}
+                        onChange={(e) => setAmountPaid(e.target.value)}
+                        placeholder="e.g. 1000"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
+                        required
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">

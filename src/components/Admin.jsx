@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../appwriteClient';
+import { useAuth } from '../context/AuthContext';
 import { 
   sendNotification, 
   getSmtpConfig, 
@@ -32,6 +33,7 @@ import {
 } from 'lucide-react';
 
 export default function Admin({ user }) {
+  const { authFetch } = useAuth();
   const [activeSubTab, setActiveSubTab] = useState('audit'); // 'audit', 'smtp_settings', 'email_logs', 'licensing', 'role_requests'
   const [auditLogs, setAuditLogs] = useState([]);
   const [usersList, setUsersList] = useState([]);
@@ -94,13 +96,19 @@ export default function Admin({ user }) {
         setFacilityDetails({ name: activeFac.name, code: activeFac.code });
       }
 
-      // Fetch role requests for this facility
-      const { data: reqs } = await supabase
-        .from('role_requests')
-        .select('*')
-        .eq('facility_id', user.facility_id)
-        .order('created_at', { ascending: false });
-      setRoleRequests(reqs || []);
+      // Fetch role requests for this facility from backend
+      try {
+        const res = await authFetch('/auth/role-requests');
+        const data = await res.json();
+        if (res.ok && data.requests) {
+          setRoleRequests(data.requests);
+        } else {
+          setRoleRequests([]);
+        }
+      } catch (reqErr) {
+        console.error('Error fetching role requests:', reqErr);
+        setRoleRequests([]);
+      }
 
       // Refresh email logs
       setEmailLogs(getEmailLogs(user.facility_id));
@@ -115,28 +123,12 @@ export default function Admin({ user }) {
     setRequestsLoading(true);
     setRequestsMessage('');
     try {
-      // 1. Create user profile in profiles
-      const newProfile = {
-        id: req.user_id,
-        full_name: req.full_name,
-        role: req.requested_role,
-        facility_id: user.facility_id
-      };
-
-      const { error: profErr } = await supabase.from('profiles').insert(newProfile);
-      if (profErr) throw profErr;
-
-      // 2. Update status of request to 'approved'
-      const { error: reqErr } = await supabase.from('role_requests').update({ status: 'approved' }).eq('id', req.id);
-      if (reqErr) throw reqErr;
-
-      // 3. Log to audit trail
-      await supabase.from('audit_logs').insert({
-        facility_id: user.facility_id,
-        user_id: user.id,
-        action: 'Approve Role Request',
-        details: `Approved role request for ${req.full_name} (${req.email}) to join as ${req.requested_role.toUpperCase()}.`
+      const res = await authFetch('/auth/approve-request', {
+        method: 'POST',
+        body: JSON.stringify({ request_id: req.id })
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Approval failed');
 
       // TRIGGER EMAIL: send welcome email dynamically to the approved user
       const loginLink = `${window.location.origin}${window.location.pathname}`;
@@ -160,17 +152,12 @@ export default function Admin({ user }) {
     setRequestsLoading(true);
     setRequestsMessage('');
     try {
-      // Update request status to 'rejected'
-      const { error: reqErr } = await supabase.from('role_requests').update({ status: 'rejected' }).eq('id', req.id);
-      if (reqErr) throw reqErr;
-
-      // Log to audit trail
-      await supabase.from('audit_logs').insert({
-        facility_id: user.facility_id,
-        user_id: user.id,
-        action: 'Reject Role Request',
-        details: `Rejected role request for ${req.full_name} (${req.email}) to join as ${req.requested_role.toUpperCase()}.`
+      const res = await authFetch('/auth/reject-request', {
+        method: 'POST',
+        body: JSON.stringify({ request_id: req.id })
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Rejection failed');
 
       setRequestsMessage(`Rejected role request for ${req.full_name}.`);
       fetchAdminData();

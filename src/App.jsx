@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './appwriteClient';
+import { useAuth } from './context/AuthContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Registration from './components/Registration';
@@ -38,7 +39,7 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const { user, logout, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [preselectedPatient, setPreselectedPatient] = useState(null);
   const [publicView, setPublicView] = useState('landing'); // 'landing', 'login', 'signup'
@@ -113,75 +114,12 @@ export default function App() {
     );
   };
 
-  useEffect(() => {
-    const checkActiveSession = async () => {
-      // 1. Try quick local session cache first
-      const loggedUser = sessionStorage.getItem('egesa_health_active_user');
-      if (loggedUser) {
-        setUser(JSON.parse(loggedUser));
-        return;
-      }
-
-      // 2. Fall back to live server check (useful for OAuth redirects)
-      try {
-        const { data, error } = await supabase.auth.getUser();
-        if (data && data.user) {
-          const { data: profiles } = await supabase.from('profiles').select('*').eq('id', data.user.id);
-          const profile = profiles && profiles[0];
-
-          const pendingFacilityId = sessionStorage.getItem('egesa_health_pending_facility') || 'f1';
-          sessionStorage.removeItem('egesa_health_pending_facility');
-
-          const finalProfile = profile || {
-            id: data.user.id,
-            full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Google User',
-            role: 'admin', // Default access role
-            facility_id: pendingFacilityId
-          };
-
-          // If the profile document doesn't exist yet (new OAuth user), provision it
-          if (!profile) {
-            await supabase.from('profiles').insert({
-              id: finalProfile.id,
-              full_name: finalProfile.full_name,
-              role: finalProfile.role,
-              facility_id: finalProfile.facility_id
-            });
-          }
-
-          // Fetch facility name and logo dynamically
-          const { data: facs } = await supabase.from('facilities').select('*').eq('id', finalProfile.facility_id);
-          const activeFac = facs && facs[0];
-
-          const loggedUserObj = {
-            id: data.user.id,
-            full_name: finalProfile.full_name,
-            role: finalProfile.role,
-            facility_id: finalProfile.facility_id,
-            facility_name: activeFac ? activeFac.name : 'Default Facility',
-            facility_logo: activeFac ? activeFac.logo_url : null
-          };
-
-          sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUserObj));
-          setUser(loggedUserObj);
-        }
-      } catch (err) {
-        console.error('Session retrieval failed:', err);
-      }
-    };
-
-    checkActiveSession();
-  }, []);
-
   const handleLoginSuccess = (userData) => {
-    setUser(userData);
     setActiveTab('dashboard');
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    sessionStorage.removeItem('egesa_health_active_user');
+  const handleSignOut = () => {
+    logout();
   };
 
   const handleNavigateToQueue = (patient) => {
@@ -192,6 +130,23 @@ export default function App() {
   const clearPreselected = () => {
     setPreselectedPatient(null);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 p-2.5 rounded-xl shadow-lg shadow-teal-500/10">
+            <Activity size={32} className="animate-pulse" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-white tracking-wide uppercase">EAGLE TECH</h1>
+            <p className="text-[10px] text-teal-400 font-bold tracking-widest uppercase">HMIS SOFTWARE SOLUTIONS</p>
+          </div>
+        </div>
+        <div className="h-5 w-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (!user) {
     const publicContent = (() => {

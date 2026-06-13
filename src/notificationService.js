@@ -507,27 +507,74 @@ export const sendNotification = async (event, payload, facilityId = null) => {
 
   const performSend = async (currentAttempt) => {
     try {
-      // Simulate network delay
-      await new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-          // 5% chance of timeout failure to test retries, 95% success
-          if (Math.random() < 0.08) {
-            reject(new Error('SMTP connection timed out or socket closed.'));
-          } else {
-            resolve();
-          }
-        }, 300); // quick simulation delay
-      });
+      let messageId = null;
 
-      // Update log to sent
-      updateEmailLogStatus(logId, 'sent', { retry_count: currentAttempt });
+      if (supabase.isSandbox) {
+        // Simulate network delay
+        await new Promise((resolve, reject) => {
+          setTimeout(() => {
+            // 5% chance of timeout failure to test retries, 95% success
+            if (Math.random() < 0.08) {
+              reject(new Error('SMTP connection timed out or socket closed.'));
+            } else {
+              resolve();
+            }
+          }, 300); // quick simulation delay
+        });
+
+        // Update log to sent
+        updateEmailLogStatus(logId, 'sent', { retry_count: currentAttempt });
+      } else {
+        // Real outbound dispatch via Appwrite Serverless Function
+        const invokeRes = await supabase.functions.invoke('send-email', {
+          smtpConfig: {
+            host: smtp.host,
+            port: smtp.port,
+            encryption: smtp.encryption,
+            username: smtp.username,
+            password: smtp.password,
+            sender_email: smtp.sender_email,
+            sender_name: smtp.sender_name
+          },
+          emailDetails: {
+            recipient,
+            subject,
+            body
+          }
+        });
+
+        if (invokeRes.error) {
+          throw new Error(invokeRes.error);
+        }
+
+        const resBody = invokeRes.data?.responseBody;
+        let parsed = {};
+        try {
+          parsed = typeof resBody === 'string' ? JSON.parse(resBody) : resBody;
+        } catch (e) {
+          parsed = { success: false, error: 'Failed to parse function execution response body: ' + resBody };
+        }
+
+        // Check response code and parsed response status
+        if (invokeRes.data?.statusCode !== 200 || !parsed.success) {
+          throw new Error(parsed.error || `Serverless Function returned HTTP ${invokeRes.data?.statusCode}`);
+        }
+
+        messageId = parsed.messageId || null;
+
+        // Update log to sent with real message ID
+        updateEmailLogStatus(logId, 'sent', { 
+          retry_count: currentAttempt, 
+          message_id: messageId
+        });
+      }
 
       // Log success in audit trail
       await supabase.from('audit_logs').insert({
         facility_id: finalFacId,
         user_id: 'system',
         action: 'Email Dispatch Success',
-        details: `Successfully sent email "${subject}" to ${recipient} via Titan SMTP (${smtp.host}).`
+        details: `Successfully sent email "${subject}" to ${recipient} via Titan SMTP (${smtp.host}).${messageId ? ` Message ID: ${messageId}` : ''}`
       });
 
       return { success: true };
@@ -535,16 +582,23 @@ export const sendNotification = async (event, payload, facilityId = null) => {
       console.warn(`SMTP send attempt ${currentAttempt + 1} failed: ${err.message}`);
       
       if (currentAttempt < maxRetries - 1) {
-        // Increment retry and call again (simulated linear backoff)
+        // Increment retry and call again
         updateEmailLogStatus(logId, 'queued', { retry_count: currentAttempt + 1, error_message: err.message });
+        
+        // Wait a bit before retry (backoff)
+        await new Promise(r => setTimeout(r, (currentAttempt + 1) * 1000));
         return await performSend(currentAttempt + 1);
       } else {
         // Mark as failed/bounced
-        const isBounce = Math.random() < 0.3; // 30% of permanent failures are bounces
+        // For real SMTP, we classify permanent failure based on error signature (e.g. invalid recipient status codes)
+        const isBounce = supabase.isSandbox 
+          ? (Math.random() < 0.3)
+          : (err.message.includes('550') || err.message.toLowerCase().includes('recipient address rejected') || err.message.toLowerCase().includes('does not exist'));
+
         const finalStatus = isBounce ? 'bounced' : 'failed';
         updateEmailLogStatus(logId, finalStatus, { 
           retry_count: currentAttempt, 
-          error_message: isBounce ? 'Address rejected. Recipient inbox does not exist.' : err.message 
+          error_message: isBounce ? 'Address rejected. Recipient inbox does not exist. (SMTP 550)' : err.message 
         });
 
         // Log failure in audit trail

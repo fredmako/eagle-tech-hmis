@@ -1,0 +1,10 @@
+{
+  "name": "send-email",
+  "version": "1.0.0",
+  "description": "Appwrite Serverless Function for secure dynamic SMTP email dispatch",
+  "main": "src/main.js",
+  "type": "module",
+  "dependencies": {
+    "nodemailer": "^6.9.13"
+  }
+}

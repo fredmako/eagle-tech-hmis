@@ -1,4 +1,4 @@
-import { Client, Databases, ID, Query, Account, Functions } from 'appwrite';
+import { Client, ID, Account } from 'appwrite';
 
 const endpoint = import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1';
 const projectId = import.meta.env.VITE_APPWRITE_PROJECT_ID;
@@ -8,16 +8,12 @@ const isRealAppwrite = projectId && projectId.trim() !== '';
 
 // Initialize Appwrite Client if credentials exist
 let client = null;
-let databases = null;
 let account = null;
-let functions = null;
 
 if (isRealAppwrite) {
   client = new Client();
   client.setEndpoint(endpoint).setProject(projectId);
-  databases = new Databases(client);
   account = new Account(client);
-  functions = new Functions(client);
 }
 
 // --- Local Storage Sandbox Database Engine (Fallback) ---
@@ -596,6 +592,8 @@ class AppwriteQueryBuilder {
   constructor(tableName) {
     this.tableName = tableName;
     this.queries = [];
+    this.orderByField = null;
+    this.orderByAsc = true;
   }
 
   select(columns = '*') {
@@ -603,37 +601,42 @@ class AppwriteQueryBuilder {
   }
 
   eq(column, value) {
-    const targetCol = column === 'id' ? '$id' : (column === 'created_at' ? '$createdAt' : column);
-    this.queries.push(Query.equal(targetCol, value));
+    this.queries.push({ type: 'equal', column, value });
     return this;
   }
 
   order(column, { ascending = true } = {}) {
-    const targetCol = column === 'id' ? '$id' : (column === 'created_at' ? '$createdAt' : column);
-    this.queries.push(ascending ? Query.orderAsc(targetCol) : Query.orderDesc(targetCol));
+    this.orderByField = column;
+    this.orderByAsc = ascending;
     return this;
   }
 
   async then(resolve) {
     try {
-      const globalTables = ['facilities', 'profiles'];
-      const activeFacId = getActiveFacilityId();
+      const token = localStorage.getItem('egesa_health_token');
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       
-      if (!globalTables.includes(this.tableName) && activeFacId) {
-        // Appwrite query lists contain strings. We check if facility_id filter is already added
-        const hasFacilityFilter = this.queries.some(q => q && q.includes && q.includes('facility_id'));
-        if (!hasFacilityFilter) {
-          this.queries.push(Query.equal('facility_id', activeFacId));
-        }
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
-
-      const response = await databases.listDocuments(databaseId, this.tableName, this.queries);
-      const data = response.documents.map(doc => ({
-        id: doc.$id,
-        created_at: doc.$createdAt,
-        ...doc
-      }));
-      resolve({ data, error: null });
+      
+      const res = await fetch(`${backendUrl}/db/query`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          table: this.tableName,
+          queries: this.queries,
+          orderByField: this.orderByField,
+          orderByAsc: this.orderByAsc
+        })
+      });
+      
+      const resData = await res.json();
+      if (!res.ok) {
+        throw new Error(resData.error || 'Database query failed');
+      }
+      resolve({ data: resData.data, error: null });
     } catch (err) {
       resolve({ data: null, error: err.message });
     }
@@ -657,44 +660,30 @@ class QueryTable {
 
   insert(rows) {
     if (isRealAppwrite) {
-      const dataRows = Array.isArray(rows) ? rows : [rows];
-      const activeFacId = getActiveFacilityId();
-
-      const insertPromises = dataRows.map(async (row) => {
-        // Remove system fields to prevent Appwrite attribute schema validation errors
-        const { id, created_at, $id, $createdAt, ...cleanData } = row;
-        
-        // Auto-inject facility_id for tenant tables
-        const globalTables = ['facilities', 'profiles'];
-        if (!globalTables.includes(this.tableName) && activeFacId && !cleanData.facility_id) {
-          cleanData.facility_id = activeFacId;
-        }
-
-        const docId = id || (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15));
-        const response = await databases.createDocument(databaseId, this.tableName, docId, cleanData);
-        return {
-          id: response.$id,
-          created_at: response.$createdAt,
-          ...response
-        };
-      });
-
       const execute = async () => {
         try {
-          const results = await Promise.all(insertPromises);
+          const token = localStorage.getItem('egesa_health_token');
+          const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
           
-          // Audit Log Hook (for audit trail)
-          if (this.tableName !== 'audit_logs') {
-            const activeUser = JSON.parse(sessionStorage.getItem('egesa_health_active_user') || 'null');
-            await databases.createDocument(databaseId, 'audit_logs', ID.unique(), {
-              facility_id: activeUser?.facility_id || 'f1',
-              user_id: activeUser?.id || 'system',
-              action: `Insert: ${this.tableName}`,
-              details: `Inserted data into ${this.tableName}`
-            });
+          const headers = { 'Content-Type': 'application/json' };
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
           }
-
-          return { data: Array.isArray(rows) ? results : results[0], error: null };
+          
+          const res = await fetch(`${backendUrl}/db/insert`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              table: this.tableName,
+              rows
+            })
+          });
+          
+          const resData = await res.json();
+          if (!res.ok) {
+            throw new Error(resData.error || 'Insert failed');
+          }
+          return { data: resData.data, error: null };
         } catch (err) {
           return { data: null, error: err.message };
         }
@@ -757,44 +746,30 @@ class QueryTable {
         eq: (column, value) => {
           const executeUpdate = async () => {
             try {
-              const targetCol = column === 'id' ? '$id' : (column === 'created_at' ? '$createdAt' : column);
-              const activeFacId = getActiveFacilityId();
-              const globalTables = ['facilities', 'profiles'];
-
-              const updateQueries = [Query.equal(targetCol, value)];
-              if (!globalTables.includes(this.tableName) && activeFacId) {
-                updateQueries.push(Query.equal('facility_id', activeFacId));
-              }
-
-              const response = await databases.listDocuments(databaseId, this.tableName, updateQueries);
-              if (response.documents.length === 0) {
-                return { data: [], error: 'Document not found or access denied' };
+              const token = localStorage.getItem('egesa_health_token');
+              const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+              
+              const headers = { 'Content-Type': 'application/json' };
+              if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
               }
               
-              // Remove system fields to prevent Appwrite attribute validation errors during update
-              const { id, created_at, $id, $createdAt, ...cleanValues } = values;
+              const res = await fetch(`${backendUrl}/db/update`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                  table: this.tableName,
+                  column,
+                  value,
+                  values
+                })
+              });
               
-              const updatePromises = response.documents.map(async (doc) => {
-                const updated = await databases.updateDocument(databaseId, this.tableName, doc.$id, cleanValues);
-                return {
-                  id: updated.$id,
-                  created_at: updated.$createdAt,
-                  ...updated
-                };
-              });
-
-              const results = await Promise.all(updatePromises);
-
-              // Log audit log
-              const activeUser = JSON.parse(sessionStorage.getItem('egesa_health_active_user') || 'null');
-              await databases.createDocument(databaseId, 'audit_logs', ID.unique(), {
-                facility_id: activeUser?.facility_id || 'f1',
-                user_id: activeUser?.id || 'system',
-                action: `Update: ${this.tableName}`,
-                details: `Updated ${this.tableName} where ${column} = ${value}`
-              });
-
-              return { data: results, error: null };
+              const resData = await res.json();
+              if (!res.ok) {
+                throw new Error(resData.error || 'Update failed');
+              }
+              return { data: resData.data, error: null };
             } catch (err) {
               return { data: null, error: err.message };
             }
@@ -851,29 +826,28 @@ class QueryTable {
         eq: (column, value) => {
           const executeDelete = async () => {
             try {
-              const targetCol = column === 'id' ? '$id' : (column === 'created_at' ? '$createdAt' : column);
-              const activeFacId = getActiveFacilityId();
-              const globalTables = ['facilities', 'profiles'];
-
-              const deleteQueries = [Query.equal(targetCol, value)];
-              if (!globalTables.includes(this.tableName) && activeFacId) {
-                deleteQueries.push(Query.equal('facility_id', activeFacId));
+              const token = localStorage.getItem('egesa_health_token');
+              const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+              
+              const headers = { 'Content-Type': 'application/json' };
+              if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
               }
-
-              const response = await databases.listDocuments(databaseId, this.tableName, deleteQueries);
-              const deletePromises = response.documents.map(doc => 
-                databases.deleteDocument(databaseId, this.tableName, doc.$id)
-              );
-              await Promise.all(deletePromises);
-
-              const activeUser = JSON.parse(sessionStorage.getItem('egesa_health_active_user') || 'null');
-              await databases.createDocument(databaseId, 'audit_logs', ID.unique(), {
-                facility_id: activeUser?.facility_id || 'f1',
-                user_id: activeUser?.id || 'system',
-                action: `Delete: ${this.tableName}`,
-                details: `Deleted from ${this.tableName} where ${column} = ${value}`
+              
+              const res = await fetch(`${backendUrl}/db/delete`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                  table: this.tableName,
+                  column,
+                  value
+                })
               });
-
+              
+              const resData = await res.json();
+              if (!res.ok) {
+                throw new Error(resData.error || 'Delete failed');
+              }
               return { data: null, error: null };
             } catch (err) {
               return { data: null, error: err.message };
@@ -1043,13 +1017,22 @@ const appwriteAuth = {
   signUp: async ({ email, password, name }) => {
     if (isRealAppwrite) {
       try {
-        const response = await account.create(ID.unique(), email, password, name);
+        const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const res = await fetch(`${backendUrl}/auth/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, name })
+        });
+        const resData = await res.json();
+        if (!res.ok) {
+          throw new Error(resData.error || 'Registration failed');
+        }
         return {
           data: {
             user: {
-              id: response.$id,
-              email: response.email,
-              user_metadata: { full_name: name }
+              id: resData.user.id,
+              email: resData.user.email,
+              user_metadata: { full_name: resData.user.name }
             }
           },
           error: null
@@ -1078,25 +1061,29 @@ export const supabase = {
     invoke: async (functionName, payload) => {
       if (isRealAppwrite) {
         try {
-          // Map abstract function names to real deployed Appwrite Function IDs via env variables
-          let functionId = functionName;
-          if (functionName === 'send-email') {
-            functionId = import.meta.env.VITE_APPWRITE_FUNCTION_SEND_EMAIL || 'send-email';
-          } else if (functionName === 'google-oauth-exchange') {
-            functionId = import.meta.env.VITE_APPWRITE_FUNCTION_GOOGLE_OAUTH_EXCHANGE || 'google-oauth-exchange';
-          } else if (functionName === 'generate-report-excel') {
-            functionId = import.meta.env.VITE_APPWRITE_FUNCTION_GENERATE_REPORT_EXCEL || 'generate-report-excel';
+          const token = localStorage.getItem('egesa_health_token');
+          const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          
+          const headers = { 'Content-Type': 'application/json' };
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
           }
 
-          const execution = await functions.createExecution(
-            functionId,
-            JSON.stringify(payload)
-          );
+          const res = await fetch(`${backendUrl}/functions/invoke`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              name: functionName,
+              payload
+            })
+          });
+          
+          const resData = await res.json();
+          if (!res.ok) {
+            throw new Error(resData.error || 'Function execution failed');
+          }
           return {
-            data: {
-              responseBody: execution.responseBody,
-              statusCode: execution.statusCode
-            },
+            data: resData.data,
             error: null
           };
         } catch (err) {

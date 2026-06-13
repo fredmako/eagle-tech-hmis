@@ -27,6 +27,7 @@ const isRealAppwrite = process.env.VITE_APPWRITE_PROJECT_ID && process.env.VITE_
 let appwriteClient = null;
 let appwriteDatabases = null;
 let appwriteUsers = null;
+let appwriteFunctions = null;
 
 if (isRealAppwrite) {
   console.log('Backend running in Real Appwrite Mode connecting to:', process.env.VITE_APPWRITE_ENDPOINT);
@@ -37,6 +38,7 @@ if (isRealAppwrite) {
   
   appwriteDatabases = new sdk.Databases(appwriteClient);
   appwriteUsers = new sdk.Users(appwriteClient);
+  appwriteFunctions = new sdk.Functions(appwriteClient);
 } else {
   console.log('Backend running in Local Sandbox Simulation Mode (sandbox_db.json)');
 }
@@ -104,7 +106,7 @@ const saveSandboxDB = (data) => {
 
 // Unified Database Helpers
 const db = {
-  getDocuments: async (tableName, queries = []) => {
+  getDocuments: async (tableName, queries = [], orderByField = null, orderByAsc = true) => {
     if (isRealAppwrite) {
       const dbId = process.env.VITE_APPWRITE_DATABASE_ID || 'egesa_health';
       // Map basic query mappings
@@ -112,6 +114,11 @@ const db = {
         if (q.type === 'equal') return sdk.Query.equal(q.column === 'id' ? '$id' : q.column, q.value);
         return null;
       }).filter(Boolean);
+      
+      if (orderByField) {
+        const targetCol = orderByField === 'id' ? '$id' : (orderByField === 'created_at' ? '$createdAt' : orderByField);
+        sdkQueries.push(orderByAsc ? sdk.Query.orderAsc(targetCol) : sdk.Query.orderDesc(targetCol));
+      }
       
       const response = await appwriteDatabases.listDocuments(dbId, tableName, sdkQueries);
       return response.documents.map(d => ({ id: d.$id, created_at: d.$createdAt, ...d }));
@@ -123,6 +130,18 @@ const db = {
           list = list.filter(item => item[q.column] === q.value);
         }
       });
+      if (orderByField) {
+        list = [...list].sort((a, b) => {
+          let valA = a[orderByField];
+          let valB = b[orderByField];
+          if (typeof valA === 'string') {
+            return orderByAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+          }
+          if (valA < valB) return orderByAsc ? -1 : 1;
+          if (valA > valB) return orderByAsc ? 1 : -1;
+          return 0;
+        });
+      }
       return list;
     }
   },
@@ -164,6 +183,21 @@ const db = {
       });
       saveSandboxDB(data);
       return { id: docId };
+    }
+  },
+
+  deleteDocument: async (tableName, docId) => {
+    if (isRealAppwrite) {
+      const dbId = process.env.VITE_APPWRITE_DATABASE_ID || 'egesa_health';
+      await appwriteDatabases.deleteDocument(dbId, tableName, docId);
+      return true;
+    } else {
+      const data = loadSandboxDB();
+      if (data[tableName]) {
+        data[tableName] = data[tableName].filter(doc => doc.id !== docId);
+        saveSandboxDB(data);
+      }
+      return true;
     }
   }
 };
@@ -730,6 +764,279 @@ app.post('/api/mpesa/simulate-success', async (req, res) => {
     res.json({ success: true, callbackResponse: callbackResponse.data });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ----------------------------------------------------
+// DATABASE & FUNCTION PROXIES FOR PRODUCTION SECURE ACCESS
+// ----------------------------------------------------
+
+// DB Proxy: Query documents
+app.post('/api/db/query', async (req, res) => {
+  const { table, queries = [], orderByField = null, orderByAsc = true } = req.body;
+  if (!table) return res.status(400).json({ error: 'Table name is required' });
+
+  // Security: only allow unauthenticated requests for 'facilities' table
+  if (table !== 'facilities') {
+    // Authenticate token manually
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Access token required' });
+    
+    try {
+      const decodedUser = jwt.verify(token, JWT_SECRET);
+      req.user = decodedUser;
+    } catch (err) {
+      return res.status(403).json({ error: 'Invalid or expired session token' });
+    }
+  }
+
+  try {
+    // If table is not a global table, automatically enforce facility filtering
+    const globalTables = ['facilities', 'profiles'];
+    const enrichedQueries = [...queries];
+    
+    if (!globalTables.includes(table) && req.user) {
+      // Ensure facility_id filter is appended
+      const hasFacilityFilter = enrichedQueries.some(q => q && q.column === 'facility_id');
+      if (!hasFacilityFilter) {
+        enrichedQueries.push({ type: 'equal', column: 'facility_id', value: req.user.facility_id });
+      }
+    }
+
+    const data = await db.getDocuments(table, enrichedQueries, orderByField, orderByAsc);
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error(`DB Query Proxy failed for table ${table}:`, err);
+    res.status(500).json({ error: err.message || 'Database query failed' });
+  }
+});
+
+// DB Proxy: Insert documents
+app.post('/api/db/insert', async (req, res) => {
+  const { table, rows } = req.body;
+  if (!table || !rows) return res.status(400).json({ error: 'Table and rows are required' });
+
+  // Security: only allow unauthenticated requests for 'facilities' and 'profiles' (needed during onboarding)
+  if (table !== 'facilities' && table !== 'profiles') {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Access token required' });
+    
+    try {
+      const decodedUser = jwt.verify(token, JWT_SECRET);
+      req.user = decodedUser;
+    } catch (err) {
+      return res.status(403).json({ error: 'Invalid or expired session token' });
+    }
+  }
+
+  try {
+    const dataRows = Array.isArray(rows) ? rows : [rows];
+    const results = [];
+    const activeFacId = req.user ? req.user.facility_id : null;
+
+    for (const row of dataRows) {
+      const { id, created_at, ...cleanRow } = row;
+      const globalTables = ['facilities', 'profiles'];
+      
+      // Enforce facility_id for tenant tables if authenticated
+      if (!globalTables.includes(table) && activeFacId && !cleanRow.facility_id) {
+        cleanRow.facility_id = activeFacId;
+      }
+
+      const docId = id || 'doc_' + Math.random().toString(36).substring(2, 15);
+      const newDoc = await db.createDocument(table, docId, cleanRow);
+      results.push(newDoc);
+    }
+
+    // Log audit log hook
+    if (table !== 'audit_logs') {
+      const facilityId = activeFacId || (table === 'facilities' ? results[0]?.id : 'f1');
+      const userId = req.user ? req.user.id : 'onboarding';
+      await db.createDocument('audit_logs', 'log_' + Math.random().toString(36).substring(2, 12), {
+        facility_id: facilityId,
+        user_id: userId,
+        action: `Insert: ${table}`,
+        details: `Inserted ${results.length} record(s) into ${table}`
+      });
+    }
+
+    res.json({ success: true, data: Array.isArray(rows) ? results : results[0] });
+  } catch (err) {
+    console.error(`DB Insert Proxy failed for table ${table}:`, err);
+    res.status(500).json({ error: err.message || 'Database insertion failed' });
+  }
+});
+
+// DB Proxy: Update documents
+app.post('/api/db/update', authenticateToken, async (req, res) => {
+  const { table, column, value, values } = req.body;
+  if (!table || !column || value === undefined || !values) {
+    return res.status(400).json({ error: 'Table, query column, query value, and values to update are required' });
+  }
+
+  try {
+    // 1. Find matching documents
+    const queries = [{ type: 'equal', column, value }];
+    const globalTables = ['facilities', 'profiles'];
+    if (!globalTables.includes(table)) {
+      queries.push({ type: 'equal', column: 'facility_id', value: req.user.facility_id });
+    }
+
+    const docs = await db.getDocuments(table, queries);
+    if (docs.length === 0) {
+      return res.status(404).json({ error: 'No matching records found to update' });
+    }
+
+    const results = [];
+    const { id, created_at, ...cleanValues } = values;
+
+    for (const doc of docs) {
+      await db.updateDocument(table, doc.id, cleanValues);
+      results.push({ id: doc.id });
+    }
+
+    // Log audit
+    await db.createDocument('audit_logs', 'log_' + Math.random().toString(36).substring(2, 12), {
+      facility_id: req.user.facility_id || 'f1',
+      user_id: req.user.id || 'system',
+      action: `Update: ${table}`,
+      details: `Updated ${results.length} record(s) in ${table} where ${column} = ${value}`
+    });
+
+    res.json({ success: true, data: results });
+  } catch (err) {
+    console.error(`DB Update Proxy failed for table ${table}:`, err);
+    res.status(500).json({ error: err.message || 'Database update failed' });
+  }
+});
+
+// DB Proxy: Delete documents
+app.post('/api/db/delete', authenticateToken, async (req, res) => {
+  const { table, column, value } = req.body;
+  if (!table || !column || value === undefined) {
+    return res.status(400).json({ error: 'Table, query column, and query value are required' });
+  }
+
+  try {
+    // 1. Find matching documents
+    const queries = [{ type: 'equal', column, value }];
+    const globalTables = ['facilities', 'profiles'];
+    if (!globalTables.includes(table)) {
+      queries.push({ type: 'equal', column: 'facility_id', value: req.user.facility_id });
+    }
+
+    const docs = await db.getDocuments(table, queries);
+    if (docs.length === 0) {
+      return res.status(404).json({ error: 'No matching records found to delete' });
+    }
+
+    for (const doc of docs) {
+      await db.deleteDocument(table, doc.id);
+    }
+
+    // Log audit
+    await db.createDocument('audit_logs', 'log_' + Math.random().toString(36).substring(2, 12), {
+      facility_id: req.user.facility_id || 'f1',
+      user_id: req.user.id || 'system',
+      action: `Delete: ${table}`,
+      details: `Deleted ${docs.length} record(s) from ${table} where ${column} = ${value}`
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(`DB Delete Proxy failed for table ${table}:`, err);
+    res.status(500).json({ error: err.message || 'Database deletion failed' });
+  }
+});
+
+// Appwrite Cloud Functions proxy runner
+app.post('/api/functions/invoke', async (req, res) => {
+  const { name, payload } = req.body;
+  if (!name) return res.status(400).json({ error: 'Function name is required' });
+
+  // Security: only allow unauthenticated requests for 'google-oauth-exchange'
+  if (name !== 'google-oauth-exchange') {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Access token required' });
+    
+    try {
+      const decodedUser = jwt.verify(token, JWT_SECRET);
+      req.user = decodedUser;
+    } catch (err) {
+      return res.status(403).json({ error: 'Invalid or expired session token' });
+    }
+  }
+
+  try {
+    let functionId = name;
+    if (name === 'send-email') {
+      functionId = process.env.VITE_APPWRITE_FUNCTION_SEND_EMAIL || '6a2d4a8900176cd7c70a';
+    } else if (name === 'google-oauth-exchange') {
+      functionId = process.env.VITE_APPWRITE_FUNCTION_GOOGLE_OAUTH_EXCHANGE || 'google-oauth-exchange';
+    } else if (name === 'generate-report-excel') {
+      functionId = process.env.VITE_APPWRITE_FUNCTION_GENERATE_REPORT_EXCEL || 'generate-report-excel';
+    }
+
+    if (isRealAppwrite && appwriteFunctions) {
+      const execution = await appwriteFunctions.createExecution(
+        functionId,
+        JSON.stringify(payload)
+      );
+      res.json({
+        success: true,
+        data: {
+          responseBody: execution.responseBody,
+          statusCode: execution.statusCode
+        }
+      });
+    } else {
+      // Sandbox simulation fallback
+      if (name === 'google-oauth-exchange') {
+        const dbList = await db.getDocuments('profiles', [
+          { type: 'equal', column: 'facility_id', value: payload.facilityId }
+        ]);
+        if (dbList.length > 0) {
+          const targetUser = dbList.find(p => p.role === 'admin') || dbList[0];
+          const mockToken = targetUser.autologin_token || `tok_google_${Math.random().toString(36).substring(2, 15)}`;
+
+          // Update autologin_token
+          await db.updateDocument('profiles', targetUser.id, { autologin_token: mockToken });
+
+          res.json({
+            success: true,
+            data: {
+              responseBody: JSON.stringify({
+                success: true,
+                email: targetUser.email || `${targetUser.full_name.toLowerCase().replace(/ /g, '')}@egesa.com`,
+                autologin_token: mockToken
+              }),
+              statusCode: 200
+            }
+          });
+        } else {
+          res.status(404).json({ error: 'No active profile found for the selected hospital facility.' });
+        }
+      } else {
+        res.json({
+          success: true,
+          data: {
+            responseBody: JSON.stringify({
+              success: true,
+              message: `Simulated report generated by Appwrite Function '${name}'`,
+              timestamp: new Date().toISOString(),
+              recordCount: payload.recordCount || 0
+            }),
+            statusCode: 200
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.error(`Appwrite Function Proxy failed for ${name}:`, err);
+    res.status(500).json({ error: err.message || 'Function execution failed' });
   }
 });
 

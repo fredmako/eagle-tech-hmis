@@ -357,6 +357,97 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Appwrite JWT Verification & Login
+app.post('/api/auth/appwrite-jwt-login', async (req, res) => {
+  const { jwt: clientJwt } = req.body;
+  if (!clientJwt) {
+    return res.status(400).json({ error: 'Appwrite JWT token is required' });
+  }
+
+  try {
+    let verifiedUserId = null;
+    let verifiedEmail = null;
+    let verifiedName = null;
+
+    if (isRealAppwrite) {
+      // Create server-side Client initialized with the user's JWT
+      const jwtClient = new sdk.Client()
+        .setEndpoint(process.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
+        .setProject(process.env.VITE_APPWRITE_PROJECT_ID)
+        .setJWT(clientJwt);
+      
+      const jwtAccount = new sdk.Account(jwtClient);
+      const userDetails = await jwtAccount.get();
+      
+      verifiedUserId = userDetails.$id;
+      verifiedEmail = userDetails.email;
+      verifiedName = userDetails.name;
+    } else {
+      // Sandbox simulation: check if token represents onboarding
+      if (clientJwt === 'mock_jwt_onboarding') {
+        verifiedUserId = 'u_mock_google_' + Math.random().toString(36).substring(2, 10);
+        verifiedEmail = 'google.admin@egesa.com';
+        verifiedName = 'Google Admin';
+      } else {
+        const data = loadSandboxDB();
+        const defaultUser = data.profiles.find(p => p.role === 'admin') || data.profiles[0];
+        verifiedUserId = defaultUser.id;
+        verifiedEmail = defaultUser.email;
+        verifiedName = defaultUser.full_name;
+      }
+    }
+
+    // Check if profile exists
+    const profiles = await db.getDocuments('profiles', [
+      { type: 'equal', column: 'email', value: verifiedEmail }
+    ]);
+    
+    const activeProfile = profiles && profiles[0];
+    
+    if (!activeProfile) {
+      // Query if there is a pending/rejected role request
+      const requests = await db.getDocuments('role_requests', [
+        { type: 'equal', column: 'email', value: verifiedEmail }
+      ]);
+      const activeRequest = requests && requests[0];
+      
+      return res.json({
+        status: 'no_profile',
+        user: { id: verifiedUserId, email: verifiedEmail, name: verifiedName },
+        pendingRequest: activeRequest || null
+      });
+    }
+    
+    // Fetch facilities to attach logo & details
+    const facs = await db.getDocuments('facilities', [
+      { type: 'equal', column: 'id', value: activeProfile.facility_id }
+    ]);
+    const facility = facs && facs[0];
+    
+    // Sign JWT Token
+    const userPayload = {
+      id: verifiedUserId,
+      email: verifiedEmail,
+      full_name: activeProfile.full_name,
+      role: activeProfile.role,
+      facility_id: activeProfile.facility_id,
+      facility_name: facility?.name || 'Eagle Tech Medical Clinic',
+      facility_logo: facility?.logo_url || null
+    };
+    
+    const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '12h' });
+    
+    res.json({
+      status: 'success',
+      token,
+      user: userPayload
+    });
+  } catch (err) {
+    console.error('Appwrite JWT login error:', err);
+    res.status(401).json({ error: err.message || 'Invalid or expired Appwrite session' });
+  }
+});
+
 // Get Current Logged-in User
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   res.json({ user: req.user });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../appwriteClient';
 import { sendNotification } from '../notificationService';
 import { 
@@ -36,6 +36,42 @@ export default function SaaSOnboarding({ onBackToLogin }) {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPhone, setAdminPhone] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+  const [googleUser, setGoogleUser] = useState(null);
+
+  useEffect(() => {
+    // 1. Restore form inputs if saved state exists (OAuth redirect flow)
+    const savedStateStr = sessionStorage.getItem('egesa_health_onboarding_saved_state');
+    if (savedStateStr) {
+      try {
+        const saved = JSON.parse(savedStateStr);
+        if (saved.selectedPlan) setSelectedPlan(saved.selectedPlan);
+        if (saved.hospitalName) setHospitalName(saved.hospitalName);
+        if (saved.hospitalAddress) setHospitalAddress(saved.hospitalAddress);
+        if (saved.hospitalCode) setHospitalCode(saved.hospitalCode);
+        if (saved.logoOption) setLogoOption(saved.logoOption);
+        if (saved.customLogoUrl) setCustomLogoUrl(saved.customLogoUrl);
+        if (saved.adminPhone) setAdminPhone(saved.adminPhone);
+        if (saved.step) setStep(saved.step);
+      } catch (e) {
+        console.error('Failed to restore onboarding state:', e);
+      }
+      sessionStorage.removeItem('egesa_health_onboarding_saved_state');
+    }
+
+    // 2. Check if a Google user was stored on redirect callback
+    const googleUserStr = sessionStorage.getItem('egesa_health_onboarding_google_user');
+    if (googleUserStr) {
+      try {
+        const gUser = JSON.parse(googleUserStr);
+        setGoogleUser(gUser);
+        setAdminName(gUser.name || '');
+        setAdminEmail(gUser.email || '');
+      } catch (e) {
+        console.error('Failed to parse Google user details:', e);
+      }
+      sessionStorage.removeItem('egesa_health_onboarding_google_user');
+    }
+  }, []);
 
   // Payment form state
   const [cardNumber, setCardNumber] = useState('4242 4242 4242 4242');
@@ -189,13 +225,53 @@ export default function SaaSOnboarding({ onBackToLogin }) {
     }
   ];
 
+  const handleGoogleOnboardingAuth = async () => {
+    setError('');
+    
+    // Save current form inputs so they are restored after redirect
+    const savedState = {
+      selectedPlan,
+      hospitalName,
+      hospitalAddress,
+      hospitalCode,
+      logoOption,
+      customLogoUrl,
+      adminPhone,
+      step: 2
+    };
+    sessionStorage.setItem('egesa_health_onboarding_saved_state', JSON.stringify(savedState));
+    sessionStorage.setItem('egesa_health_onboarding_redirect', 'true');
+
+    try {
+      if (supabase.isSandbox) {
+        // Sandbox mode: immediately mock google login
+        const mockGoogleUser = {
+          id: 'u_mock_google_onboarding',
+          email: 'google.admin@egesa.com',
+          name: 'Google Admin'
+        };
+        setGoogleUser(mockGoogleUser);
+        setAdminName(mockGoogleUser.name);
+        setAdminEmail(mockGoogleUser.email);
+        sessionStorage.removeItem('egesa_health_onboarding_saved_state');
+        sessionStorage.removeItem('egesa_health_onboarding_redirect');
+      } else {
+        const { error } = await supabase.auth.signInWithGoogle();
+        if (error) throw new Error(error);
+      }
+    } catch (err) {
+      setError(err.message || 'Google Authentication failed.');
+    }
+  };
+
   const handleNextStep = () => {
     if (step === 2) {
-      if (!hospitalName.trim() || !hospitalAddress.trim() || !adminName.trim() || !adminEmail.trim() || !adminPhone.trim() || !adminPassword.trim()) {
+      const isPasswordMissing = !googleUser && !adminPassword.trim();
+      if (!hospitalName.trim() || !hospitalAddress.trim() || !adminName.trim() || !adminEmail.trim() || !adminPhone.trim() || isPasswordMissing) {
         setError('Please fill in all hospital and administrator profile details.');
         return;
       }
-      if (adminPassword.length < 8) {
+      if (!googleUser && adminPassword.length < 8) {
         setError('Administrator password must be at least 8 characters long.');
         return;
       }
@@ -229,16 +305,21 @@ export default function SaaSOnboarding({ onBackToLogin }) {
     setError('');
 
     try {
-      // 1. Register Auth account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: adminEmail,
-        password: adminPassword,
-        name: adminName
-      });
+      let userId;
+      if (googleUser) {
+        userId = googleUser.id;
+      } else {
+        // 1. Register Auth account manually
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: adminEmail,
+          password: adminPassword,
+          name: adminName
+        });
 
-      if (authError) throw new Error(authError);
+        if (authError) throw new Error(authError);
+        userId = authData.user.id;
+      }
 
-      const userId = authData.user.id;
       const facilityId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
       const logoUrl = getActiveLogoUrl();
 
@@ -258,7 +339,8 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         id: userId,
         full_name: adminName,
         role: 'admin',
-        facility_id: facilityId
+        facility_id: facilityId,
+        email: adminEmail
       });
 
       if (profError) throw new Error(profError);
@@ -512,10 +594,44 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                   </div>
                 </div>
 
-                <div className="bg-slate-955 border border-slate-855 p-5 rounded-xl space-y-4">
-                  <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-1.5">
-                    <User size={14} /> Admin Account Details
-                  </h3>
+                <div className="bg-slate-955 border border-slate-855 p-5 rounded-xl space-y-4 font-sans">
+                  <div className="flex justify-between items-center pb-2 border-b border-slate-900 mb-2">
+                    <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <User size={14} /> Admin Account Details
+                    </h3>
+                    {!googleUser ? (
+                      <button
+                        type="button"
+                        onClick={handleGoogleOnboardingAuth}
+                        className="text-[10px] bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-200 py-1 px-2.5 rounded flex items-center gap-1.5 transition font-semibold cursor-pointer active:scale-[0.98]"
+                      >
+                        <svg className="w-3 h-3 text-teal-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+                          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+                        </svg>
+                        Use Google Credentials
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] bg-teal-500/10 border border-teal-500/20 text-teal-400 py-0.5 px-2 rounded-full font-bold uppercase flex items-center gap-1">
+                          <Check size={10} /> Linked with Google
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGoogleUser(null);
+                            setAdminName('');
+                            setAdminEmail('');
+                          }}
+                          className="text-[9px] text-slate-500 hover:text-slate-350 font-bold transition cursor-pointer"
+                        >
+                          Disconnect
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -555,10 +671,14 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
                       <input
                         type="password"
-                        value={adminPassword}
+                        value={googleUser ? '' : adminPassword}
                         onChange={(e) => setAdminPassword(e.target.value)}
-                        placeholder="Min 8 characters"
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                        placeholder={googleUser ? 'Not required (Google Auth)' : 'Min 8 characters'}
+                        disabled={!!googleUser}
+                        className={`w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition ${
+                          googleUser ? 'opacity-40 cursor-not-allowed' : ''
+                        }`}
+                        required={!googleUser}
                       />
                     </div>
                   </div>

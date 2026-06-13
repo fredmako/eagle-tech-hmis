@@ -1049,6 +1049,19 @@ const appwriteAuth = {
       };
       return { data: { user: mockUser }, error: null };
     }
+  },
+
+  createJWT: async () => {
+    if (isRealAppwrite) {
+      try {
+        const response = await account.createJWT();
+        return { data: response, error: null };
+      } catch (err) {
+        return { data: null, error: err.message };
+      }
+    } else {
+      return { data: { jwt: 'mock_jwt' }, error: null };
+    }
   }
 };
 

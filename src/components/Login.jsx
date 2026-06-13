@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../appwriteClient';
 import { sendNotification, getSmtpConfig } from '../notificationService';
-import { Activity, ShieldAlert, CheckCircle } from 'lucide-react';
+import { Activity, ShieldAlert, CheckCircle, UserPlus, Clock, LogOut, UserCheck } from 'lucide-react';
 
 export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLanding }) {
   const [facilities, setFacilities] = useState([]);
@@ -25,6 +25,20 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
   const [enteredCode, setEnteredCode] = useState('');
   const [newPass, setNewPass] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+
+  // Self-service registration & role request states
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [signUpName, setSignUpName] = useState('');
+  const [signUpEmail, setSignUpEmail] = useState('');
+  const [signUpPassword, setSignUpPassword] = useState('');
+
+  const [hasNoProfile, setHasNoProfile] = useState(false);
+  const [tempUser, setTempUser] = useState(null);
+  const [pendingRequest, setPendingRequest] = useState(null);
+  const [requestFacility, setRequestFacility] = useState('');
+  const [requestRole, setRequestRole] = useState('receptionist');
+  const [requestName, setRequestName] = useState('');
+  const [requestSuccess, setRequestSuccess] = useState('');
 
   useEffect(() => {
     setIsSandbox(!!supabase.isSandbox);
@@ -175,23 +189,46 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
 
       // Successfully logged in
       if (data && data.user) {
-        // Retrieve local profile info or construct it
-        const { data: profiles } = await supabase.from('profiles').select('*').eq('id', data.user.id);
+        // Retrieve local profile info
+        const { data: profiles, error: profErr } = await supabase.from('profiles').select('*').eq('id', data.user.id);
+        if (profErr) throw profErr;
+        
         const profile = profiles && profiles[0];
-        
-        // Save selected facility in session state
-        const activeFac = facilities.find(f => f.id === selectedFacility);
-        const loggedUser = {
-          id: data.user.id,
-          full_name: data.user.user_metadata?.full_name || profile?.full_name || 'Healthcare Worker',
-          role: data.user.user_metadata?.role || profile?.role || 'admin',
-          facility_id: selectedFacility,
-          facility_name: activeFac?.name || 'Default Facility',
-          facility_logo: activeFac?.logo_url || null
-        };
-        
-        sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUser));
-        onLoginSuccess(loggedUser);
+
+        if (profile) {
+          // Profile exists! Navigate directly using approved role and facility context
+          const activeFac = facilities.find(f => f.id === profile.facility_id);
+          const loggedUser = {
+            id: data.user.id,
+            full_name: profile.full_name || data.user.user_metadata?.full_name || 'Healthcare Worker',
+            role: profile.role || 'receptionist',
+            facility_id: profile.facility_id,
+            facility_name: activeFac?.name || 'Default Facility',
+            facility_logo: activeFac?.logo_url || null
+          };
+          
+          sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUser));
+          onLoginSuccess(loggedUser);
+        } else {
+          // No profile configured! Check for pending role request
+          const { data: requests, error: reqErr } = await supabase.from('role_requests').select('*').eq('user_id', data.user.id);
+          if (reqErr) throw reqErr;
+
+          const pendingReq = requests && requests.find(r => r.status === 'pending');
+
+          setTempUser(data.user);
+          setHasNoProfile(true);
+          setRequestName(data.user.user_metadata?.full_name || '');
+          if (facilities.length > 0) {
+            setRequestFacility(facilities[0].id);
+          }
+
+          if (pendingReq) {
+            setPendingRequest(pendingReq);
+          } else {
+            setPendingRequest(null);
+          }
+        }
       }
     } catch (err) {
       const nextFailCount = failedAttempts + 1;
@@ -207,6 +244,108 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       } else {
         setError(err.message || 'Login failed. Please check your credentials.');
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    if (!signUpName.trim() || !signUpEmail.trim() || !signUpPassword.trim()) {
+      setError('Please fill in all registration fields.');
+      return;
+    }
+    if (signUpPassword.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const { error: signupErr } = await supabase.auth.signUp({
+        email: signUpEmail,
+        password: signUpPassword,
+        name: signUpName
+      });
+
+      if (signupErr) throw new Error(signupErr);
+
+      // Auto login user after signing up
+      const { data: loginData, error: loginErr } = await supabase.auth.signInWithPassword({
+        email: signUpEmail,
+        password: signUpPassword
+      });
+
+      if (loginErr) throw loginErr;
+
+      if (loginData && loginData.user) {
+        setTempUser(loginData.user);
+        setHasNoProfile(true);
+        setRequestName(signUpName);
+        if (facilities.length > 0) {
+          setRequestFacility(facilities[0].id);
+        }
+        setPendingRequest(null);
+        setIsSignUp(false); // reset form view
+      }
+    } catch (err) {
+      setError(err.message || 'Registration failed. Check details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRoleRequestSubmit = async (e) => {
+    e.preventDefault();
+    if (!requestFacility || !requestRole || !requestName.trim() || !tempUser) {
+      setError('Please fill in all request fields.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setRequestSuccess('');
+
+    try {
+      const randId = Math.random().toString(36).substring(2, 15);
+      const newRequest = {
+        id: randId,
+        user_id: tempUser.id,
+        email: tempUser.email,
+        full_name: requestName.trim(),
+        facility_id: requestFacility,
+        requested_role: requestRole,
+        status: 'pending',
+        created_at: new Date().toISOString()
+      };
+
+      const { error: reqErr } = await supabase.from('role_requests').insert(newRequest);
+      if (reqErr) throw reqErr;
+
+      setPendingRequest(newRequest);
+      setRequestSuccess('Operational role request successfully submitted! Pending administrator approval.');
+    } catch (err) {
+      setError(err.message || 'Failed to submit role request.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogoutRequestScreen = async () => {
+    setLoading(true);
+    try {
+      await supabase.auth.signOut();
+      // Clear session states
+      setTempUser(null);
+      setHasNoProfile(false);
+      setPendingRequest(null);
+      setRequestName('');
+      setRequestSuccess('');
+      setError('');
+    } catch (err) {
+      console.error('Logout error:', err);
     } finally {
       setLoading(false);
     }
@@ -471,6 +610,183 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     );
   }
 
+  // If user is authenticated but has no profile, render role request forms
+  if (hasNoProfile) {
+    if (pendingRequest) {
+      // Render State A: Request Pending Screen
+      return (
+        <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 font-sans">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 p-2.5 rounded-xl shadow-lg shadow-teal-500/10">
+              <Activity size={32} className="animate-pulse" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-white tracking-wide uppercase">EAGLE TECH</h1>
+              <p className="text-[10px] text-teal-400 font-bold tracking-widest uppercase">HMIS SECURITY LAYER</p>
+            </div>
+          </div>
+
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+            <div className="flex flex-col items-center text-center my-4">
+              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 p-3 rounded-full mb-4">
+                <Clock size={36} className="animate-pulse" />
+              </div>
+              <h2 className="text-lg font-bold text-slate-100 mb-1">Access Authorization Pending</h2>
+              <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
+                Your request to join this hospital workspace has been successfully submitted and is awaiting administrator approval.
+              </p>
+            </div>
+
+            <div className="bg-slate-950 border border-slate-850 rounded-xl p-4 space-y-2.5 text-xs text-slate-300 my-4 font-sans">
+              <div className="flex justify-between border-b border-slate-900 pb-2">
+                <span className="text-slate-500 font-medium">Full Name:</span>
+                <span className="font-semibold text-slate-200">{pendingRequest.full_name}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-900 pb-2">
+                <span className="text-slate-500 font-medium">Hospital/Tenant:</span>
+                <span className="font-semibold text-slate-200">
+                  {facilities.find(f => f.id === pendingRequest.facility_id)?.name || 'Default Facility'}
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-slate-900 pb-2">
+                <span className="text-slate-500 font-medium">Requested Role:</span>
+                <span className="font-semibold text-teal-400 uppercase font-mono">{pendingRequest.requested_role}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Submitted At:</span>
+                <span className="font-semibold text-slate-400">
+                  {new Date(pendingRequest.created_at).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-teal-500/5 border border-teal-500/20 text-teal-400 rounded-lg p-3 text-[11px] leading-relaxed my-4 flex gap-2">
+              <UserCheck size={16} className="shrink-0 mt-0.5" />
+              <span>
+                <strong>Action Needed:</strong> Once the facility admin approves your pending request, simply log in again to access the clinical desks.
+              </span>
+            </div>
+
+            <button
+              onClick={handleLogoutRequestScreen}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-850 border border-slate-850 text-slate-300 font-bold text-xs py-2.5 rounded-lg transition active:scale-[0.98]"
+            >
+              <LogOut size={14} /> Log Out / Cancel
+            </button>
+          </div>
+        </div>
+      );
+    } else {
+      // Render State B: Role Request Form
+      return (
+        <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 font-sans">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 p-2.5 rounded-xl shadow-lg shadow-teal-500/10">
+              <Activity size={32} className="animate-pulse" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-white tracking-wide uppercase">EAGLE TECH</h1>
+              <p className="text-[10px] text-teal-400 font-bold tracking-widest uppercase">HMIS SECURITY LAYER</p>
+            </div>
+          </div>
+
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+            <div className="mt-2 text-center pb-3 border-b border-slate-800/60 mb-4">
+              <h2 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-2">
+                <UserPlus size={20} className="text-teal-400" /> Request Operational Role
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">Specify your clinical role and hospital to request access.</p>
+            </div>
+
+            {error && (
+              <div className="mb-4 bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg p-3 text-xs flex items-start gap-2">
+                <ShieldAlert size={16} className="shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {requestSuccess && (
+              <div className="mb-4 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-lg p-3 text-xs flex items-start gap-2 font-medium">
+                <CheckCircle size={16} className="shrink-0 mt-0.5" />
+                <span>{requestSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleRoleRequestSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={requestName}
+                  onChange={(e) => setRequestName(e.target.value)}
+                  placeholder="e.g. Dr. Steve Rogers"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 text-xs focus:outline-none focus:border-teal-500 transition"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Select Target Facility / Hospital
+                </label>
+                <select
+                  value={requestFacility}
+                  onChange={(e) => setRequestFacility(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 text-xs focus:outline-none focus:border-teal-500 transition"
+                  required
+                >
+                  {facilities.map((fac) => (
+                    <option key={fac.id} value={fac.id}>
+                      {fac.name} ({fac.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Requested Operational Role
+                </label>
+                <select
+                  value={requestRole}
+                  onChange={(e) => setRequestRole(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 text-xs focus:outline-none focus:border-teal-500 transition"
+                >
+                  <option value="receptionist">Receptionist</option>
+                  <option value="nurse">Triage Nurse</option>
+                  <option value="clinician">Clinician (Doctor)</option>
+                  <option value="lab_tech">Lab Technician</option>
+                  <option value="pharmacist">Pharmacist</option>
+                  <option value="cashier">Billing Cashier</option>
+                  <option value="reporting_officer">Reporting Officer</option>
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-teal-500 hover:bg-teal-600 disabled:bg-slate-850 text-slate-950 font-bold text-xs py-2.5 rounded-lg transition active:scale-[0.98] mt-2 shadow-lg shadow-teal-500/10"
+              >
+                {loading ? 'Submitting Request...' : 'Submit Role Request'}
+              </button>
+            </form>
+
+            <button
+              onClick={handleLogoutRequestScreen}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-850 border border-slate-850 text-slate-400 font-semibold text-xs py-2.5 rounded-lg transition active:scale-[0.98] mt-3"
+            >
+              <LogOut size={14} /> Cancel & Log Out
+            </button>
+          </div>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4">
       {/* Back to Landing Page Button */}
@@ -503,114 +819,216 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
           </div>
         )}
 
-        <div className="mt-4">
-          <h2 className="text-xl font-bold text-slate-100 mb-1">Sign in to your account</h2>
-          <p className="text-sm text-slate-400 mb-6 font-medium">Select your facility/tenant and authenticate.</p>
-        </div>
+        {!isSignUp ? (
+          <>
+            <div className="mt-4">
+              <h2 className="text-xl font-bold text-slate-100 mb-1">Sign in to your account</h2>
+              <p className="text-sm text-slate-400 mb-6 font-medium">Select your facility/tenant and authenticate.</p>
+            </div>
 
-        {error && (
-          <div className="mb-4 bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg p-3 text-sm flex items-start gap-2">
-            <ShieldAlert size={18} className="shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
+            {error && (
+              <div className="mb-4 bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg p-3 text-sm flex items-start gap-2">
+                <ShieldAlert size={18} className="shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          {/* Facility Selection */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-              Select Facility / Tenant
-            </label>
-            <select
-              value={selectedFacility}
-              onChange={(e) => setSelectedFacility(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
-              required
+            <form onSubmit={handleLogin} className="space-y-4">
+              {/* Facility Selection */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Select Facility / Tenant
+                </label>
+                <select
+                  value={selectedFacility}
+                  onChange={(e) => setSelectedFacility(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                  required
+                >
+                  {facilities.map((fac) => (
+                    <option key={fac.id} value={fac.id}>
+                      {fac.name} ({fac.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. clinician@egesa.com"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm placeholder:text-slate-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                  required
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <div className="flex justify-between items-center mb-1.5 font-semibold">
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRecovery(true);
+                      setError('');
+                    }}
+                    className="text-[11px] text-teal-400 hover:text-teal-300 font-bold hover:underline"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm placeholder:text-slate-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                  required
+                />
+              </div>
+
+              {/* Sign in Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-semibold text-sm py-2.5 px-4 rounded-lg shadow-lg shadow-teal-500/10 hover:shadow-teal-500/20 active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none mt-2"
+              >
+                {loading ? 'Authenticating...' : 'Sign In'}
+              </button>
+            </form>
+
+            {/* Divider */}
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-800"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-slate-900 px-3 text-slate-500 font-bold">Or continue with</span>
+              </div>
+            </div>
+
+            {/* Google Authentication Button */}
+            <button
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-200 font-semibold text-sm py-2.5 px-4 rounded-lg transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
             >
-              {facilities.map((fac) => (
-                <option key={fac.id} value={fac.id}>
-                  {fac.name} ({fac.code})
-                </option>
-              ))}
-            </select>
-          </div>
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+              </svg>
+              <span>Sign In with Google</span>
+            </button>
 
-          {/* Email */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-              Email Address
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. clinician@egesa.com"
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm placeholder:text-slate-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
-              required
-            />
-          </div>
-
-          {/* Password */}
-          <div>
-            <div className="flex justify-between items-center mb-1.5 font-semibold">
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Password
-              </label>
+            {/* Toggle to Sign Up */}
+            <div className="mt-4 text-center">
               <button
                 type="button"
                 onClick={() => {
-                  setShowRecovery(true);
+                  setIsSignUp(true);
                   setError('');
                 }}
-                className="text-[11px] text-teal-400 hover:text-teal-300 font-bold hover:underline"
+                className="text-[11px] font-semibold text-slate-450 hover:text-teal-400 transition"
               >
-                Forgot Password?
+                Need a staff account? <span className="text-teal-400 font-bold hover:underline">Sign up here</span>
               </button>
             </div>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm placeholder:text-slate-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
-              required
-            />
-          </div>
+          </>
+        ) : (
+          <>
+            <div className="mt-4">
+              <h2 className="text-xl font-bold text-slate-100 mb-1">Create your staff account</h2>
+              <p className="text-sm text-slate-400 mb-6 font-medium">Sign up here to request access to your facility.</p>
+            </div>
 
-          {/* Sign in Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-semibold text-sm py-2.5 px-4 rounded-lg shadow-lg shadow-teal-500/10 hover:shadow-teal-500/20 active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none mt-2"
-          >
-            {loading ? 'Authenticating...' : 'Sign In'}
-          </button>
-        </form>
+            {error && (
+              <div className="mb-4 bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg p-3 text-sm flex items-start gap-2">
+                <ShieldAlert size={18} className="shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
 
-        {/* Divider */}
-        <div className="relative my-5">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-800"></div>
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-slate-900 px-3 text-slate-500 font-bold">Or continue with</span>
-          </div>
-        </div>
+            <form onSubmit={handleSignUp} className="space-y-4">
+              {/* Full Name */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={signUpName}
+                  onChange={(e) => setSignUpName(e.target.value)}
+                  placeholder="e.g. Nurse Florence"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm placeholder:text-slate-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                  required
+                />
+              </div>
 
-        {/* Google Authentication Button */}
-        <button
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-200 font-semibold text-sm py-2.5 px-4 rounded-lg transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
-        >
-          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
-          </svg>
-          <span>Sign In with Google</span>
-        </button>
+              {/* Email */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={signUpEmail}
+                  onChange={(e) => setSignUpEmail(e.target.value)}
+                  placeholder="e.g. staff@hospital.com"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm placeholder:text-slate-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                  required
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Choose Password (Min 8 chars)
+                </label>
+                <input
+                  type="password"
+                  value={signUpPassword}
+                  onChange={(e) => setSignUpPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm placeholder:text-slate-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                  required
+                />
+              </div>
+
+              {/* Sign Up Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-semibold text-sm py-2.5 px-4 rounded-lg shadow-lg shadow-teal-500/10 hover:shadow-teal-500/20 active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none mt-2"
+              >
+                {loading ? 'Creating Account...' : 'Sign Up & Request Role'}
+              </button>
+            </form>
+
+            {/* Toggle back to Sign In */}
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(false);
+                  setError('');
+                }}
+                className="text-[11px] font-semibold text-slate-450 hover:text-teal-400 transition"
+              >
+                Already have an account? <span className="text-teal-400 font-bold hover:underline">Sign in instead</span>
+              </button>
+            </div>
+          </>
+        )}
 
         {/* SaaS Hospital Registration Link */}
         <div className="mt-4 text-center">

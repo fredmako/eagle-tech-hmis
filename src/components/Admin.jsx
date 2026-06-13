@@ -25,15 +25,19 @@ import {
   CreditCard,
   Send,
   Lock,
-  Layers,
-  Clock,
-  Building
+  Globe,
+  Check,
+  Building,
+  UserCheck
 } from 'lucide-react';
 
 export default function Admin({ user }) {
-  const [activeSubTab, setActiveSubTab] = useState('audit'); // 'audit', 'smtp_settings', 'email_logs', 'licensing'
+  const [activeSubTab, setActiveSubTab] = useState('audit'); // 'audit', 'smtp_settings', 'email_logs', 'licensing', 'role_requests'
   const [auditLogs, setAuditLogs] = useState([]);
   const [usersList, setUsersList] = useState([]);
+  const [roleRequests, setRoleRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [requestsMessage, setRequestsMessage] = useState('');
   const [facilityDetails, setFacilityDetails] = useState({ name: '', code: '' });
   
   // Create user form
@@ -90,12 +94,90 @@ export default function Admin({ user }) {
         setFacilityDetails({ name: activeFac.name, code: activeFac.code });
       }
 
+      // Fetch role requests for this facility
+      const { data: reqs } = await supabase
+        .from('role_requests')
+        .select('*')
+        .eq('facility_id', user.facility_id)
+        .order('created_at', { ascending: false });
+      setRoleRequests(reqs || []);
+
       // Refresh email logs
       setEmailLogs(getEmailLogs(user.facility_id));
     } catch (err) {
       console.error('Error fetching admin details:', err);
     } finally {
       setLoadingLogs(false);
+    }
+  };
+
+  const handleApproveRequest = async (req) => {
+    setRequestsLoading(true);
+    setRequestsMessage('');
+    try {
+      // 1. Create user profile in profiles
+      const newProfile = {
+        id: req.user_id,
+        full_name: req.full_name,
+        role: req.requested_role,
+        facility_id: user.facility_id
+      };
+
+      const { error: profErr } = await supabase.from('profiles').insert(newProfile);
+      if (profErr) throw profErr;
+
+      // 2. Update status of request to 'approved'
+      const { error: reqErr } = await supabase.from('role_requests').update({ status: 'approved' }).eq('id', req.id);
+      if (reqErr) throw reqErr;
+
+      // 3. Log to audit trail
+      await supabase.from('audit_logs').insert({
+        facility_id: user.facility_id,
+        user_id: user.id,
+        action: 'Approve Role Request',
+        details: `Approved role request for ${req.full_name} (${req.email}) to join as ${req.requested_role.toUpperCase()}.`
+      });
+
+      // TRIGGER EMAIL: send welcome email dynamically to the approved user
+      const loginLink = `${window.location.origin}${window.location.pathname}`;
+      await sendNotification('NEW_USER_CREATED', {
+        fullName: req.full_name,
+        role: req.requested_role,
+        recipientEmail: req.email,
+        loginLink: loginLink
+      }, user.facility_id);
+
+      setRequestsMessage(`Successfully approved ${req.full_name}'s request! Welcome email sent.`);
+      fetchAdminData();
+    } catch (err) {
+      setRequestsMessage(`Approval failed: ${err.message}`);
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
+
+  const handleRejectRequest = async (req) => {
+    setRequestsLoading(true);
+    setRequestsMessage('');
+    try {
+      // Update request status to 'rejected'
+      const { error: reqErr } = await supabase.from('role_requests').update({ status: 'rejected' }).eq('id', req.id);
+      if (reqErr) throw reqErr;
+
+      // Log to audit trail
+      await supabase.from('audit_logs').insert({
+        facility_id: user.facility_id,
+        user_id: user.id,
+        action: 'Reject Role Request',
+        details: `Rejected role request for ${req.full_name} (${req.email}) to join as ${req.requested_role.toUpperCase()}.`
+      });
+
+      setRequestsMessage(`Rejected role request for ${req.full_name}.`);
+      fetchAdminData();
+    } catch (err) {
+      setRequestsMessage(`Rejection failed: ${err.message}`);
+    } finally {
+      setRequestsLoading(false);
     }
   };
 
@@ -401,6 +483,22 @@ export default function Admin({ user }) {
             }`}
           >
             <CreditCard size={13} /> Licensing & Billing
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('role_requests')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+              activeSubTab === 'role_requests'
+                ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                : 'text-slate-450 hover:text-slate-200'
+            }`}
+          >
+            <UserPlus size={13} /> Role Requests
+            {roleRequests.filter(r => r.status === 'pending').length > 0 && (
+              <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
+                {roleRequests.filter(r => r.status === 'pending').length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -961,6 +1059,100 @@ export default function Admin({ user }) {
                     Simulate Expired Block (1 Day Expired)
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: ROLE REQUESTS APPROVAL PORTAL */}
+          {activeSubTab === 'role_requests' && (
+            <div className="space-y-4">
+              <div className="bg-slate-950 border border-slate-850 rounded-xl p-5 space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-900">
+                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                    <UserPlus size={14} className="text-teal-400" /> Pending Access & Role Requests
+                  </h4>
+                  <span className="text-[10px] text-slate-500 font-semibold font-sans">
+                    Total Requests: {roleRequests.length}
+                  </span>
+                </div>
+
+                {requestsMessage && (
+                  <div className="bg-teal-500/5 border border-teal-500/20 text-teal-400 p-2.5 rounded text-xs flex gap-2 font-sans">
+                    <CheckCircle size={14} className="shrink-0 mt-0.5" />
+                    <span>{requestsMessage}</span>
+                  </div>
+                )}
+
+                {requestsLoading ? (
+                  <div className="text-center py-8 text-slate-500 text-xs font-sans">
+                    Processing request transaction...
+                  </div>
+                ) : roleRequests.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 text-xs leading-relaxed font-sans">
+                    No role requests submitted yet for this facility.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto border border-slate-900 rounded-lg">
+                    <table className="w-full text-left text-xs border-collapse font-sans">
+                      <thead>
+                        <tr className="bg-slate-900 text-slate-400 border-b border-slate-900 text-[10px] uppercase font-bold">
+                          <th className="py-2.5 px-3">Name</th>
+                          <th className="py-2.5 px-3">Email</th>
+                          <th className="py-2.5 px-3">Requested Role</th>
+                          <th className="py-2.5 px-3">Status</th>
+                          <th className="py-2.5 px-3 text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-900 text-slate-300 font-medium">
+                        {roleRequests.map((req) => (
+                          <tr key={req.id} className="hover:bg-slate-900/40 transition">
+                            <td className="py-2.5 px-3 font-semibold text-slate-100">{req.full_name}</td>
+                            <td className="py-2.5 px-3 font-mono text-slate-400">{req.email}</td>
+                            <td className="py-2.5 px-3">
+                              <span className="bg-slate-900 border border-slate-850 px-2 py-0.5 rounded text-[10px] font-mono text-teal-400 uppercase font-semibold">
+                                {req.requested_role}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${
+                                req.status === 'pending' ? 'bg-amber-400' :
+                                req.status === 'approved' ? 'bg-green-400' : 'bg-red-400'
+                              }`}></span>
+                              <span className={`text-[10px] uppercase font-bold tracking-wider ${
+                                req.status === 'pending' ? 'text-amber-400' :
+                                req.status === 'approved' ? 'text-green-400' : 'text-red-400'
+                              }`}>
+                                {req.status}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              {req.status === 'pending' ? (
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    onClick={() => handleApproveRequest(req)}
+                                    className="bg-teal-550 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1 px-2.5 rounded transition active:scale-[0.96] flex items-center gap-1"
+                                  >
+                                    <Check size={10} /> Approve
+                                  </button>
+                                  <button
+                                    onClick={() => handleRejectRequest(req)}
+                                    className="bg-slate-850 hover:bg-slate-800 border border-slate-700 text-red-400 hover:text-red-300 font-bold text-[10px] py-1 px-2.5 rounded transition active:scale-[0.96]"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="text-center text-[10px] text-slate-500 italic">
+                                  Resolved
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}

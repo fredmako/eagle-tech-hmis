@@ -203,6 +203,19 @@ const setup = async () => {
         { type: 'string', key: 'action', size: 255, required: true },
         { type: 'string', key: 'details', size: 2000, required: false }
       ]
+    },
+    {
+      id: 'role_requests',
+      name: 'Role Requests',
+      attributes: [
+        { type: 'string', key: 'user_id', size: 100, required: true },
+        { type: 'string', key: 'email', size: 255, required: true },
+        { type: 'string', key: 'full_name', size: 255, required: true },
+        { type: 'string', key: 'facility_id', size: 100, required: true },
+        { type: 'string', key: 'requested_role', size: 50, required: true },
+        { type: 'string', key: 'status', size: 20, required: true },
+        { type: 'string', key: 'created_at', size: 50, required: false }
+      ]
     }
   ];
 

@@ -478,6 +478,29 @@ const getInitialMockData = () => {
     { id: 'log5', facility_id: 'f1', user_id: 'u3', action: 'Patient Registration', details: 'Registered new patient David Kiprop (EMC-PT-006)', created_at: new Date(Date.now() - 3600000 * 4).toISOString() }
   ];
 
+  const defaultRoleRequests = [
+    {
+      id: 'req1',
+      user_id: 'u_req1',
+      email: 'steve.jobs@eagletechsolutions.tech',
+      full_name: 'Dr. Steve Jobs',
+      facility_id: 'f1',
+      requested_role: 'clinician',
+      status: 'pending',
+      created_at: new Date(Date.now() - 3600000 * 2).toISOString()
+    },
+    {
+      id: 'req2',
+      user_id: 'u_req2',
+      email: 'florence@eagletechsolutions.tech',
+      full_name: 'Nurse Florence',
+      facility_id: 'f1',
+      requested_role: 'nurse',
+      status: 'pending',
+      created_at: new Date(Date.now() - 3600000 * 5).toISOString()
+    }
+  ];
+
   return {
     facilities: defaultFacilities,
     profiles: defaultProfiles,
@@ -487,7 +510,8 @@ const getInitialMockData = () => {
     consultations: defaultConsultations,
     orders: defaultOrders,
     invoices: defaultInvoices,
-    audit_logs: defaultAuditLogs
+    audit_logs: defaultAuditLogs,
+    role_requests: defaultRoleRequests
   };
 };
 

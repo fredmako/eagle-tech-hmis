@@ -14,6 +14,7 @@ import Admin from './components/Admin';
 import PatientDashboard from './components/PatientDashboard';
 import Ward from './components/Ward';
 import SaaSOnboarding from './components/SaaSOnboarding';
+import LandingPage from './components/LandingPage';
 
 import {
   LayoutDashboard,
@@ -37,7 +38,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [preselectedPatient, setPreselectedPatient] = useState(null);
-  const [isSaaSView, setIsSaaSView] = useState(false);
+  const [publicView, setPublicView] = useState('landing'); // 'landing', 'login', 'signup'
 
   const renderLogo = (logoUrl) => {
     if (!logoUrl) {
@@ -164,13 +165,22 @@ export default function App() {
   };
 
   if (!user) {
-    if (isSaaSView) {
-      return <SaaSOnboarding onBackToLogin={() => setIsSaaSView(false)} />;
+    if (publicView === 'signup') {
+      return <SaaSOnboarding onBackToLogin={() => setPublicView('landing')} />;
+    }
+    if (publicView === 'login') {
+      return (
+        <Login 
+          onLoginSuccess={handleLoginSuccess} 
+          onNavigateToSaaS={() => setPublicView('signup')} 
+          onNavigateToLanding={() => setPublicView('landing')}
+        />
+      );
     }
     return (
-      <Login 
-        onLoginSuccess={handleLoginSuccess} 
-        onNavigateToSaaS={() => setIsSaaSView(true)} 
+      <LandingPage 
+        onNavigateToLogin={() => setPublicView('login')} 
+        onNavigateToSignup={() => setPublicView('signup')} 
       />
     );
   }

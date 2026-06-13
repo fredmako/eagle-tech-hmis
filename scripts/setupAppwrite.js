@@ -59,6 +59,21 @@ const waitCollectionReady = async (collectionId) => {
 };
 
 const setup = async () => {
+  const resetMode = process.argv.includes('--reset');
+
+  if (resetMode) {
+    try {
+      console.log('Reset Mode: Deleting existing database...');
+      await databases.delete(databaseId);
+      console.log('Database deleted successfully. Waiting 3 seconds for index cleanup...');
+      await sleep(3000);
+    } catch (err) {
+      if (err.code !== 404) {
+        console.warn('Database reset warning:', err.message);
+      }
+    }
+  }
+
   // 1. Create Database
   try {
     await databases.create(databaseId, 'Egesa Health System Database');
@@ -79,7 +94,8 @@ const setup = async () => {
       name: 'Facilities',
       attributes: [
         { type: 'string', key: 'name', size: 255, required: true },
-        { type: 'string', key: 'code', size: 50, required: true }
+        { type: 'string', key: 'code', size: 50, required: true },
+        { type: 'string', key: 'logo_url', size: 500, required: false }
       ]
     },
     {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../appwriteClient';
 import { Activity, ShieldAlert, CheckCircle } from 'lucide-react';
 
-export default function Login({ onLoginSuccess, onNavigateToSaaS }) {
+export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLanding }) {
   const [facilities, setFacilities] = useState([]);
   const [selectedFacility, setSelectedFacility] = useState('');
   const [email, setEmail] = useState('');
@@ -150,14 +150,24 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS }) {
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4">
+      {/* Back to Landing Page Button */}
+      <div className="w-full max-w-md mb-4 flex justify-start">
+        <button
+          onClick={onNavigateToLanding}
+          className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition font-semibold"
+        >
+          ← Back to Homepage
+        </button>
+      </div>
+
       {/* Header Banner */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="bg-teal-500 text-slate-950 p-2.5 rounded-xl shadow-lg shadow-teal-500/20">
+        <div className="bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 p-2.5 rounded-xl shadow-lg shadow-teal-500/10">
           <Activity size={32} className="animate-pulse" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">EGESA HEALTH</h1>
-          <p className="text-xs text-teal-400 font-semibold tracking-wider uppercase">MOH Daily Patient Register</p>
+          <h1 className="text-2xl font-black text-white tracking-wide uppercase">EAGLE TECH</h1>
+          <p className="text-[10px] text-teal-400 font-bold tracking-widest uppercase">HMIS SOFTWARE SOLUTIONS</p>
         </div>
       </div>
 

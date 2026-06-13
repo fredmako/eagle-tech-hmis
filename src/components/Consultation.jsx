@@ -165,7 +165,7 @@ export default function Consultation({ user, onComplete }) {
               visit_id: selectedVisit.id,
               type: 'lab',
               item_name: test.name,
-              status: 'pending',
+              status: 'ordered',
               price: test.price
             })
           );
@@ -182,7 +182,7 @@ export default function Consultation({ user, onComplete }) {
               type: 'prescription',
               item_name: p.name,
               instructions: `Dosage: ${p.dosage} | Freq: ${p.frequency} | Dur: ${p.duration}`,
-              status: 'pending',
+              status: 'prescribed',
               price: p.price
             })
           );

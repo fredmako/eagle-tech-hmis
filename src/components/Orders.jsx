@@ -489,7 +489,7 @@ export default function Orders({ user, onComplete }) {
 
                       {/* Workflow Timeline Status Tracker */}
                       <div className="grid grid-cols-5 text-[9px] text-slate-500 uppercase tracking-wider text-center border-t border-b border-slate-900 py-2.5 font-semibold">
-                        <div className={ord.status !== 'ordered' ? 'text-teal-400' : 'text-slate-650'}>
+                        <div className={!['ordered', 'pending'].includes(ord.status || 'ordered') ? 'text-teal-400' : 'text-slate-650'}>
                           ● Collected
                         </div>
                         <div className={['received', 'accepted', 'in_process', 'completed', 'verified', 'released'].includes(ord.status) ? 'text-teal-400' : 'text-slate-650'}>
@@ -551,7 +551,7 @@ export default function Orders({ user, onComplete }) {
                             </div>
                           )}
                           {/* Pending / Ordered */}
-                          {(!ord.status || ord.status === 'ordered') && (
+                          {(!ord.status || ord.status === 'ordered' || ord.status === 'pending') && (
                             <p>Test ordered. Phlebotomist collection of blood/urine/stool specimen pending.</p>
                           )}
                         </div>
@@ -559,7 +559,7 @@ export default function Orders({ user, onComplete }) {
                         {/* Control buttons */}
                         <div className="flex flex-wrap gap-2 shrink-0 justify-end">
                           {/* Phlebotomy: Collect */}
-                          {(!ord.status || ord.status === 'ordered') && (
+                          {(!ord.status || ord.status === 'ordered' || ord.status === 'pending') && (
                             <button
                               disabled={loading}
                               onClick={() => handleCollectSample(ord.id)}

@@ -102,7 +102,9 @@ export default function Pharmacy({ user, onComplete }) {
       // Initialize prescription statuses
       const initialStates = {};
       ords?.forEach(o => {
-        initialStates[o.id] = o.status || 'prescribed';
+        let statusVal = o.status || 'prescribed';
+        if (statusVal === 'pending') statusVal = 'prescribed';
+        initialStates[o.id] = statusVal;
       });
       setPrescriptionStates(initialStates);
     } catch (err) {

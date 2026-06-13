@@ -427,8 +427,25 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       } else {
         // Fallback to standard Appwrite Google Sign-In
         sessionStorage.setItem('egesa_health_pending_facility', selectedFacility);
-        const { error } = await supabase.auth.signInWithGoogle();
+        const { data, error } = await supabase.auth.signInWithGoogle();
         if (error) throw new Error(error);
+
+        // If in Sandbox Mode, log in immediately because there is no redirect callback
+        if (supabase.isSandbox && data && data.user) {
+          const activeFac = facilities.find(f => f.id === selectedFacility) || facilities[0];
+          const loggedUser = {
+            id: data.user.id,
+            full_name: data.user.user_metadata.full_name,
+            role: data.user.user_metadata.role,
+            facility_id: selectedFacility,
+            facility_name: activeFac?.name || 'Default Facility',
+            facility_logo: activeFac?.logo_url || null
+          };
+          sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUser));
+          onLoginSuccess(loggedUser);
+          setLoading(false);
+          return;
+        }
       }
     } catch (err) {
       setError(err.message || 'Google Login failed.');

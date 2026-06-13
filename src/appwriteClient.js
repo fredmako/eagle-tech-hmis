@@ -208,20 +208,20 @@ class AppwriteQueryBuilder {
   }
 
   eq(column, value) {
-    // Appwrite uses documents matching filters. Equal queries look like Query.equal('attr', value)
-    this.queries.push(Query.equal(column, value));
+    const targetCol = column === 'id' ? '$id' : (column === 'created_at' ? '$createdAt' : column);
+    this.queries.push(Query.equal(targetCol, value));
     return this;
   }
 
   order(column, { ascending = true } = {}) {
-    this.queries.push(ascending ? Query.orderAsc(column) : Query.orderDesc(column));
+    const targetCol = column === 'id' ? '$id' : (column === 'created_at' ? '$createdAt' : column);
+    this.queries.push(ascending ? Query.orderAsc(targetCol) : Query.orderDesc(targetCol));
     return this;
   }
 
   async then(resolve) {
     try {
       const response = await databases.listDocuments(databaseId, this.tableName, this.queries);
-      // Map Appwrite documents (which contain $id, $createdAt, etc.) to standard fields
       const data = response.documents.map(doc => ({
         id: doc.$id,
         created_at: doc.$createdAt,
@@ -253,9 +253,10 @@ class QueryTable {
     if (isRealAppwrite) {
       const dataRows = Array.isArray(rows) ? rows : [rows];
       const insertPromises = dataRows.map(async (row) => {
-        // Appwrite creates documents. We pass ID.unique() as the document ID
-        const docId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
-        const response = await databases.createDocument(databaseId, this.tableName, docId, row);
+        // Remove system fields to prevent Appwrite attribute schema validation errors
+        const { id, created_at, $id, $createdAt, ...cleanData } = row;
+        const docId = id || (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15));
+        const response = await databases.createDocument(databaseId, this.tableName, docId, cleanData);
         return {
           id: response.$id,
           created_at: response.$createdAt,
@@ -332,14 +333,17 @@ class QueryTable {
         eq: (column, value) => {
           const executeUpdate = async () => {
             try {
-              // 1. Appwrite update requires Document ID. Find the document first
-              const response = await databases.listDocuments(databaseId, this.tableName, [Query.equal(column, value)]);
+              const targetCol = column === 'id' ? '$id' : (column === 'created_at' ? '$createdAt' : column);
+              const response = await databases.listDocuments(databaseId, this.tableName, [Query.equal(targetCol, value)]);
               if (response.documents.length === 0) {
                 return { data: [], error: 'Document not found' };
               }
               
+              // Remove system fields to prevent Appwrite attribute validation errors during update
+              const { id, created_at, $id, $createdAt, ...cleanValues } = values;
+              
               const updatePromises = response.documents.map(async (doc) => {
-                const updated = await databases.updateDocument(databaseId, this.tableName, doc.$id, values);
+                const updated = await databases.updateDocument(databaseId, this.tableName, doc.$id, cleanValues);
                 return {
                   id: updated.$id,
                   created_at: updated.$createdAt,
@@ -415,7 +419,8 @@ class QueryTable {
         eq: (column, value) => {
           const executeDelete = async () => {
             try {
-              const response = await databases.listDocuments(databaseId, this.tableName, [Query.equal(column, value)]);
+              const targetCol = column === 'id' ? '$id' : (column === 'created_at' ? '$createdAt' : column);
+              const response = await databases.listDocuments(databaseId, this.tableName, [Query.equal(targetCol, value)]);
               const deletePromises = response.documents.map(doc => 
                 databases.deleteDocument(databaseId, this.tableName, doc.$id)
               );

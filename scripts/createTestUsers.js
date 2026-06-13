@@ -92,13 +92,16 @@ const provisionAuthUsersAndProfiles = async () => {
   // Make sure facility 'f1' exists
   try {
     await databases.createDocument(databaseId, 'facilities', 'f1', {
-      name: 'Egesa Medical Clinic',
+      name: 'Eagle Tech Medical Clinic',
       code: 'EMC-001'
     });
-    console.log('Verified Egesa Medical Clinic (f1) is provisioned.');
+    console.log('Verified Eagle Tech Medical Clinic (f1) is provisioned.');
   } catch (err) {
     if (err.code === 409) {
-      console.log('Facility f1 already exists.');
+      await databases.updateDocument(databaseId, 'facilities', 'f1', {
+        name: 'Eagle Tech Medical Clinic'
+      });
+      console.log('Updated facility f1 to Eagle Tech Medical Clinic.');
     } else {
       console.error('Facility verification failed:', err.message);
     }

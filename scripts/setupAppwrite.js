@@ -258,13 +258,19 @@ const setup = async () => {
   console.log('\nSeeding default clinic setup...');
   try {
     await databases.createDocument(databaseId, 'facilities', 'f1', {
-      name: 'Egesa Medical Clinic',
+      name: 'Eagle Tech Medical Clinic',
       code: 'EMC-001'
     });
-    console.log('Seeded facility: Egesa Medical Clinic');
+    console.log('Seeded facility: Eagle Tech Medical Clinic');
   } catch (err) {
-    if (err.code === 409) console.log('Facility f1 already seeded.');
-    else console.error('Error seeding facility:', err.message);
+    if (err.code === 409) {
+      await databases.updateDocument(databaseId, 'facilities', 'f1', {
+        name: 'Eagle Tech Medical Clinic'
+      });
+      console.log('Updated facility f1 name to Eagle Tech Medical Clinic');
+    } else {
+      console.error('Error seeding facility:', err.message);
+    }
   }
 
   try {

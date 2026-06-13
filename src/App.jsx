@@ -13,6 +13,7 @@ import Reports from './components/Reports';
 import Admin from './components/Admin';
 import PatientDashboard from './components/PatientDashboard';
 import Ward from './components/Ward';
+import SaaSOnboarding from './components/SaaSOnboarding';
 
 import {
   LayoutDashboard,
@@ -35,6 +36,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [preselectedPatient, setPreselectedPatient] = useState(null);
+  const [isSaaSView, setIsSaaSView] = useState(false);
 
   useEffect(() => {
     const checkActiveSession = async () => {
@@ -109,7 +111,15 @@ export default function App() {
   };
 
   if (!user) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
+    if (isSaaSView) {
+      return <SaaSOnboarding onBackToLogin={() => setIsSaaSView(false)} />;
+    }
+    return (
+      <Login 
+        onLoginSuccess={handleLoginSuccess} 
+        onNavigateToSaaS={() => setIsSaaSView(true)} 
+      />
+    );
   }
 
   // Sidebar navigation options

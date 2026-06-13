@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../appwriteClient';
 import { Activity, ShieldAlert, CheckCircle } from 'lucide-react';
 
-export default function Login({ onLoginSuccess }) {
+export default function Login({ onLoginSuccess, onNavigateToSaaS }) {
   const [facilities, setFacilities] = useState([]);
   const [selectedFacility, setSelectedFacility] = useState('');
   const [email, setEmail] = useState('');
@@ -22,7 +22,21 @@ export default function Login({ onLoginSuccess }) {
       if (error) throw error;
       if (data && data.length > 0) {
         setFacilities(data);
-        setSelectedFacility(data[0].id);
+        
+        // Auto-select newly created facility if returning from SaaS onboarding
+        const newFacId = sessionStorage.getItem('egesa_health_new_facility_id');
+        const newAdminEmail = sessionStorage.getItem('egesa_health_new_admin_email');
+        if (newFacId && data.some(f => f.id === newFacId)) {
+          setSelectedFacility(newFacId);
+          if (newAdminEmail) {
+            setEmail(newAdminEmail);
+          }
+          // Clean up cache
+          sessionStorage.removeItem('egesa_health_new_facility_id');
+          sessionStorage.removeItem('egesa_health_new_admin_email');
+        } else {
+          setSelectedFacility(data[0].id);
+        }
       }
     } catch (err) {
       console.error('Error fetching facilities:', err);
@@ -248,6 +262,17 @@ export default function Login({ onLoginSuccess }) {
           </svg>
           <span>Sign In with Google</span>
         </button>
+
+        {/* SaaS Hospital Registration Link */}
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={onNavigateToSaaS}
+            className="text-[11px] font-semibold text-slate-400 hover:text-teal-400 transition"
+          >
+            Need Egesa Health for your hospital? <span className="text-teal-400 font-bold hover:underline">Register here</span>
+          </button>
+        </div>
 
         {/* Quick Credentials Seeder for Sandbox Mode */}
         {isSandbox && (

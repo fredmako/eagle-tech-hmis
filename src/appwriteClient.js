@@ -598,6 +598,34 @@ const appwriteAuth = {
       }
       return { data: { user: null }, error: null };
     }
+  },
+
+  signUp: async ({ email, password, name }) => {
+    if (isRealAppwrite) {
+      try {
+        const response = await account.create(ID.unique(), email, password, name);
+        return {
+          data: {
+            user: {
+              id: response.$id,
+              email: response.email,
+              user_metadata: { full_name: name }
+            }
+          },
+          error: null
+        };
+      } catch (err) {
+        return { data: null, error: err.message };
+      }
+    } else {
+      // Sandbox mode signup
+      const mockUser = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
+        email,
+        user_metadata: { full_name: name }
+      };
+      return { data: { user: mockUser }, error: null };
+    }
   }
 };
 

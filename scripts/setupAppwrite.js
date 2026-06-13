@@ -95,7 +95,8 @@ const setup = async () => {
       attributes: [
         { type: 'string', key: 'name', size: 255, required: true },
         { type: 'string', key: 'code', size: 50, required: true },
-        { type: 'string', key: 'logo_url', size: 500, required: false }
+        { type: 'string', key: 'logo_url', size: 15000, required: false },
+        { type: 'string', key: 'address', size: 500, required: false }
       ]
     },
     {

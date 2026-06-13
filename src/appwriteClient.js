@@ -44,16 +44,23 @@ const getInitialMockData = () => {
       id: 'p1',
       facility_id: 'f1',
       name: 'John Mwangi',
-      dob: '1988-05-14',
+      dob: '1985-05-14',
       gender: 'male',
       national_id: '29384758',
       facility_id_code: 'EMC-PT-001',
-      phone: '0712345678',
+      phone: JSON.stringify({
+        phone: '0712345678',
+        email: 'john.mwangi@eagletechsolutions.tech',
+        preferences: { lab: true, pharmacy: true, billing: true },
+        village: 'Kawangware Estate',
+        landmark: 'Near Stage 56',
+        marital_status: 'married'
+      }),
       next_of_kin_name: 'Sarah Mwangi',
       next_of_kin_phone: '0787654321',
       next_of_kin_relation: 'spouse',
       consent_given: true,
-      created_at: new Date(Date.now() - 3600000 * 24).toISOString()
+      created_at: new Date(Date.now() - 3600000 * 24 * 10).toISOString()
     },
     {
       id: 'p2',
@@ -63,14 +70,113 @@ const getInitialMockData = () => {
       gender: 'female',
       national_id: '30495867',
       facility_id_code: 'EMC-PT-002',
-      phone: '0722334455',
+      phone: JSON.stringify({
+        phone: '0722334455',
+        email: 'mary.achieng@eagletechsolutions.tech',
+        preferences: { lab: true, pharmacy: true, billing: true },
+        village: 'Kibera Lindi',
+        landmark: 'Lindi Primary School',
+        marital_status: 'single'
+      }),
       next_of_kin_name: 'Peter Omondi',
       next_of_kin_phone: '0799887766',
       next_of_kin_relation: 'brother',
       consent_given: true,
-      created_at: new Date(Date.now() - 3600000 * 5).toISOString()
+      created_at: new Date(Date.now() - 3600000 * 24 * 9).toISOString()
+    },
+    {
+      id: 'p3',
+      facility_id: 'f1',
+      name: 'Baby Ethan Mwangi',
+      dob: '2024-03-12',
+      gender: 'male',
+      national_id: null,
+      facility_id_code: 'EMC-PT-003',
+      phone: JSON.stringify({
+        phone: '0712345678',
+        email: 'john.mwangi@eagletechsolutions.tech',
+        preferences: { lab: true, pharmacy: true, billing: true },
+        village: 'Kawangware Estate',
+        landmark: 'Near Stage 56',
+        marital_status: 'single'
+      }),
+      next_of_kin_name: 'John Mwangi',
+      next_of_kin_phone: '0712345678',
+      next_of_kin_relation: 'parent',
+      consent_given: true,
+      created_at: new Date(Date.now() - 3600000 * 2).toISOString()
+    },
+    {
+      id: 'p4',
+      facility_id: 'f1',
+      name: 'Grace Wambui',
+      dob: '1998-04-12',
+      gender: 'female',
+      national_id: '35496874',
+      facility_id_code: 'EMC-PT-004',
+      phone: JSON.stringify({
+        phone: '0733445566',
+        email: 'grace.wambui@egesa.com',
+        preferences: { lab: true, pharmacy: true, billing: true },
+        village: 'Kariakor Estate',
+        landmark: 'Kariakor Market',
+        marital_status: 'married',
+        parity: 1,
+        gravidae: 2,
+        lmp: '2026-01-15',
+        edd: '2026-10-22'
+      }),
+      next_of_kin_name: 'Peter Wambui',
+      next_of_kin_phone: '0755443322',
+      next_of_kin_relation: 'spouse',
+      consent_given: true,
+      created_at: new Date(Date.now() - 3600000 * 24 * 3).toISOString()
+    },
+    {
+      id: 'p5',
+      facility_id: 'f1',
+      name: 'Faith Mutua',
+      dob: '2001-09-05',
+      gender: 'female',
+      national_id: '38294715',
+      facility_id_code: 'EMC-PT-005',
+      phone: JSON.stringify({
+        phone: '0744556677',
+        email: 'faith.mutua@egesa.com',
+        preferences: { lab: true, pharmacy: true, billing: true },
+        village: 'South B',
+        landmark: 'Shopping Center',
+        marital_status: 'single'
+      }),
+      next_of_kin_name: 'Mercy Mutua',
+      next_of_kin_phone: '0799887766',
+      next_of_kin_relation: 'sibling',
+      consent_given: true,
+      created_at: new Date(Date.now() - 3600000 * 24 * 5).toISOString()
+    },
+    {
+      id: 'p6',
+      facility_id: 'f1',
+      name: 'David Kiprop',
+      dob: '1975-07-20',
+      gender: 'male',
+      national_id: '20194837',
+      facility_id_code: 'EMC-PT-006',
+      phone: JSON.stringify({
+        phone: '0755667788',
+        email: 'david.kiprop@egesa.com',
+        preferences: { lab: true, pharmacy: true, billing: true },
+        village: 'Westlands',
+        landmark: 'Sarit Centre',
+        marital_status: 'married'
+      }),
+      next_of_kin_name: 'Jane Kiprop',
+      next_of_kin_phone: '0788776655',
+      next_of_kin_relation: 'spouse',
+      consent_given: true,
+      created_at: new Date(Date.now() - 3600000 * 4).toISOString()
     }
-  ];
+  ];Block;
 
   const defaultVisits = [
     {
@@ -90,6 +196,42 @@ const getInitialMockData = () => {
       priority: 'urgent',
       status: 'in_progress',
       created_at: new Date(Date.now() - 3600000).toISOString()
+    },
+    {
+      id: 'v3',
+      patient_id: 'p3',
+      facility_id: 'f1',
+      department: 'completed',
+      priority: 'routine',
+      status: 'completed',
+      created_at: new Date(Date.now() - 3600000 * 2).toISOString()
+    },
+    {
+      id: 'v4',
+      patient_id: 'p4',
+      facility_id: 'f1',
+      department: 'completed',
+      priority: 'routine',
+      status: 'completed',
+      created_at: new Date(Date.now() - 3600000 * 24 * 2).toISOString()
+    },
+    {
+      id: 'v5',
+      patient_id: 'p5',
+      facility_id: 'f1',
+      department: 'completed',
+      priority: 'routine',
+      status: 'completed',
+      created_at: new Date(Date.now() - 3600000 * 24 * 4).toISOString()
+    },
+    {
+      id: 'v6',
+      patient_id: 'p6',
+      facility_id: 'f1',
+      department: 'completed',
+      priority: 'routine',
+      status: 'completed',
+      created_at: new Date(Date.now() - 3600000 * 4).toISOString()
     }
   ];
 
@@ -110,15 +252,230 @@ const getInitialMockData = () => {
       priority_flag: 'yellow',
       risk_indicators: 'Fever',
       created_at: new Date(Date.now() - 3000000).toISOString()
+    },
+    {
+      id: 't_v3',
+      visit_id: 'v3',
+      systolic: null,
+      diastolic: null,
+      heart_rate: 110,
+      temperature: 38.9,
+      resp_rate: 28,
+      spo2: 96,
+      weight: 12.5,
+      height: 0.85,
+      bmi: 17.3,
+      chief_complaint: 'Fever and diarrhea for 2 days. Lethargic child.',
+      priority_flag: 'yellow',
+      risk_indicators: 'Dehydration',
+      created_at: new Date(Date.now() - 3600000 * 2.2).toISOString()
+    },
+    {
+      id: 't_v4',
+      visit_id: 'v4',
+      systolic: 110,
+      diastolic: 70,
+      heart_rate: 76,
+      temperature: 36.6,
+      resp_rate: 16,
+      spo2: 99,
+      weight: 62.0,
+      height: 1.60,
+      bmi: 24.2,
+      chief_complaint: 'Routine ANC visit (2nd visit). Gestation 20 weeks.',
+      priority_flag: 'green',
+      risk_indicators: 'Pregnant (LMP: 2026-01-15)',
+      created_at: new Date(Date.now() - 3600000 * 24 * 2.1).toISOString()
+    },
+    {
+      id: 't_v5',
+      visit_id: 'v5',
+      systolic: 120,
+      diastolic: 80,
+      heart_rate: 72,
+      temperature: 36.7,
+      resp_rate: 16,
+      spo2: 98,
+      weight: 58.0,
+      height: 1.65,
+      bmi: 21.3,
+      chief_complaint: 'Wants DMPA family planning renewal.',
+      priority_flag: 'green',
+      risk_indicators: 'Family Planning',
+      created_at: new Date(Date.now() - 3600000 * 24 * 4.1).toISOString()
+    },
+    {
+      id: 't_v6',
+      visit_id: 'v6',
+      systolic: 128,
+      diastolic: 82,
+      heart_rate: 88,
+      temperature: 38.6,
+      resp_rate: 18,
+      spo2: 97,
+      weight: 75.0,
+      height: 1.78,
+      bmi: 23.7,
+      chief_complaint: 'Fever, chills, headache for 4 days.',
+      priority_flag: 'yellow',
+      risk_indicators: 'High fever',
+      created_at: new Date(Date.now() - 3600000 * 4.2).toISOString()
     }
   ];
 
-  const defaultConsultations = [];
-  const defaultOrders = [];
-  const defaultInvoices = [];
+  const defaultConsultations = [
+    {
+      id: 'c3',
+      visit_id: 'v3',
+      history: 'Mother reports hotness of body and watery loose stools for two days. Vomits when feeding.',
+      examination: 'Sunken eyes, tearless crying, skin pinch goes back slowly.',
+      diagnosis_icd10: 'Gastroenteritis (A09)',
+      treatment_plan: 'Oral Rehydration Salts (ORS) + Zinc tablets. Advised to breastfeed continuously.',
+      created_at: new Date(Date.now() - 3600000 * 2).toISOString()
+    },
+    {
+      id: 'c4',
+      visit_id: 'v4',
+      history: 'G2P1. LMP 2026-01-15. No vaginal bleeding, no lower abdominal pain.',
+      examination: 'Fundal height at umbilicus. Fetal heart rate regular at 144 bpm. Breast exam normal.',
+      diagnosis_icd10: 'Antenatal Care (Z34.9)',
+      treatment_plan: 'Issued Fefol tablets. Scheduled next ANC visit in 4 weeks.',
+      created_at: new Date(Date.now() - 3600000 * 24 * 2).toISOString()
+    },
+    {
+      id: 'c5',
+      visit_id: 'v5',
+      history: 'Re-visit for contraceptive injection. Has used DMPA for 1 year without side effects.',
+      examination: 'Weight stable. Blood pressure normal.',
+      diagnosis_icd10: 'Family Planning (Z30.0)',
+      treatment_plan: 'Administer DMPA 150mg IM. Next visit scheduled in 12 weeks.',
+      created_at: new Date(Date.now() - 3600000 * 24 * 4).toISOString()
+    },
+    {
+      id: 'c6',
+      visit_id: 'v6',
+      history: 'Patient presents with persistent fever, sweating, chills and joint pains.',
+      examination: 'BP 128/82. Mild abdominal tenderness. Warm to touch.',
+      diagnosis_icd10: 'Malaria (B54)',
+      treatment_plan: 'Ordered lab tests (Malaria RDT/BS). Patient sent to laboratory.',
+      created_at: new Date(Date.now() - 3600000 * 4).toISOString()
+    }
+  ];
+
+  const defaultOrders = [
+    {
+      id: 'o_v3',
+      visit_id: 'v3',
+      type: 'prescription',
+      item_name: 'ORS + Zinc',
+      instructions: 'Dosage: 1 sachet + 10mg Zinc | Freq: 1x1 | Dur: 5 days',
+      status: 'approved',
+      price: 100,
+      created_at: new Date(Date.now() - 3600000 * 2).toISOString()
+    },
+    {
+      id: 'o_v4',
+      visit_id: 'v4',
+      type: 'prescription',
+      item_name: 'Paracetamol 500mg',
+      instructions: 'Dosage: 500mg | Freq: 3x1 | Dur: 3 days',
+      status: 'approved',
+      price: 50,
+      created_at: new Date(Date.now() - 3600000 * 24 * 2).toISOString()
+    },
+    {
+      id: 'o_v5_rx',
+      visit_id: 'v5',
+      type: 'prescription',
+      item_name: 'Paracetamol 500mg',
+      instructions: 'Dosage: 500mg | Freq: 3x1 | Dur: 3 days',
+      status: 'approved',
+      price: 50,
+      created_at: new Date(Date.now() - 3600000 * 24 * 4).toISOString()
+    },
+    {
+      id: 'o_v5_fp',
+      visit_id: 'v5',
+      type: 'prescription',
+      item_name: 'Injectables (DMPA)',
+      instructions: 'Dosage: 150mg IM | Freq: Stat | Dur: 1 day',
+      status: 'approved',
+      price: 200,
+      created_at: new Date(Date.now() - 3600000 * 24 * 4).toISOString()
+    },
+    {
+      id: 'o_v6_lab',
+      visit_id: 'v6',
+      type: 'lab',
+      item_name: 'Malaria BS/RDT',
+      instructions: 'Blood smear for parasites',
+      status: 'released',
+      price: 150,
+      results: JSON.stringify({
+        values: 'Positive (Plasmodium falciparum ++)',
+        specimen_type: 'Blood',
+        specimen_condition: 'Good',
+        collected_at: new Date(Date.now() - 3600000 * 4.1).toISOString(),
+        processing_started_at: new Date(Date.now() - 3600000 * 4.0).toISOString(),
+        completed_at: new Date(Date.now() - 3600000 * 3.8).toISOString(),
+        processed_by: 'Arthur Conan',
+        verifier: 'Arthur Conan'
+      }),
+      created_at: new Date(Date.now() - 3600000 * 4.2).toISOString()
+    },
+    {
+      id: 'o_v6_rx',
+      visit_id: 'v6',
+      type: 'prescription',
+      item_name: 'Artemether-Lumefantrine (AL)',
+      instructions: 'Dosage: 20/120 | Freq: 2x1 | Dur: 3 days',
+      status: 'approved',
+      price: 450,
+      created_at: new Date(Date.now() - 3600000 * 3.7).toISOString()
+    }
+  ];
+
+  const defaultInvoices = [
+    {
+      id: 'inv_v3',
+      visit_id: 'v3',
+      total_amount: 100,
+      amount_paid: 100,
+      status: 'paid',
+      created_at: new Date(Date.now() - 3600000 * 1.9).toISOString()
+    },
+    {
+      id: 'inv_v4',
+      visit_id: 'v4',
+      total_amount: 50,
+      amount_paid: 50,
+      status: 'paid',
+      created_at: new Date(Date.now() - 3600000 * 24 * 1.9).toISOString()
+    },
+    {
+      id: 'inv_v5',
+      visit_id: 'v5',
+      total_amount: 250,
+      amount_paid: 250,
+      status: 'paid',
+      created_at: new Date(Date.now() - 3600000 * 24 * 3.9).toISOString()
+    },
+    {
+      id: 'inv_v6',
+      visit_id: 'v6',
+      total_amount: 600,
+      amount_paid: 600,
+      status: 'paid',
+      created_at: new Date(Date.now() - 3600000 * 3.6).toISOString()
+    }
+  ];
+
   const defaultAuditLogs = [
-    { id: 'log1', facility_id: 'f1', user_id: 'u3', action: 'Patient Registration', details: 'Registered new patient John Mwangi (EMC-PT-001)', created_at: new Date(Date.now() - 3600000 * 24).toISOString() },
-    { id: 'log2', facility_id: 'f1', user_id: 'u3', action: 'Queue Ticket', details: 'Opened Triage visit for patient John Mwangi', created_at: new Date(Date.now() - 1800000).toISOString() }
+    { id: 'log1', facility_id: 'f1', user_id: 'u3', action: 'Patient Registration', details: 'Registered new patient John Mwangi (EMC-PT-001)', created_at: new Date(Date.now() - 3600000 * 24 * 10).toISOString() },
+    { id: 'log2', facility_id: 'f1', user_id: 'u3', action: 'Patient Registration', details: 'Registered new patient Mary Achieng (EMC-PT-002)', created_at: new Date(Date.now() - 3600000 * 24 * 9).toISOString() },
+    { id: 'log3', facility_id: 'f1', user_id: 'u3', action: 'Patient Registration', details: 'Registered new patient Grace Wambui (EMC-PT-004)', created_at: new Date(Date.now() - 3600000 * 24 * 3).toISOString() },
+    { id: 'log4', facility_id: 'f1', user_id: 'u3', action: 'Patient Registration', details: 'Registered new patient Faith Mutua (EMC-PT-005)', created_at: new Date(Date.now() - 3600000 * 24 * 5).toISOString() },
+    { id: 'log5', facility_id: 'f1', user_id: 'u3', action: 'Patient Registration', details: 'Registered new patient David Kiprop (EMC-PT-006)', created_at: new Date(Date.now() - 3600000 * 4).toISOString() }
   ];
 
   return {

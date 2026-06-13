@@ -26,6 +26,16 @@ export default function Registration({ user, onNavigateToQueue }) {
   const [optInPharmacy, setOptInPharmacy] = useState(true);
   const [optInBilling, setOptInBilling] = useState(true);
 
+  // Extra MOH compliance demographics
+  const [village, setVillage] = useState('');
+  const [landmark, setLandmark] = useState('');
+  const [maritalStatus, setMaritalStatus] = useState('single');
+  const [isPregnant, setIsPregnant] = useState(false);
+  const [parity, setParity] = useState('');
+  const [gravidae, setGravidae] = useState('');
+  const [lmp, setLmp] = useState('');
+  const [edd, setEdd] = useState('');
+
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
 
@@ -71,7 +81,18 @@ export default function Registration({ user, onNavigateToQueue }) {
         gender,
         national_id: nationalId || null,
         facility_id_code: facilityCode,
-        phone: `${phone}|${email}|lab:${optInLab},pharmacy:${optInPharmacy},billing:${optInBilling}`,
+        phone: JSON.stringify({
+          phone: phone,
+          email: email,
+          preferences: { lab: optInLab, pharmacy: optInPharmacy, billing: optInBilling },
+          village: village,
+          landmark: landmark,
+          marital_status: maritalStatus,
+          parity: parity ? parseInt(parity) : 0,
+          gravidae: gravidae ? parseInt(gravidae) : 0,
+          lmp: isPregnant ? lmp : '',
+          edd: isPregnant ? edd : ''
+        }),
         next_of_kin_name: nokName,
         next_of_kin_phone: nokPhone,
         next_of_kin_relation: nokRelation,
@@ -97,6 +118,14 @@ export default function Registration({ user, onNavigateToQueue }) {
       setOptInLab(true);
       setOptInPharmacy(true);
       setOptInBilling(true);
+      setVillage('');
+      setLandmark('');
+      setMaritalStatus('single');
+      setIsPregnant(false);
+      setParity('');
+      setGravidae('');
+      setLmp('');
+      setEdd('');
 
       // Re-trigger search or take user to queue builder directly with patient details
       if (data) {
@@ -274,7 +303,110 @@ export default function Registration({ user, onNavigateToQueue }) {
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
               />
             </div>
+
+            {/* Village / Estate */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Village / Estate *</label>
+              <input
+                type="text"
+                value={village}
+                onChange={(e) => setVillage(e.target.value)}
+                placeholder="e.g. Kawangware"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                required
+              />
+            </div>
+
+            {/* Landmark */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Landmark / Residence Details</label>
+              <input
+                type="text"
+                value={landmark}
+                onChange={(e) => setLandmark(e.target.value)}
+                placeholder="e.g. Near Market / Church"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              />
+            </div>
+
+            {/* Marital Status */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Marital Status *</label>
+              <select
+                value={maritalStatus}
+                onChange={(e) => setMaritalStatus(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                required
+              >
+                <option value="single">Single</option>
+                <option value="married">Married</option>
+                <option value="divorced">Divorced</option>
+                <option value="widowed">Widowed</option>
+                <option value="separated">Separated</option>
+              </select>
+            </div>
           </div>
+
+          {/* Obstetric & ANC details for female patients */}
+          {gender === 'female' && (
+            <div className="bg-slate-950/40 border border-slate-850 p-4 rounded-xl space-y-3 mt-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="pregnantCheck"
+                  checked={isPregnant}
+                  onChange={(e) => setIsPregnant(e.target.checked)}
+                  className="accent-teal-500 h-4 w-4 bg-slate-950 border-slate-800 rounded text-teal-500 cursor-pointer"
+                />
+                <label htmlFor="pregnantCheck" className="text-xs font-bold text-slate-350 cursor-pointer select-none">
+                  Obstetric / Antenatal Care (ANC) Details
+                </label>
+              </div>
+
+              {isPregnant && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-850 border-dashed">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Parity</label>
+                    <input
+                      type="number"
+                      value={parity}
+                      onChange={(e) => setParity(e.target.value)}
+                      placeholder="e.g. 0"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Gravidae</label>
+                    <input
+                      type="number"
+                      value={gravidae}
+                      onChange={(e) => setGravidae(e.target.value)}
+                      placeholder="e.g. 1"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">LMP (Last Menstrual Period)</label>
+                    <input
+                      type="date"
+                      value={lmp}
+                      onChange={(e) => setLmp(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">EDD (Estimated Delivery Date)</label>
+                    <input
+                      type="date"
+                      value={edd}
+                      onChange={(e) => setEdd(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Notification Opt-In preferences */}
           <div className="border-t border-slate-800/80 pt-4 mt-2">

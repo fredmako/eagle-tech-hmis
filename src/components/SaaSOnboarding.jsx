@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Eye,
   Heart,
-  ShieldAlert
+  ShieldAlert,
+  Upload
 } from 'lucide-react';
 
 export default function SaaSOnboarding({ onBackToLogin }) {
@@ -27,6 +28,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
   
   // Registration & branding form state
   const [hospitalName, setHospitalName] = useState('');
+  const [hospitalAddress, setHospitalAddress] = useState('');
   const [hospitalCode, setHospitalCode] = useState('');
   const [logoOption, setLogoOption] = useState('heart'); // 'heart', 'shield', 'cross', 'custom'
   const [customLogoUrl, setCustomLogoUrl] = useState('');
@@ -72,7 +74,6 @@ export default function SaaSOnboarding({ onBackToLogin }) {
     if (logoOption === 'custom') {
       return customLogoUrl || 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=128&auto=format&fit=crop&q=60';
     }
-    // Return a identifier for the preset
     return `preset:${logoOption}`;
   };
 
@@ -85,7 +86,6 @@ export default function SaaSOnboarding({ onBackToLogin }) {
           className={`rounded-lg object-cover ${border ? 'border border-slate-700' : ''}`}
           style={{ width: size, height: size }}
           onError={(e) => {
-            // Fallback on error
             e.target.src = 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=128&auto=format&fit=crop&q=60';
           }}
         />
@@ -94,9 +94,54 @@ export default function SaaSOnboarding({ onBackToLogin }) {
     const preset = logoPresets[logoOption] || logoPresets['heart'];
     return (
       <div className={`p-1.5 rounded-lg border flex items-center justify-center shrink-0 ${preset.bg} ${preset.color}`}>
-        {preset.icon(`w-${Math.floor(size/4)} h-${Math.floor(size/4)}`)}
+        {preset.icon(`w-${Math.floor(size/4)}.5 h-${Math.floor(size/4)}.5`)}
       </div>
     );
+  };
+
+  // Dynamic Image compression to lightweight base64 string
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setError('Please select a valid image file (PNG, JPEG, SVG).');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const max_size = 80; // Small size fits sidebar and complies with DB size attributes
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > max_size) {
+              height *= max_size / width;
+              width = max_size;
+            }
+          } else {
+            if (height > max_size) {
+              width *= max_size / height;
+              height = max_size;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // 80% compression ensures high quality but tiny string size
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+          setCustomLogoUrl(compressedBase64);
+          setError('');
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const plans = [
@@ -146,7 +191,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
   const handleNextStep = () => {
     if (step === 2) {
-      if (!hospitalName.trim() || !adminName.trim() || !adminEmail.trim() || !adminPhone.trim() || !adminPassword.trim()) {
+      if (!hospitalName.trim() || !hospitalAddress.trim() || !adminName.trim() || !adminEmail.trim() || !adminPhone.trim() || !adminPassword.trim()) {
         setError('Please fill in all hospital and administrator profile details.');
         return;
       }
@@ -154,8 +199,8 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         setError('Administrator password must be at least 8 characters long.');
         return;
       }
-      if (logoOption === 'custom' && !customLogoUrl.trim()) {
-        setError('Please enter a custom Logo Image URL or select one of the presets.');
+      if (logoOption === 'custom' && !customLogoUrl) {
+        setError('Please upload a custom Logo File or choose one of the presets.');
         return;
       }
       
@@ -184,7 +229,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
     setError('');
 
     try {
-      // 1. Register Auth account (client-side Appwrite/Mock creation)
+      // 1. Register Auth account
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: adminEmail,
         password: adminPassword,
@@ -197,12 +242,13 @@ export default function SaaSOnboarding({ onBackToLogin }) {
       const facilityId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
       const logoUrl = getActiveLogoUrl();
 
-      // 2. Insert new facility document including logo_url
+      // 2. Insert new facility document including logo_url & address
       const { error: facError } = await supabase.from('facilities').insert({
         id: facilityId,
         name: hospitalName,
         code: hospitalCode,
-        logo_url: logoUrl
+        logo_url: logoUrl,
+        address: hospitalAddress
       });
 
       if (facError) throw new Error(facError);
@@ -230,7 +276,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
       sessionStorage.setItem('egesa_health_new_admin_email', adminEmail);
 
       setCreatedFacilityCode(hospitalCode);
-      setStep(4); // Navigate to success step
+      setStep(4);
     } catch (err) {
       setError(err.message || 'Onboarding failed during server configuration.');
     } finally {
@@ -239,7 +285,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen bg-slate-955 flex flex-col justify-center items-center p-4">
       {/* Header Branding */}
       <div className="flex items-center gap-3 mb-6">
         <div className="bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 p-2.5 rounded-xl shadow-lg shadow-teal-500/10">
@@ -357,7 +403,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                 Portal White-Label Branding Setup
               </h2>
               <p className="text-xs text-slate-400">
-                Design your custom medical portal. Define your Hospital Name and select or upload a Logo. Review the live preview on the right.
+                Design your custom medical portal. Define your Hospital Name, physical address, and upload your custom logo.
               </p>
             </div>
 
@@ -365,20 +411,32 @@ export default function SaaSOnboarding({ onBackToLogin }) {
               
               {/* Left Form: Inputs (7/12 width) */}
               <div className="lg:col-span-7 space-y-5">
-                <div className="bg-slate-950 border border-slate-850 p-5 rounded-xl space-y-4">
+                <div className="bg-slate-955 border border-slate-850 p-5 rounded-xl space-y-4">
                   <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-1.5">
                     <Building2 size={14} /> Hospital Identification
                   </h3>
                   
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Hospital Name</label>
-                    <input
-                      type="text"
-                      value={hospitalName}
-                      onChange={(e) => setHospitalName(e.target.value)}
-                      placeholder="e.g. St. Luke Referral Hospital"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Hospital Name</label>
+                      <input
+                        type="text"
+                        value={hospitalName}
+                        onChange={(e) => setHospitalName(e.target.value)}
+                        placeholder="e.g. St. Luke Referral Hospital"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1">Hospital Address</label>
+                      <input
+                        type="text"
+                        value={hospitalAddress}
+                        onChange={(e) => setHospitalAddress(e.target.value)}
+                        placeholder="e.g. Avenue Rd, Nairobi, Kenya"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -391,7 +449,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                             key={presetKey}
                             type="button"
                             onClick={() => setLogoOption(presetKey)}
-                            className={`p-2.5 rounded-lg border flex flex-col items-center justify-center gap-1.5 transition ${
+                            className={`p-2.5 rounded-lg border flex flex-col items-center justify-center gap-1.5 transition cursor-pointer ${
                               logoOption === presetKey 
                                 ? 'border-teal-500 bg-teal-500/5 text-teal-400' 
                                 : 'border-slate-800 bg-slate-900 text-slate-450 hover:bg-slate-800 hover:text-slate-200'
@@ -405,30 +463,56 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                       <button
                         type="button"
                         onClick={() => setLogoOption('custom')}
-                        className={`p-2.5 rounded-lg border flex flex-col items-center justify-center gap-1.5 transition ${
+                        className={`p-2.5 rounded-lg border flex flex-col items-center justify-center gap-1.5 transition cursor-pointer ${
                           logoOption === 'custom' 
                             ? 'border-teal-500 bg-teal-500/5 text-teal-400' 
                             : 'border-slate-800 bg-slate-900 text-slate-450 hover:bg-slate-800'
                         }`}
                       >
-                        <Mail size={16} />
-                        <span className="text-[8px] font-bold tracking-wide uppercase">Custom URL</span>
+                        <Upload size={16} />
+                        <span className="text-[8px] font-bold tracking-wide uppercase">Custom Upload</span>
                       </button>
                     </div>
 
                     {logoOption === 'custom' && (
-                      <input
-                        type="text"
-                        value={customLogoUrl}
-                        onChange={(e) => setCustomLogoUrl(e.target.value)}
-                        placeholder="Paste logo image URL (e.g. https://domain.com/logo.png)"
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                      />
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-center w-full">
+                          <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-800 border-dashed rounded-lg cursor-pointer bg-slate-900/40 hover:bg-slate-900/70 hover:border-teal-500/50 transition">
+                            <div className="flex flex-col items-center justify-center pt-4 pb-3">
+                              <Upload size={24} className="mb-2 text-slate-400" />
+                              <p className="text-[10px] text-slate-400 font-bold uppercase"><span className="text-teal-400">Click to upload</span> logo image</p>
+                              <p className="text-[8px] text-slate-500 mt-0.5">PNG, JPG or SVG (Auto-compressed)</p>
+                            </div>
+                            <input 
+                              type="file" 
+                              className="hidden" 
+                              accept="image/*" 
+                              onChange={handleLogoUpload} 
+                            />
+                          </label>
+                        </div>
+                        {customLogoUrl && (
+                          <div className="flex items-center gap-3 bg-slate-900/50 border border-slate-800 p-2 rounded-lg">
+                            <img src={customLogoUrl} alt="Uploaded Logo Preview" className="w-8 h-8 rounded object-cover border border-slate-700" />
+                            <div className="truncate flex-1">
+                              <span className="text-[10px] text-slate-450 block font-bold">Logo Uploaded Successfully</span>
+                              <span className="text-[8px] text-slate-500 font-mono block truncate">{customLogoUrl.substring(0, 50)}...</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setCustomLogoUrl('')}
+                              className="text-[9px] text-red-400 hover:text-red-300 font-bold px-2 py-1 rounded hover:bg-red-500/10 transition"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-slate-950 border border-slate-850 p-5 rounded-xl space-y-4">
+                <div className="bg-slate-955 border border-slate-855 p-5 rounded-xl space-y-4">
                   <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-1.5">
                     <User size={14} /> Admin Account Details
                   </h3>
@@ -488,8 +572,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                 </h3>
 
                 {/* Glassmorphic Mock Sidebar widget */}
-                <div className="bg-slate-950 border border-slate-850 rounded-xl p-5 shadow-inner relative overflow-hidden space-y-6 min-h-[340px] flex flex-col justify-between">
-                  {/* Subtle watermarked system brand in background */}
+                <div className="bg-slate-950 border border-slate-855 rounded-xl p-5 shadow-inner relative overflow-hidden space-y-6 min-h-[340px] flex flex-col justify-between">
                   <div className="absolute top-1 right-2 text-[8px] text-slate-800 font-bold font-mono tracking-widest uppercase">
                     Eagle Tech HMIS Preview
                   </div>
@@ -502,7 +585,10 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                         <span className="font-bold tracking-wide text-xs text-white block uppercase truncate">
                           {hospitalName.trim() || 'Your Hospital Name'}
                         </span>
-                        <span className="text-[9px] text-teal-400 font-semibold tracking-wider uppercase block truncate leading-none mt-1">
+                        <span className="text-[8px] text-slate-400 block truncate mt-0.5 leading-none">
+                          {hospitalAddress.trim() || 'Your Facility Address'}
+                        </span>
+                        <span className="text-[9px] text-teal-400 font-semibold tracking-wider uppercase block truncate leading-none mt-2">
                           HMIS PORTAL
                         </span>
                       </div>
@@ -513,17 +599,17 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                       <div className="w-full bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold">
                         <Activity size={12} /> Dashboard View
                       </div>
-                      <div className="w-full flex items-center gap-2 px-3 py-1.5 text-slate-500 text-[10px] font-bold">
+                      <div className="w-full flex items-center gap-2 px-3 py-1.5 text-slate-550 text-[10px] font-bold">
                         <User size={12} /> Patient Register
                       </div>
-                      <div className="w-full flex items-center gap-2 px-3 py-1.5 text-slate-500 text-[10px] font-bold">
+                      <div className="w-full flex items-center gap-2 px-3 py-1.5 text-slate-555 text-[10px] font-bold">
                         <Lock size={12} /> Security Configuration
                       </div>
                     </div>
                   </div>
 
                   {/* Powered By Eagle Tech Footer */}
-                  <div className="border-t border-slate-900 pt-3 flex items-center justify-between text-[9px] text-slate-650 font-bold">
+                  <div className="border-t border-slate-900 pt-3 flex items-center justify-between text-[9px] text-slate-655 font-bold">
                     <span>Facility Code: {hospitalCode || 'MOCK-001'}</span>
                     <span className="text-teal-500/60 uppercase font-mono tracking-wider">Eagle Tech Solutions</span>
                   </div>
@@ -540,7 +626,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
               </button>
               <button 
                 onClick={handleNextStep}
-                className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg flex items-center gap-1.5 shadow active:scale-[0.98] transition"
+                className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg flex items-center gap-1.5 shadow active:scale-[0.98] transition cursor-pointer"
               >
                 Go to Payment Portal <ArrowRight size={14} />
               </button>
@@ -558,7 +644,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
               </h3>
 
               {/* White label preview details */}
-              <div className="bg-slate-950 border border-slate-850 p-4 rounded-xl space-y-3">
+              <div className="bg-slate-950 border border-slate-855 p-4 rounded-xl space-y-3">
                 <div className="flex items-center gap-3">
                   {renderActiveLogo(28, true)}
                   <div className="truncate">
@@ -580,6 +666,10 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                     <span>MOH Identifier Code:</span>
                     <span className="font-mono text-teal-500 font-bold">{hospitalCode}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span>Facility Address:</span>
+                    <span className="font-bold text-slate-300 truncate max-w-[180px]" title={hospitalAddress}>{hospitalAddress}</span>
+                  </div>
                 </div>
               </div>
 
@@ -591,7 +681,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
             </div>
 
             {/* Right Column: Simulated checkout form */}
-            <div className="bg-slate-950 border border-slate-850 p-5 rounded-xl space-y-4">
+            <div className="bg-slate-950 border border-slate-855 p-5 rounded-xl space-y-4">
               <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-1.5">
                 <CreditCard size={14} className="text-teal-400" /> Secure Payment portal
               </h3>
@@ -612,7 +702,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider mb-1">Expiry Date</label>
+                    <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1">Expiry Date</label>
                     <input
                       type="text"
                       value={cardExpiry}
@@ -621,7 +711,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider mb-1">CVC Code</label>
+                    <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1">CVC Code</label>
                     <input
                       type="password"
                       value={cardCvc}
@@ -631,7 +721,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                   </div>
                 </div>
 
-                <div className="flex gap-2 bg-slate-900/60 border border-slate-850 p-2.5 rounded-lg text-[9px] text-slate-500 font-medium">
+                <div className="flex gap-2 bg-slate-900/60 border border-slate-805 p-2.5 rounded-lg text-[9px] text-slate-500 font-medium">
                   <ShieldCheck size={18} className="text-teal-400 shrink-0 mt-0.5" />
                   <span>Eagle Tech billing processes transactions over TLS. Clicking pay now constructs your database profile and facility credentials immediately.</span>
                 </div>
@@ -648,7 +738,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                   <button 
                     type="submit"
                     disabled={loading}
-                    className="bg-teal-500 hover:bg-teal-600 disabled:bg-teal-500/20 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg flex items-center gap-1.5 shadow active:scale-[0.98] transition"
+                    className="bg-teal-500 hover:bg-teal-600 disabled:bg-teal-500/20 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg flex items-center gap-1.5 shadow active:scale-[0.98] transition cursor-pointer"
                   >
                     {loading ? 'Registering...' : `Pay & Activate Portal`}
                   </button>
@@ -675,7 +765,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
             </div>
 
             {/* Configured details */}
-            <div className="bg-slate-950 border border-slate-850 p-5 rounded-xl space-y-3 text-xs text-left max-w-md mx-auto">
+            <div className="bg-slate-950 border border-slate-855 p-5 rounded-xl space-y-3 text-xs text-left max-w-md mx-auto">
               <div className="flex items-center gap-3 pb-3 border-b border-slate-900">
                 {renderActiveLogo(24, true)}
                 <span className="font-bold text-slate-100 uppercase">{hospitalName}</span>
@@ -683,6 +773,10 @@ export default function SaaSOnboarding({ onBackToLogin }) {
               <div className="flex justify-between text-[11px] pt-1">
                 <span className="text-slate-500 font-bold">MOH Facility Code</span>
                 <span className="font-mono text-teal-400 font-black">{createdFacilityCode}</span>
+              </div>
+              <div className="flex justify-between text-[11px]">
+                <span className="text-slate-500 font-bold">Hospital Address</span>
+                <span className="text-slate-300 font-semibold">{hospitalAddress}</span>
               </div>
               <div className="flex justify-between text-[11px]">
                 <span className="text-slate-500 font-bold">Admin Login Email</span>
@@ -696,7 +790,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
             <button
               onClick={onBackToLogin}
-              className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2.5 px-6 rounded-lg shadow-lg active:scale-[0.98] transition w-full max-w-md"
+              className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2.5 px-6 rounded-lg shadow-lg active:scale-[0.98] transition w-full max-w-md cursor-pointer"
             >
               Go to Hospital Login Workspace
             </button>

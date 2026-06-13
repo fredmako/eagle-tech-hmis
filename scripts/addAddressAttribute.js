@@ -39,13 +39,13 @@ const client = new Client()
 const databases = new Databases(client);
 
 const run = async () => {
-  console.log('Adding logo_url attribute to facilities collection...');
+  console.log('Adding address attribute to facilities collection...');
   try {
-    await databases.createStringAttribute(databaseId, 'facilities', 'logo_url', 15000, false);
-    console.log('Attribute [logo_url] successfully created in collection [facilities].');
+    await databases.createStringAttribute(databaseId, 'facilities', 'address', 500, false);
+    console.log('Attribute [address] successfully created in collection [facilities].');
   } catch (err) {
     if (err.code === 409) {
-      console.log('Attribute [logo_url] already exists.');
+      console.log('Attribute [address] already exists.');
     } else {
       console.error('Failed to create attribute:', err.message);
     }

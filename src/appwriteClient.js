@@ -1054,8 +1054,18 @@ export const supabase = {
     invoke: async (functionName, payload) => {
       if (isRealAppwrite) {
         try {
+          // Map abstract function names to real deployed Appwrite Function IDs via env variables
+          let functionId = functionName;
+          if (functionName === 'send-email') {
+            functionId = import.meta.env.VITE_APPWRITE_FUNCTION_SEND_EMAIL || 'send-email';
+          } else if (functionName === 'google-oauth-exchange') {
+            functionId = import.meta.env.VITE_APPWRITE_FUNCTION_GOOGLE_OAUTH_EXCHANGE || 'google-oauth-exchange';
+          } else if (functionName === 'generate-report-excel') {
+            functionId = import.meta.env.VITE_APPWRITE_FUNCTION_GENERATE_REPORT_EXCEL || 'generate-report-excel';
+          }
+
           const execution = await functions.createExecution(
-            functionName,
+            functionId,
             JSON.stringify(payload)
           );
           return {

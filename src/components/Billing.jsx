@@ -123,6 +123,237 @@ export default function Billing({ user, onComplete }) {
     }
   };
 
+  const handlePrintReceipt = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker is active. Please enable popups to print receipt.');
+      return;
+    }
+    
+    // Logo resolution
+    let logoHtml = '';
+    const logoUrl = user?.facility_logo;
+    if (logoUrl) {
+      if (logoUrl.startsWith('preset:')) {
+        const presetKey = logoUrl.split(':')[1];
+        if (presetKey === 'shield') {
+          logoHtml = `
+            <div style="width: 45px; height: 45px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto;">
+              <svg style="width: 24px; height: 24px; color: #3b82f6;" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 12c-2.33 0-4.31-1.17-5.46-2.93.03-1.81 3.63-2.82 5.46-2.82 1.82 0 5.42 1.01 5.46 2.82-1.15 1.76-3.13 2.93-5.46 2.93z"/>
+              </svg>
+            </div>
+          `;
+        } else if (presetKey === 'cross') {
+          logoHtml = `
+            <div style="width: 45px; height: 45px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto;">
+              <svg style="width: 24px; height: 24px; color: #ef4444;" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z"/>
+              </svg>
+            </div>
+          `;
+        } else {
+          logoHtml = `
+            <div style="width: 45px; height: 45px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto;">
+              <svg style="width: 24px; height: 24px; color: #10b981;" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            </div>
+          `;
+        }
+      } else {
+        logoHtml = `
+          <div style="text-align: center; margin-bottom: 10px;">
+            <img src="${logoUrl}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;" onerror="this.style.display='none'" />
+          </div>
+        `;
+      }
+    } else {
+      logoHtml = `
+        <div style="width: 45px; height: 45px; border-radius: 8px; background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #0d9488; font-size: 16px; margin: 0 auto 10px auto;">
+          ${(user?.facility_name || 'EM').substring(0, 2).toUpperCase()}
+        </div>
+      `;
+    }
+
+    const total = (parseFloat(invoice?.total_amount || 0) + 350).toFixed(2);
+    const receiptNo = 'RCPT-' + Math.floor(10000 + Math.random() * 90000);
+    const ageYrs = selectedVisit?.patient?.dob ? Math.floor((new Date() - new Date(selectedVisit.patient.dob)) / (365.25 * 24 * 60 * 60 * 1000)) : 'N/A';
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Payment Receipt - ${selectedVisit.patient?.name}</title>
+          <style>
+            @page {
+              size: 80mm auto;
+              margin: 0;
+            }
+            body {
+              font-family: 'Courier New', Courier, monospace;
+              color: #000;
+              background-color: #fff;
+              width: 70mm;
+              margin: 0 auto;
+              padding: 5mm;
+              font-size: 10px;
+              line-height: 1.4;
+            }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .font-bold { font-weight: bold; }
+            
+            .header-section {
+              border-bottom: 1px dashed #000;
+              padding-bottom: 6px;
+              margin-bottom: 8px;
+            }
+            .facility-name {
+              font-size: 12px;
+              font-weight: bold;
+              text-transform: uppercase;
+              margin: 0;
+            }
+            .facility-meta {
+              font-size: 8px;
+              margin: 2px 0;
+            }
+            
+            .invoice-meta {
+              font-size: 8px;
+              margin-top: 6px;
+              border-bottom: 1px dashed #000;
+              padding-bottom: 6px;
+            }
+            
+            .patient-details {
+              margin: 6px 0;
+              font-size: 9px;
+            }
+            
+            .items-header {
+              border-bottom: 1px solid #000;
+              font-weight: bold;
+              margin-top: 8px;
+              padding-bottom: 2px;
+            }
+            
+            .item-row {
+              display: flex;
+              justify-content: space-between;
+              padding: 4px 0;
+              border-bottom: 1px dashed #eee;
+            }
+            
+            .summary-section {
+              margin-top: 10px;
+              border-top: 1px dashed #000;
+              padding-top: 6px;
+              font-size: 10px;
+            }
+            .summary-row {
+              display: flex;
+              justify-content: space-between;
+              padding: 2px 0;
+            }
+            
+            .watermark-paid {
+              border: 2px solid #000;
+              color: #000;
+              font-size: 14px;
+              font-weight: bold;
+              display: inline-block;
+              padding: 4px 12px;
+              margin: 10px auto;
+              text-transform: uppercase;
+              transform: rotate(-5deg);
+              letter-spacing: 2px;
+            }
+            
+            .footer-section {
+              margin-top: 15px;
+              border-top: 1px dashed #000;
+              padding-top: 8px;
+              font-size: 8px;
+              color: #555;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="text-center header-section">
+            ${logoHtml}
+            <h4 class="facility-name">${user?.facility_name || 'Eagle Tech Medical Clinic'}</h4>
+            <p class="facility-meta">MOH Register ID: EMC-001 | Tel: +254 712 345 678</p>
+            <p class="facility-meta">${new Date().toLocaleString()}</p>
+          </div>
+          
+          <div class="patient-details">
+            <div class="font-bold">Patient: ${selectedVisit.patient?.name}</div>
+            <div>ID Code: ${selectedVisit.patient?.facility_id_code}</div>
+            <div>Age/Sex: ${ageYrs} Yrs | ${selectedVisit.patient?.gender?.toUpperCase() || 'N/A'}</div>
+          </div>
+          
+          <div class="invoice-meta">
+            <div>Receipt No: ${receiptNo}</div>
+            <div>Payment Mode: ${paymentMethod.toUpperCase()}</div>
+            <div>Cashier: ${user?.full_name || 'N/A'}</div>
+          </div>
+          
+          <div class="font-bold items-header">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Fee Item</span>
+              <span>Amount (KES)</span>
+            </div>
+          </div>
+          
+          <div class="item-row">
+            <span>Outpatient Consultation & Vitals</span>
+            <span>350.00</span>
+          </div>
+          
+          ${orders.map(o => `
+            <div class="item-row">
+              <span style="text-transform: capitalize;">${o.type} Test: ${o.item_name}</span>
+              <span>${parseFloat(o.price).toFixed(2)}</span>
+            </div>
+          `).join('')}
+          
+          <div class="summary-section">
+            <div class="summary-row">
+              <span>Subtotal:</span>
+              <span>${total}</span>
+            </div>
+            <div class="summary-row font-bold" style="font-size: 11px; margin-top: 4px; border-top: 1px solid #000; padding-top: 4px;">
+              <span>AMOUNT PAID:</span>
+              <span>${total}</span>
+            </div>
+            <div class="summary-row">
+              <span>Balance Outstanding:</span>
+              <span>0.00</span>
+            </div>
+          </div>
+          
+          <div class="text-center" style="margin-top: 10px;">
+            <div class="watermark-paid">PAID</div>
+          </div>
+          
+          <div class="text-center footer-section">
+            <p>Thank you for choosing ${user?.facility_name || 'us'}.</p>
+            <p style="font-size: 7px; color: #777;">Powered by Eagle Tech HMIS Solutions</p>
+          </div>
+          
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const getDepartmentFee = (dept) => {
     // Basic service fees
     if (dept === 'triage') return 100;
@@ -271,7 +502,7 @@ export default function Billing({ user, onComplete }) {
                     Load Next Ticket
                   </button>
                   <button
-                    onClick={() => window.print()}
+                    onClick={handlePrintReceipt}
                     className="flex items-center gap-1.5 bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg shadow-lg shadow-teal-500/10 transition"
                   >
                     <Printer size={12} /> Print Receipt

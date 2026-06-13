@@ -146,6 +146,11 @@ const saveMockDB = (db) => {
   localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(db));
 };
 
+const getActiveFacilityId = () => {
+  const activeUser = JSON.parse(sessionStorage.getItem('egesa_health_active_user') || 'null');
+  return activeUser?.facility_id || null;
+};
+
 // --- Mock Query Builder ---
 class MockQueryBuilder {
   constructor(tableName, db) {
@@ -174,6 +179,13 @@ class MockQueryBuilder {
   async then(resolve) {
     try {
       let data = [...(this.db[this.tableName] || [])];
+      
+      const globalTables = ['facilities', 'profiles'];
+      const activeFacId = getActiveFacilityId();
+      if (!globalTables.includes(this.tableName) && activeFacId) {
+        data = data.filter((item) => item.facility_id === activeFacId);
+      }
+
       for (const filter of this.filters) {
         data = data.filter(filter);
       }
@@ -221,6 +233,17 @@ class AppwriteQueryBuilder {
 
   async then(resolve) {
     try {
+      const globalTables = ['facilities', 'profiles'];
+      const activeFacId = getActiveFacilityId();
+      
+      if (!globalTables.includes(this.tableName) && activeFacId) {
+        // Appwrite query lists contain strings. We check if facility_id filter is already added
+        const hasFacilityFilter = this.queries.some(q => q && q.includes && q.includes('facility_id'));
+        if (!hasFacilityFilter) {
+          this.queries.push(Query.equal('facility_id', activeFacId));
+        }
+      }
+
       const response = await databases.listDocuments(databaseId, this.tableName, this.queries);
       const data = response.documents.map(doc => ({
         id: doc.$id,
@@ -252,9 +275,18 @@ class QueryTable {
   insert(rows) {
     if (isRealAppwrite) {
       const dataRows = Array.isArray(rows) ? rows : [rows];
+      const activeFacId = getActiveFacilityId();
+
       const insertPromises = dataRows.map(async (row) => {
         // Remove system fields to prevent Appwrite attribute schema validation errors
         const { id, created_at, $id, $createdAt, ...cleanData } = row;
+        
+        // Auto-inject facility_id for tenant tables
+        const globalTables = ['facilities', 'profiles'];
+        if (!globalTables.includes(this.tableName) && activeFacId && !cleanData.facility_id) {
+          cleanData.facility_id = activeFacId;
+        }
+
         const docId = id || (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15));
         const response = await databases.createDocument(databaseId, this.tableName, docId, cleanData);
         return {
@@ -295,11 +327,20 @@ class QueryTable {
       // Local Mock DB fallback
       const db = loadMockDB();
       const dataRows = Array.isArray(rows) ? rows : [rows];
-      const newItems = dataRows.map((row) => ({
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
-        created_at: new Date().toISOString(),
-        ...row
-      }));
+      const activeFacId = getActiveFacilityId();
+
+      const newItems = dataRows.map((row) => {
+        const { id, created_at, ...cleanRow } = row;
+        const globalTables = ['facilities', 'profiles'];
+        if (!globalTables.includes(this.tableName) && activeFacId && !cleanRow.facility_id) {
+          cleanRow.facility_id = activeFacId;
+        }
+        return {
+          id: id || (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)),
+          created_at: created_at || new Date().toISOString(),
+          ...cleanRow
+        };
+      });
 
       db[this.tableName] = [...(db[this.tableName] || []), ...newItems];
       saveMockDB(db);
@@ -334,9 +375,17 @@ class QueryTable {
           const executeUpdate = async () => {
             try {
               const targetCol = column === 'id' ? '$id' : (column === 'created_at' ? '$createdAt' : column);
-              const response = await databases.listDocuments(databaseId, this.tableName, [Query.equal(targetCol, value)]);
+              const activeFacId = getActiveFacilityId();
+              const globalTables = ['facilities', 'profiles'];
+
+              const updateQueries = [Query.equal(targetCol, value)];
+              if (!globalTables.includes(this.tableName) && activeFacId) {
+                updateQueries.push(Query.equal('facility_id', activeFacId));
+              }
+
+              const response = await databases.listDocuments(databaseId, this.tableName, updateQueries);
               if (response.documents.length === 0) {
-                return { data: [], error: 'Document not found' };
+                return { data: [], error: 'Document not found or access denied' };
               }
               
               // Remove system fields to prevent Appwrite attribute validation errors during update
@@ -420,7 +469,15 @@ class QueryTable {
           const executeDelete = async () => {
             try {
               const targetCol = column === 'id' ? '$id' : (column === 'created_at' ? '$createdAt' : column);
-              const response = await databases.listDocuments(databaseId, this.tableName, [Query.equal(targetCol, value)]);
+              const activeFacId = getActiveFacilityId();
+              const globalTables = ['facilities', 'profiles'];
+
+              const deleteQueries = [Query.equal(targetCol, value)];
+              if (!globalTables.includes(this.tableName) && activeFacId) {
+                deleteQueries.push(Query.equal('facility_id', activeFacId));
+              }
+
+              const response = await databases.listDocuments(databaseId, this.tableName, deleteQueries);
               const deletePromises = response.documents.map(doc => 
                 databases.deleteDocument(databaseId, this.tableName, doc.$id)
               );

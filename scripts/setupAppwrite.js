@@ -123,6 +123,7 @@ const setup = async () => {
       id: 'triages',
       name: 'Triages',
       attributes: [
+        { type: 'string', key: 'facility_id', size: 100, required: false },
         { type: 'string', key: 'visit_id', size: 100, required: true },
         { type: 'integer', key: 'systolic', required: false },
         { type: 'integer', key: 'diastolic', required: false },
@@ -142,6 +143,7 @@ const setup = async () => {
       id: 'consultations',
       name: 'Consultations',
       attributes: [
+        { type: 'string', key: 'facility_id', size: 100, required: false },
         { type: 'string', key: 'visit_id', size: 100, required: true },
         { type: 'string', key: 'history', size: 2000, required: true },
         { type: 'string', key: 'examination', size: 2000, required: true },
@@ -153,6 +155,7 @@ const setup = async () => {
       id: 'orders',
       name: 'Orders',
       attributes: [
+        { type: 'string', key: 'facility_id', size: 100, required: false },
         { type: 'string', key: 'visit_id', size: 100, required: true },
         { type: 'string', key: 'type', size: 50, required: true },
         { type: 'string', key: 'item_name', size: 255, required: true },
@@ -166,6 +169,7 @@ const setup = async () => {
       id: 'invoices',
       name: 'Invoices',
       attributes: [
+        { type: 'string', key: 'facility_id', size: 100, required: false },
         { type: 'string', key: 'visit_id', size: 100, required: true },
         { type: 'float', key: 'total_amount', required: false, default: 0.0 },
         { type: 'float', key: 'amount_paid', required: false, default: 0.0 },

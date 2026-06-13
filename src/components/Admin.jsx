@@ -26,7 +26,8 @@ import {
   Send,
   Lock,
   Layers,
-  Clock
+  Clock,
+  Building
 } from 'lucide-react';
 
 export default function Admin({ user }) {

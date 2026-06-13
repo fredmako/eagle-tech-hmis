@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../appwriteClient';
+import { sendNotification } from '../notificationService';
 import { 
   FlaskConical, 
   AlertCircle, 
@@ -175,15 +176,28 @@ export default function Orders({ user, onComplete }) {
     });
   };
 
-  const handleRejectSample = (orderId, reason) => {
+  const handleRejectSample = async (orderId, reason) => {
     if (!reason.trim()) return;
-    updateOrderStatus(orderId, 'rejected', { 
+    await updateOrderStatus(orderId, 'rejected', { 
       rejection_reason: reason,
       rejected_at: new Date().toISOString(),
       rejected_by: user.full_name
     });
     // Hide reject dropdown
     setShowRejectForm({ ...showRejectForm, [orderId]: false });
+
+    // Trigger Notification
+    try {
+      const activeOrder = pendingOrders.find(o => o.id === orderId);
+      await sendNotification('LAB_SAMPLE_REJECTED', {
+        patientName: selectedVisit?.patient?.name || 'N/A',
+        testName: activeOrder?.item_name || 'Lab Test',
+        reason: reason,
+        recipientEmail: 'clinician@eagletechsolutions.tech'
+      }, user.facility_id);
+    } catch (e) {
+      console.error('Rejection email trigger failed:', e);
+    }
   };
 
   const handleRecollect = (orderId) => {
@@ -246,6 +260,19 @@ export default function Orders({ user, onComplete }) {
         action: 'Lab Results Released',
         details: `Released finalized results for ${activeOrder?.item_name} (${meta.values}) for patient ${selectedVisit?.patient?.name}.`
       });
+
+      // Trigger Notification
+      try {
+        await sendNotification('LAB_RESULT_READY', {
+          patientName: selectedVisit?.patient?.name || 'N/A',
+          testName: activeOrder?.item_name || 'Lab Test',
+          findings: meta.values,
+          verifier: meta.verifier || user.full_name,
+          recipientEmail: 'clinician@eagletechsolutions.tech'
+        }, user.facility_id);
+      } catch (e) {
+        console.error('Lab result email trigger failed:', e);
+      }
 
       // 3. Check if all lab tests for this visit are completed/released
       const updatedOrders = pendingOrders.map(o => o.id === orderId ? { ...o, status: 'released' } : o);

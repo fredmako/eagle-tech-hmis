@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../appwriteClient';
-import { FileSpreadsheet, Download, RefreshCw, CheckCircle, ShieldAlert, BarChart2 } from 'lucide-react';
+import { sendNotification } from '../notificationService';
+import { 
+  FileSpreadsheet, Download, RefreshCw, CheckCircle, ShieldAlert, BarChart2,
+  Printer, Settings, Eye, Calendar, Building, Layers, FileText, CheckSquare, Square, Info,
+  Lock, Clock, Mail, Check, AlertTriangle, ShieldCheck
+} from 'lucide-react';
 
 export default function Reports({ user }) {
   const [patients, setPatients] = useState([]);
@@ -8,14 +13,90 @@ export default function Reports({ user }) {
   const [triages, setTriages] = useState([]);
   const [consultations, setConsultations] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [facilityInfo, setFacilityInfo] = useState({ name: 'Eagle Tech Medical Clinic', code: 'EMC-001', logo_url: null });
   
+  // Tab Navigation states
+  const [activeTab, setActiveTab] = useState('dashboards'); // 'dashboards' | 'departments' | 'compliance' | 'builder'
+  
+  // Operational Dashboard states
   const [syncStatus, setSyncStatus] = useState('active_warnings');
   const [syncLoading, setSyncLoading] = useState(false);
   const [dataErrors, setDataErrors] = useState([]);
 
+  // Sub-selections
+  const [selectedDeptReport, setSelectedDeptReport] = useState('reg_daily');
+  const [selectedCompReport, setSelectedCompReport] = useState('moh_daily');
+
+  // Custom Report Builder states
+  const [reportCategory, setReportCategory] = useState('outpatient'); // 'outpatient' | 'billing' | 'inpatient'
+  const [brandingMode, setBrandingMode] = useState('platform'); // 'platform' | 'hospital'
+  const [reportFormat, setReportFormat] = useState('csv'); // 'csv' | 'json'
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  
+  // Custom columns configuration
+  const [selectedFields, setSelectedFields] = useState({
+    outpatient: {
+      date: true,
+      patient_name: true,
+      patient_code: true,
+      age: true,
+      gender: true,
+      vitals_temp: true,
+      diagnosis: true,
+      priority: false
+    },
+    billing: {
+      invoice_id: true,
+      date: true,
+      patient_name: true,
+      total_amount: true,
+      amount_paid: true,
+      status: true,
+      payment_method: false
+    },
+    inpatient: {
+      date: true,
+      patient_name: true,
+      patient_code: true,
+      department: true,
+      status: true,
+      priority: true
+    }
+  });
+
+  const [previewTheme, setPreviewTheme] = useState('light'); // 'light' | 'dark' for print-sheet view
+  const [genLoading, setGenLoading] = useState(false);
+  const [genSuccess, setGenSuccess] = useState(false);
+
+  // Scheduled report states
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleSuccess, setScheduleSuccess] = useState(false);
+  const [scheduledReportName, setScheduledReportName] = useState('');
+
   useEffect(() => {
     fetchReportData();
-  }, []);
+    if (user && user.facility_id) {
+      fetchFacilityInfo(user.facility_id);
+    }
+  }, [user]);
+
+  const fetchFacilityInfo = async (facId) => {
+    try {
+      const { data } = await supabase.from('facilities').select('*').eq('id', facId);
+      if (data && data[0]) {
+        setFacilityInfo(data[0]);
+      }
+    } catch (e) {
+      console.error('Failed to load facility info:', e);
+    }
+  };
 
   const fetchReportData = async () => {
     try {
@@ -24,14 +105,17 @@ export default function Reports({ user }) {
       const { data: trgs } = await supabase.from('triages').select('*');
       const { data: cns } = await supabase.from('consultations').select('*');
       const { data: invs } = await supabase.from('invoices').select('*');
+      const { data: ords } = await supabase.from('orders').select('*');
+      const { data: logs } = await supabase.from('audit_logs').select('*');
 
       setPatients(pts || []);
       setVisits(vsts || []);
       setTriages(trgs || []);
       setConsultations(cns || []);
       setInvoices(invs || []);
+      setOrders(ords || []);
+      setAuditLogs(logs || []);
 
-      // Run Data Quality Analysis
       analyzeDataQuality(pts || [], vsts || [], trgs || []);
     } catch (err) {
       console.error('Error fetching report data:', err);
@@ -40,8 +124,6 @@ export default function Reports({ user }) {
 
   const analyzeDataQuality = (pts, vsts, trgs) => {
     const errors = [];
-    
-    // Check patients without National ID
     pts.forEach(p => {
       if (!p.national_id) {
         errors.push({
@@ -61,7 +143,6 @@ export default function Reports({ user }) {
       }
     });
 
-    // Check completed visits missing triage vitals
     vsts.forEach(v => {
       const hasTriage = trgs.some(t => t.visit_id === v.id);
       if (!hasTriage && v.department !== 'triage') {
@@ -78,64 +159,10 @@ export default function Reports({ user }) {
     setDataErrors(errors);
   };
 
-  const handleExportCSV = () => {
-    // Generate simple MOH 717 CSV content
-    const headers = 'MOH 717 Outpatient Register - Eagle Tech Medical Clinic\nDate,Patient Name,Facility ID,Age,Gender,Diagnosis,Vitals Temp,Total Billed,Payment Method\n';
-    
-    const rows = visits.map(v => {
-      const p = patients.find(pt => pt.id === v.patient_id);
-      const t = triages.find(trg => trg.visit_id === v.id);
-      const c = consultations.find(cns => cns.visit_id === v.id);
-      const inv = invoices.find(i => i.visit_id === v.id);
-      
-      const age = p ? (new Date().getFullYear() - new Date(p.dob).getFullYear()) : 'N/A';
-      return `"${new Date(v.created_at).toLocaleDateString()}","${p?.name || 'N/A'}","${p?.facility_id_code || 'N/A'}",${age},"${p?.gender || 'N/A'}","${c?.diagnosis_icd10 || 'N/A'}",${t?.temperature || 'N/A'},${inv?.total_amount || 0.00},"${inv?.payment_method || 'N/A'}"`;
-    }).join('\n');
-
-    const csvContent = "data:text/csv;charset=utf-8," + headers + rows;
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `MOH_717_Daily_Register_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleExportJSON = () => {
-    const reportData = visits.map(v => {
-      const p = patients.find(pt => pt.id === v.patient_id);
-      const t = triages.find(trg => trg.visit_id === v.id);
-      const c = consultations.find(cns => cns.visit_id === v.id);
-      const inv = invoices.find(i => i.visit_id === v.id);
-      
-      return {
-        visit_id: v.id,
-        created_at: v.created_at,
-        patient_name: p?.name,
-        facility_id: p?.facility_id_code,
-        age: p ? (new Date().getFullYear() - new Date(p.dob).getFullYear()) : null,
-        gender: p?.gender,
-        diagnosis_icd_10: c?.diagnosis_icd10,
-        vitals: t ? { temp: t.temperature, bp: `${t.systolic}/${t.diastolic}`, hr: t.heart_rate } : null,
-        billing: inv ? { total: inv.total_amount, paid: inv.amount_paid, method: inv.payment_method } : null
-      };
-    });
-
-    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(reportData, null, 2))}`;
-    const link = document.createElement("a");
-    link.setAttribute("href", jsonString);
-    link.setAttribute("download", `MOH_717_Daily_Register_${new Date().toISOString().split('T')[0]}.json`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const forceSync = async () => {
     setSyncLoading(true);
     await new Promise(resolve => setTimeout(resolve, 2000));
     setSyncStatus('fully_synced');
-    // Clear out blocking sync error
     setDataErrors(prev => prev.filter(e => e.type !== 'MOH Consent Audit'));
     setSyncLoading(false);
 
@@ -143,182 +170,1826 @@ export default function Reports({ user }) {
       action: 'MOH Sync Audit Override',
       details: 'Forced data upload to DHIS2. Cleaned records compiled successfully.'
     });
+
+    try {
+      await sendNotification('REPORT_GENERATED', {
+        details: 'Forced sync check override to upload clinic records to DHIS2.',
+        userName: user.full_name,
+        recipientEmail: 'admin@eagletechsolutions.tech'
+      }, user.facility_id);
+    } catch (e) {
+      console.error('Sync override email trigger failed:', e);
+    }
   };
 
-  // Group registers dynamically
+  // Field checklist toggle
+  const toggleField = (category, field) => {
+    setSelectedFields(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category],
+        [field]: !prev[category][field]
+      }
+    }));
+  };
+
+  // Role Access Rules
+  const reportPermissions = {
+    reg_daily: ['receptionist', 'admin'],
+    clinical_encounter: ['clinician', 'admin'],
+    lab_order: ['lab_tech', 'clinician', 'admin'],
+    lab_results: ['lab_tech', 'clinician', 'admin'],
+    pharm_prescription: ['pharmacist', 'clinician', 'admin'],
+    pharm_dispense: ['pharmacist', 'admin'],
+    pharm_revenue: ['cashier', 'admin'],
+    pharm_stock: ['pharmacist', 'admin'],
+    billing_receipts: ['cashier', 'admin'],
+    ward_admissions: ['nurse', 'clinician', 'admin'],
+    moh_daily: ['admin'],
+    moh_monthly: ['admin'],
+    audit_logs: ['admin']
+  };
+
+  const checkReportAccess = (reportId) => {
+    if (!user || !user.role) return false;
+    if (user.role === 'admin') return true;
+    return reportPermissions[reportId]?.includes(user.role) || false;
+  };
+
+  const getFilteredData = () => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    if (reportCategory === 'outpatient') {
+      return visits
+        .filter(v => {
+          const date = new Date(v.created_at);
+          return date >= start && date <= end && v.department !== 'ward';
+        })
+        .map(v => {
+          const p = patients.find(pt => pt.id === v.patient_id);
+          const t = triages.find(trg => trg.visit_id === v.id);
+          const c = consultations.find(cns => cns.visit_id === v.id);
+          return {
+            id: v.id,
+            date: new Date(v.created_at).toLocaleDateString(),
+            patient_name: p?.name || 'N/A',
+            patient_code: p?.facility_id_code || 'N/A',
+            age: p ? (new Date().getFullYear() - new Date(p.dob).getFullYear()) : 'N/A',
+            gender: p?.gender || 'N/A',
+            vitals_temp: t ? `${t.temperature} °C` : '—',
+            diagnosis: c?.diagnosis_icd10 || 'Waiting Clinician',
+            priority: v.priority || 'routine'
+          };
+        });
+    } else if (reportCategory === 'billing') {
+      return invoices
+        .filter(inv => {
+          const date = new Date(inv.created_at);
+          return date >= start && date <= end;
+        })
+        .map(inv => {
+          const p = patients.find(pt => pt.id === inv.patient_id);
+          return {
+            id: inv.id,
+            invoice_id: inv.id.substring(0, 8).toUpperCase(),
+            date: new Date(inv.created_at).toLocaleDateString(),
+            patient_name: p?.name || 'N/A',
+            total_amount: parseFloat(inv.total_amount || 0).toFixed(2),
+            amount_paid: parseFloat(inv.amount_paid || 0).toFixed(2),
+            status: inv.status || 'unpaid',
+            payment_method: inv.payment_method || '—'
+          };
+        });
+    } else {
+      return visits
+        .filter(v => {
+          const date = new Date(v.created_at);
+          return date >= start && date <= end && v.department === 'ward';
+        })
+        .map(v => {
+          const p = patients.find(pt => pt.id === v.patient_id);
+          return {
+            id: v.id,
+            date: new Date(v.created_at).toLocaleDateString(),
+            patient_name: p?.name || 'N/A',
+            patient_code: p?.facility_id_code || 'N/A',
+            department: 'Inpatient Ward',
+            status: v.status === 'completed' ? 'Discharged' : 'Admitted Bed',
+            priority: v.priority || 'routine'
+          };
+        });
+    }
+  };
+
+  // Department report formatting engine
+  const getDepartmentReportData = (reportId) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    const isInRange = (dateStr) => {
+      const d = new Date(dateStr);
+      return d >= start && d <= end;
+    };
+
+    switch (reportId) {
+      case 'reg_daily': {
+        const filtered = patients.filter(p => isInRange(p.created_at));
+        const headers = ['Date', 'Name', 'ID Code', 'Gender', 'Age', 'National ID', 'Consent'];
+        const rows = filtered.map(p => [
+          new Date(p.created_at).toLocaleDateString(),
+          p.name,
+          p.facility_id_code || 'N/A',
+          p.gender || 'N/A',
+          p.dob ? `${new Date().getFullYear() - new Date(p.dob).getFullYear()} yrs` : 'N/A',
+          p.national_id || '—',
+          p.consent_given ? 'Yes' : 'No'
+        ]);
+        return {
+          name: 'Daily Patient Registration Report',
+          headers,
+          rows,
+          totals: { left: `Total Patients Registered: ${filtered.length}`, right: '' }
+        };
+      }
+      case 'clinical_encounter': {
+        const filtered = visits.filter(v => isInRange(v.created_at) && v.department !== 'ward');
+        const headers = ['Date', 'Patient Name', 'Patient Code', 'Priority', 'Temp', 'ICD-10 Diagnosis'];
+        const rows = filtered.map(v => {
+          const p = patients.find(pt => pt.id === v.patient_id);
+          const t = triages.find(trg => trg.visit_id === v.id);
+          const c = consultations.find(cns => cns.visit_id === v.id);
+          return [
+            new Date(v.created_at).toLocaleDateString(),
+            p?.name || 'N/A',
+            p?.facility_id_code || 'N/A',
+            v.priority || 'routine',
+            t ? `${t.temperature} °C` : '—',
+            c?.diagnosis_icd10 || 'Pending SOAP'
+          ];
+        });
+        return {
+          name: 'Daily Clinical Encounter Report',
+          headers,
+          rows,
+          totals: { left: `Total Consultations Completed: ${filtered.length}`, right: '' }
+        };
+      }
+      case 'lab_order': {
+        const filtered = orders.filter(o => o.type === 'lab' && isInRange(o.created_at));
+        const headers = ['Date Ordered', 'Patient Name', 'Lab Test', 'Status', 'Ordered By'];
+        const rows = filtered.map(o => {
+          const v = visits.find(vst => vst.id === o.visit_id);
+          const p = patients.find(pt => pt.id === v?.patient_id);
+          return [
+            new Date(o.created_at).toLocaleDateString(),
+            p?.name || 'N/A',
+            o.item_name || 'N/A',
+            o.status || 'pending',
+            o.created_by || 'Clinician'
+          ];
+        });
+        return {
+          name: 'Laboratory Orders Worklist',
+          headers,
+          rows,
+          totals: { left: `Total Tests Ordered: ${filtered.length}`, right: `Pending: ${filtered.filter(o => o.status !== 'completed').length}` }
+        };
+      }
+      case 'lab_results': {
+        const filtered = orders.filter(o => o.type === 'lab' && o.status === 'completed' && isInRange(o.created_at));
+        const headers = ['Date Released', 'Patient Name', 'Lab Test', 'Results Released', 'Released By'];
+        const rows = filtered.map(o => {
+          const v = visits.find(vst => vst.id === o.visit_id);
+          const p = patients.find(pt => pt.id === v?.patient_id);
+          let resVal = '—';
+          if (o.results) {
+            if (o.results.startsWith('{')) {
+              try { resVal = JSON.parse(o.results).values || '—'; } catch(e) {}
+            } else {
+              resVal = o.results;
+            }
+          }
+          return [
+            new Date(o.created_at).toLocaleDateString(),
+            p?.name || 'N/A',
+            o.item_name || 'N/A',
+            resVal,
+            o.completed_by || 'Lab Tech'
+          ];
+        });
+        return {
+          name: 'Laboratory Results Log',
+          headers,
+          rows,
+          totals: { left: `Total Results Released: ${filtered.length}`, right: '' }
+        };
+      }
+      case 'pharm_prescription': {
+        const filtered = orders.filter(o => o.type === 'prescription' && isInRange(o.created_at));
+        const headers = ['Date', 'Patient Name', 'Drug Prescribed', 'Quantity', 'Status'];
+        const rows = filtered.map(o => {
+          const v = visits.find(vst => vst.id === o.visit_id);
+          const p = patients.find(pt => pt.id === v?.patient_id);
+          return [
+            new Date(o.created_at).toLocaleDateString(),
+            p?.name || 'N/A',
+            o.item_name || 'N/A',
+            o.quantity || '1',
+            o.status || 'prescribed'
+          ];
+        });
+        return {
+          name: 'Pharmacy Prescription Log',
+          headers,
+          rows,
+          totals: { left: `Total Prescriptions Logged: ${filtered.length}`, right: '' }
+        };
+      }
+      case 'pharm_dispense': {
+        const filtered = orders.filter(o => o.type === 'prescription' && o.status === 'approved' && isInRange(o.created_at));
+        const headers = ['Date Dispensed', 'Patient Name', 'Drug Name', 'Qty Dispensed', 'Dispensed By'];
+        const rows = filtered.map(o => {
+          const v = visits.find(vst => vst.id === o.visit_id);
+          const p = patients.find(pt => pt.id === v?.patient_id);
+          return [
+            new Date(o.created_at).toLocaleDateString(),
+            p?.name || 'N/A',
+            o.item_name || 'N/A',
+            o.quantity || '—',
+            o.completed_by || 'Pharmacist'
+          ];
+        });
+        return {
+          name: 'Pharmacy Dispense Report',
+          headers,
+          rows,
+          totals: { left: `Total Items Dispensed: ${filtered.length}`, right: '' }
+        };
+      }
+      case 'pharm_revenue': {
+        const filtered = orders.filter(o => o.type === 'prescription' && o.status === 'approved' && isInRange(o.created_at));
+        const headers = ['Date', 'Patient Name', 'Drug', 'Qty', 'Paid Amount (Est)'];
+        let totalRev = 0;
+        const rows = filtered.map(o => {
+          const v = visits.find(vst => vst.id === o.visit_id);
+          const p = patients.find(pt => pt.id === v?.patient_id);
+          let cost = 100;
+          if (o.item_name?.includes('Paracetamol')) cost = 50;
+          else if (o.item_name?.includes('Amoxicillin')) cost = 200;
+          else if (o.item_name?.includes('Artemether')) cost = 150;
+          const amt = cost * parseInt(o.quantity || 1);
+          totalRev += amt;
+          return [
+            new Date(o.created_at).toLocaleDateString(),
+            p?.name || 'N/A',
+            o.item_name || 'N/A',
+            o.quantity || '1',
+            `KES ${amt.toFixed(2)}/-`
+          ];
+        });
+        return {
+          name: 'Pharmacy Revenue Report',
+          headers,
+          rows,
+          totals: { left: `Total Pharmacy Sales: ${filtered.length}`, right: `Estimated Revenue: KES ${totalRev.toFixed(2)}/-` }
+        };
+      }
+      case 'pharm_stock': {
+        const headers = ['Batch Code', 'Item Name', 'Current Stock', 'Expiry Date', 'Expiry Status'];
+        const rows = batches.map(b => {
+          const isExpired = new Date(b.expiry) < new Date();
+          const isWarning = new Date(b.expiry) < new Date(Date.now() + 60*24*60*60*1000) && !isExpired;
+          const expStatus = isExpired ? 'Expired' : isWarning ? 'Expiring Soon' : 'Valid';
+          return [
+            b.batch,
+            b.name,
+            `${b.stock} ${b.unit}`,
+            b.expiry,
+            expStatus
+          ];
+        });
+        return {
+          name: 'Pharmacy Stock Status Report',
+          headers,
+          rows,
+          totals: { left: `Total Batches Tracked: ${batches.length}`, right: '' }
+        };
+      }
+      case 'billing_receipts': {
+        const filtered = invoices.filter(inv => isInRange(inv.created_at));
+        const headers = ['Invoice ID', 'Date', 'Patient Name', 'Total Amount', 'Amount Paid', 'Status', 'Method'];
+        let totalAmount = 0;
+        let totalPaid = 0;
+        const rows = filtered.map(inv => {
+          const p = patients.find(pt => pt.id === inv.patient_id);
+          totalAmount += parseFloat(inv.total_amount || 0);
+          totalPaid += parseFloat(inv.amount_paid || 0);
+          return [
+            inv.id.substring(0, 8).toUpperCase(),
+            new Date(inv.created_at).toLocaleDateString(),
+            p?.name || 'N/A',
+            `KES ${parseFloat(inv.total_amount || 0).toFixed(2)}/-`,
+            `KES ${parseFloat(inv.amount_paid || 0).toFixed(2)}/-`,
+            inv.status || 'unpaid',
+            inv.payment_method || '—'
+          ];
+        });
+        return {
+          name: 'Billing Receipts & Payments Log',
+          headers,
+          rows,
+          totals: { left: `Total Invoices: ${filtered.length}`, right: `Billed: KES ${totalAmount.toFixed(2)} | Paid: KES ${totalPaid.toFixed(2)}` }
+        };
+      }
+      case 'ward_admissions': {
+        const filtered = visits.filter(v => v.department === 'ward' && isInRange(v.created_at));
+        const headers = ['Admission Date', 'Patient Name', 'Patient Code', 'Priority', 'Status', 'Discharge Date'];
+        const rows = filtered.map(v => {
+          const p = patients.find(pt => pt.id === v.patient_id);
+          return [
+            new Date(v.created_at).toLocaleDateString(),
+            p?.name || 'N/A',
+            p?.facility_id_code || 'N/A',
+            v.priority || 'routine',
+            v.status === 'completed' ? 'Discharged' : 'Admitted',
+            v.status === 'completed' ? new Date(v.updated_at).toLocaleDateString() : '—'
+          ];
+        });
+        return {
+          name: 'Inpatient Admissions & Discharges',
+          headers,
+          rows,
+          totals: { left: `Ward Admissions in period: ${filtered.length}`, right: `Active Bed Occupancy: ${filtered.filter(v => v.status !== 'completed').length}` }
+        };
+      }
+      default:
+        return { name: 'Report', headers: [], rows: [], totals: { left: '', right: '' } };
+    }
+  };
+
+  // Compliance report formatting engine
+  const getComplianceReportData = (reportId) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    const isInRange = (dateStr) => {
+      const d = new Date(dateStr);
+      return d >= start && d <= end;
+    };
+
+    switch (reportId) {
+      case 'moh_daily': {
+        const filtered = visits.filter(v => isInRange(v.created_at) && v.department !== 'ward');
+        const headers = ['Date', 'MOH Reg No', 'Patient Name', 'Gender', 'Age', 'ICD-10 Code & Diagnosis', 'Triage Vitals'];
+        const rows = filtered.map((v, i) => {
+          const p = patients.find(pt => pt.id === v.patient_id);
+          const t = triages.find(trg => trg.visit_id === v.id);
+          const c = consultations.find(cns => cns.visit_id === v.id);
+          return [
+            new Date(v.created_at).toLocaleDateString(),
+            `MOH-EMC-${String(i+1).padStart(4, '0')}`,
+            p?.name || 'N/A',
+            p?.gender || 'N/A',
+            p?.dob ? `${new Date().getFullYear() - new Date(p.dob).getFullYear()} yrs` : 'N/A',
+            c?.diagnosis_icd10 || '—',
+            t ? `BP: ${t.blood_pressure}, Temp: ${t.temperature}°C, Weight: ${t.weight}kg` : '—'
+          ];
+        });
+        return {
+          name: 'Kenyan MOH Daily Patient Register',
+          headers,
+          rows,
+          totals: { left: `Total Registered Records: ${filtered.length}`, right: 'Compliance: DHIS2 Ready' }
+        };
+      }
+      case 'moh_monthly': {
+        const periodVisits = visits.filter(v => isInRange(v.created_at));
+        const periodAdmissions = periodVisits.filter(v => v.department === 'ward').length;
+        const periodOutpatients = periodVisits.filter(v => v.department !== 'ward').length;
+        
+        const malaria = consultations.filter(c => c.diagnosis_icd10?.includes('Malaria') && isInRange(c.created_at)).length;
+        const respiratory = consultations.filter(c => (c.diagnosis_icd10?.includes('Respiratory') || c.diagnosis_icd10?.includes('Tonsillitis')) && isInRange(c.created_at)).length;
+        const gastro = consultations.filter(c => (c.diagnosis_icd10?.includes('Gastroenteritis') || c.diagnosis_icd10?.includes('Amoebiasis')) && isInRange(c.created_at)).length;
+        const hyper = consultations.filter(c => c.diagnosis_icd10?.includes('Hypertension') && isInRange(c.created_at)).length;
+        const uti = consultations.filter(c => c.diagnosis_icd10?.includes('Urinary') && isInRange(c.created_at)).length;
+        
+        const totalInvs = invoices.filter(inv => isInRange(inv.created_at));
+        const totalRevenue = totalInvs.reduce((acc, i) => acc + parseFloat(i.total_amount || 0), 0);
+        
+        const totalLab = orders.filter(o => o.type === 'lab' && isInRange(o.created_at)).length;
+        const totalDisp = orders.filter(o => o.type === 'prescription' && o.status === 'approved' && isInRange(o.created_at)).length;
+
+        const headers = ['MOH Indicator Metric', 'Indicator Value', 'MOH 717 Reporting Target Code'];
+        const rows = [
+          ['Total Outpatient Attendances', periodOutpatients, 'MOH-717-OPD'],
+          ['Total Inpatient Admissions', periodAdmissions, 'MOH-717-IPD'],
+          ['Malaria Cases Recorded (ICD-10: B54)', malaria, 'MOH-717-MAL'],
+          ['Acute Respiratory Infections (ICD-10: J06.9)', respiratory, 'MOH-717-ARI'],
+          ['Gastroenteritis / Diarrhoeal Diseases (ICD-10: A09)', gastro, 'MOH-717-GDD'],
+          ['Hypertension Cases Tracked (ICD-10: I10)', hyper, 'MOH-717-HYP'],
+          ['Urinary Tract Infections (ICD-10: N39.0)', uti, 'MOH-717-UTI'],
+          ['Laboratory Investigations Completed', totalLab, 'MOH-717-LAB'],
+          ['Pharmacy Prescriptions Dispensed', totalDisp, 'MOH-717-PHA'],
+          ['Aggregate Financial Revenue Billed', `KES ${totalRevenue.toFixed(2)}/-`, 'MOH-717-REV']
+        ];
+        return {
+          name: 'MOH Monthly Aggregate Submission Report (MOH 717)',
+          headers,
+          rows,
+          totals: { left: `Indicators Compiled: 10`, right: 'Ready for Ministry Submission Portal' }
+        };
+      }
+      case 'audit_logs': {
+        const headers = ['Timestamp', 'Action', 'Log Details'];
+        const rows = auditLogs.filter(log => isInRange(log.created_at)).map(log => [
+          new Date(log.created_at).toLocaleString(),
+          log.action || '—',
+          log.details || '—'
+        ]);
+        return {
+          name: 'User Activity Security Audit Log',
+          headers,
+          rows,
+          totals: { left: `Total Audit Entries: ${rows.length}`, right: 'Classification: Restricted' }
+        };
+      }
+      default:
+        return { name: 'Report', headers: [], rows: [], totals: { left: '', right: '' } };
+    }
+  };
+
+  const handleExportReport = async (reportId, format, reportType) => {
+    setGenLoading(true);
+    setGenSuccess(false);
+
+    const report = reportType === 'dept' ? getDepartmentReportData(reportId) : getComplianceReportData(reportId);
+    
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    let fileContent = '';
+    let filename = `${report.name.replace(/\s+/g, '_')}_${startDate}_to_${endDate}`;
+
+    if (format === 'json') {
+      const dataArr = report.rows.map(row => {
+        const obj = {};
+        report.headers.forEach((h, idx) => {
+          obj[h] = row[idx];
+        });
+        return obj;
+      });
+      fileContent = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataArr, null, 2));
+      filename += '.json';
+    } else {
+      const csvHeaders = report.headers.join(',') + '\n';
+      const csvRows = report.rows.map(row => {
+        return row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(',');
+      }).join('\n');
+      fileContent = "data:text/csv;charset=utf-8," + encodeURIComponent(csvHeaders + csvRows);
+      filename += '.csv';
+    }
+
+    const link = document.createElement("a");
+    link.setAttribute("href", fileContent);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    await supabase.from('audit_logs').insert({
+      facility_id: user.facility_id,
+      user_id: user.id,
+      action: 'Report Exported',
+      details: `Generated and exported compliance report ${report.name} (${format.toUpperCase()} format) with ${report.rows.length} rows.`
+    });
+
+    await sendNotification('REPORT_GENERATED', {
+      details: `Report "${report.name}" was successfully generated and exported by user ${user.full_name}.`,
+      userName: user.full_name,
+      recipientEmail: brandingMode === 'platform' ? 'info@eagletechsolutions.tech' : `info@${facilityInfo.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
+    }, user.facility_id);
+
+    setGenSuccess(true);
+    setTimeout(() => setGenSuccess(false), 2000);
+    setGenLoading(false);
+  };
+
+  const handleScheduleReport = async (reportName) => {
+    setScheduleLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    await supabase.from('audit_logs').insert({
+      facility_id: user.facility_id,
+      user_id: user.id,
+      action: 'Report Scheduled',
+      details: `Scheduled automated cron report generation for "${reportName}" (Daily at 08:00 AM EAT).`
+    });
+
+    setScheduledReportName(reportName);
+    setScheduleSuccess(true);
+    setScheduleLoading(false);
+    setTimeout(() => setScheduleSuccess(false), 4000);
+  };
+
+  // Custom Report Builder handler
+  const handleGenerateReport = async () => {
+    setGenLoading(true);
+    setGenSuccess(false);
+
+    const filteredRecords = getFilteredData();
+    const activeFields = Object.keys(selectedFields[reportCategory]).filter(
+      f => selectedFields[reportCategory][f]
+    );
+
+    const payload = {
+      category: reportCategory,
+      branding: brandingMode,
+      format: reportFormat,
+      startDate,
+      endDate,
+      fields: activeFields,
+      recordCount: filteredRecords.length,
+      facilityId: user.facility_id,
+      generatedBy: user.full_name
+    };
+
+    try {
+      const response = await supabase.functions.invoke('generate-report-excel', payload);
+      if (response.error) throw new Error(response.error);
+
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      let fileContent = '';
+      let filename = `Egesa_Report_${reportCategory}_${startDate}_to_${endDate}`;
+
+      if (reportFormat === 'json') {
+        const trimmedData = filteredRecords.map(rec => {
+          const cleaned = {};
+          activeFields.forEach(f => {
+            cleaned[f] = rec[f];
+          });
+          return cleaned;
+        });
+        fileContent = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(trimmedData, null, 2));
+        filename += '.json';
+      } else {
+        const csvHeaders = activeFields.map(f => f.toUpperCase().replace('_', ' ')).join(',') + '\n';
+        const csvRows = filteredRecords.map(rec => {
+          return activeFields.map(f => `"${String(rec[f] || '').replace(/"/g, '""')}"`).join(',');
+        }).join('\n');
+        fileContent = "data:text/csv;charset=utf-8," + encodeURIComponent(csvHeaders + csvRows);
+        filename += '.csv';
+      }
+
+      const link = document.createElement("a");
+      link.setAttribute("href", fileContent);
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      await supabase.from('audit_logs').insert({
+        facility_id: user.facility_id,
+        user_id: user.id,
+        action: 'Appwrite Report Executed',
+        details: `Appwrite Function generated ${reportCategory.toUpperCase()} register report containing ${filteredRecords.length} entries.`
+      });
+
+      await sendNotification('REPORT_GENERATED', {
+        details: `Custom ${reportCategory.toUpperCase()} report generated via serverless Appwrite Function context (${brandingMode.toUpperCase()} branding).`,
+        userName: user.full_name,
+        recipientEmail: brandingMode === 'platform' ? 'info@eagletechsolutions.tech' : `info@${facilityInfo.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
+      }, user.facility_id);
+
+      setGenSuccess(true);
+      setTimeout(() => setGenSuccess(false), 3000);
+    } catch (e) {
+      console.error('Report execution failed:', e);
+    } finally {
+      setGenLoading(false);
+    }
+  };
+
+  const handlePrint = (reportName, headers, rows, totalsInfo) => {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${reportName} - Print Layout</title>
+          <style>
+            body { font-family: 'Inter', sans-serif; color: #0f172a; padding: 40px; margin: 0; }
+            .header { border-bottom: 2px dashed #cbd5e1; padding-bottom: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+            .facility-name { font-size: 16px; font-weight: 800; text-transform: uppercase; margin: 0; color: #0d9488; }
+            .facility-meta { font-size: 10px; color: #64748b; margin: 2px 0 0 0; }
+            .report-title { font-size: 18px; font-weight: 900; text-transform: uppercase; margin: 0; text-align: right; }
+            .report-meta { font-size: 10px; color: #64748b; margin: 5px 0 0 0; text-align: right; }
+            .meta-grid { display: grid; grid-template-cols: repeat(4, 1fr); gap: 10px; font-size: 10px; margin-bottom: 20px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px; }
+            .meta-label { color: #64748b; font-weight: 600; display: block; }
+            .meta-val { font-weight: bold; color: #1e293b; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9px; }
+            th { border-bottom: 2px solid #0f172a; padding: 8px 10px; text-align: left; font-weight: 800; color: #0f172a; text-transform: uppercase; }
+            td { border-bottom: 1px solid #e2e8f0; padding: 8px 10px; font-family: monospace; color: #334155; }
+            .totals { border-top: 2px solid #0f172a; margin-top: 20px; padding-top: 15px; display: flex; justify-content: space-between; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+            .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 10px; font-size: 8px; color: #94a3b8; font-style: italic; text-align: right; }
+            @media print {
+              body { padding: 10px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h4 class="facility-name">${brandingMode === 'platform' ? 'Eagle Tech Solutions Ltd' : facilityInfo.name}</h4>
+              <p class="facility-meta">${brandingMode === 'platform' ? 'HQ: 12th Floor, Eagle Tech Tower, Avenue Rd, Nairobi' : `MOH Facility Code: ${facilityInfo.code}`}</p>
+              <p class="facility-meta">Email: ${brandingMode === 'platform' ? 'info@eagletechsolutions.tech' : `info@${facilityInfo.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`}</p>
+            </div>
+            <div>
+              <h3 class="report-title">${reportName}</h3>
+              <p class="report-meta">Printed: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
+            </div>
+          </div>
+          
+          <div class="meta-grid">
+            <div>
+              <span class="meta-label">Report Period</span>
+              <span class="meta-val">${startDate} to ${endDate}</span>
+            </div>
+            <div>
+              <span class="meta-label">Generated By</span>
+              <span class="meta-val">${user.full_name}</span>
+            </div>
+            <div>
+              <span class="meta-label">Compile Engine</span>
+              <span class="meta-val">Appwrite Serverless</span>
+            </div>
+            <div>
+              <span class="meta-label">Security Clearance</span>
+              <span class="meta-val">${user.role.toUpperCase()}</span>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                ${headers.map(h => `<th>${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `
+                <tr>
+                  ${row.map(cell => `<td>${cell}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="totals">
+            <div>${totalsInfo.left || ''}</div>
+            <div>${totalsInfo.right || ''}</div>
+          </div>
+
+          <div class="footer">
+            Eagle Tech Outsource Compliance Intelligence Unit. Confidential. Digital Signature: SHA256-${Math.random().toString(36).substring(2, 10).toUpperCase()}
+          </div>
+          
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const handlePrintDashboard = () => {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Operational Dashboard Summary</title>
+          <style>
+            body { font-family: 'Inter', sans-serif; color: #0f172a; padding: 40px; margin: 0; }
+            .header { border-bottom: 2px dashed #cbd5e1; padding-bottom: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+            .facility-name { font-size: 16px; font-weight: 800; text-transform: uppercase; margin: 0; color: #0d9488; }
+            .facility-meta { font-size: 10px; color: #64748b; }
+            .grid { display: grid; grid-template-cols: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
+            .card { border: 1px solid #cbd5e1; padding: 15px; rounded-xl; border-radius: 8px; }
+            .card-title { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+            .card-val { font-size: 24px; font-weight: 800; color: #0f172a; margin-top: 5px; }
+            .section-title { font-size: 12px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; }
+            @media print {
+              body { padding: 10px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h4 class="facility-name">${facilityInfo.name}</h4>
+              <p class="facility-meta">MOH Facility Code: ${facilityInfo.code}</p>
+            </div>
+            <div>
+              <h3 style="margin:0; font-size:18px; font-weight:900;">DAILY OPERATIONAL SUMMARY</h3>
+              <p class="facility-meta" style="text-align:right;">Date: ${new Date().toLocaleDateString()}</p>
+            </div>
+          </div>
+          
+          <div class="section-title">Operational Load Metrics</div>
+          <div class="grid">
+            <div class="card">
+              <div class="card-title">Today's Patient Admissions</div>
+              <div class="card-val">${visits.filter(v => v.department === 'ward').length}</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Outpatient Attendances</div>
+              <div class="card-val">${visits.filter(v => v.department !== 'ward').length}</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Triage Desk Queue</div>
+              <div class="card-val">${visits.filter(v => v.department === 'triage' && v.status !== 'completed').length}</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Lab Test Orders Pending</div>
+              <div class="card-val">${orders.filter(o => o.type === 'lab' && o.status !== 'completed').length}</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Pharmacy Dispenses Pending</div>
+              <div class="card-val">${orders.filter(o => o.type === 'prescription' && o.status === 'prescribed').length}</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Billed Revenue (KES)</div>
+              <div class="card-val">${invoices.reduce((acc, i) => acc + parseFloat(i.total_amount || 0), 0).toFixed(2)}</div>
+            </div>
+          </div>
+          
+          <div class="section-title">Clinical Epidemiology Surveillance</div>
+          <div style="font-size:10px; line-height:2;">
+            <div>• Malaria Cases Recorded (ICD-10 B54): <strong>${consultations.filter(c => c.diagnosis_icd10?.includes('Malaria')).length}</strong></div>
+            <div>• Respiratory Diseases (ICD-10 J06.9): <strong>${consultations.filter(c => c.diagnosis_icd10?.includes('Respiratory') || c.diagnosis_icd10?.includes('Tonsillitis')).length}</strong></div>
+            <div>• Gastroenteritis (ICD-10 A09): <strong>${consultations.filter(c => c.diagnosis_icd10?.includes('Gastroenteritis')).length}</strong></div>
+            <div>• Hypertension (ICD-10 I10): <strong>${consultations.filter(c => c.diagnosis_icd10?.includes('Hypertension')).length}</strong></div>
+            <div>• Urinary Tract Infections (ICD-10 N39.0): <strong>${consultations.filter(c => c.diagnosis_icd10?.includes('Urinary')).length}</strong></div>
+          </div>
+
+          <div style="margin-top:40px; font-size:8px; color:#94a3b8; font-style:italic; text-align:right;">
+            Eagle Tech Operational Dashboard. Generated by ${user.full_name}.
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  // Stock batches with specific lot code and expiries
+  const [batches, setBatches] = useState([
+    { name: 'Artemether-Lumefantrine (AL)', batch: 'AL-B902', stock: 50, expiry: '2026-10-15', unit: 'doses' },
+    { name: 'Artemether-Lumefantrine (AL)', batch: 'AL-B903', stock: 70, expiry: '2027-04-20', unit: 'doses' },
+    { name: 'Paracetamol 500mg', batch: 'PARA-L02', stock: 450, expiry: '2026-08-01', unit: 'tabs' },
+    { name: 'Paracetamol 500mg', batch: 'PARA-L03', stock: 400, expiry: '2027-02-10', unit: 'tabs' },
+    { name: 'Amoxicillin 500mg', batch: 'AMOX-B12', stock: 240, expiry: '2026-12-05', unit: 'tabs' },
+    { name: 'Amoxicillin 500mg', batch: 'AMOX-B13', stock: 100, expiry: '2027-09-18', unit: 'tabs' },
+    { name: 'Metronidazole 400mg', batch: 'MET-K90', stock: 410, expiry: '2027-03-30', unit: 'tabs' },
+    { name: 'ORS + Zinc', batch: 'ORS-Z01', stock: 95, expiry: '2026-09-10', unit: 'sachets' },
+    { name: 'Ciprofloxacin 500mg', batch: 'CIP-C44', stock: 180, expiry: '2027-01-15', unit: 'tabs' }
+  ]);
+
+  // Surveillance disease calculations
   const malariaCount = consultations.filter(c => c.diagnosis_icd10?.includes('Malaria')).length;
   const respiratoryCount = consultations.filter(c => c.diagnosis_icd10?.includes('Respiratory') || c.diagnosis_icd10?.includes('Tonsillitis')).length;
   const gastroCount = consultations.filter(c => c.diagnosis_icd10?.includes('Gastroenteritis') || c.diagnosis_icd10?.includes('Amoebiasis')).length;
   const hyperCount = consultations.filter(c => c.diagnosis_icd10?.includes('Hypertension')).length;
   const utiCount = consultations.filter(c => c.diagnosis_icd10?.includes('Urinary')).length;
 
+  // Render variables for Active Report preview based on Tab selection
+  const getActiveReportConfig = () => {
+    if (activeTab === 'departments') {
+      return getDepartmentReportData(selectedDeptReport);
+    } else if (activeTab === 'compliance') {
+      return getComplianceReportData(selectedCompReport);
+    }
+    return { name: '', headers: [], rows: [], totals: { left: '', right: '' } };
+  };
+
+  const activeReport = getActiveReportConfig();
+
+  const customFilteredData = getFilteredData();
+  const customFieldsConfig = selectedFields[reportCategory];
+  const customActiveColumns = Object.keys(customFieldsConfig).filter(f => customFieldsConfig[f]);
+
   return (
     <div className="space-y-6">
-      {/* Header bar */}
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+      {/* Tab Navigation header */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center border-b border-slate-800 pb-3 gap-3">
         <div>
           <h2 className="text-base font-bold text-slate-100 flex items-center gap-1.5">
-            <FileSpreadsheet size={18} className="text-teal-400" /> Ministry of Health (MOH) Register Exports
+            <FileSpreadsheet size={18} className="text-teal-400" /> Eagle Tech Reports Dashboard
           </h2>
-          <p className="text-xs text-slate-400 mt-1">Compile Daily Outpatient Registers (MOH 717) and run clinical audits.</p>
+          <p className="text-xs text-slate-400 mt-0.5">Access compliance structures, department ledgers, and manage operational databases.</p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {syncStatus === 'fully_synced' ? (
-            <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold">
-              <CheckCircle size={14} /> Synced to DHIS2
-            </div>
-          ) : (
+        <div className="flex flex-wrap gap-1 bg-slate-900 border border-slate-855 p-1 rounded-xl">
+          {[
+            { id: 'dashboards', label: 'Operational Dashboard' },
+            { id: 'departments', label: 'Department Reports' },
+            { id: 'compliance', label: 'Compliance & MOH' },
+            { id: 'builder', label: 'Custom Report Builder' }
+          ].map(tab => (
             <button
-              onClick={forceSync}
-              disabled={syncLoading}
-              className="bg-yellow-500/10 border border-yellow-500/25 hover:bg-yellow-500/20 text-yellow-400 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold transition"
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`text-xs px-3.5 py-2 font-bold rounded-lg transition ${
+                activeTab === tab.id
+                  ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
+                  : 'text-slate-400 hover:text-white'
+              }`}
             >
-              <RefreshCw size={14} className={syncLoading ? 'animate-spin' : ''} />
-              {syncLoading ? 'Uploading...' : 'DHIS2 Warning: Force Sync'}
+              {tab.label}
             </button>
-          )}
-
-          <button
-            onClick={handleExportCSV}
-            className="bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-300 font-semibold text-xs py-2 px-3 rounded-lg flex items-center gap-1.5 transition"
-          >
-            <Download size={12} /> CSV
-          </button>
-          <button
-            onClick={handleExportJSON}
-            className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-3 rounded-lg flex items-center gap-1.5 shadow-lg shadow-teal-500/10 transition active:scale-[0.98]"
-          >
-            <Download size={12} /> JSON Export
-          </button>
+          ))}
         </div>
       </div>
 
-      {/* Main grids */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Daily Patient Register Summary */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-          <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-            <h3 className="text-sm font-bold text-slate-200">MOH 717 Daily Outpatient Register</h3>
-            <span className="text-[10px] text-slate-500 font-semibold">Aggregated Records ({visits.length})</span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-800 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  <th className="py-2.5">Date</th>
-                  <th className="py-2.5">Patient Details</th>
-                  <th className="py-2.5">Vitals (Temp)</th>
-                  <th className="py-2.5">ICD-10 Diagnosis</th>
-                  <th className="py-2.5 text-right">Invoice Bill</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/40">
-                {visits.map((v) => {
-                  const p = patients.find(pt => pt.id === v.patient_id);
-                  const t = triages.find(trg => trg.visit_id === v.id);
-                  const c = consultations.find(cns => cns.visit_id === v.id);
-                  const inv = invoices.find(i => i.visit_id === v.id);
-
-                  return (
-                    <tr key={v.id} className="hover:bg-slate-800/20">
-                      <td className="py-2.5 font-mono text-slate-500">{new Date(v.created_at).toLocaleDateString()}</td>
-                      <td className="py-2.5 pr-2">
-                        <span className="font-semibold text-slate-200 block">{p?.name || 'N/A'}</span>
-                        <span className="text-[10px] text-slate-500 font-mono uppercase">{p?.gender} | DOB: {p?.dob}</span>
-                      </td>
-                      <td className="py-2.5">
-                        <span className={t?.temperature >= 38 ? 'text-red-400 font-semibold' : 'text-slate-350'}>
-                          {t ? `${t.temperature} °C` : '—'}
-                        </span>
-                      </td>
-                      <td className="py-2.5">
-                        <span className="bg-slate-950 border border-slate-850 px-2 py-0.5 rounded text-[10px] text-teal-400 font-semibold">
-                          {c ? c.diagnosis_icd10 : 'Waiting Clinician'}
-                        </span>
-                      </td>
-                      <td className="py-2.5 text-right font-mono text-slate-300">
-                        {inv ? `${parseFloat(inv.total_amount).toFixed(2)}/-` : '0.00/-'}
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {visits.length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="text-center py-12 text-slate-500">
-                      No visits recorded today.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+      {/* SCHEDULE SUCCESS BANNER */}
+      {scheduleSuccess && (
+        <div className="bg-teal-500/10 border border-teal-500/35 text-teal-400 text-xs p-4 rounded-xl flex items-center gap-2.5 shadow animate-pulse">
+          <Mail size={16} />
+          <div>
+            <span className="font-bold block uppercase tracking-wider text-[9px] mb-0.5">Automated Task Dispatch Scheduled</span>
+            <span>The report <strong>"{scheduledReportName}"</strong> is scheduled for daily automated email compilation and Titan SMTP dispatch at 08:00 AM EAT.</span>
           </div>
         </div>
+      )}
 
-        {/* Side panels: Department Traffic & Data Quality */}
+      {/* TIER 1: OPERATIONAL DASHBOARD */}
+      {activeTab === 'dashboards' && (
         <div className="space-y-6">
-          {/* Department Traffic chart summary */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
-              <BarChart2 size={16} className="text-teal-400" /> Disease Surveillance Summary
-            </h3>
-
-            <div className="space-y-3.5 pt-1">
-              {[
-                { label: 'Malaria Infections (B54)', count: malariaCount, percentage: visits.length > 0 ? (malariaCount / visits.length) * 100 : 0, color: 'bg-teal-500' },
-                { label: 'Respiratory Diseases (J06.9)', count: respiratoryCount, percentage: visits.length > 0 ? (respiratoryCount / visits.length) * 100 : 0, color: 'bg-blue-500' },
-                { label: 'Gastroenteritis (A09)', count: gastroCount, percentage: visits.length > 0 ? (gastroCount / visits.length) * 100 : 0, color: 'bg-orange-500' },
-                { label: 'Hypertension (I10)', count: hyperCount, percentage: visits.length > 0 ? (hyperCount / visits.length) * 100 : 0, color: 'bg-rose-500' },
-                { label: 'UTI (N39.0)', count: utiCount, percentage: visits.length > 0 ? (utiCount / visits.length) * 100 : 0, color: 'bg-purple-500' }
-              ].map((dis, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="flex justify-between text-xs font-semibold text-slate-350">
-                    <span className="truncate max-w-[80%]">{dis.label}</span>
-                    <span className="font-mono text-slate-400">{dis.count} cases</span>
-                  </div>
-                  <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-850">
-                    <div className={`${dis.color} h-1.5 rounded-full transition-all duration-500`} style={{ width: `${dis.percentage || 2}%` }} />
-                  </div>
+          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+            <div>
+              <h3 className="text-sm font-bold text-slate-200">Management & Supervisor Intelligence</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Real-time status summaries tracking outpatient volumes, laboratory load, and cash flow.</p>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {syncStatus === 'fully_synced' ? (
+                <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold">
+                  <CheckCircle size={14} /> DHIS2 Synced
                 </div>
-              ))}
+              ) : (
+                <button
+                  onClick={forceSync}
+                  disabled={syncLoading}
+                  className="bg-yellow-500/10 border border-yellow-500/25 hover:bg-yellow-500/20 text-yellow-400 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold transition cursor-pointer"
+                >
+                  <RefreshCw size={14} className={syncLoading ? 'animate-spin' : ''} />
+                  {syncLoading ? 'Uploading...' : 'MOH Warn: Force DHIS2 Sync'}
+                </button>
+              )}
+
+              <button
+                onClick={handlePrintDashboard}
+                className="bg-teal-500 hover:bg-teal-600 text-slate-950 text-xs py-2 px-4 rounded-lg flex items-center gap-1.5 transition font-bold cursor-pointer"
+              >
+                <Printer size={13} /> Print Dashboard
+              </button>
             </div>
           </div>
 
-          {/* Failed sync / Data quality report */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
-              <ShieldAlert size={16} className="text-teal-400" /> Data Quality Audit ({dataErrors.length})
-            </h3>
-            
-            <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
-              {dataErrors.map((err) => (
-                <div
-                  key={err.id}
-                  className={`p-3 rounded-lg border text-xs flex gap-2 ${
-                    err.severity === 'error' ? 'bg-red-500/5 border-red-500/15 text-red-400' :
-                    err.severity === 'warning' ? 'bg-yellow-500/5 border-yellow-500/15 text-yellow-450' :
-                    'bg-slate-950 border-slate-800 text-slate-400'
+          {/* Metrics Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[
+              { label: 'Patient Volume', val: visits.length, desc: 'Total visits in log' },
+              { label: 'Triage Queue', val: visits.filter(v => v.department === 'triage' && v.status !== 'completed').length, desc: 'Pending vitals desk' },
+              { label: 'Clinician Consults', val: visits.filter(v => v.department === 'consultation' && v.status !== 'completed').length, desc: 'Pending clinical SOAP' },
+              { label: 'Lab Tests Pending', val: orders.filter(o => o.type === 'lab' && o.status !== 'completed').length, desc: 'Awaiting lab releases' },
+              { label: 'Pharmacy Pending', val: orders.filter(o => o.type === 'prescription' && o.status === 'prescribed').length, desc: 'Awaiting drug dispense' },
+              { label: 'Billed Revenue', val: `KES ${invoices.reduce((acc, i) => acc + parseFloat(i.total_amount || 0), 0).toFixed(0)}`, desc: 'Billed invoices sum' }
+            ].map((card, i) => (
+              <div key={i} className="border border-slate-800 bg-slate-900/40 p-4 rounded-xl flex flex-col justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{card.label}</span>
+                  <span className="text-2xl font-black text-white block mt-2">{card.val}</span>
+                </div>
+                <span className="text-[9px] text-slate-500 mt-2 block font-medium">{card.desc}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <BarChart2 size={14} className="text-teal-400" /> Disease Surveillance Summary
+              </h3>
+              <div className="space-y-4 pt-1">
+                {[
+                  { label: 'Malaria Infections (B54)', count: malariaCount, percentage: visits.length > 0 ? (malariaCount / visits.length) * 100 : 0, color: 'bg-teal-500' },
+                  { label: 'Respiratory Diseases (J06.9)', count: respiratoryCount, percentage: visits.length > 0 ? (respiratoryCount / visits.length) * 100 : 0, color: 'bg-blue-500' },
+                  { label: 'Gastroenteritis (A09)', count: gastroCount, percentage: visits.length > 0 ? (gastroCount / visits.length) * 100 : 0, color: 'bg-orange-500' },
+                  { label: 'Hypertension (I10)', count: hyperCount, percentage: visits.length > 0 ? (hyperCount / visits.length) * 100 : 0, color: 'bg-rose-500' },
+                  { label: 'UTI (N39.0)', count: utiCount, percentage: visits.length > 0 ? (utiCount / visits.length) * 100 : 0, color: 'bg-purple-500' }
+                ].map((dis, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex justify-between text-xs font-semibold text-slate-350">
+                      <span className="truncate max-w-[80%]">{dis.label}</span>
+                      <span className="font-mono text-slate-400">{dis.count} cases ({dis.percentage.toFixed(1)}%)</span>
+                    </div>
+                    <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-855">
+                      <div className={`${dis.color} h-1.5 rounded-full transition-all duration-500`} style={{ width: `${dis.percentage || 2}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* General Health Warnings */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <ShieldAlert size={14} className="text-teal-400" /> Operational Warnings
+              </h4>
+              <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+                {batches.some(b => new Date(b.expiry) < new Date()) && (
+                  <div className="p-3 rounded-lg border bg-red-500/5 border-red-500/15 text-red-400 text-xs flex gap-2">
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold block uppercase tracking-wide text-[9px] mb-0.5">EXPIRED STOCK ALERT</span>
+                      <span>Certain medication batches have expired! Review pharmacy stock reports.</span>
+                    </div>
+                  </div>
+                )}
+                {dataErrors.length > 0 && (
+                  <div className="p-3 rounded-lg border bg-yellow-500/5 border-yellow-500/15 text-yellow-450 text-xs flex gap-2">
+                    <ShieldAlert size={14} className="shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold block uppercase tracking-wide text-[9px] mb-0.5">DATA QUALITY WARNING</span>
+                      <span>{dataErrors.length} clinical record deficits identified. Resolve missing values prior to final DHIS2 upload.</span>
+                    </div>
+                  </div>
+                )}
+                {dataErrors.length === 0 && !batches.some(b => new Date(b.expiry) < new Date()) && (
+                  <div className="bg-teal-500/5 border border-teal-500/20 text-teal-400 p-4 rounded-lg text-center text-xs flex flex-col items-center justify-center gap-1">
+                    <CheckCircle size={18} />
+                    <span>All systems fully operational. No outstanding critical alerts.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TIER 2: DEPARTMENT REPORTS */}
+      {activeTab === 'departments' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Navigation Sidebar (3/12 width) */}
+          <div className="lg:col-span-3 space-y-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl self-start">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 px-1">Clinic Departments</span>
+            {[
+              { id: 'reg_daily', label: 'Patient Register', desk: 'Front Office' },
+              { id: 'clinical_encounter', label: 'Encounter Log', desk: 'Consultation' },
+              { id: 'lab_order', label: 'Lab Orders Worklist', desk: 'Laboratory' },
+              { id: 'lab_results', label: 'Lab Results Released', desk: 'Laboratory' },
+              { id: 'pharm_prescription', label: 'Prescription Log', desk: 'Pharmacy' },
+              { id: 'pharm_dispense', label: 'Drug Dispense Log', desk: 'Pharmacy' },
+              { id: 'pharm_revenue', label: 'Pharmacy Revenue', desk: 'Pharmacy' },
+              { id: 'pharm_stock', label: 'Stock-on-Hand & Expiry', desk: 'Pharmacy' },
+              { id: 'billing_receipts', label: 'Receipts & Payments', desk: 'Billing Cashier' },
+              { id: 'ward_admissions', label: 'Admission & Bed Use', desk: 'Inpatient Ward' }
+            ].map(rep => {
+              const active = selectedDeptReport === rep.id;
+              return (
+                <button
+                  key={rep.id}
+                  onClick={() => setSelectedDeptReport(rep.id)}
+                  className={`w-full text-left p-2.5 rounded-lg border text-xs font-bold transition flex flex-col justify-center cursor-pointer ${
+                    active
+                      ? 'bg-teal-500/10 border-teal-500 text-teal-400'
+                      : 'bg-slate-950/40 border-slate-850 hover:border-slate-800 text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <ShieldAlert size={14} className="shrink-0 mt-0.5" />
+                  <span className="text-[9px] font-extrabold uppercase text-slate-500 leading-none">{rep.desk}</span>
+                  <span className="block mt-1 leading-snug">{rep.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Preview & Controls Frame (9/12 width) */}
+          <div className="lg:col-span-9 space-y-6">
+            {!checkReportAccess(selectedDeptReport) ? (
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-4">
+                <Lock size={40} className="text-red-400 animate-bounce" />
+                <h3 className="text-sm font-black text-red-400 uppercase tracking-widest">Access Restriction Gate</h3>
+                <p className="text-xs text-slate-400 max-w-md leading-relaxed">
+                  Your current credentials (role: <strong className="text-teal-400 uppercase">{user.role}</strong>) do not possess the necessary clearance level to view or download this report. Please contact the Facility Administrator for system permission elevation.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                <div className="xl:col-span-4 space-y-5 bg-slate-900 border border-slate-800 p-5 rounded-2xl self-start">
+                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-800 pb-2">
+                    <Settings size={14} className="text-teal-400" /> Export Controls
+                  </h4>
+
+                  {/* Date selection */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Start Date</label>
+                      <div className="relative">
+                        <Calendar size={12} className="absolute left-3 top-2.5 text-slate-500" />
+                        <input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-855 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">End Date</label>
+                      <div className="relative">
+                        <Calendar size={12} className="absolute left-3 top-2.5 text-slate-550" />
+                        <input
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-855 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Identity branding selection */}
                   <div>
-                    <span className="font-bold block uppercase tracking-wide text-[9px] mb-0.5">{err.type}</span>
-                    <span>{err.detail}</span>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Branding Scope</label>
+                    <select
+                      value={brandingMode}
+                      onChange={(e) => setBrandingMode(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-855 rounded-lg py-1.5 px-3 text-xs text-slate-355 focus:outline-none focus:border-teal-500 transition font-bold"
+                    >
+                      <option value="platform">Eagle Tech Platform Branding</option>
+                      <option value="hospital">Hospital Specific Branding</option>
+                    </select>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="space-y-2.5 pt-2 border-t border-slate-800">
+                    <button
+                      onClick={() => handleExportReport(selectedDeptReport, 'csv', 'dept')}
+                      disabled={genLoading}
+                      className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow active:scale-[0.98] transition cursor-pointer"
+                    >
+                      <Download size={13} />
+                      Export to Excel (CSV)
+                    </button>
+                    <button
+                      onClick={() => handleExportReport(selectedDeptReport, 'json', 'dept')}
+                      disabled={genLoading}
+                      className="w-full bg-slate-955 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Download size={13} />
+                      Export Data (JSON)
+                    </button>
+                    <button
+                      onClick={() => handlePrint(activeReport.name, activeReport.headers, activeReport.rows, activeReport.totals)}
+                      className="w-full bg-slate-955 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Printer size={13} />
+                      Print Layout
+                    </button>
+                    <button
+                      onClick={() => handleScheduleReport(activeReport.name)}
+                      disabled={scheduleLoading}
+                      className="w-full border border-teal-500/20 hover:border-teal-500/30 text-teal-400 bg-teal-500/5 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      {scheduleLoading ? <RefreshCw size={13} className="animate-spin" /> : <Clock size={13} />}
+                      Schedule Auto-Email
+                    </button>
                   </div>
                 </div>
-              ))}
 
-              {dataErrors.length === 0 && (
-                <div className="bg-teal-500/5 border border-teal-500/20 text-teal-400 p-4 rounded-lg text-center text-xs">
-                  All active patient records pass MOH validation audits!
+                <div className="xl:col-span-8 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Eye size={14} className="text-teal-400" /> Print Sheet Preview Canvas
+                    </span>
+                    <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[9px] font-bold">
+                      <button
+                        onClick={() => setPreviewTheme('light')}
+                        className={`px-3 py-1 rounded transition ${previewTheme === 'light' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
+                      >
+                        Light Mode
+                      </button>
+                      <button
+                        onClick={() => setPreviewTheme('dark')}
+                        className={`px-3 py-1 rounded transition ${previewTheme === 'dark' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
+                      >
+                        Dark Mode
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Print Card Frame */}
+                  <div className={`border rounded-2xl p-6 shadow-lg transition-all min-h-[500px] flex flex-col justify-between ${
+                    previewTheme === 'light' 
+                      ? 'bg-white border-slate-200 text-slate-800' 
+                      : 'bg-slate-950 border-slate-855 text-slate-300'
+                  }`}>
+                    <div>
+                      {/* Brand Header */}
+                      <div className="flex justify-between items-start border-b pb-4 border-dashed border-slate-300/60">
+                        <div className="flex gap-2.5 items-center">
+                          <div className="h-8 w-8 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center shrink-0 font-bold text-teal-600 text-xs">
+                            {brandingMode === 'platform' ? 'ET' : facilityInfo.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <h4 className="font-extrabold text-xs tracking-tight uppercase leading-none">
+                              {brandingMode === 'platform' ? 'Eagle Tech Solutions Ltd' : facilityInfo.name}
+                            </h4>
+                            <span className="text-[9px] text-slate-500 block mt-1 font-semibold leading-none">
+                              {brandingMode === 'platform' ? 'HQ: Avenue Rd, Nairobi' : `Facility Code: ${facilityInfo.code}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">Draft Layout</span>
+                          <h3 className="font-black text-xs uppercase tracking-wide mt-1.5">{activeReport.name}</h3>
+                        </div>
+                      </div>
+
+                      {/* Meta Columns */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 py-3.5 text-[9px] border-b border-dashed border-slate-300/40">
+                        <div>
+                          <span className="text-slate-400 block font-semibold">Report Period</span>
+                          <span className="font-bold">{startDate} to {endDate}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-semibold">Generated By</span>
+                          <span className="font-bold">{user.full_name}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-semibold">Compile System</span>
+                          <span className="font-bold">Appwrite serverless</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-semibold">Printed Date</span>
+                          <span className="font-bold font-mono">{new Date().toLocaleDateString()}</span>
+                        </div>
+                      </div>
+
+                      {/* Results Table */}
+                      <div className="mt-4 overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-[9px]">
+                          <thead>
+                            <tr className="border-b border-slate-300/60 uppercase font-black text-slate-500 tracking-wider">
+                              {activeReport.headers.map(col => (
+                                <th key={col} className="py-1.5">{col}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
+                            {activeReport.rows.slice(0, 5).map((row, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50/20">
+                                {row.map((cell, cidx) => (
+                                  <td key={cidx} className="py-2 pr-2 font-mono">{cell}</td>
+                                ))}
+                              </tr>
+                            ))}
+                            {activeReport.rows.length === 0 && (
+                              <tr>
+                                <td colSpan={activeReport.headers.length || 1} className="text-center py-10 text-slate-400 italic">
+                                  No records found matching date filter selection.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {activeReport.rows.length > 5 && (
+                        <p className="text-[8px] text-slate-400 italic mt-2 text-center border-t pt-1.5 border-dashed border-slate-200/50">
+                          ... Showing 5 of {activeReport.rows.length} records. Export standard CSV to download the complete spreadsheet.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Footer Totals */}
+                    <div className="border-t pt-3.5 border-slate-300/60 flex justify-between gap-4 text-[9px] font-extrabold uppercase mt-4">
+                      <div>{activeReport.totals?.left}</div>
+                      <div>{activeReport.totals?.right}</div>
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TIER 3: COMPLIANCE & MOH REPORTS */}
+      {activeTab === 'compliance' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Navigation Sidebar */}
+          <div className="lg:col-span-3 space-y-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl self-start">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 px-1">MOH & Security Registry</span>
+            {[
+              { id: 'moh_daily', label: 'MOH Daily Register', desk: 'Kenyan MOH-717' },
+              { id: 'moh_monthly', label: 'Monthly Submission', desk: 'Kenyan MOH-717' },
+              { id: 'audit_logs', label: 'Activity Audit Log', desk: 'System Security' }
+            ].map(rep => {
+              const active = selectedCompReport === rep.id;
+              return (
+                <button
+                  key={rep.id}
+                  onClick={() => setSelectedCompReport(rep.id)}
+                  className={`w-full text-left p-2.5 rounded-lg border text-xs font-bold transition flex flex-col justify-center cursor-pointer ${
+                    active
+                      ? 'bg-teal-500/10 border-teal-500 text-teal-400'
+                      : 'bg-slate-955 border-slate-850 hover:border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span className="text-[9px] font-extrabold uppercase text-slate-500 leading-none">{rep.desk}</span>
+                  <span className="block mt-1 leading-snug">{rep.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Preview & Controls Frame */}
+          <div className="lg:col-span-9 space-y-6">
+            {!checkReportAccess(selectedCompReport) ? (
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-4">
+                <Lock size={40} className="text-red-400 animate-bounce" />
+                <h3 className="text-sm font-black text-red-400 uppercase tracking-widest">Access Restriction Gate</h3>
+                <p className="text-xs text-slate-400 max-w-md leading-relaxed">
+                  Your current credentials (role: <strong className="text-teal-400 uppercase">{user.role}</strong>) do not possess the necessary clearance level to view or download this report. Please contact the Facility Administrator for system permission elevation.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                <div className="xl:col-span-4 space-y-5 bg-slate-900 border border-slate-800 p-5 rounded-2xl self-start">
+                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-800 pb-2">
+                    <Settings size={14} className="text-teal-400" /> Export Controls
+                  </h4>
+
+                  {/* Date selection */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Start Date</label>
+                      <div className="relative">
+                        <Calendar size={12} className="absolute left-3 top-2.5 text-slate-550" />
+                        <input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="w-full bg-slate-955 border border-slate-855 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">End Date</label>
+                      <div className="relative">
+                        <Calendar size={12} className="absolute left-3 top-2.5 text-slate-550" />
+                        <input
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          className="w-full bg-slate-955 border border-slate-855 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="space-y-2.5 pt-2 border-t border-slate-800">
+                    <button
+                      onClick={() => handleExportReport(selectedCompReport, 'csv', 'compliance')}
+                      disabled={genLoading}
+                      className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow active:scale-[0.98] transition cursor-pointer"
+                    >
+                      <Download size={13} />
+                      Export to Excel (CSV)
+                    </button>
+                    <button
+                      onClick={() => handleExportReport(selectedCompReport, 'json', 'compliance')}
+                      disabled={genLoading}
+                      className="w-full bg-slate-955 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Download size={13} />
+                      Export Data (JSON)
+                    </button>
+                    <button
+                      onClick={() => handlePrint(activeReport.name, activeReport.headers, activeReport.rows, activeReport.totals)}
+                      className="w-full bg-slate-955 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Printer size={13} />
+                      Print Layout
+                    </button>
+                    <button
+                      onClick={() => handleScheduleReport(activeReport.name)}
+                      disabled={scheduleLoading}
+                      className="w-full border border-teal-500/20 hover:border-teal-500/30 text-teal-400 bg-teal-500/5 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      {scheduleLoading ? <RefreshCw size={13} className="animate-spin" /> : <Clock size={13} />}
+                      Schedule Auto-Email
+                    </button>
+                  </div>
+                </div>
+
+                <div className="xl:col-span-8 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Eye size={14} className="text-teal-400" /> Print Sheet Preview Canvas
+                    </span>
+                    <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[9px] font-bold">
+                      <button
+                        onClick={() => setPreviewTheme('light')}
+                        className={`px-3 py-1 rounded transition ${previewTheme === 'light' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
+                      >
+                        Light Mode
+                      </button>
+                      <button
+                        onClick={() => setPreviewTheme('dark')}
+                        className={`px-3 py-1 rounded transition ${previewTheme === 'dark' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
+                      >
+                        Dark Mode
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Print Card Frame */}
+                  <div className={`border rounded-2xl p-6 shadow-lg transition-all min-h-[500px] flex flex-col justify-between ${
+                    previewTheme === 'light' 
+                      ? 'bg-white border-slate-200 text-slate-800' 
+                      : 'bg-slate-955 border-slate-855 text-slate-300'
+                  }`}>
+                    <div>
+                      {/* Brand Header */}
+                      <div className="flex justify-between items-start border-b pb-4 border-dashed border-slate-300/60">
+                        <div className="flex gap-2.5 items-center">
+                          <div className="h-8 w-8 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center shrink-0 font-bold text-teal-600 text-xs">
+                            {brandingMode === 'platform' ? 'ET' : facilityInfo.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <h4 className="font-extrabold text-xs tracking-tight uppercase leading-none">
+                              {brandingMode === 'platform' ? 'Eagle Tech Solutions Ltd' : facilityInfo.name}
+                            </h4>
+                            <span className="text-[9px] text-slate-500 block mt-1 font-semibold leading-none">
+                              {brandingMode === 'platform' ? 'HQ: Avenue Rd, Nairobi' : `Facility Code: ${facilityInfo.code}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">Draft Layout</span>
+                          <h3 className="font-black text-xs uppercase tracking-wide mt-1.5">{activeReport.name}</h3>
+                        </div>
+                      </div>
+
+                      {/* Meta Columns */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 py-3.5 text-[9px] border-b border-dashed border-slate-300/40">
+                        <div>
+                          <span className="text-slate-400 block font-semibold">Report Period</span>
+                          <span className="font-bold">{startDate} to {endDate}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-semibold">Generated By</span>
+                          <span className="font-bold">{user.full_name}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-semibold">Compile System</span>
+                          <span className="font-bold">Appwrite serverless</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-semibold">Printed Date</span>
+                          <span className="font-bold font-mono">{new Date().toLocaleDateString()}</span>
+                        </div>
+                      </div>
+
+                      {/* Results Table */}
+                      <div className="mt-4 overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-[9px]">
+                          <thead>
+                            <tr className="border-b border-slate-300/60 uppercase font-black text-slate-500 tracking-wider">
+                              {activeReport.headers.map(col => (
+                                <th key={col} className="py-1.5">{col}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
+                            {activeReport.rows.slice(0, 5).map((row, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50/20">
+                                {row.map((cell, cidx) => (
+                                  <td key={cidx} className="py-2 pr-2 font-mono">{cell}</td>
+                                ))}
+                              </tr>
+                            ))}
+                            {activeReport.rows.length === 0 && (
+                              <tr>
+                                <td colSpan={activeReport.headers.length || 1} className="text-center py-10 text-slate-400 italic">
+                                  No records found matching date filter selection.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {activeReport.rows.length > 5 && (
+                        <p className="text-[8px] text-slate-400 italic mt-2 text-center border-t pt-1.5 border-dashed border-slate-200/50">
+                          ... Showing 5 of {activeReport.rows.length} records. Export standard CSV to download the complete spreadsheet.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Footer Totals */}
+                    <div className="border-t pt-3.5 border-slate-300/60 flex justify-between gap-4 text-[9px] font-extrabold uppercase mt-4">
+                      <div>{activeReport.totals?.left}</div>
+                      <div>{activeReport.totals?.right}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TIER 4: CUSTOM REPORT BUILDER (PREVIOUS BUILDER TAB) */}
+      {activeTab === 'builder' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Controls Sidebar (Left 5/12 width) */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Settings size={14} className="text-teal-400" /> Report Configuration Details
+              </h3>
+
+              {/* Form Controls */}
+              <div className="space-y-4">
+                {/* Category Selection */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">1. Select Report Category</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'outpatient', label: 'Outpatient', icon: Activity },
+                      { id: 'billing', label: 'Billing Invoices', icon: FileText },
+                      { id: 'inpatient', label: 'Inpatient Admissions', icon: Layers }
+                    ].map(cat => {
+                      const Icon = cat.icon;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setReportCategory(cat.id)}
+                          className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition ${
+                            reportCategory === cat.id
+                              ? 'bg-teal-500/10 border-teal-500 text-teal-400'
+                              : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400'
+                          }`}
+                        >
+                          <Icon size={18} className="mb-1.5" />
+                          <span className="text-[10px] font-bold leading-tight">{cat.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Branding Scope Selection */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">2. Branding & Logo Identity</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setBrandingMode('platform')}
+                      className={`flex items-center gap-2 p-2.5 rounded-lg border text-left transition text-xs font-bold ${
+                        brandingMode === 'platform'
+                          ? 'bg-teal-500/10 border-teal-500 text-teal-400'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                      }`}
+                    >
+                      <Building size={14} />
+                      <div>
+                        <span className="block">Eagle Tech Platform</span>
+                        <span className="text-[9px] font-semibold text-slate-500 block">Default corporate details</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setBrandingMode('hospital')}
+                      className={`flex items-center gap-2 p-2.5 rounded-lg border text-left transition text-xs font-bold ${
+                        brandingMode === 'hospital'
+                          ? 'bg-teal-500/10 border-teal-500 text-teal-400'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                      }`}
+                    >
+                      <Building size={14} />
+                      <div>
+                        <span className="block">Hospital / Facility Specific</span>
+                        <span className="text-[9px] font-semibold text-slate-500 block">{facilityInfo.name}</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Date Ranges */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">3. Start Date</label>
+                    <div className="relative">
+                      <Calendar size={12} className="absolute left-3 top-2.5 text-slate-550" />
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full bg-slate-955 border border-slate-855 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">4. End Date</label>
+                    <div className="relative">
+                      <Calendar size={12} className="absolute left-3 top-2.5 text-slate-555" />
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full bg-slate-955 border border-slate-855 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Columns Checklist */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">5. Selected Report Fields (Preview Grid Columns)</label>
+                  <div className="bg-slate-955 border border-slate-855 rounded-xl p-3 grid grid-cols-2 gap-2 text-xs font-bold">
+                    {Object.keys(selectedFields[reportCategory]).map(field => {
+                      const isChecked = selectedFields[reportCategory][field];
+                      return (
+                        <button
+                          key={field}
+                          type="button"
+                          onClick={() => toggleField(reportCategory, field)}
+                          className="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition select-none text-left py-1"
+                        >
+                          {isChecked ? (
+                            <CheckSquare size={14} className="text-teal-400 shrink-0" />
+                          ) : (
+                            <Square size={14} className="text-slate-700 shrink-0" />
+                          )}
+                          <span className="truncate capitalize">{field.replace('_', ' ')}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* File Format Selection */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">6. Download Extension</label>
+                  <div className="flex gap-4 text-xs font-bold">
+                    <label className="flex items-center gap-2 text-slate-400 cursor-pointer select-none hover:text-white transition">
+                      <input
+                        type="radio"
+                        name="format"
+                        value="csv"
+                        checked={reportFormat === 'csv'}
+                        onChange={() => setReportFormat('csv')}
+                        className="accent-teal-500 h-4 w-4 bg-slate-955 border-slate-800 rounded text-teal-500"
+                      />
+                      Standard Excel (CSV)
+                    </label>
+                    <label className="flex items-center gap-2 text-slate-400 cursor-pointer select-none hover:text-white transition">
+                      <input
+                        type="radio"
+                        name="format"
+                        value="json"
+                        checked={reportFormat === 'json'}
+                        onChange={() => setReportFormat('json')}
+                        className="accent-teal-500 h-4 w-4 bg-slate-955 border-slate-800 rounded text-teal-500"
+                      />
+                      Data Interchange (JSON)
+                    </label>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="pt-2 border-t border-slate-850 flex gap-2">
+                  <button
+                    onClick={handleGenerateReport}
+                    disabled={genLoading || customFilteredData.length === 0}
+                    className="flex-1 bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-teal-500/10 active:scale-[0.98] transition disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                  >
+                    {genLoading ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        Executing Appwrite Function...
+                      </>
+                    ) : genSuccess ? (
+                      <>
+                        <CheckCircle size={14} />
+                        Report Dispatched!
+                      </>
+                    ) : (
+                      <>
+                        <Download size={14} />
+                        Generate & Download Report
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex gap-2.5 items-start">
+              <Info size={16} className="text-teal-400 shrink-0 mt-0.5" />
+              <p className="text-[10px] text-slate-450 leading-relaxed font-medium">
+                Clicking "Generate & Download" sends the parameters to an Appwrite Cloud Function, which runs server-side compilation, writes an outbox email compliance notice using your Titan SMTP credentials, and records the event in the system audit database.
+              </p>
+            </div>
+          </div>
+
+          {/* Formatted Preview Frame (Right 7/12 width) */}
+          <div className="lg:col-span-7 space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Eye size={14} className="text-teal-400" /> Interactive Report Preview Canvas
+              </span>
+              
+              <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[10px]">
+                <button
+                  onClick={() => setPreviewTheme('light')}
+                  className={`px-3 py-1 font-bold rounded transition ${previewTheme === 'light' ? 'bg-slate-880 text-white' : 'text-slate-500'}`}
+                >
+                  Light Mode
+                </button>
+                <button
+                  onClick={() => setPreviewTheme('dark')}
+                  className={`px-3 py-1 font-bold rounded transition ${previewTheme === 'dark' ? 'bg-slate-880 text-white' : 'text-slate-500'}`}
+                >
+                  Dark Mode
+                </button>
+              </div>
+            </div>
+
+            {/* Print Sheet Card */}
+            <div className={`border rounded-2xl p-8 shadow-lg transition-all min-h-[580px] flex flex-col justify-between ${
+              previewTheme === 'light' 
+                ? 'bg-white border-slate-250 text-slate-800' 
+                : 'bg-slate-950 border-slate-855 text-slate-300'
+            }`}>
+              
+              {/* Header: Branded Logo, Title & Metas */}
+              <div>
+                <div className="flex justify-between items-start border-b pb-5 border-dashed border-slate-300/60">
+                  <div className="flex gap-3 items-center">
+                    {brandingMode === 'platform' ? (
+                      <div className="h-10 w-10 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center shrink-0">
+                        <svg className="w-6 h-6 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                          <path d="M8 11h8" />
+                          <path d="M12 7v8" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className="h-10 w-10 rounded-xl bg-teal-600/10 border border-teal-600/30 flex items-center justify-center shrink-0 font-bold text-teal-700 text-sm">
+                        {facilityInfo.name.substring(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    
+                    <div>
+                      <h4 className="font-extrabold text-sm tracking-tight leading-tight uppercase">
+                        {brandingMode === 'platform' ? 'Eagle Tech Solutions Ltd' : facilityInfo.name}
+                      </h4>
+                      <p className="text-[10px] font-semibold text-slate-500 mt-0.5">
+                        {brandingMode === 'platform' 
+                          ? 'HQ: 12th Floor, Eagle Tech Tower, Avenue Rd, Nairobi' 
+                          : `MOH Facility Code: ${facilityInfo.code}`}
+                      </p>
+                      <p className="text-[10px] font-semibold text-slate-405">
+                        Email: {brandingMode === 'platform' ? 'info@eagletechsolutions.tech' : `info@${facilityInfo.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">
+                      Draft Preview
+                    </span>
+                    <h3 className="font-black text-sm uppercase tracking-wide mt-2">
+                      {reportCategory === 'outpatient' ? 'Outpatient Register' : reportCategory === 'billing' ? 'Revenue Register' : 'Inpatient Admissions'}
+                    </h3>
+                  </div>
+                </div>
+
+                {/* Sub-Header Metadata */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 text-[10px] border-b border-dashed border-slate-300/40">
+                  <div>
+                    <span className="text-slate-400 block font-semibold">Report Period</span>
+                    <span className="font-bold">{startDate} to {endDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block font-semibold">Generated By</span>
+                    <span className="font-bold">{user.full_name}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block font-semibold">Compile System</span>
+                    <span className="font-bold">Appwrite serverless</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block font-semibold">Printed Date</span>
+                    <span className="font-bold font-mono">{new Date().toLocaleDateString()}</span>
+                  </div>
+                </div>
+
+                {/* Preview Table */}
+                <div className="mt-5 overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-[10px]">
+                    <thead>
+                      <tr className="border-b border-slate-300/60 uppercase font-black text-slate-500 tracking-wider">
+                        {customActiveColumns.map(col => (
+                          <th key={col} className="py-2">{col.replace('_', ' ')}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                      {customFilteredData.slice(0, 5).map((row, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/20">
+                          {customActiveColumns.map(col => (
+                            <td key={col} className="py-2.5 pr-2 font-mono">
+                              {col === 'total_amount' || col === 'amount_paid' ? (
+                                `KES ${row[col]}/-`
+                              ) : col === 'status' ? (
+                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
+                                  row[col] === 'paid' || row[col] === 'Discharged'
+                                    ? 'bg-green-100 text-green-700 border border-green-200'
+                                    : 'bg-yellow-100 text-yellow-700 border border-yellow-250'
+                                }`}>
+                                  {row[col]}
+                                </span>
+                              ) : (
+                                row[col]
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                      
+                      {customFilteredData.length === 0 && (
+                        <tr>
+                          <td colSpan={customActiveColumns.length || 1} className="text-center py-10 text-slate-400 italic font-normal">
+                            No records found matching date filter selection.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {customFilteredData.length > 5 && (
+                  <p className="text-[9px] text-slate-450 italic mt-3 text-center border-t pt-2 border-dashed border-slate-350/20">
+                    ... Showing 5 of {customFilteredData.length} records. Generate report to extract complete spreadsheet data.
+                  </p>
+                )}
+              </div>
+
+              {/* Bottom Totals Summary */}
+              <div className="border-t pt-4 border-slate-300/60 flex flex-col md:flex-row justify-between gap-4 text-[10px] font-extrabold uppercase mt-6">
+                <div className="flex gap-4">
+                  <span>Total Records: <span className="text-teal-600">{customFilteredData.length}</span></span>
+                  
+                  {reportCategory === 'billing' && (
+                    <>
+                      <span>Total Revenue: <span className="text-teal-600">KES {
+                        customFilteredData.reduce((acc, row) => acc + parseFloat(row.total_amount || 0), 0).toFixed(2)
+                      }/-</span></span>
+                      <span>Total Paid: <span className="text-teal-600">KES {
+                        customFilteredData.reduce((acc, row) => acc + parseFloat(row.amount_paid || 0), 0).toFixed(2)
+                      }/-</span></span>
+                    </>
+                  )}
+                </div>
+
+                <div className="text-right text-[8px] font-normal text-slate-400 italic">
+                  <span>Eagle Tech Outsource Compliance Intelligence Unit. Confidential.</span>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../appwriteClient';
+import { parsePatientContact } from '../notificationService';
 import { User, Clipboard, Activity, FlaskConical, Pill, FileText, Calendar, DollarSign, Bed } from 'lucide-react';
 
 export default function PatientDashboard() {
@@ -145,7 +146,19 @@ export default function PatientDashboard() {
                 </div>
                 <div>
                   <span className="text-slate-500 block">Phone</span>
-                  <span className="font-semibold text-slate-200">{patientData.phone}</span>
+                  <span className="font-semibold text-slate-200">{parsePatientContact(patientData.phone).phone || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Email Address</span>
+                  <span className="font-semibold text-slate-200">{parsePatientContact(patientData.phone).email || 'N/A'}</span>
+                </div>
+                <div className="col-span-2 mt-1 bg-slate-950 border border-slate-850 p-2 rounded-lg text-[10px]">
+                  <span className="text-slate-500 block uppercase font-bold mb-1">Notification Opt-In Toggles</span>
+                  <div className="flex gap-4 font-bold">
+                    <span className={parsePatientContact(patientData.phone).preferences.lab ? "text-green-400" : "text-slate-500"}>● Lab alerts</span>
+                    <span className={parsePatientContact(patientData.phone).preferences.pharmacy ? "text-green-400" : "text-slate-500"}>● Pharmacy alerts</span>
+                    <span className={parsePatientContact(patientData.phone).preferences.billing ? "text-green-400" : "text-slate-500"}>● Billing receipts</span>
+                  </div>
                 </div>
               </div>
             </div>

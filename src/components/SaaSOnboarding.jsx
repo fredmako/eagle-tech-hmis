@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../appwriteClient';
+import { sendNotification } from '../notificationService';
 import { 
   Activity, 
   Building2, 
@@ -215,6 +216,13 @@ export default function SaaSOnboarding({ onBackToLogin }) {
       });
 
       if (profError) throw new Error(profError);
+
+      // 4. Trigger welcome email notification
+      await sendNotification('USER_SIGNUP', {
+        adminName,
+        adminEmail,
+        recipientEmail: adminEmail
+      }, facilityId);
 
       // Cache details for redirect auto-fill
       sessionStorage.setItem('egesa_health_new_facility_id', facilityId);

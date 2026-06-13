@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../appwriteClient';
+import { sendNotification } from '../notificationService';
 import { 
   Pill, 
   AlertCircle, 
@@ -211,6 +212,20 @@ export default function Pharmacy({ user, onComplete }) {
         action: 'Medication Dispense',
         details: `Dispensed ${qtyNeeded} units of ${drugName} for patient ${selectedVisit?.patient?.name} (Batches: ${dispenseMeta.dispensed_batch}).`
       });
+
+      // Trigger Notification
+      try {
+        await sendNotification('PRESCRIPTION_DISPENSED', {
+          patientName: selectedVisit?.patient?.name || 'Patient',
+          drugName,
+          qtyDispensed: dispenseMeta.dispensed_qty,
+          batches: dispenseMeta.dispensed_batch,
+          pharmacist: user.full_name,
+          recipientEmail: 'patient@eagletechsolutions.tech'
+        }, user.facility_id);
+      } catch (e) {
+        console.error('Pharmacy email trigger failed:', e);
+      }
 
       // 3. Check if all prescriptions for this visit are completed/dispensed
       const updatedOrders = pendingPrescriptions.map(o => o.id === orderId ? { ...o, status: 'dispensed' } : o);

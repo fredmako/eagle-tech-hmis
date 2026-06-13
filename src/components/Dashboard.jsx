@@ -96,6 +96,21 @@ export default function Dashboard({ user, onNavigate }) {
     });
   };
 
+  const roleAccess = {
+    registration: ['receptionist', 'admin'],
+    triage: ['nurse', 'admin'],
+    consultation: ['clinician', 'admin'],
+    orders: ['lab_tech', 'admin'],
+    pharmacy: ['pharmacist', 'admin'],
+    billing: ['cashier', 'admin']
+  };
+
+  const checkAccess = (tab) => {
+    if (!user || !user.role) return false;
+    if (user.role === 'admin') return true;
+    return roleAccess[tab]?.includes(user.role) || false;
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner / Welcome */}
@@ -134,25 +149,49 @@ export default function Dashboard({ user, onNavigate }) {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {[
-          { label: "Today's Registrations", value: stats.todayPatients, color: "border-teal-500/20 text-teal-400", bg: "bg-teal-500/5", icon: Users },
-          { label: "Pending Triage", value: stats.pendingTriage, color: "border-orange-500/20 text-orange-400", bg: "bg-orange-500/5", icon: Hourglass },
-          { label: "Pending Consultation", value: stats.pendingConsultation, color: "border-blue-500/20 text-blue-400", bg: "bg-blue-500/5", icon: Activity },
-          { label: "Pending Lab", value: stats.pendingLab, color: "border-purple-500/20 text-purple-400", bg: "bg-purple-500/5", icon: RefreshCw },
-          { label: "Pending Pharmacy", value: stats.pendingPharmacy, color: "border-emerald-500/20 text-emerald-400", bg: "bg-emerald-500/5", icon: CheckCircle },
-          { label: "Pending Invoices", value: stats.unpaidBilling, color: "border-rose-500/20 text-rose-400", bg: "bg-rose-500/5", icon: ShieldAlert },
+          { label: "Today's Registrations", value: stats.todayPatients, color: "border-teal-500/20 text-teal-400", bg: "bg-teal-500/5", hover: "hover:border-teal-500/50 hover:bg-teal-500/10 hover:shadow-teal-500/5", icon: Users, tab: 'registration' },
+          { label: "Pending Triage", value: stats.pendingTriage, color: "border-orange-500/20 text-orange-400", bg: "bg-orange-500/5", hover: "hover:border-orange-500/50 hover:bg-orange-500/10 hover:shadow-orange-500/5", icon: Hourglass, tab: 'triage' },
+          { label: "Pending Consultation", value: stats.pendingConsultation, color: "border-blue-500/20 text-blue-400", bg: "bg-blue-500/5", hover: "hover:border-blue-500/50 hover:bg-blue-500/10 hover:shadow-blue-500/5", icon: Activity, tab: 'consultation' },
+          { label: "Pending Lab", value: stats.pendingLab, color: "border-purple-500/20 text-purple-400", bg: "bg-purple-500/5", hover: "hover:border-purple-500/50 hover:bg-purple-500/10 hover:shadow-purple-500/5", icon: RefreshCw, tab: 'orders' },
+          { label: "Pending Pharmacy", value: stats.pendingPharmacy, color: "border-emerald-500/20 text-emerald-400", bg: "bg-emerald-500/5", hover: "hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:shadow-emerald-500/5", icon: CheckCircle, tab: 'pharmacy' },
+          { label: "Pending Invoices", value: stats.unpaidBilling, color: "border-rose-500/20 text-rose-400", bg: "bg-rose-500/5", hover: "hover:border-rose-500/50 hover:bg-rose-500/10 hover:shadow-rose-500/5", icon: ShieldAlert, tab: 'billing' },
         ].map((item, i) => {
           const Icon = item.icon;
-          return (
-            <div key={i} className={`border ${item.color} ${item.bg} p-4 rounded-xl flex flex-col justify-between shadow-sm`}>
-              <div className="flex justify-between items-start">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-tight">
-                  {item.label}
-                </span>
-                <Icon size={16} className="opacity-80" />
+          const hasAccess = checkAccess(item.tab);
+
+          if (hasAccess) {
+            return (
+              <button
+                key={i}
+                onClick={() => onNavigate(item.tab)}
+                className={`border ${item.color} ${item.bg} ${item.hover} p-4 rounded-xl flex flex-col justify-between shadow-sm transition-all duration-300 hover:scale-[1.03] hover:shadow-lg active:scale-[0.98] cursor-pointer text-left w-full`}
+              >
+                <div className="flex justify-between items-start w-full">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-tight">
+                    {item.label}
+                  </span>
+                  <Icon size={16} className="opacity-80" />
+                </div>
+                <span className="text-3xl font-extrabold text-white mt-4">{item.value}</span>
+              </button>
+            );
+          } else {
+            return (
+              <div
+                key={i}
+                className="border border-slate-800/40 bg-slate-900/20 opacity-50 p-4 rounded-xl flex flex-col justify-between shadow-sm text-left w-full select-none"
+                title="Your current role does not have permission to access this module"
+              >
+                <div className="flex justify-between items-start w-full">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider leading-tight">
+                    {item.label}
+                  </span>
+                  <Icon size={16} className="text-slate-600" />
+                </div>
+                <span className="text-3xl font-extrabold text-slate-600 mt-4">{item.value}</span>
               </div>
-              <span className="text-3xl font-extrabold text-white mt-4">{item.value}</span>
-            </div>
-          );
+            );
+          }
         })}
       </div>
 

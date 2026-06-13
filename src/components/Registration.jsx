@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../appwriteClient';
+import { parsePatientContact } from '../notificationService';
 import { Search, UserPlus, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function Registration({ user, onNavigateToQueue }) {
@@ -18,6 +19,12 @@ export default function Registration({ user, onNavigateToQueue }) {
   const [nokPhone, setNokPhone] = useState('');
   const [nokRelation, setNokRelation] = useState('spouse');
   const [consent, setConsent] = useState(true);
+
+  // Email & notification settings
+  const [email, setEmail] = useState('');
+  const [optInLab, setOptInLab] = useState(true);
+  const [optInPharmacy, setOptInPharmacy] = useState(true);
+  const [optInBilling, setOptInBilling] = useState(true);
 
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
@@ -64,7 +71,7 @@ export default function Registration({ user, onNavigateToQueue }) {
         gender,
         national_id: nationalId || null,
         facility_id_code: facilityCode,
-        phone,
+        phone: `${phone}|${email}|lab:${optInLab},pharmacy:${optInPharmacy},billing:${optInBilling}`,
         next_of_kin_name: nokName,
         next_of_kin_phone: nokPhone,
         next_of_kin_relation: nokRelation,
@@ -82,10 +89,14 @@ export default function Registration({ user, onNavigateToQueue }) {
       setGender('male');
       setNationalId('');
       setPhone('');
+      setEmail('');
       setNokName('');
       setNokPhone('');
       setNokRelation('spouse');
       setConsent(true);
+      setOptInLab(true);
+      setOptInPharmacy(true);
+      setOptInBilling(true);
 
       // Re-trigger search or take user to queue builder directly with patient details
       if (data) {
@@ -145,10 +156,10 @@ export default function Registration({ user, onNavigateToQueue }) {
                   <div key={pt.id} className="bg-slate-950 border border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-teal-500/30 transition">
                     <div>
                       <span className="font-bold text-slate-200 block text-sm">{pt.name}</span>
-                      <span className="text-xs text-slate-500 font-semibold uppercase">{pt.gender} | Age: {new Date().getFullYear() - new Date(pt.dob).getFullYear()} yrs</span>
+                      <span className="text-xs text-slate-505 font-semibold uppercase">{pt.gender} | Age: {new Date().getFullYear() - new Date(pt.dob).getFullYear()} yrs</span>
                       <div className="grid grid-cols-2 gap-x-4 mt-1 text-[10px] text-slate-400">
                         <span>Code: <span className="text-teal-400 font-semibold">{pt.facility_id_code}</span></span>
-                        <span>National ID: {pt.national_id || 'N/A'}</span>
+                        <span>Phone: <span className="text-slate-300 font-semibold">{parsePatientContact(pt.phone).phone}</span></span>
                       </div>
                     </div>
                     <button
@@ -250,6 +261,52 @@ export default function Registration({ user, onNavigateToQueue }) {
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                 required
               />
+            </div>
+
+            {/* Patient Email */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="patient@eagletechsolutions.tech"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              />
+            </div>
+          </div>
+
+          {/* Notification Opt-In preferences */}
+          <div className="border-t border-slate-800/80 pt-4 mt-2">
+            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-3">Patient Notification Consent Preferences</h3>
+            <div className="flex flex-wrap gap-4 text-xs font-bold">
+              <label className="flex items-center gap-2 text-slate-400 cursor-pointer select-none hover:text-white transition">
+                <input
+                  type="checkbox"
+                  checked={optInLab}
+                  onChange={(e) => setOptInLab(e.target.checked)}
+                  className="accent-teal-500 h-4 w-4 bg-slate-950 border-slate-800 rounded text-teal-500"
+                />
+                Opt-in Lab emails
+              </label>
+              <label className="flex items-center gap-2 text-slate-400 cursor-pointer select-none hover:text-white transition">
+                <input
+                  type="checkbox"
+                  checked={optInPharmacy}
+                  onChange={(e) => setOptInPharmacy(e.target.checked)}
+                  className="accent-teal-500 h-4 w-4 bg-slate-950 border-slate-800 rounded text-teal-500"
+                />
+                Opt-in Pharmacy emails
+              </label>
+              <label className="flex items-center gap-2 text-slate-400 cursor-pointer select-none hover:text-white transition">
+                <input
+                  type="checkbox"
+                  checked={optInBilling}
+                  onChange={(e) => setOptInBilling(e.target.checked)}
+                  className="accent-teal-500 h-4 w-4 bg-slate-950 border-slate-800 rounded text-teal-500"
+                />
+                Opt-in Billing emails
+              </label>
             </div>
           </div>
 

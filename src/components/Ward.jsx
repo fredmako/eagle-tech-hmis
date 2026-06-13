@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../appwriteClient';
+import { sendNotification, parsePatientContact } from '../notificationService';
 import { Bed, PlusCircle, CheckCircle, AlertCircle, ClipboardList, Thermometer } from 'lucide-react';
 
 export default function Ward({ user }) {
@@ -96,6 +97,24 @@ export default function Ward({ user }) {
       }
 
       setMessage({ type: 'success', text: `Patient successfully admitted to ${targetBed}.` });
+      
+      // Trigger Notification
+      try {
+        const patient = patients.find(p => p.id === selectedPatientId);
+        const contactInfo = parsePatientContact(patient?.phone);
+        if (contactInfo.email) {
+          await sendNotification('INPATIENT_ADMITTED', {
+            patientName: patient.name,
+            patientCode: patient.facility_id_code,
+            bedName: targetBed,
+            admittedBy: user.full_name,
+            recipientEmail: contactInfo.email
+          }, user.facility_id);
+        }
+      } catch (e) {
+        console.error('Admission email trigger failed:', e);
+      }
+
       setSelectedPatientId('');
       fetchWardData();
     } catch (err) {
@@ -161,6 +180,22 @@ export default function Ward({ user }) {
         action: 'Ward Patient Discharge',
         details: `Discharged patient ${selectedAdmission.patient?.name} from ${selectedAdmission.bed}. Summary: ${dischargeNotes}`
       });
+
+      // Trigger Notification
+      try {
+        const contactInfo = parsePatientContact(selectedAdmission.patient?.phone);
+        if (contactInfo.email) {
+          await sendNotification('INPATIENT_DISCHARGED', {
+            patientName: selectedAdmission.patient?.name,
+            bedName: selectedAdmission.bed,
+            dischargedBy: user.full_name,
+            dischargeNotes: dischargeNotes,
+            recipientEmail: contactInfo.email
+          }, user.facility_id);
+        }
+      } catch (e) {
+        console.error('Discharge email trigger failed:', e);
+      }
 
       setMessage({ type: 'success', text: 'Patient successfully discharged. Bed freed.' });
       setDischargeNotes('');

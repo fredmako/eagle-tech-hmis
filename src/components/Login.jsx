@@ -435,46 +435,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     }
   };
 
-  const handleQuickLogin = async (roleName, roleLabel) => {
-    setError('');
-    setLoading(true);
-    try {
-      const mockEmail = `${roleName}@egesa.com`;
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: mockEmail,
-        password: 'password123'
-      });
-      if (error) throw new Error(error);
 
-      if (data && data.user) {
-        const activeFac = facilities.find(f => f.id === selectedFacility);
-        const loggedUser = {
-          id: data.user.id,
-          full_name: data.user.user_metadata?.full_name || roleLabel,
-          role: roleName,
-          facility_id: selectedFacility,
-          facility_name: activeFac?.name || 'Eagle Tech Medical Clinic',
-          facility_logo: activeFac?.logo_url || null
-        };
-        sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUser));
-        onLoginSuccess(loggedUser);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const quickRoles = [
-    { name: 'receptionist', label: 'Alice (Receptionist)' },
-    { name: 'nurse', label: 'Nurse Jane (Triage)' },
-    { name: 'clinician', label: 'Dr. Arthur (Clinician)' },
-    { name: 'lab_tech', label: 'Terry (Lab Technician)' },
-    { name: 'pharmacist', label: 'Bob (Pharmacist)' },
-    { name: 'cashier', label: 'Mary (Cashier/Billing)' },
-    { name: 'admin', label: 'Grace (Admin)' }
-  ];
 
   // If password recovery toggle is clicked
   if (showRecovery) {
@@ -1041,29 +1002,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
           </button>
         </div>
 
-        {/* Quick Credentials Seeder for Sandbox Mode */}
-        {isSandbox && (
-          <div className="mt-6 pt-6 border-t border-slate-800/80">
-            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-              <CheckCircle size={14} /> Sandbox Quick-Connect Roles
-            </h3>
-            <p className="text-slate-500 text-[11px] mb-3 leading-relaxed">
-              Click any role below to bypass authentication and launch the corresponding workspace view directly:
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {quickRoles.map((role) => (
-                <button
-                  key={role.name}
-                  onClick={() => handleQuickLogin(role.name, role.label)}
-                  disabled={loading}
-                  className="bg-slate-950 hover:bg-slate-800 border border-slate-800 text-left text-xs py-2 px-2.5 rounded-lg text-slate-300 hover:text-white transition active:scale-[0.97]"
-                >
-                  {role.label.split(' ')[0]} <span className="text-[10px] text-teal-500 block font-bold">{role.name.toUpperCase()}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );

@@ -73,9 +73,11 @@ export default function App() {
   const renderLogo = (logoUrl) => {
     if (!logoUrl) {
       return (
-        <div className="bg-teal-500 text-slate-950 p-1.5 rounded-lg shadow-md shadow-teal-500/10">
-          <Activity size={18} className="animate-pulse" />
-        </div>
+        <img 
+          src="/logo.png" 
+          alt="Eagle Tech Logo" 
+          className="w-8 h-8 rounded-lg object-contain"
+        />
       );
     }
     

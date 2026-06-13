@@ -66,14 +66,8 @@ export default function LandingPage({ onNavigateToLogin, onNavigateToSignup }) {
       {/* Dynamic Header Navbar */}
       <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 p-2 rounded-xl">
-              <Building2 size={20} />
-            </div>
-            <div>
-              <span className="font-extrabold text-sm text-white tracking-wider block uppercase leading-none">Eagle Tech</span>
-              <span className="text-[9px] text-teal-400 font-bold tracking-widest uppercase block mt-1 leading-none">HMIS Solutions</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="Eagle Tech Logo" className="h-10 object-contain" />
           </div>
           <div className="flex items-center gap-4">
             <button 

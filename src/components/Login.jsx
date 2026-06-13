@@ -401,14 +401,9 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
           </button>
         </div>
 
-        <div className="flex items-center gap-3 mb-8">
-          <div className="bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 p-2.5 rounded-xl shadow-lg shadow-teal-500/10">
-            <Activity size={32} className="animate-pulse" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-white tracking-wide uppercase">EAGLE TECH</h1>
-            <p className="text-[10px] text-teal-400 font-bold tracking-widest uppercase">HMIS SECURITY LAYER</p>
-          </div>
+        <div className="flex flex-col items-center mb-6">
+          <img src="/logo.png" alt="Eagle Tech Logo" className="h-28 object-contain" />
+          <span className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-2">HMIS SECURITY LAYER</span>
         </div>
 
         <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
@@ -523,14 +518,9 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       // Render State A: Request Pending Screen
       return (
         <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 font-sans">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 p-2.5 rounded-xl shadow-lg shadow-teal-500/10">
-              <Activity size={32} className="animate-pulse" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-white tracking-wide uppercase">EAGLE TECH</h1>
-              <p className="text-[10px] text-teal-400 font-bold tracking-widest uppercase">HMIS SECURITY LAYER</p>
-            </div>
+          <div className="flex flex-col items-center mb-6">
+            <img src="/logo.png" alt="Eagle Tech Logo" className="h-28 object-contain" />
+            <span className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-2">HMIS SECURITY LAYER</span>
           </div>
 
           <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
@@ -588,14 +578,9 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       // Render State B: Role Request Form
       return (
         <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 font-sans">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 p-2.5 rounded-xl shadow-lg shadow-teal-500/10">
-              <Activity size={32} className="animate-pulse" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-white tracking-wide uppercase">EAGLE TECH</h1>
-              <p className="text-[10px] text-teal-400 font-bold tracking-widest uppercase">HMIS SECURITY LAYER</p>
-            </div>
+          <div className="flex flex-col items-center mb-6">
+            <img src="/logo.png" alt="Eagle Tech Logo" className="h-28 object-contain" />
+            <span className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-2">HMIS SECURITY LAYER</span>
           </div>
 
           <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
@@ -707,14 +692,9 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       </div>
 
       {/* Header Banner */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 p-2.5 rounded-xl shadow-lg shadow-teal-500/10">
-          <Activity size={32} className="animate-pulse" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-black text-white tracking-wide uppercase">EAGLE TECH</h1>
-          <p className="text-[10px] text-teal-400 font-bold tracking-widest uppercase">HMIS SOFTWARE SOLUTIONS</p>
-        </div>
+      <div className="flex flex-col items-center mb-6">
+        <img src="/logo.png" alt="Eagle Tech Logo" className="h-28 object-contain" />
+        <span className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-2">HMIS SOFTWARE SOLUTIONS</span>
       </div>
 
       <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">

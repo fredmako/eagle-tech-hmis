@@ -29,7 +29,8 @@ import {
   LogOut,
   Activity,
   Clipboard,
-  Bed
+  Bed,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function App() {
@@ -37,6 +38,50 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [preselectedPatient, setPreselectedPatient] = useState(null);
   const [isSaaSView, setIsSaaSView] = useState(false);
+
+  const renderLogo = (logoUrl) => {
+    if (!logoUrl) {
+      return (
+        <div className="bg-teal-500 text-slate-950 p-1.5 rounded-lg shadow-md shadow-teal-500/10">
+          <Activity size={18} className="animate-pulse" />
+        </div>
+      );
+    }
+    
+    if (logoUrl.startsWith('preset:')) {
+      const presetKey = logoUrl.split(':')[1];
+      if (presetKey === 'shield') {
+        return (
+          <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 p-1.5 rounded-lg">
+            <ShieldCheck size={18} fill="currentColor" />
+          </div>
+        );
+      }
+      if (presetKey === 'cross') {
+        return (
+          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-1.5 rounded-lg">
+            <Activity size={18} />
+          </div>
+        );
+      }
+      return (
+        <div className="bg-teal-500/10 border border-teal-500/20 text-teal-400 p-1.5 rounded-lg">
+          <Heart size={18} fill="currentColor" />
+        </div>
+      );
+    }
+    
+    return (
+      <img 
+        src={logoUrl} 
+        alt="Facility Logo" 
+        className="w-8 h-8 rounded-lg object-cover border border-slate-700"
+        onError={(e) => {
+          e.target.src = 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=128&auto=format&fit=crop&q=60';
+        }}
+      />
+    );
+  };
 
   useEffect(() => {
     const checkActiveSession = async () => {
@@ -54,11 +99,14 @@ export default function App() {
           const { data: profiles } = await supabase.from('profiles').select('*').eq('id', data.user.id);
           const profile = profiles && profiles[0];
 
+          const pendingFacilityId = sessionStorage.getItem('egesa_health_pending_facility') || 'f1';
+          sessionStorage.removeItem('egesa_health_pending_facility');
+
           const finalProfile = profile || {
             id: data.user.id,
             full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Google User',
             role: 'admin', // Default access role
-            facility_id: 'f1'
+            facility_id: pendingFacilityId
           };
 
           // If the profile document doesn't exist yet (new OAuth user), provision it
@@ -71,12 +119,17 @@ export default function App() {
             });
           }
 
+          // Fetch facility name and logo dynamically
+          const { data: facs } = await supabase.from('facilities').select('*').eq('id', finalProfile.facility_id);
+          const activeFac = facs && facs[0];
+
           const loggedUserObj = {
             id: data.user.id,
             full_name: finalProfile.full_name,
             role: finalProfile.role,
             facility_id: finalProfile.facility_id,
-            facility_name: 'Egesa Medical Clinic'
+            facility_name: activeFac ? activeFac.name : 'Default Facility',
+            facility_logo: activeFac ? activeFac.logo_url : null
           };
 
           sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUserObj));
@@ -148,13 +201,15 @@ export default function App() {
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
         {/* Brand logo header */}
-        <div className="p-5 border-b border-slate-800 flex items-center gap-2">
-          <div className="bg-teal-500 text-slate-950 p-1.5 rounded-lg shadow-md shadow-teal-500/10">
-            <Activity size={20} className="animate-pulse" />
-          </div>
-          <div>
-            <span className="font-bold tracking-wide text-sm text-white block uppercase">Egesa Health</span>
-            <span className="text-[10px] text-teal-400 font-semibold tracking-wide uppercase block">MOH register portal</span>
+        <div className="p-4 border-b border-slate-800 flex items-center gap-2.5">
+          {renderLogo(user.facility_logo)}
+          <div className="truncate flex-1">
+            <span className="font-bold tracking-wide text-xs text-white block uppercase truncate leading-tight">
+              {user.facility_name || 'Egesa Health'}
+            </span>
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mt-0.5 truncate leading-none">
+              Eagle Tech solutions
+            </span>
           </div>
         </div>
 

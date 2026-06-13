@@ -68,12 +68,14 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS }) {
         const profile = profiles && profiles[0];
         
         // Save selected facility in session state
+        const activeFac = facilities.find(f => f.id === selectedFacility);
         const loggedUser = {
           id: data.user.id,
           full_name: data.user.user_metadata?.full_name || profile?.full_name || 'Healthcare Worker',
           role: data.user.user_metadata?.role || profile?.role || 'admin',
           facility_id: selectedFacility,
-          facility_name: facilities.find(f => f.id === selectedFacility)?.name || 'Default Facility'
+          facility_name: activeFac?.name || 'Default Facility',
+          facility_logo: activeFac?.logo_url || null
         };
         
         sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUser));
@@ -117,12 +119,14 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS }) {
       if (error) throw new Error(error);
 
       if (data && data.user) {
+        const activeFac = facilities.find(f => f.id === selectedFacility);
         const loggedUser = {
           id: data.user.id,
           full_name: data.user.user_metadata?.full_name || roleLabel,
           role: roleName,
           facility_id: selectedFacility,
-          facility_name: facilities.find(f => f.id === selectedFacility)?.name || 'Egesa Medical Clinic'
+          facility_name: activeFac?.name || 'Egesa Medical Clinic',
+          facility_logo: activeFac?.logo_url || null
         };
         sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUser));
         onLoginSuccess(loggedUser);

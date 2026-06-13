@@ -507,7 +507,8 @@ const getInitialMockData = () => {
     orders: defaultOrders,
     invoices: defaultInvoices,
     audit_logs: defaultAuditLogs,
-    role_requests: defaultRoleRequests
+    role_requests: defaultRoleRequests,
+    invitations: []
   };
 };
 

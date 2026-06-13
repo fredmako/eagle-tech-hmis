@@ -182,6 +182,94 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const resolveTenant = async (email) => {
+    setError('');
+    console.log('[AuthContext:resolveTenant] Resolving tenant for email:', email);
+    try {
+      const res = await fetch(`${API_URL}/auth/resolve-tenant`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to resolve tenant');
+      return data;
+    } catch (err) {
+      console.error('[AuthContext:resolveTenant] Error:', err.message);
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  const inviteStaff = async (email, role, department) => {
+    setError('');
+    console.log('[AuthContext:inviteStaff] Sending invitation to:', email, 'role:', role, 'dept:', department);
+    try {
+      const res = await authFetch('/auth/invite-staff', {
+        method: 'POST',
+        body: JSON.stringify({ email, role, department })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send staff invitation');
+      return data;
+    } catch (err) {
+      console.error('[AuthContext:inviteStaff] Error:', err.message);
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  const acceptInvite = async (token, password, name) => {
+    setError('');
+    console.log('[AuthContext:acceptInvite] Accepting invitation with token:', token);
+    try {
+      const res = await fetch(`${API_URL}/auth/accept-invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password, name })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to accept invitation');
+      
+      console.log('[AuthContext:acceptInvite] Accept invite successful. Logging in user...');
+      localStorage.setItem('egesa_health_token', data.token);
+      sessionStorage.setItem('egesa_health_active_user', JSON.stringify(data.user));
+      setUser(data.user);
+      return data;
+    } catch (err) {
+      console.error('[AuthContext:acceptInvite] Error:', err.message);
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  const getInvitations = async () => {
+    try {
+      const res = await authFetch('/auth/invitations');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load invitations');
+      return data.invitations || [];
+    } catch (err) {
+      console.error('[AuthContext:getInvitations] Error:', err.message);
+      throw err;
+    }
+  };
+
+  const revokeInvite = async (inviteId) => {
+    try {
+      const res = await authFetch('/auth/revoke-invite', {
+        method: 'POST',
+        body: JSON.stringify({ invite_id: inviteId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to revoke invitation');
+      return data;
+    } catch (err) {
+      console.error('[AuthContext:revokeInvite] Error:', err.message);
+      throw err;
+    }
+  };
+
   // Authenticated fetch wrapper for backend calls
   const authFetch = async (endpoint, options = {}) => {
     const token = localStorage.getItem('egesa_health_token');
@@ -207,7 +295,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, signup, logout, submitRoleRequest, authFetch }}>
+    <AuthContext.Provider value={{ user, loading, error, login, signup, logout, submitRoleRequest, authFetch, resolveTenant, inviteStaff, acceptInvite, getInvitations, revokeInvite }}>
       {children}
     </AuthContext.Provider>
   );

@@ -15,9 +15,9 @@ export default function Billing({ user, onComplete }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  const [mpesaPhone, setMpesaPhone] = useState('');
+  const [tumaPhone, setTumaPhone] = useState('');
   const [checkoutId, setCheckoutId] = useState('');
-  const [mpesaStatus, setMpesaStatus] = useState(''); // '', 'sent', 'paid', 'failed'
+  const [tumaStatus, setTumaStatus] = useState(''); // '', 'sent', 'paid', 'failed'
   const [isSimulated, setIsSimulated] = useState(false);
   
   // Receipt print view trigger
@@ -87,8 +87,8 @@ export default function Billing({ user, onComplete }) {
 
     try {
       if (paymentMethod === 'mpesa') {
-        if (!mpesaPhone.trim()) {
-          setMessage({ type: 'error', text: 'M-Pesa phone number is required.' });
+        if (!tumaPhone.trim()) {
+          setMessage({ type: 'error', text: 'Tuma Pay phone number is required.' });
           setLoading(false);
           return;
         }
@@ -98,20 +98,20 @@ export default function Billing({ user, onComplete }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            phone: mpesaPhone,
+            phone: tumaPhone,
             amount: paidVal,
             reference: invoice.id
           })
         });
         const data = await response.json();
         if (!response.ok) {
-          throw new Error(data.error || 'M-Pesa STK Push request failed');
+          throw new Error(data.error || 'Tuma Pay STK Push request failed');
         }
 
         setCheckoutId(data.CheckoutRequestID);
         setIsSimulated(!!data.simulated);
-        setMpesaStatus('sent');
-        setMessage({ type: 'success', text: 'M-Pesa prompt sent to phone successfully!' });
+        setTumaStatus('sent');
+        setMessage({ type: 'success', text: 'Tuma Pay payment prompt sent successfully!' });
       } else {
         // Standard Manual Flow (Cash or Insurance)
         if (isNaN(paidVal) || paidVal < (parseFloat(invoice.total_amount) + 350)) {
@@ -155,7 +155,7 @@ export default function Billing({ user, onComplete }) {
     }
   };
 
-  const handleCheckMpesaStatus = async () => {
+  const handleCheckTumaStatus = async () => {
     setLoading(true);
     try {
       const { data: invs } = await supabase.from('invoices').select('*').eq('id', invoice.id);
@@ -172,7 +172,7 @@ export default function Billing({ user, onComplete }) {
 
         // Refresh active invoice state
         setInvoice(inv);
-        setMpesaStatus('paid');
+        setTumaStatus('paid');
         setShowReceipt(true);
         setMessage({ type: 'success', text: 'Payment confirmed successfully!' });
       } else {
@@ -185,7 +185,7 @@ export default function Billing({ user, onComplete }) {
     }
   };
 
-  const handleSimulateMpesaSuccess = async () => {
+  const handleSimulateTumaSuccess = async () => {
     setLoading(true);
     try {
       const res = await fetch('http://localhost:5000/api/mpesa/simulate-success', {
@@ -195,7 +195,7 @@ export default function Billing({ user, onComplete }) {
       });
       if (res.ok) {
         // Check status immediately
-        await handleCheckMpesaStatus();
+        await handleCheckTumaStatus();
       } else {
         setMessage({ type: 'error', text: 'Failed to simulate payment success.' });
       }
@@ -378,7 +378,7 @@ export default function Billing({ user, onComplete }) {
           
           <div class="invoice-meta">
             <div>Receipt No: ${receiptNo}</div>
-            <div>Payment Mode: ${paymentMethod.toUpperCase()}</div>
+            <div>Payment Mode: ${(invoice?.payment_method || paymentMethod).toUpperCase()}</div>
             <div>Cashier: ${user?.full_name || 'N/A'}</div>
           </div>
           
@@ -515,20 +515,20 @@ export default function Billing({ user, onComplete }) {
               </div>
             )}
 
-            {mpesaStatus === 'sent' ? (
-              /* M-Pesa STK Pending Status Card */
+            {tumaStatus === 'sent' ? (
+              /* Tuma Pay STK Pending Status Card */
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4 text-center">
                 <div className="flex justify-center">
                   <div className="h-10 w-10 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-200">M-Pesa STK Prompt Sent</h4>
-                  <p className="text-xs text-slate-500 mt-1">Please enter your M-Pesa PIN on your phone to approve payment of <strong>KES {(parseFloat(invoice?.total_amount || 0) + 350).toFixed(2)}</strong>.</p>
+                  <h4 className="font-bold text-slate-200">Tuma Pay STK Prompt Sent</h4>
+                  <p className="text-xs text-slate-500 mt-1">Please approve the payment request on your phone to complete payment of <strong>KES {(parseFloat(invoice?.total_amount || 0) + 350).toFixed(2)}</strong>.</p>
                   <p className="text-[10px] text-slate-600 font-mono mt-1">Checkout ID: {checkoutId}</p>
                 </div>
                 <div className="flex flex-col gap-2 pt-2">
                   <button
-                    onClick={handleCheckMpesaStatus}
+                    onClick={handleCheckTumaStatus}
                     className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg shadow transition"
                   >
                     Confirm Payment Received
@@ -536,15 +536,15 @@ export default function Billing({ user, onComplete }) {
                   
                   {isSimulated && (
                     <button
-                      onClick={handleSimulateMpesaSuccess}
+                      onClick={handleSimulateTumaSuccess}
                       className="w-full bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 font-semibold text-xs py-2 px-4 rounded-lg transition"
                     >
-                      🧪 Simulate Successful Payment Result
+                      🧪 Simulate Successful Tuma Pay Result
                     </button>
                   )}
                   
                   <button
-                    onClick={() => setMpesaStatus('')}
+                    onClick={() => setTumaStatus('')}
                     className="w-full text-slate-550 hover:text-white text-xs font-semibold"
                   >
                     Cancel / Back to Payment Forms
@@ -600,7 +600,7 @@ export default function Billing({ user, onComplete }) {
                     Subtotal: <span className="text-slate-200">{(parseFloat(invoice?.total_amount) + 350).toFixed(2)}/-</span>
                   </div>
                   <div className="text-xs text-slate-400">
-                    Payment Method: <span className="text-teal-400 font-bold uppercase">{paymentMethod}</span>
+                    Payment Method: <span className="text-teal-400 font-bold uppercase">{invoice?.payment_method || paymentMethod}</span>
                   </div>
                   <div className="text-sm font-bold text-teal-400 mt-1">
                     Amount Paid: {(parseFloat(invoice?.total_amount) + 350).toFixed(2)}/-
@@ -661,18 +661,18 @@ export default function Billing({ user, onComplete }) {
                       className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                     >
                       <option value="cash">Cash (Manual Drawer)</option>
-                      <option value="mpesa">Mobile Money (M-Pesa Express)</option>
+                      <option value="mpesa">Tuma Pay (Mobile Money/Card)</option>
                       <option value="insurance">NHIF / Insurance Scheme</option>
                     </select>
                   </div>
 
                   {paymentMethod === 'mpesa' ? (
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">M-Pesa Mobile Number *</label>
+                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Tuma Pay Mobile Number *</label>
                       <input
                         type="text"
-                        value={mpesaPhone}
-                        onChange={(e) => setMpesaPhone(e.target.value)}
+                        value={tumaPhone}
+                        onChange={(e) => setTumaPhone(e.target.value)}
                         placeholder="e.g. 254712345678 or 0712345678"
                         className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
                         required

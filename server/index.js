@@ -512,7 +512,7 @@ app.post('/api/send-email', async (req, res) => {
 });
 
 // ----------------------------------------------------
-// M-PESA DARAJA MOBILE PAYMENTS INTEGRATION
+// TUMA PAY MOBILE MONEY & CARD INTEGRATION
 // ----------------------------------------------------
 
 // STK Push Payment Request Trigger
@@ -531,38 +531,23 @@ app.post('/api/mpesa/stkpush', async (req, res) => {
   }
   
   if (!formattedPhone.startsWith('254') || formattedPhone.length !== 12) {
-    return res.status(400).json({ error: 'Valid Kenyan Safaricom phone number required (e.g. 2547XXXXXXXX or 07XXXXXXXX)' });
+    return res.status(400).json({ error: 'Valid Kenyan mobile number required (e.g. 2547XXXXXXXX or 07XXXXXXXX)' });
   }
   
   try {
-    const consumerKey = process.env.MPESA_CONSUMER_KEY;
-    const consumerSecret = process.env.MPESA_CONSUMER_SECRET;
-    const shortcode = process.env.MPESA_SHORTCODE || '174379';
-    const passkey = process.env.MPESA_PASSKEY || 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919';
-    const env = process.env.MPESA_ENV || 'sandbox';
+    const tumaEmail = process.env.TUMA_EMAIL || 'info@eagletechsolutions.tech';
+    const tumaApiKey = process.env.TUMA_API_KEY;
+    const callbackUrl = process.env.TUMA_CALLBACK_URL || 'https://api.eagletechsolutions.tech/api/mpesa/callback';
     
-    const authUrl = `https://${env === 'sandbox' ? 'sandbox' : 'api'}.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials`;
-    const pushUrl = `https://${env === 'sandbox' ? 'sandbox' : 'api'}.safaricom.co.ke/mpesa/stkpush/v1/processrequest`;
-    
-    // 1. Get OAuth Access Token from Safaricom
-    const authHeader = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
-    
-    let token = '';
-    try {
-      const authResponse = await axios.get(authUrl, {
-        headers: { Authorization: `Basic ${authHeader}` }
-      });
-      token = authResponse.data.access_token;
-    } catch (tokenErr) {
-      console.warn('M-Pesa API Auth Token request failed. Falling back to simulated STK push.', tokenErr.message);
-      // Fallback: simulated push for sandbox or local testing when credentials aren't active
-      const simulatedCheckoutId = 'ws_CO_' + Math.random().toString(36).substring(2, 12);
+    if (!tumaApiKey) {
+      console.warn('Tuma API Key not configured. Falling back to simulated STK push.');
+      const simulatedCheckoutId = reference; // reference maps to invoice id
       
       // Save simulated pending payment to mock DB
       if (!isRealAppwrite) {
         const data = loadSandboxDB();
         data.invoices.push({
-          id: reference, // reference maps to invoice id
+          id: reference,
           checkout_id: simulatedCheckoutId,
           amount,
           phone: formattedPhone,
@@ -576,106 +561,150 @@ app.post('/api/mpesa/stkpush', async (req, res) => {
         success: true,
         simulated: true,
         CheckoutRequestID: simulatedCheckoutId,
-        CustomerMessage: 'Success. Request received locally for simulated verification.'
+        CustomerMessage: 'Success. Simulated STK Push sent successfully (no API key present).'
       });
     }
     
-    // 2. Generate security password
-    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14); // YYYYMMDDHHmmss
-    const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
+    // 1. Get OAuth JWT Token from Tuma API
+    let token = '';
+    try {
+      const authResponse = await axios.post('https://api.tuma.co.ke/auth/token', {
+        email: tumaEmail,
+        api_key: tumaApiKey
+      }, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      token = authResponse.data.token || authResponse.data.access_token;
+    } catch (authErr) {
+      console.error('Tuma API token authentication failed:', authErr.message);
+      throw new Error('Tuma Authentication failed. Check your API credentials.');
+    }
     
-    // 3. Dispatch STK Push process request
-    const response = await axios.post(pushUrl, {
-      BusinessShortCode: shortcode,
-      Password: password,
-      Timestamp: timestamp,
-      TransactionType: 'CustomerPayBillOnline',
-      Amount: Math.round(amount),
-      PartyA: formattedPhone,
-      PartyB: shortcode,
-      PhoneNumber: formattedPhone,
-      CallBackURL: process.env.MPESA_CALLBACK_URL,
-      AccountReference: reference.substring(0, 12),
-      TransactionDesc: 'Egesa Health Bill Payment'
+    // 2. Dispatch STK Push payment trigger to Tuma API
+    const response = await axios.post('https://api.tuma.co.ke/payment/stk-push', {
+      amount: Math.round(amount),
+      phone: formattedPhone,
+      description: `Egesa Health Invoice Checkout: #${reference}`,
+      callback_url: callbackUrl
     }, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
     });
+    
+    // Record checkout mapping to database
+    const mpesaTxnId = response.data.id || response.data.paymentKey || response.data.CheckoutRequestID || reference;
+    
+    if (!isRealAppwrite) {
+      const data = loadSandboxDB();
+      data.invoices.push({
+        id: reference,
+        checkout_id: mpesaTxnId,
+        amount,
+        phone: formattedPhone,
+        status: 'pending_stk',
+        created_at: new Date().toISOString()
+      });
+      saveSandboxDB(data);
+    }
     
     res.json({
       success: true,
-      CheckoutRequestID: response.data.CheckoutRequestID,
-      CustomerMessage: response.data.CustomerMessage
+      CheckoutRequestID: mpesaTxnId,
+      CustomerMessage: response.data.message || 'Tuma Pay STK Push initialized.'
     });
   } catch (err) {
-    console.error('M-Pesa STK Push Dispatch failed:', err.response ? err.response.data : err.message);
-    res.status(500).json({ error: err.message || 'M-Pesa request failed' });
+    console.error('Tuma Pay STK Push failed:', err.response ? err.response.data : err.message);
+    res.status(500).json({ error: err.message || 'Tuma Pay STK Push failed' });
   }
 });
 
-// Safaricom Callback Hook (receives confirmations)
+// Tuma Webhook Callback Hook (receives payment completions)
 app.post('/api/mpesa/callback', async (req, res) => {
-  console.log('M-Pesa Callback payload received:', JSON.stringify(req.body, null, 2));
+  console.log('Tuma Pay Webhook Callback payload received:', JSON.stringify(req.body, null, 2));
   
   try {
-    const { Body } = req.body;
-    if (!Body || !Body.stkCallback) {
-      return res.status(400).json({ error: 'Invalid callback payload structure' });
+    // Parse both Tuma callback formats and Safaricom fallbacks
+    let isSuccess = false;
+    let amountPaid = 0;
+    let receiptNumber = '';
+    let invoiceId = '';
+    let checkoutId = '';
+    
+    const { Body, status, statusId, partnerUniqueId, paymentKey, transactionId, id, amount } = req.body;
+    
+    if (Body && Body.stkCallback) {
+      // Direct Safaricom layout fallback
+      const { CheckoutRequestID, ResultCode, CallbackMetadata } = Body.stkCallback;
+      if (ResultCode === 0) {
+        isSuccess = true;
+        checkoutId = CheckoutRequestID;
+        invoiceId = CheckoutRequestID; // default reference
+        if (CallbackMetadata && CallbackMetadata.Item) {
+          CallbackMetadata.Item.forEach(item => {
+            if (item.Name === 'Amount') amountPaid = item.Value;
+            if (item.Name === 'MpesaReceiptNumber') receiptNumber = item.Value;
+          });
+        }
+      }
+    } else {
+      // Tuma Pay layout
+      const statusVal = (status || statusId || '').toLowerCase();
+      if (statusVal === 'success' || statusVal === 'completed' || statusVal === 'approved' || req.body.ResultCode === 0) {
+        isSuccess = true;
+      }
+      invoiceId = partnerUniqueId || id;
+      checkoutId = partnerUniqueId || id;
+      receiptNumber = paymentKey || transactionId || id || ('TUMA_TX_' + Math.floor(100000 + Math.random() * 900000));
+      amountPaid = amount || 0;
     }
     
-    const { MerchantRequestID, CheckoutRequestID, ResultCode, ResultDesc, CallbackMetadata } = Body.stkCallback;
-    
-    if (ResultCode === 0) {
-      // Payment Successful
-      let amountPaid = 0;
-      let mpesaReceipt = '';
-      let phoneNumber = '';
-      
-      if (CallbackMetadata && CallbackMetadata.Item) {
-        CallbackMetadata.Item.forEach(item => {
-          if (item.Name === 'Amount') amountPaid = item.Value;
-          if (item.Name === 'MpesaReceiptNumber') mpesaReceipt = item.Value;
-          if (item.Name === 'PhoneNumber') phoneNumber = item.Value;
-        });
-      }
-      
-      console.log(`STK Push Payment Verified: ${mpesaReceipt} | Paid: KES ${amountPaid} for checkout request ${CheckoutRequestID}`);
+    if (isSuccess) {
+      console.log(`Tuma Pay Settlement Verified: Receipt ${receiptNumber} | Amount: KES ${amountPaid} | Ref: ${invoiceId}`);
       
       // Update database status of the corresponding invoice
       if (isRealAppwrite) {
-        // Query invoice matching CheckoutRequestID or reference
         const dbId = process.env.VITE_APPWRITE_DATABASE_ID || 'egesa_health';
-        // Note: For production we would filter invoices by checkout_id or metadata reference.
-        // We log successful mpesa payment audit trail.
+        // 1. Update invoice to paid
+        await appwriteDatabases.updateDocument(dbId, 'invoices', invoiceId, {
+          status: 'paid',
+          amount_paid: amountPaid,
+          payment_method: 'tuma',
+          receipt_number: receiptNumber
+        });
+        
+        // 2. Log transaction
         await appwriteDatabases.createDocument(dbId, 'audit_logs', sdk.ID.unique(), {
-          action: 'MPESA_PAYMENT_RECEIVED',
-          details: `M-Pesa payment received. Receipt: ${mpesaReceipt}, Amount: ${amountPaid}, Phone: ${phoneNumber}.`
+          action: 'TUMA_PAYMENT_RECEIVED',
+          details: `Tuma Pay payment confirmed. Receipt: ${receiptNumber}, Amount: ${amountPaid}, Invoice ID: ${invoiceId}.`
         });
       } else {
         // Local sandbox db updates
         const data = loadSandboxDB();
-        // Find transaction
-        const txn = data.invoices.find(inv => inv.checkout_id === CheckoutRequestID);
+        const txn = data.invoices.find(inv => inv.id === invoiceId || inv.checkout_id === checkoutId);
         if (txn) {
           txn.status = 'paid';
-          txn.receipt_number = mpesaReceipt;
+          txn.receipt_number = receiptNumber;
+          txn.amount_paid = amountPaid;
           
           // Also insert audit trail logs
           data.audit_logs.push({
             id: 'log_' + Math.random().toString(36).substring(2, 12),
-            action: 'MPESA_PAYMENT_RECEIVED',
-            details: `M-Pesa payment received. Receipt: ${mpesaReceipt}, Amount: ${amountPaid}, Phone: ${phoneNumber}.`,
+            action: 'TUMA_PAYMENT_RECEIVED',
+            details: `Tuma Pay payment confirmed. Receipt: ${receiptNumber}, Amount: ${amountPaid}, Invoice: ${invoiceId}.`,
             created_at: new Date().toISOString()
           });
           saveSandboxDB(data);
         }
       }
     } else {
-      console.warn(`STK Push Payment Failed/Cancelled: Code ${ResultCode} | Description: ${ResultDesc}`);
+      console.warn('Tuma Pay Transaction Callback failed or was cancelled.');
     }
     
     res.json({ ResultCode: 0, ResultDescription: 'Success' });
   } catch (err) {
-    console.error('M-Pesa Callback processing failed:', err);
+    console.error('Tuma Pay Callback processing failed:', err);
     res.status(500).json({ ResultCode: 1, ResultDescription: err.message || 'Callback error' });
   }
 });
@@ -687,26 +716,13 @@ app.post('/api/mpesa/simulate-success', async (req, res) => {
     return res.status(400).json({ error: 'CheckoutRequestID is required' });
   }
   
-  console.log('Simulating successful M-Pesa transaction payment for:', CheckoutRequestID);
+  console.log('Simulating successful Tuma Pay payment callback for invoice reference:', CheckoutRequestID);
   
-  // Construct a standard successful Callback payload
   const mockPayload = {
-    Body: {
-      stkCallback: {
-        MerchantRequestID: 'sim_merchant_123',
-        CheckoutRequestID,
-        ResultCode: 0,
-        ResultDesc: 'The service request is processed successfully.',
-        CallbackMetadata: {
-          Item: [
-            { Name: 'Amount', Value: 1.0 },
-            { Name: 'MpesaReceiptNumber', Value: 'NLK' + Math.floor(100000 + Math.random() * 900000) },
-            { Name: 'TransactionDate', Value: Date.now() },
-            { Name: 'PhoneNumber', Value: 254712345678 }
-          ]
-        }
-      }
-    }
+    status: 'success',
+    partnerUniqueId: CheckoutRequestID,
+    paymentKey: 'TUMA_TX_' + Math.floor(100000 + Math.random() * 900000),
+    amount: 1.0
   };
   
   try {

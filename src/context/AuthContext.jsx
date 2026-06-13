@@ -15,6 +15,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkSession = async () => {
     const token = localStorage.getItem('egesa_health_token');
+    console.log('[AuthContext:checkSession] Token present:', !!token);
     if (!token) {
       setUser(null);
       setLoading(false);
@@ -22,27 +23,33 @@ export const AuthProvider = ({ children }) => {
     }
     
     try {
+      console.log('[AuthContext:checkSession] Verifying token with backend:', `${API_URL}/auth/me`);
       const res = await fetch(`${API_URL}/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       const data = await res.json();
+      console.log('[AuthContext:checkSession] Response status:', res.status, '| Body:', data);
       if (res.ok && data.user) {
+        console.log('[AuthContext:checkSession] ✅ Session valid — user:', data.user.email || data.user.id);
         setUser(data.user);
         sessionStorage.setItem('egesa_health_active_user', JSON.stringify(data.user));
       } else {
+        console.warn('[AuthContext:checkSession] ⚠️ Token rejected by server:', data);
         // Token invalid or expired
         logout();
       }
     } catch (err) {
-      console.warn('Session verification failed, using local fallback:', err);
+      console.warn('[AuthContext:checkSession] ❌ Network error during session check:', err.message);
       // Network issues - fallback to storage if available to keep offline usability
       const localUser = sessionStorage.getItem('egesa_health_active_user');
       if (localUser) {
         try {
-          setUser(JSON.parse(localUser));
-        } catch (e) {}
+          const parsed = JSON.parse(localUser);
+          console.log('[AuthContext:checkSession] Using cached local user fallback:', parsed.email || parsed.id);
+          setUser(parsed);
+        } catch (e) { console.error('[AuthContext:checkSession] Failed to parse cached user:', e); }
       }
     } finally {
       setLoading(false);
@@ -52,19 +59,31 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setError('');
     setLoading(true);
+    console.log('[AuthContext:login] ▶ Attempting login for:', email);
+    console.log('[AuthContext:login] API endpoint:', `${API_URL}/auth/login`);
     try {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        console.error('[AuthContext:login] ❌ Failed to parse response JSON:', parseErr);
+        throw new Error(`Server returned non-JSON response (status ${res.status})`);
+      }
+      console.log('[AuthContext:login] Response status:', res.status, '| Body:', data);
       
       if (!res.ok) {
-        throw new Error(data.error || 'Authentication failed');
+        const errMsg = data?.error || data?.message || `Authentication failed (HTTP ${res.status})`;
+        console.error('[AuthContext:login] ❌ Server rejected login:', errMsg);
+        throw new Error(errMsg);
       }
 
       if (data.status === 'no_profile') {
+        console.warn('[AuthContext:login] ⚠️ User authenticated but has no facility profile. Returning no_profile status.');
         setLoading(false);
         return {
           status: 'no_profile',
@@ -73,12 +92,19 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
+      if (!data.token) {
+        console.error('[AuthContext:login] ❌ Login response missing token field! Full response:', data);
+        throw new Error('Server response missing authentication token.');
+      }
+
+      console.log('[AuthContext:login] ✅ Login successful. User:', data.user?.email || data.user?.id);
       localStorage.setItem('egesa_health_token', data.token);
       sessionStorage.setItem('egesa_health_active_user', JSON.stringify(data.user));
       setUser(data.user);
       setLoading(false);
       return { status: 'success', user: data.user };
     } catch (err) {
+      console.error('[AuthContext:login] ❌ Login error caught:', err.message, err);
       setError(err.message);
       setLoading(false);
       throw err;
@@ -88,21 +114,33 @@ export const AuthProvider = ({ children }) => {
   const signup = async (email, password, name) => {
     setError('');
     setLoading(true);
+    console.log('[AuthContext:signup] ▶ Attempting signup for:', email);
     try {
       const res = await fetch(`${API_URL}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name })
       });
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        console.error('[AuthContext:signup] ❌ Failed to parse response JSON:', parseErr);
+        throw new Error(`Server returned non-JSON response (status ${res.status})`);
+      }
+      console.log('[AuthContext:signup] Response status:', res.status, '| Body:', data);
       
       if (!res.ok) {
-        throw new Error(data.error || 'Registration failed');
+        const errMsg = data?.error || data?.message || `Registration failed (HTTP ${res.status})`;
+        console.error('[AuthContext:signup] ❌ Server rejected signup:', errMsg);
+        throw new Error(errMsg);
       }
       
+      console.log('[AuthContext:signup] ✅ Signup successful for:', email);
       setLoading(false);
       return data;
     } catch (err) {
+      console.error('[AuthContext:signup] ❌ Signup error:', err.message, err);
       setError(err.message);
       setLoading(false);
       throw err;

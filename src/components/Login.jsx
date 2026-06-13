@@ -130,9 +130,14 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
   };
 
   const fetchFacilitiesAndCheckAutoLogin = async () => {
+    console.log('[Login:fetchFacilities] ▶ Loading facilities and checking auth state...');
     try {
       const { data, error } = await supabase.from('facilities').select('*');
-      if (error) throw error;
+      if (error) {
+        console.error('[Login:fetchFacilities] ❌ Failed to fetch facilities:', error);
+        throw error;
+      }
+      console.log('[Login:fetchFacilities] Facilities loaded:', data?.length || 0);
       if (data && data.length > 0) {
         setFacilities(data);
 
@@ -140,33 +145,50 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         let appwriteUser = null;
         if (!supabase.isSandbox) {
           try {
+            console.log('[Login:fetchFacilities] Checking for active Appwrite session...');
             const userRes = await supabase.auth.getUser();
             appwriteUser = userRes?.data?.user;
+            console.log('[Login:fetchFacilities] Appwrite session user:', appwriteUser ? (appwriteUser.email || appwriteUser.id) : 'none');
           } catch (e) {
-            console.log('No active Appwrite session:', e);
+            console.log('[Login:fetchFacilities] No active Appwrite session:', e.message);
           }
+        } else {
+          console.log('[Login:fetchFacilities] Sandbox mode — skipping Appwrite session check.');
         }
 
         if (appwriteUser) {
           setLoading(true);
           try {
+            console.log('[Login:fetchFacilities] Appwrite user detected. Creating JWT for backend exchange...');
             const jwtRes = await supabase.auth.createJWT();
             const clientJwt = jwtRes?.data?.jwt;
+            console.log('[Login:fetchFacilities] JWT created:', !!clientJwt);
             if (clientJwt) {
               const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+              console.log('[Login:fetchFacilities] Sending JWT to backend:', `${backendUrl}/auth/appwrite-jwt-login`);
               const res = await fetch(`${backendUrl}/auth/appwrite-jwt-login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ jwt: clientJwt })
               });
-              const resData = await res.json();
+              let resData;
+              try {
+                resData = await res.json();
+              } catch (parseErr) {
+                console.error('[Login:fetchFacilities] ❌ Failed to parse backend JWT response:', parseErr);
+                setError('Authentication server returned an unexpected response. Please try again.');
+                return;
+              }
+              console.log('[Login:fetchFacilities] Backend JWT response status:', res.status, '| Body:', resData);
               if (res.ok) {
                 if (resData.status === 'success') {
+                  console.log('[Login:fetchFacilities] ✅ JWT exchange successful! Logging in user:', resData.user?.email);
                   localStorage.setItem('egesa_health_token', resData.token);
                   sessionStorage.setItem('egesa_health_active_user', JSON.stringify(resData.user));
                   onLoginSuccess(resData.user);
                   return;
                 } else if (resData.status === 'no_profile') {
+                  console.warn('[Login:fetchFacilities] ⚠️ JWT exchange: no profile found for this Google account.');
                   if (sessionStorage.getItem('egesa_health_onboarding_redirect') === 'true') {
                     sessionStorage.removeItem('egesa_health_onboarding_redirect');
                     sessionStorage.setItem('egesa_health_onboarding_google_user', JSON.stringify(resData.user));
@@ -181,11 +203,21 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                   }
                   setPendingRequest(resData.pendingRequest || null);
                   return;
+                } else {
+                  console.error('[Login:fetchFacilities] ❌ Backend JWT exchange returned unknown status:', resData.status, resData);
+                  setError(`Authentication error: ${resData.error || resData.status || 'Unknown server response'}`);
                 }
+              } else {
+                console.error('[Login:fetchFacilities] ❌ Backend JWT exchange failed (HTTP', res.status, '):', resData);
+                setError(`Authentication failed: ${resData?.error || 'Server error ' + res.status}`);
               }
+            } else {
+              console.error('[Login:fetchFacilities] ❌ createJWT returned no token. Full jwtRes:', jwtRes);
+              setError('Could not obtain session token from authentication provider.');
             }
           } catch (err) {
-            console.error('Appwrite JWT session exchange failed:', err);
+            console.error('[Login:fetchFacilities] ❌ Appwrite JWT session exchange threw an error:', err.message, err);
+            setError(`Google session exchange failed: ${err.message}`);
           } finally {
             setLoading(false);
           }
@@ -199,8 +231,10 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         const oauthState = params.get('state');
 
         if (autologinToken && facId) {
+          console.log('[Login:fetchFacilities] Auto-login token detected. Processing...');
           await handleAutoLogin(autologinToken, facId, data);
         } else if (oauthCode && oauthState) {
+          console.log('[Login:fetchFacilities] OAuth callback code detected. Processing exchange...');
           await handleGoogleCallback(oauthCode, oauthState, data);
         } else {
           // Standard auto-select credentials autofill
@@ -217,9 +251,13 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
             setSelectedFacility(data[0].id);
           }
         }
+      } else {
+        console.warn('[Login:fetchFacilities] ⚠️ No facilities returned from server. Check DB or server connection.');
+        setError('No facilities found. The system may not be configured yet.');
       }
     } catch (err) {
-      console.error('Error fetching facilities:', err);
+      console.error('[Login:fetchFacilities] ❌ Error fetching facilities:', err.message, err);
+      setError(`Failed to load facilities: ${err.message}`);
     }
   };
 
@@ -232,13 +270,16 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
 
     setLoading(true);
     setError('');
+    console.log('[Login:handleLogin] ▶ Login button clicked. Email:', email, '| Facility:', selectedFacility);
 
     try {
       const result = await login(email, password);
+      console.log('[Login:handleLogin] login() resolved with status:', result?.status);
       // Reset failed attempts on success
       setFailedAttempts(0);
 
       if (result.status === 'no_profile') {
+        console.warn('[Login:handleLogin] User has no profile. Showing role request form.');
         setTempUser(result.user);
         setHasNoProfile(true);
         setRequestName(result.user.name || '');
@@ -247,14 +288,20 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         }
         setPendingRequest(result.pendingRequest || null);
       } else if (result.status === 'success') {
+        console.log('[Login:handleLogin] ✅ Login success! Navigating to dashboard for:', result.user?.email || result.user?.id);
         onLoginSuccess(result.user);
+      } else {
+        console.error('[Login:handleLogin] ❌ Unexpected result status:', result);
+        setError('Unexpected authentication response. Please contact support.');
       }
     } catch (err) {
       const nextFailCount = failedAttempts + 1;
       setFailedAttempts(nextFailCount);
+      console.error(`[Login:handleLogin] ❌ Login failed (attempt ${nextFailCount}):`, err.message, err);
       
       // Trigger security failed login notification if 3 failed attempts are reached
       if (nextFailCount >= 3) {
+        console.warn('[Login:handleLogin] 3+ failed attempts — sending security alert...');
         await sendNotification('FAILED_LOGIN_ALERT', {
           email: email,
           recipientEmail: 'security@eagletechsolutions.tech'
@@ -265,6 +312,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       }
     } finally {
       setLoading(false);
+      console.log('[Login:handleLogin] Loading state cleared.');
     }
   };
 

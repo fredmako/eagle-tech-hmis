@@ -94,7 +94,8 @@ export default function Billing({ user, onComplete }) {
         }
 
         // Trigger STK Push via backend API
-        const response = await fetch('http://localhost:5000/api/mpesa/stkpush', {
+        const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${backendUrl}/mpesa/stkpush`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -188,7 +189,8 @@ export default function Billing({ user, onComplete }) {
   const handleSimulateTumaSuccess = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/mpesa/simulate-success', {
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${backendUrl}/mpesa/simulate-success`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ CheckoutRequestID: checkoutId })

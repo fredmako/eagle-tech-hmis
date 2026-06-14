@@ -83,6 +83,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
   
   // Success states
   const [createdFacilityCode, setCreatedFacilityCode] = useState('');
+  const [registeredUserId, setRegisteredUserId] = useState('');
 
   // Preset Logos with clean medical styles
   const logoPresets = {
@@ -237,7 +238,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
       logoOption,
       customLogoUrl,
       adminPhone,
-      step: 2
+      step: 2 // After Google redirect, land directly on Step 2 (pricing plan select)
     };
     sessionStorage.setItem('egesa_health_onboarding_saved_state', JSON.stringify(savedState));
     sessionStorage.setItem('egesa_health_onboarding_redirect', 'true');
@@ -264,15 +265,54 @@ export default function SaaSOnboarding({ onBackToLogin }) {
     }
   };
 
-  const handleNextStep = () => {
-    if (step === 2) {
+  const handleNextStep = async () => {
+    setError('');
+    
+    if (step === 1) {
       const isPasswordMissing = !googleUser && !adminPassword.trim();
-      if (!hospitalName.trim() || !hospitalAddress.trim() || !adminName.trim() || !adminEmail.trim() || !adminPhone.trim() || isPasswordMissing) {
-        setError('Please fill in all hospital and administrator profile details.');
+      if (!adminName.trim() || !adminEmail.trim() || !adminPhone.trim() || isPasswordMissing) {
+        setError('Please fill in all administrator account details.');
         return;
       }
       if (!googleUser && adminPassword.length < 8) {
-        setError('Administrator password must be at least 8 characters long.');
+        setError('Password must be at least 8 characters long.');
+        return;
+      }
+
+      // 1. Create Auth account manually if not already registered and not using Google
+      if (!googleUser && !registeredUserId) {
+        setLoading(true);
+        try {
+          const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: adminEmail,
+            password: adminPassword,
+            name: adminName
+          });
+
+          if (authError) throw new Error(authError);
+          setRegisteredUserId(authData.user.id);
+        } catch (err) {
+          setError(err.message || 'Failed to create administrator account.');
+          setLoading(false);
+          return;
+        } finally {
+          setLoading(false);
+        }
+      }
+      
+      setStep(2);
+      return;
+    }
+
+    if (step === 2) {
+      // Plan Selection is always valid (defaults to 'hospital')
+      setStep(3);
+      return;
+    }
+
+    if (step === 3) {
+      if (!hospitalName.trim() || !hospitalAddress.trim()) {
+        setError('Please fill in all hospital profile details.');
         return;
       }
       if (logoOption === 'custom' && !customLogoUrl) {
@@ -289,9 +329,15 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         code = cleanName.substring(0, 3).toUpperCase();
       }
       setHospitalCode(`${code}-${Math.floor(100 + Math.random() * 900)}`);
+      
+      setStep(4);
+      return;
     }
-    setError('');
-    setStep(step + 1);
+
+    if (step === 4) {
+      setStep(5);
+      return;
+    }
   };
 
   const handlePrevStep = () => {
@@ -308,8 +354,10 @@ export default function SaaSOnboarding({ onBackToLogin }) {
       let userId;
       if (googleUser) {
         userId = googleUser.id;
+      } else if (registeredUserId) {
+        userId = registeredUserId;
       } else {
-        // 1. Register Auth account manually
+        // Fallback in case Step 1 was somehow bypassed
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: adminEmail,
           password: adminPassword,
@@ -358,7 +406,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
       sessionStorage.setItem('egesa_health_new_admin_email', adminEmail);
 
       setCreatedFacilityCode(hospitalCode);
-      setStep(4);
+      setStep(5);
     } catch (err) {
       setError(err.message || 'Onboarding failed during server configuration.');
     } finally {
@@ -382,20 +430,25 @@ export default function SaaSOnboarding({ onBackToLogin }) {
       <div className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-xl relative overflow-hidden transition-all duration-300">
         
         {/* Step Indicators */}
-        {step < 4 && (
+        {step < 5 && (
           <div className="flex items-center justify-center gap-4 mb-8">
             <div className={`flex items-center gap-2 pb-1 border-b-2 transition ${step === 1 ? 'border-teal-500 text-teal-400' : 'border-transparent text-slate-500'}`}>
               <span className="text-xs font-bold font-mono">01.</span>
-              <span className="text-xs font-semibold">Tiers & Pricing</span>
+              <span className="text-xs font-semibold">Account Signup</span>
             </div>
             <div className="h-0.5 w-8 bg-slate-800"></div>
             <div className={`flex items-center gap-2 pb-1 border-b-2 transition ${step === 2 ? 'border-teal-500 text-teal-400' : 'border-transparent text-slate-500'}`}>
               <span className="text-xs font-bold font-mono">02.</span>
-              <span className="text-xs font-semibold">Branding & Setup</span>
+              <span className="text-xs font-semibold">Tiers & Pricing</span>
             </div>
             <div className="h-0.5 w-8 bg-slate-800"></div>
             <div className={`flex items-center gap-2 pb-1 border-b-2 transition ${step === 3 ? 'border-teal-500 text-teal-400' : 'border-transparent text-slate-500'}`}>
               <span className="text-xs font-bold font-mono">03.</span>
+              <span className="text-xs font-semibold">Branding & Setup</span>
+            </div>
+            <div className="h-0.5 w-8 bg-slate-800"></div>
+            <div className={`flex items-center gap-2 pb-1 border-b-2 transition ${step === 4 ? 'border-teal-500 text-teal-400' : 'border-transparent text-slate-500'}`}>
+              <span className="text-xs font-bold font-mono">04.</span>
               <span className="text-xs font-semibold">Secure Checkout</span>
             </div>
           </div>
@@ -408,15 +461,138 @@ export default function SaaSOnboarding({ onBackToLogin }) {
           </div>
         )}
 
-        {/* STEP 1: PLAN SELECTOR */}
+        {/* STEP 1: ADMINISTRATOR ACCOUNT SIGNUP */}
         {step === 1 && (
+          <div className="space-y-6 max-w-xl mx-auto">
+            <div className="text-center space-y-1.5 mb-2">
+              <h2 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-1.5 font-sans">
+                <User size={18} className="text-teal-400" /> Create Administrator Account
+              </h2>
+              <p className="text-xs text-slate-400">
+                Sign up to configure and launch your dedicated hospital workspace portal.
+              </p>
+            </div>
+
+            <div className="bg-slate-950 border border-slate-850 p-5 rounded-xl space-y-4 font-sans">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-900 mb-2">
+                <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <User size={14} /> Account Credentials
+                </h3>
+                {!googleUser ? (
+                  <button
+                    type="button"
+                    onClick={handleGoogleOnboardingAuth}
+                    className="text-[10px] bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 py-1 px-2.5 rounded flex items-center gap-1.5 transition font-semibold cursor-pointer active:scale-[0.98]"
+                  >
+                    <svg className="w-3 h-3 text-teal-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+                    </svg>
+                    Use Google Credentials
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] bg-teal-500/10 border border-teal-500/20 text-teal-400 py-0.5 px-2 rounded-full font-bold uppercase flex items-center gap-1">
+                      <Check size={10} /> Linked with Google
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGoogleUser(null);
+                        setAdminName('');
+                        setAdminEmail('');
+                      }}
+                      className="text-[9px] text-slate-500 hover:text-slate-355 font-bold transition cursor-pointer"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Admin Name</label>
+                  <input
+                    type="text"
+                    value={adminName}
+                    onChange={(e) => setAdminName(e.target.value)}
+                    placeholder="Dr. Frank Meso"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Contact Phone</label>
+                  <input
+                    type="text"
+                    value={adminPhone}
+                    onChange={(e) => setAdminPhone(e.target.value)}
+                    placeholder="+254 712 345678"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Admin Email</label>
+                  <input
+                    type="email"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    placeholder="admin@yourhospital.com"
+                    disabled={!!googleUser}
+                    className={`w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition ${
+                      googleUser ? 'opacity-40 cursor-not-allowed' : ''
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
+                  <input
+                    type="password"
+                    value={googleUser ? '' : adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    placeholder={googleUser ? 'Not required (Google Auth)' : 'Min 8 characters'}
+                    disabled={!!googleUser}
+                    className={`w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition ${
+                      googleUser ? 'opacity-40 cursor-not-allowed' : ''
+                    }`}
+                    required={!googleUser}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t border-slate-800">
+              <button 
+                onClick={onBackToLogin}
+                className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 transition"
+              >
+                <ArrowLeft size={14} /> Back to Login
+              </button>
+              <button 
+                onClick={handleNextStep}
+                disabled={loading}
+                className="bg-teal-500 hover:bg-teal-600 disabled:bg-teal-500/20 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg flex items-center gap-1.5 shadow active:scale-[0.98] transition cursor-pointer"
+              >
+                {loading ? 'Registering...' : 'Create Account & Continue'} <ArrowRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: PLAN SELECTOR */}
+        {step === 2 && (
           <div className="space-y-6">
             <div className="text-center space-y-1.5 mb-2">
-              <h2 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-1.5">
-                <Sparkles size={16} className="text-teal-400" /> Eagle Tech HMIS Licensing Plans
+              <h2 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-1.5 font-sans">
+                <Sparkles size={16} className="text-teal-400" /> Choose Licensing Plan
               </h2>
               <p className="text-xs text-slate-400 max-w-xl mx-auto">
-                Secure enterprise-grade health management outsourced directly to your facility. Choose your plan to configure custom white-label portals for your clinical management team.
+                Select a licensing tier to match your clinical management workflows.
               </p>
             </div>
 
@@ -425,7 +601,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                 <div 
                   key={p.id}
                   onClick={() => setSelectedPlan(p.id)}
-                  className={`bg-slate-950 border rounded-xl p-5 cursor-pointer relative transition-all duration-200 hover:border-teal-500/40 flex flex-col justify-between ${
+                  className={`bg-slate-955 border rounded-xl p-5 cursor-pointer relative transition-all duration-200 hover:border-teal-500/40 flex flex-col justify-between ${
                     selectedPlan === p.id 
                       ? 'border-teal-500 shadow-lg shadow-teal-500/5 ring-1 ring-teal-500' 
                       : 'border-slate-850'
@@ -462,26 +638,26 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
             <div className="flex justify-between items-center pt-4 border-t border-slate-800">
               <button 
-                onClick={onBackToLogin}
+                onClick={handlePrevStep}
                 className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 transition"
               >
-                <ArrowLeft size={14} /> Back to Login
+                <ArrowLeft size={14} /> Back
               </button>
               <button 
                 onClick={handleNextStep}
-                className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg flex items-center gap-1.5 shadow active:scale-[0.98] transition"
+                className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg flex items-center gap-1.5 shadow active:scale-[0.98] transition cursor-pointer"
               >
-                Define Portal Branding <ArrowRight size={14} />
+                Configure Branding <ArrowRight size={14} />
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 2: BRANDING SETUP & PREVIEW */}
-        {step === 2 && (
+        {/* STEP 3: BRANDING SETUP & PREVIEW */}
+        {step === 3 && (
           <div className="space-y-6">
             <div className="text-center space-y-1.5 mb-2">
-              <h2 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-1.5">
+              <h2 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-1.5 font-sans">
                 Portal White-Label Branding Setup
               </h2>
               <p className="text-xs text-slate-400">
@@ -490,7 +666,6 @@ export default function SaaSOnboarding({ onBackToLogin }) {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              
               {/* Left Form: Inputs (7/12 width) */}
               <div className="lg:col-span-7 space-y-5">
                 <div className="bg-slate-955 border border-slate-850 p-5 rounded-xl space-y-4">
@@ -593,96 +768,6 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                     )}
                   </div>
                 </div>
-
-                <div className="bg-slate-955 border border-slate-855 p-5 rounded-xl space-y-4 font-sans">
-                  <div className="flex justify-between items-center pb-2 border-b border-slate-900 mb-2">
-                    <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <User size={14} /> Admin Account Details
-                    </h3>
-                    {!googleUser ? (
-                      <button
-                        type="button"
-                        onClick={handleGoogleOnboardingAuth}
-                        className="text-[10px] bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-200 py-1 px-2.5 rounded flex items-center gap-1.5 transition font-semibold cursor-pointer active:scale-[0.98]"
-                      >
-                        <svg className="w-3 h-3 text-teal-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-                          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
-                        </svg>
-                        Use Google Credentials
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] bg-teal-500/10 border border-teal-500/20 text-teal-400 py-0.5 px-2 rounded-full font-bold uppercase flex items-center gap-1">
-                          <Check size={10} /> Linked with Google
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setGoogleUser(null);
-                            setAdminName('');
-                            setAdminEmail('');
-                          }}
-                          className="text-[9px] text-slate-500 hover:text-slate-350 font-bold transition cursor-pointer"
-                        >
-                          Disconnect
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Admin Name</label>
-                      <input
-                        type="text"
-                        value={adminName}
-                        onChange={(e) => setAdminName(e.target.value)}
-                        placeholder="Dr. Frank Meso"
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Contact Phone</label>
-                      <input
-                        type="text"
-                        value={adminPhone}
-                        onChange={(e) => setAdminPhone(e.target.value)}
-                        placeholder="+254 712 345678"
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Admin Email</label>
-                      <input
-                        type="email"
-                        value={adminEmail}
-                        onChange={(e) => setAdminEmail(e.target.value)}
-                        placeholder="admin@yourhospital.com"
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
-                      <input
-                        type="password"
-                        value={googleUser ? '' : adminPassword}
-                        onChange={(e) => setAdminPassword(e.target.value)}
-                        placeholder={googleUser ? 'Not required (Google Auth)' : 'Min 8 characters'}
-                        disabled={!!googleUser}
-                        className={`w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition ${
-                          googleUser ? 'opacity-40 cursor-not-allowed' : ''
-                        }`}
-                        required={!googleUser}
-                      />
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* Right Panel: Live Sidebar & Portal Preview (5/12 width) */}
@@ -692,7 +777,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                 </h3>
 
                 {/* Glassmorphic Mock Sidebar widget */}
-                <div className="bg-slate-950 border border-slate-855 rounded-xl p-5 shadow-inner relative overflow-hidden space-y-6 min-h-[340px] flex flex-col justify-between">
+                <div className="bg-slate-950 border border-slate-855 rounded-xl p-5 shadow-inner relative overflow-hidden space-y-6 min-h-[300px] flex flex-col justify-between">
                   <div className="absolute top-1 right-2 text-[8px] text-slate-800 font-bold font-mono tracking-widest uppercase">
                     Eagle Tech HMIS Preview
                   </div>
@@ -754,8 +839,8 @@ export default function SaaSOnboarding({ onBackToLogin }) {
           </div>
         )}
 
-        {/* STEP 3: MOCK CHECKOUT */}
-        {step === 3 && (
+        {/* STEP 4: MOCK CHECKOUT */}
+        {step === 4 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {/* Left Column: Order Summary & Brand Confirmation */}
             <div className="space-y-4">
@@ -764,7 +849,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
               </h3>
 
               {/* White label preview details */}
-              <div className="bg-slate-950 border border-slate-855 p-4 rounded-xl space-y-3">
+              <div className="bg-slate-955 border border-slate-855 p-4 rounded-xl space-y-3">
                 <div className="flex items-center gap-3">
                   {renderActiveLogo(28, true)}
                   <div className="truncate">
@@ -851,7 +936,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                     type="button"
                     onClick={handlePrevStep}
                     disabled={loading}
-                    className="text-xs font-bold text-slate-450 hover:text-white flex items-center gap-1.5 transition disabled:opacity-40"
+                    className="text-xs font-bold text-slate-455 hover:text-white flex items-center gap-1.5 transition disabled:opacity-40"
                   >
                     <ArrowLeft size={14} /> Back
                   </button>
@@ -868,8 +953,8 @@ export default function SaaSOnboarding({ onBackToLogin }) {
           </div>
         )}
 
-        {/* STEP 4: SUCCESS */}
-        {step === 4 && (
+        {/* STEP 5: SUCCESS */}
+        {step === 5 && (
           <div className="space-y-6 max-w-lg mx-auto text-center py-4">
             <div className="flex justify-center mb-2">
               <div className="bg-teal-500/10 border border-teal-500/25 p-3 rounded-full text-teal-400">
@@ -878,14 +963,14 @@ export default function SaaSOnboarding({ onBackToLogin }) {
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-xl font-bold text-white uppercase tracking-wide">Portal Provisioned Successfully!</h2>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h2 className="text-xl font-bold text-white uppercase tracking-wide font-sans">Portal Provisioned Successfully!</h2>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans">
                 Hospital **{hospitalName}** has been registered in Eagle Tech HMIS databases. A dedicated operational workspace and your Administrator profile are active.
               </p>
             </div>
 
             {/* Configured details */}
-            <div className="bg-slate-950 border border-slate-855 p-5 rounded-xl space-y-3 text-xs text-left max-w-md mx-auto">
+            <div className="bg-slate-955 border border-slate-855 p-5 rounded-xl space-y-3 text-xs text-left max-w-md mx-auto font-sans">
               <div className="flex items-center gap-3 pb-3 border-b border-slate-900">
                 {renderActiveLogo(24, true)}
                 <span className="font-bold text-slate-100 uppercase">{hospitalName}</span>
@@ -910,7 +995,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
             <button
               onClick={onBackToLogin}
-              className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2.5 px-6 rounded-lg shadow-lg active:scale-[0.98] transition w-full max-w-md cursor-pointer"
+              className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2.5 px-6 rounded-lg shadow-lg active:scale-[0.98] transition w-full max-w-md cursor-pointer font-sans"
             >
               Go to Hospital Login Workspace
             </button>

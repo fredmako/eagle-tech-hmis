@@ -271,21 +271,43 @@ app.post('/api/auth/login', async (req, res) => {
     let verifiedName = null;
     
     if (isRealAppwrite) {
-      // To verify credentials in node-appwrite, we can create a session using standard Appwrite REST API or login client.
-      // Alternatively, we look up the user using users service and verify using local hashing or Appwrite credentials.
-      // Since Appwrite server SDK doesn't have password verify on users directly, we can test it by creating session using client.
-      const userClient = new sdk.Client()
-        .setEndpoint(process.env.VITE_APPWRITE_ENDPOINT)
-        .setProject(process.env.VITE_APPWRITE_PROJECT_ID);
-      const account = new sdk.Account(userClient);
+      // Verify credentials using Appwrite REST API directly (avoids SDK Account class issues on server-side)
+      const appwriteEndpoint = process.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1';
+      const appwriteProject = process.env.VITE_APPWRITE_PROJECT_ID;
       
       try {
-        const session = await account.createEmailPasswordSession(email, password);
-        const userDetails = await account.get();
-        verifiedUserId = userDetails.$id;
-        verifiedEmail = userDetails.email;
-        verifiedName = userDetails.name;
+        // Step 1: Create email/password session via REST API to verify credentials
+        const sessionResponse = await axios.post(`${appwriteEndpoint}/account/sessions/email`, {
+          email,
+          password
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Appwrite-Project': appwriteProject,
+            'X-Appwrite-Response-Format': '1.6.0'
+          }
+        });
+        
+        const sessionSecret = sessionResponse.data.secret;
+        
+        // Step 2: Fetch user details using the session secret
+        const userResponse = await axios.get(`${appwriteEndpoint}/account`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Appwrite-Project': appwriteProject,
+            'X-Appwrite-Session': sessionSecret,
+            'X-Appwrite-Response-Format': '1.6.0'
+          }
+        });
+        
+        verifiedUserId = userResponse.data.$id;
+        verifiedEmail = userResponse.data.email;
+        verifiedName = userResponse.data.name;
+        
+        console.log(`[Login] Appwrite REST API auth successful for: ${verifiedEmail} (ID: ${verifiedUserId})`);
       } catch (authErr) {
+        const errMsg = authErr.response?.data?.message || authErr.message || 'Unknown auth error';
+        console.error(`[Login] Appwrite credential verification failed for ${email}:`, errMsg);
         return res.status(401).json({ error: 'Invalid email or password credentials' });
       }
     } else {

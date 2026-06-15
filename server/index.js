@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
-const sdk = require('node-appwrite');
+const { createClient } = require('@supabase/supabase-js');
 
 // Load environment variables from both root and server directory
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
@@ -20,25 +20,18 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'eagletech_hmis_super_secret_session_key_2026';
 
 // ----------------------------------------------------
-// DATABASE & APPWRITE INTEGRATION ENGINE
+// DATABASE & SUPABASE INTEGRATION ENGINE
 // ----------------------------------------------------
-const isRealAppwrite = process.env.VITE_APPWRITE_PROJECT_ID && process.env.VITE_APPWRITE_PROJECT_ID.trim() !== '';
+const isRealSupabase = process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY;
 
-let appwriteClient = null;
-let appwriteDatabases = null;
-let appwriteUsers = null;
-let appwriteFunctions = null;
+let supabaseClient = null;
 
-if (isRealAppwrite) {
-  console.log('Backend running in Real Appwrite Mode connecting to:', process.env.VITE_APPWRITE_ENDPOINT);
-  appwriteClient = new sdk.Client()
-    .setEndpoint(process.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
-    .setProject(process.env.VITE_APPWRITE_PROJECT_ID)
-    .setKey(process.env.VITE_APPWRITE_API_KEY);
-  
-  appwriteDatabases = new sdk.Databases(appwriteClient);
-  appwriteUsers = new sdk.Users(appwriteClient);
-  appwriteFunctions = new sdk.Functions(appwriteClient);
+if (isRealSupabase) {
+  console.log('Backend running in Real Supabase Mode connecting to:', process.env.VITE_SUPABASE_URL);
+  supabaseClient = createClient(
+    process.env.VITE_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY
+  );
 } else {
   console.log('Backend running in Local Sandbox Simulation Mode (sandbox_db.json)');
 }
@@ -107,21 +100,24 @@ const saveSandboxDB = (data) => {
 // Unified Database Helpers
 const db = {
   getDocuments: async (tableName, queries = [], orderByField = null, orderByAsc = true) => {
-    if (isRealAppwrite) {
-      const dbId = process.env.VITE_APPWRITE_DATABASE_ID || 'egesa_health';
-      // Map basic query mappings
-      const sdkQueries = queries.map(q => {
-        if (q.type === 'equal') return sdk.Query.equal(q.column === 'id' ? '$id' : q.column, q.value);
-        return null;
-      }).filter(Boolean);
+    if (isRealSupabase) {
+      let query = supabaseClient.from(tableName).select('*');
       
+      // Apply equality filters
+      queries.forEach(q => {
+        if (q.type === 'equal') {
+          query = query.eq(q.column, q.value);
+        }
+      });
+      
+      // Apply ordering
       if (orderByField) {
-        const targetCol = orderByField === 'id' ? '$id' : (orderByField === 'created_at' ? '$createdAt' : orderByField);
-        sdkQueries.push(orderByAsc ? sdk.Query.orderAsc(targetCol) : sdk.Query.orderDesc(targetCol));
+        query = query.order(orderByField, { ascending: orderByAsc });
       }
       
-      const response = await appwriteDatabases.listDocuments(dbId, tableName, sdkQueries);
-      return response.documents.map(d => ({ id: d.$id, created_at: d.$createdAt, ...d }));
+      const { data, error } = await query;
+      if (error) throw new Error(`Supabase query error: ${error.message}`);
+      return data || [];
     } else {
       const data = loadSandboxDB();
       let list = data[tableName] || [];
@@ -147,13 +143,14 @@ const db = {
   },
   
   createDocument: async (tableName, docId, docData) => {
-    if (isRealAppwrite) {
-      const dbId = process.env.VITE_APPWRITE_DATABASE_ID || 'egesa_health';
-      const cleanData = { ...docData };
-      delete cleanData.id;
-      delete cleanData.created_at;
-      const response = await appwriteDatabases.createDocument(dbId, tableName, docId, cleanData);
-      return { id: response.$id, created_at: response.$createdAt, ...response };
+    if (isRealSupabase) {
+      const { data, error } = await supabaseClient.from(tableName).insert({
+        id: docId,
+        ...docData,
+        created_at: new Date().toISOString()
+      }).select();
+      if (error) throw new Error(`Supabase insert error: ${error.message}`);
+      return data?.[0] || { id: docId, ...docData };
     } else {
       const data = loadSandboxDB();
       if (!data[tableName]) data[tableName] = [];
@@ -165,13 +162,10 @@ const db = {
   },
   
   updateDocument: async (tableName, docId, docData) => {
-    if (isRealAppwrite) {
-      const dbId = process.env.VITE_APPWRITE_DATABASE_ID || 'egesa_health';
-      const cleanData = { ...docData };
-      delete cleanData.id;
-      delete cleanData.created_at;
-      const response = await appwriteDatabases.updateDocument(dbId, tableName, docId, cleanData);
-      return { id: response.$id, created_at: response.$createdAt, ...response };
+    if (isRealSupabase) {
+      const { data, error } = await supabaseClient.from(tableName).update(docData).eq('id', docId).select();
+      if (error) throw new Error(`Supabase update error: ${error.message}`);
+      return data?.[0] || { id: docId, ...docData };
     } else {
       const data = loadSandboxDB();
       if (!data[tableName]) data[tableName] = [];
@@ -187,9 +181,9 @@ const db = {
   },
 
   deleteDocument: async (tableName, docId) => {
-    if (isRealAppwrite) {
-      const dbId = process.env.VITE_APPWRITE_DATABASE_ID || 'egesa_health';
-      await appwriteDatabases.deleteDocument(dbId, tableName, docId);
+    if (isRealSupabase) {
+      const { error } = await supabaseClient.from(tableName).delete().eq('id', docId);
+      if (error) throw new Error(`Supabase delete error: ${error.message}`);
       return true;
     } else {
       const data = loadSandboxDB();
@@ -230,11 +224,19 @@ app.post('/api/auth/signup', async (req, res) => {
   }
   
   try {
-    if (isRealAppwrite) {
-      // Create user account on Appwrite Cloud
-      const userId = sdk.ID.unique();
-      await appwriteUsers.create(userId, email, undefined, password, name);
-      res.json({ success: true, user: { id: userId, email, name } });
+    if (isRealSupabase) {
+      // Create user account on Supabase
+      const { data: { user }, error } = await supabaseClient.auth.admin.createUser({
+        email,
+        password,
+        user_metadata: {
+          full_name: name
+        }
+      });
+      
+      if (error) throw new Error(error.message);
+      
+      res.json({ success: true, user: { id: user.id, email: user.email, name } });
     } else {
       // Local sandbox signup
       const data = loadSandboxDB();
@@ -270,46 +272,23 @@ app.post('/api/auth/login', async (req, res) => {
     let verifiedEmail = null;
     let verifiedName = null;
     
-    if (isRealAppwrite) {
-      // Verify credentials using Appwrite REST API directly (avoids SDK Account class issues on server-side)
-      const appwriteEndpoint = process.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1';
-      const appwriteProject = process.env.VITE_APPWRITE_PROJECT_ID;
+    if (isRealSupabase) {
+      // Verify credentials using Supabase
+      const { data: { user }, error } = await supabaseClient.auth.admin.signInWithPassword({
+        email,
+        password
+      });
       
-      try {
-        // Step 1: Create email/password session via REST API to verify credentials
-        const sessionResponse = await axios.post(`${appwriteEndpoint}/account/sessions/email`, {
-          email,
-          password
-        }, {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Appwrite-Project': appwriteProject,
-            'X-Appwrite-Response-Format': '1.6.0'
-          }
-        });
-        
-        const sessionSecret = sessionResponse.data.secret;
-        
-        // Step 2: Fetch user details using the session secret
-        const userResponse = await axios.get(`${appwriteEndpoint}/account`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Appwrite-Project': appwriteProject,
-            'X-Appwrite-Session': sessionSecret,
-            'X-Appwrite-Response-Format': '1.6.0'
-          }
-        });
-        
-        verifiedUserId = userResponse.data.$id;
-        verifiedEmail = userResponse.data.email;
-        verifiedName = userResponse.data.name;
-        
-        console.log(`[Login] Appwrite REST API auth successful for: ${verifiedEmail} (ID: ${verifiedUserId})`);
-      } catch (authErr) {
-        const errMsg = authErr.response?.data?.message || authErr.message || 'Unknown auth error';
-        console.error(`[Login] Appwrite credential verification failed for ${email}:`, errMsg);
+      if (error) {
+        console.error(`[Login] Supabase auth failed for ${email}:`, error.message);
         return res.status(401).json({ error: 'Invalid email or password credentials' });
       }
+      
+      verifiedUserId = user.id;
+      verifiedEmail = user.email;
+      verifiedName = user.user_metadata?.full_name || user.email;
+      
+      console.log(`[Login] Supabase auth successful for: ${verifiedEmail} (ID: ${verifiedUserId})`);
     } else {
       // Sandbox mode login
       const data = loadSandboxDB();
@@ -1569,17 +1548,34 @@ app.post('/api/functions/invoke', async (req, res) => {
   }
 });
 
+// CORS preflight handling for all /v1/* requests
+app.options('/v1/*', cors());
+
 // Appwrite API Proxy - forward all requests to /v1/* to the Appwrite endpoint
 // This solves CORS issues by proxying through the backend which has CORS configured
+// EXCEPT OAuth endpoints which need special handling (redirects must come from original domain)
 app.all('/v1/*', async (req, res) => {
   try {
+    // OAuth endpoints cannot be proxied - they must redirect to the original domain
+    if (req.path.includes('/oauth2/') || req.path.includes('/sessions/oauth2')) {
+      console.log(`[Appwrite Proxy] Blocking OAuth request (must use direct connection): ${req.method} ${req.path}`);
+      return res.status(403).json({ 
+        error: 'OAuth endpoints cannot be proxied. Please ensure your frontend can reach Appwrite directly at ' + process.env.VITE_APPWRITE_ENDPOINT 
+      });
+    }
+
     if (!process.env.VITE_APPWRITE_ENDPOINT) {
       return res.status(503).json({ error: 'Appwrite endpoint not configured' });
     }
 
-    const appwriteEndpoint = process.env.VITE_APPWRITE_ENDPOINT;
-    const targetPath = req.path; // This will be /v1/account, /v1/databases, etc.
-    const targetUrl = appwriteEndpoint + targetPath;
+    const appwriteEndpoint = process.env.VITE_APPWRITE_ENDPOINT; // e.g., https://api.eagletechsolutions.tech/v1
+    const targetPath = req.path; // e.g., /v1/account/sessions/oauth2/google
+    
+    // Remove /v1 from targetPath since appwriteEndpoint already includes /v1
+    const pathWithoutPrefix = targetPath.replace(/^\/v1/, '');
+    const targetUrl = appwriteEndpoint + pathWithoutPrefix;
+
+    console.log(`[Appwrite Proxy] ${req.method} ${targetUrl}`);
 
     // Build request config
     const axiosConfig = {

@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { supabase } from '../supabaseClient';
 
 const AuthContext = createContext(null);
 
@@ -14,43 +15,29 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkSession = async () => {
-    const token = localStorage.getItem('egesa_health_token');
-    console.log('[AuthContext:checkSession] Token present:', !!token);
-    if (!token) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-    
     try {
-      console.log('[AuthContext:checkSession] Verifying token with backend:', `${API_URL}/auth/me`);
-      const res = await fetch(`${API_URL}/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await res.json();
-      console.log('[AuthContext:checkSession] Response status:', res.status, '| Body:', data);
-      if (res.ok && data.user) {
-        console.log('[AuthContext:checkSession] ✅ Session valid — user:', data.user.email || data.user.id);
-        setUser(data.user);
-        sessionStorage.setItem('egesa_health_active_user', JSON.stringify(data.user));
-      } else {
-        console.warn('[AuthContext:checkSession] ⚠️ Token rejected by server:', data);
-        // Token invalid or expired
-        logout();
+      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+      console.log('[AuthContext:checkSession] Supabase session check:', session?.user?.email || 'no session');
+      
+      if (sessionErr) throw sessionErr;
+      if (!session) {
+        setUser(null);
+        setLoading(false);
+        return;
       }
+
+      const userData = {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.user_metadata?.full_name || session.user.email
+      };
+      
+      console.log('[AuthContext:checkSession] ✅ Session valid:', userData.email);
+      setUser(userData);
+      sessionStorage.setItem('egesa_health_active_user', JSON.stringify(userData));
     } catch (err) {
-      console.warn('[AuthContext:checkSession] ❌ Network error during session check:', err.message);
-      // Network issues - fallback to storage if available to keep offline usability
-      const localUser = sessionStorage.getItem('egesa_health_active_user');
-      if (localUser) {
-        try {
-          const parsed = JSON.parse(localUser);
-          console.log('[AuthContext:checkSession] Using cached local user fallback:', parsed.email || parsed.id);
-          setUser(parsed);
-        } catch (e) { console.error('[AuthContext:checkSession] Failed to parse cached user:', e); }
-      }
+      console.warn('[AuthContext:checkSession] ❌ Session check failed:', err.message);
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -59,52 +46,29 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setError('');
     setLoading(true);
-    console.log('[AuthContext:login] ▶ Attempting login for:', email);
-    console.log('[AuthContext:login] API endpoint:', `${API_URL}/auth/login`);
+    console.log('[AuthContext:login] ▶ Attempting login with Supabase:', email);
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
-      let data;
-      try {
-        data = await res.json();
-      } catch (parseErr) {
-        console.error('[AuthContext:login] ❌ Failed to parse response JSON:', parseErr);
-        throw new Error(`Server returned non-JSON response (status ${res.status})`);
-      }
-      console.log('[AuthContext:login] Response status:', res.status, '| Body:', data);
-      
-      if (!res.ok) {
-        const errMsg = data?.error || data?.message || `Authentication failed (HTTP ${res.status})`;
-        console.error('[AuthContext:login] ❌ Server rejected login:', errMsg);
-        throw new Error(errMsg);
-      }
 
-      if (data.status === 'no_profile') {
-        console.warn('[AuthContext:login] ⚠️ User authenticated but has no facility profile. Returning no_profile status.');
-        setLoading(false);
-        return {
-          status: 'no_profile',
-          user: data.user,
-          pendingRequest: data.pendingRequest
-        };
-      }
+      if (authErr) throw authErr;
+      if (!authUser) throw new Error('Login failed: no user returned');
 
-      if (!data.token) {
-        console.error('[AuthContext:login] ❌ Login response missing token field! Full response:', data);
-        throw new Error('Server response missing authentication token.');
-      }
+      const userData = {
+        id: authUser.id,
+        email: authUser.email,
+        name: authUser.user_metadata?.full_name || authUser.email
+      };
 
-      console.log('[AuthContext:login] ✅ Login successful. User:', data.user?.email || data.user?.id);
-      localStorage.setItem('egesa_health_token', data.token);
-      sessionStorage.setItem('egesa_health_active_user', JSON.stringify(data.user));
-      setUser(data.user);
+      console.log('[AuthContext:login] ✅ Login successful:', userData.email);
+      setUser(userData);
+      sessionStorage.setItem('egesa_health_active_user', JSON.stringify(userData));
       setLoading(false);
-      return { status: 'success', user: data.user };
+      return { status: 'success', user: userData };
     } catch (err) {
-      console.error('[AuthContext:login] ❌ Login error caught:', err.message, err);
+      console.error('[AuthContext:login] ❌ Login error:', err.message);
       setError(err.message);
       setLoading(false);
       throw err;
@@ -114,41 +78,38 @@ export const AuthProvider = ({ children }) => {
   const signup = async (email, password, name) => {
     setError('');
     setLoading(true);
-    console.log('[AuthContext:signup] ▶ Attempting signup for:', email);
+    console.log('[AuthContext:signup] ▶ Attempting signup with Supabase:', email);
     try {
-      const res = await fetch(`${API_URL}/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name })
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name
+          }
+        }
       });
-      let data;
-      try {
-        data = await res.json();
-      } catch (parseErr) {
-        console.error('[AuthContext:signup] ❌ Failed to parse response JSON:', parseErr);
-        throw new Error(`Server returned non-JSON response (status ${res.status})`);
-      }
-      console.log('[AuthContext:signup] Response status:', res.status, '| Body:', data);
-      
-      if (!res.ok) {
-        const errMsg = data?.error || data?.message || `Registration failed (HTTP ${res.status})`;
-        console.error('[AuthContext:signup] ❌ Server rejected signup:', errMsg);
-        throw new Error(errMsg);
-      }
-      
-      console.log('[AuthContext:signup] ✅ Signup successful for:', email);
+
+      if (authErr) throw authErr;
+      if (!authUser) throw new Error('Signup failed: no user returned');
+
+      console.log('[AuthContext:signup] ✅ Signup successful:', email);
       setLoading(false);
-      return data;
+      return { user: authUser };
     } catch (err) {
-      console.error('[AuthContext:signup] ❌ Signup error:', err.message, err);
+      console.error('[AuthContext:signup] ❌ Signup error:', err.message);
       setError(err.message);
       setLoading(false);
       throw err;
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('egesa_health_token');
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Logout error:', err.message);
+    }
     sessionStorage.removeItem('egesa_health_active_user');
     setUser(null);
     setError('');

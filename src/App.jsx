@@ -17,6 +17,7 @@ import Ward from './components/Ward';
 import SaaSOnboarding from './components/SaaSOnboarding';
 import LandingPage from './components/LandingPage';
 import Preferences from './components/Preferences';
+import AuthCallback from './components/AuthCallback';
 import translations from './translations';
 
 import {
@@ -42,7 +43,13 @@ export default function App() {
   const { user, logout, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [preselectedPatient, setPreselectedPatient] = useState(null);
-  const [publicView, setPublicView] = useState('landing'); // 'landing', 'login', 'signup'
+  const [publicView, setPublicView] = useState(() => {
+    // Check if we're coming back from OAuth callback
+    if (window.location.hash.includes('access_token')) {
+      return 'callback';
+    }
+    return 'landing'; // 'landing', 'login', 'signup', 'callback'
+  });
 
   const [theme, setTheme] = useState(() => localStorage.getItem('egesa_theme') || 'slate');
   const [lang, setLang] = useState(() => localStorage.getItem('egesa_lang') || 'en');
@@ -152,6 +159,9 @@ export default function App() {
 
   if (!user) {
     const publicContent = (() => {
+      if (publicView === 'callback') {
+        return <AuthCallback onCallbackComplete={() => setPublicView('signup')} />;
+      }
       if (publicView === 'signup') {
         return <SaaSOnboarding onBackToLogin={() => setPublicView('landing')} />;
       }

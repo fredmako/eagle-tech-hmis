@@ -970,8 +970,20 @@ const appwriteAuth = {
   signInWithGoogle: async () => {
     if (isRealAppwrite) {
       try {
-        const successUrl = window.location.origin;
-        const failureUrl = window.location.origin;
+        const protocol = window.location.protocol;
+        let host = window.location.hostname;
+        const port = window.location.port ? `:${window.location.port}` : '';
+        
+        // Normalize hostname to remove typos (e.g., "2www" -> "www")
+        if (host.startsWith('2www')) {
+          host = host.replace(/^2+/, '');
+        }
+        
+        // Construct URL from components
+        const baseUrl = `${protocol}//${host}${port}`;
+        const successUrl = baseUrl;
+        const failureUrl = baseUrl;
+        
         account.createOAuth2Session('google', successUrl, failureUrl);
         return { error: null };
       } catch (err) {

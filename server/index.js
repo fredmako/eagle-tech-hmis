@@ -365,100 +365,19 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // Appwrite JWT Verification & Login
-app.post('/api/auth/appwrite-jwt-login', async (req, res) => {
-  const { jwt: clientJwt } = req.body;
-  if (!clientJwt) {
-    return res.status(400).json({ error: 'Appwrite JWT token is required' });
+app.post('/api/auth/supabase-login', async (req, res) => {
+  const { access_token } = req.body;
+
+  const {
+    data: { user },
+    error
+  } = await supabaseClient.auth.getUser(access_token);
+
+  if (error) {
+    return res.status(401).json({ error: error.message });
   }
 
-  try {
-    let verifiedUserId = null;
-    let verifiedEmail = null;
-    let verifiedName = null;
-
-    if (isRealAppwrite) {
-      // Create server-side Client initialized with the user's JWT
-      const jwtClient = new sdk.Client()
-        .setEndpoint(process.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
-        .setProject(process.env.VITE_APPWRITE_PROJECT_ID)
-        .setJWT(clientJwt);
-      
-      const jwtAccount = new sdk.Account(jwtClient);
-      const userDetails = await jwtAccount.get();
-      
-      verifiedUserId = userDetails.$id;
-      verifiedEmail = userDetails.email;
-      verifiedName = userDetails.name;
-    } else {
-      // Sandbox simulation: check if token represents onboarding
-      if (clientJwt === 'mock_jwt_onboarding') {
-        verifiedUserId = 'u_mock_google_' + Math.random().toString(36).substring(2, 10);
-        verifiedEmail = 'google.admin@egesa.com';
-        verifiedName = 'Google Admin';
-      } else {
-        const data = loadSandboxDB();
-        const defaultUser = data.profiles.find(p => p.role === 'admin') || data.profiles[0];
-        verifiedUserId = defaultUser.id;
-        verifiedEmail = defaultUser.email;
-        verifiedName = defaultUser.full_name;
-      }
-    }
-
-    // Check if profile exists
-    const profiles = await db.getDocuments('profiles', [
-      { type: 'equal', column: 'email', value: verifiedEmail }
-    ]);
-    
-    const activeProfile = profiles && profiles[0];
-    
-    if (!activeProfile) {
-      // Query if there is a pending/rejected role request
-      const requests = await db.getDocuments('role_requests', [
-        { type: 'equal', column: 'email', value: verifiedEmail }
-      ]);
-      const activeRequest = requests && requests[0];
-      
-      return res.json({
-        status: 'no_profile',
-        user: { id: verifiedUserId, email: verifiedEmail, name: verifiedName },
-        pendingRequest: activeRequest || null
-      });
-    }
-    
-    // Fetch facilities to attach logo & details
-    const facs = await db.getDocuments('facilities', [
-      { type: 'equal', column: 'id', value: activeProfile.facility_id }
-    ]);
-    const facility = facs && facs[0];
-    
-    // Sign JWT Token
-    const userPayload = {
-      id: verifiedUserId,
-      user_id: verifiedUserId,
-      email: verifiedEmail,
-      full_name: activeProfile.full_name,
-      role: activeProfile.role,
-      facility_id: activeProfile.facility_id,
-      tenant_id: activeProfile.facility_id,
-      facility_name: facility?.name || 'Eagle Tech Medical Clinic',
-      facility_logo: facility?.logo_url || null,
-      department: activeProfile.department || 'admin',
-      license_tier: facility?.license_tier || 'free',
-      auth_method: 'google_oauth',
-      session_expiry: Math.floor(Date.now() / 1000) + (12 * 60 * 60)
-    };
-    
-    const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '12h' });
-    
-    res.json({
-      status: 'success',
-      token,
-      user: userPayload
-    });
-  } catch (err) {
-    console.error('Appwrite JWT login error:', err);
-    res.status(401).json({ error: err.message || 'Invalid or expired Appwrite session' });
-  }
+  // continue profile lookup...
 });
 
 // ----------------------------------------------------
@@ -729,10 +648,24 @@ app.post('/api/auth/accept-invite', async (req, res) => {
 
     // 2. Register User in Auth provider
     let userId = null;
-    if (isRealAppwrite) {
+    if (isRealSupabase) {
       const uId = sdk.ID.unique();
-      await appwriteUsers.create(uId, invite.email, undefined, password, name);
-      userId = uId;
+      const {
+  data: user,
+  error
+} = await supabaseClient.auth.admin.createUser({
+  email: invite.email,
+  password,
+  email_confirm: true,
+  user_metadata: {
+    full_name: name
+  }
+});
+
+if (error) throw error;
+
+userId = user.user.id;
+      
     } else {
       const uId = 'u_mock_' + Math.random().toString(36).substring(2, 10);
       const salt = await bcrypt.genSalt(10);
@@ -1009,7 +942,7 @@ app.post('/api/send-email', async (req, res) => {
     
     if (!passMail) {
       console.log('SMTP Password not configured. Email logged to simulated outbox.');
-      if (!isRealAppwrite) {
+      if (!isRealSupabase) {
         const data = loadSandboxDB();
         data.email_logs.push({
           id: 'mail_' + Math.random().toString(36).substring(2, 12),
@@ -1086,7 +1019,7 @@ app.post('/api/mpesa/stkpush', async (req, res) => {
       const simulatedCheckoutId = reference; // reference maps to invoice id
       
       // Save simulated pending payment to mock DB
-      if (!isRealAppwrite) {
+      if (!isRealSupabase) {
         const data = loadSandboxDB();
         data.invoices.push({
           id: reference,
@@ -1138,7 +1071,7 @@ app.post('/api/mpesa/stkpush', async (req, res) => {
     // Record checkout mapping to database
     const mpesaTxnId = response.data.id || response.data.paymentKey || response.data.CheckoutRequestID || reference;
     
-    if (!isRealAppwrite) {
+    if (!isRealSupabase) {
       const data = loadSandboxDB();
       data.invoices.push({
         id: reference,
@@ -1206,7 +1139,7 @@ app.post('/api/mpesa/callback', async (req, res) => {
       console.log(`Tuma Pay Settlement Verified: Receipt ${receiptNumber} | Amount: KES ${amountPaid} | Ref: ${invoiceId}`);
       
       // Update database status of the corresponding invoice
-      if (isRealAppwrite) {
+      if (isRealSupabase) {
         const dbId = process.env.VITE_APPWRITE_DATABASE_ID || 'egesa_health';
         // 1. Update invoice to paid
         await appwriteDatabases.updateDocument(dbId, 'invoices', invoiceId, {
@@ -1488,7 +1421,7 @@ app.post('/api/functions/invoke', async (req, res) => {
       functionId = process.env.VITE_APPWRITE_FUNCTION_GENERATE_REPORT_EXCEL || 'generate-report-excel';
     }
 
-    if (isRealAppwrite && appwriteFunctions) {
+    if (isRealSupabase && appwriteFunctions) {
       const execution = await appwriteFunctions.createExecution(
         functionId,
         JSON.stringify(payload)

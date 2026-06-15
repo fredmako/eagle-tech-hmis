@@ -1569,6 +1569,58 @@ app.post('/api/functions/invoke', async (req, res) => {
   }
 });
 
+// Appwrite API Proxy - forward all requests to /v1/* to the Appwrite endpoint
+// This solves CORS issues by proxying through the backend which has CORS configured
+app.all('/v1/*', async (req, res) => {
+  try {
+    if (!process.env.VITE_APPWRITE_ENDPOINT) {
+      return res.status(503).json({ error: 'Appwrite endpoint not configured' });
+    }
+
+    const appwriteEndpoint = process.env.VITE_APPWRITE_ENDPOINT;
+    const targetPath = req.path; // This will be /v1/account, /v1/databases, etc.
+    const targetUrl = appwriteEndpoint + targetPath;
+
+    // Build request config
+    const axiosConfig = {
+      method: req.method.toLowerCase(),
+      url: targetUrl,
+      validateStatus: () => true, // Don't throw on any status code
+      headers: {
+        ...req.headers,
+        host: new URL(appwriteEndpoint).host,
+      },
+      withCredentials: true, // Include cookies
+    };
+
+    // Include body for POST/PUT/PATCH requests
+    if (['post', 'put', 'patch'].includes(req.method.toLowerCase())) {
+      axiosConfig.data = req.body;
+    }
+
+    // Include query params
+    if (Object.keys(req.query).length > 0) {
+      axiosConfig.params = req.query;
+    }
+
+    const response = await axios(axiosConfig);
+
+    // Forward response headers (excluding host-related headers)
+    const headersToSkip = ['host', 'connection', 'transfer-encoding', 'content-encoding'];
+    Object.entries(response.headers).forEach(([key, value]) => {
+      if (!headersToSkip.includes(key.toLowerCase())) {
+        res.setHeader(key, value);
+      }
+    });
+
+    // Send response with original status code
+    res.status(response.status).send(response.data);
+  } catch (err) {
+    console.error('Appwrite proxy error:', err.message);
+    res.status(500).json({ error: 'Appwrite proxy request failed', details: err.message });
+  }
+});
+
 // Start listening
 app.listen(PORT, () => {
   console.log(`Eagle Tech HMIS Server listening on port ${PORT}`);

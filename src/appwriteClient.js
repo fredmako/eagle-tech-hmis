@@ -1,6 +1,11 @@
 import { Client, ID, Account } from 'appwrite';
 
-const endpoint = import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1';
+// Get the backend API URL
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Remove '/api' suffix if present, then add '/v1' to route through the backend proxy
+const backendBaseUrl = apiUrl.replace(/\/api\/?$/, '');
+const endpoint = `${backendBaseUrl}/v1`;
+
 const projectId = import.meta.env.VITE_APPWRITE_PROJECT_ID;
 const databaseId = import.meta.env.VITE_APPWRITE_DATABASE_ID || 'egesa_health';
 

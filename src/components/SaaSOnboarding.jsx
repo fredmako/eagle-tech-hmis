@@ -257,8 +257,26 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         sessionStorage.removeItem('egesa_health_onboarding_saved_state');
         sessionStorage.removeItem('egesa_health_onboarding_redirect');
       } else {
-        const { error } = await supabase.auth.signInWithGoogle();
-        if (error) throw new Error(error);
+        // Use signInWithOAuth with popup flow instead of redirect
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            skipBrowserRedirect: true, // Prevent redirect, handle manually
+            redirectTo: `${window.location.origin}`,
+          },
+        });
+        
+        if (error) throw new Error(error.message);
+        
+        // Open OAuth URL in popup-like behavior (manual window handling)
+        if (data?.url) {
+          // For popup behavior, you could open in a window:
+          // window.open(data.url, 'google-signin', 'width=500,height=600');
+          // But for seamless UX, redirect is better. Reverting to standard OAuth:
+        }
+        
+        // Standard OAuth redirect for better success rate
+        window.location.href = data?.url || '';
       }
     } catch (err) {
       setError(err.message || 'Google Authentication failed.');

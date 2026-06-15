@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../appwriteClient';
+import { supabase } from '../supabaseClient';
 import { parsePatientContact } from '../notificationService';
 import { User, Clipboard, Activity, FlaskConical, Pill, FileText, Calendar, DollarSign, Bed } from 'lucide-react';
 

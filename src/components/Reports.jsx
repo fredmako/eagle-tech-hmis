@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../appwriteClient';
+import { supabase } from '../supabaseClient';
 import { sendNotification, parsePatientContact } from '../notificationService';
 import { 
   FileSpreadsheet, Download, RefreshCw, CheckCircle, ShieldAlert, BarChart2,

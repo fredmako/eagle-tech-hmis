@@ -1,4 +1,4 @@
-import { supabase } from './appwriteClient';
+import { supabase } from './supabaseClient';
 
 // Key for storage
 const EMAIL_LOGS_KEY = 'egesa_email_logs';

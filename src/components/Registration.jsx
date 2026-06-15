@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../appwriteClient';
+import { supabase } from '../supabaseClient';
 import { parsePatientContact } from '../notificationService';
 import { Search, UserPlus, CheckCircle2, AlertCircle } from 'lucide-react';
 

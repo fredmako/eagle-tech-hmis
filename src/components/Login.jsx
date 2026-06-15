@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../appwriteClient';
+import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { sendNotification, getSmtpConfig } from '../notificationService';
 import { Activity, ShieldAlert, CheckCircle, UserPlus, Clock, LogOut, UserCheck } from 'lucide-react';
@@ -151,35 +151,35 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       if (data && data.length > 0) {
         setFacilities(data);
 
-        // Check for active Appwrite session (Google redirect callback)
-        let appwriteUser = null;
+        // Check for active Supabase session (Google redirect callback)
+        let supabaseUser = null;
         if (!supabase.isSandbox) {
           try {
-            console.log('[Login:fetchFacilities] Checking for active Appwrite session...');
+            console.log('[Login:fetchFacilities] Checking for active Supabase session...');
             const userRes = await supabase.auth.getUser();
-            appwriteUser = userRes?.data?.user;
-            console.log('[Login:fetchFacilities] Appwrite session user:', appwriteUser ? (appwriteUser.email || appwriteUser.id) : 'none');
+            supabaseUser = userRes?.data?.user;
+            console.log('[Login:fetchFacilities] Supabase session user:', supabaseUser ? (supabaseUser.email || supabaseUser.id) : 'none');
           } catch (e) {
-            console.log('[Login:fetchFacilities] No active Appwrite session:', e.message);
+            console.log('[Login:fetchFacilities] No active Supabase session:', e.message);
           }
         } else {
-          console.log('[Login:fetchFacilities] Sandbox mode — skipping Appwrite session check.');
+          console.log('[Login:fetchFacilities] Sandbox mode — skipping Supabase session check.');
         }
 
-        if (appwriteUser) {
+        if (supabaseUser) {
           setLoading(true);
           try {
-            console.log('[Login:fetchFacilities] Appwrite user detected. Creating JWT for backend exchange...');
-            const jwtRes = await supabase.auth.createJWT();
-            const clientJwt = jwtRes?.data?.jwt;
+            console.log('[Login:fetchFacilities] Supabase user detected. Creating JWT for backend exchange...');
+            const jwtRes = await supabase.auth.getSession();
+            const clientJwt = jwtRes?.data?.session?.access_token;
             console.log('[Login:fetchFacilities] JWT created:', !!clientJwt);
             if (clientJwt) {
               const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-              console.log('[Login:fetchFacilities] Sending JWT to backend:', `${backendUrl}/auth/appwrite-jwt-login`);
-              const res = await fetch(`${backendUrl}/auth/appwrite-jwt-login`, {
+              console.log('[Login:fetchFacilities] Sending JWT to backend:', `${backendUrl}/auth/supabase-login`);
+              const res = await fetch(`${backendUrl}/auth/supabase-login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ jwt: clientJwt })
+                body: JSON.stringify({ access_token: clientJwt })
               });
               let resData;
               try {
@@ -226,7 +226,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
               setError('Could not obtain session token from authentication provider.');
             }
           } catch (err) {
-            console.error('[Login:fetchFacilities] ❌ Appwrite JWT session exchange threw an error:', err.message, err);
+            console.error('[Login:fetchFacilities] ❌ Supabase session exchange threw an error:', err.message, err);
             setError(`Google session exchange failed: ${err.message}`);
           } finally {
             setLoading(false);
@@ -584,7 +584,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         console.log(`[GoogleAuthBroker] Redirecting via custom client: ${clientId}`);
         window.location.href = googleAuthUrl;
       } else {
-        // Fallback to standard Appwrite Google Sign-In
+        // Fallback to standard Supabase Google Sign-In
         sessionStorage.setItem('egesa_health_pending_facility', selectedFacility);
         const { data, error } = await supabase.auth.signInWithGoogle();
         if (error) throw new Error(error);

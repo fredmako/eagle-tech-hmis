@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS public.invoices (
 
 -- 9. Create audit_logs table
 CREATE TABLE IF NOT EXISTS public.audit_logs (
-    id text PRIMARY KEY,
+    id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
     facility_id text,
     user_id text,
     action text NOT NULL,

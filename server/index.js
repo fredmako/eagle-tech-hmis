@@ -1185,7 +1185,7 @@ app.post("/api/auth/reject-request", authenticateToken, async (req, res) => {
 // SMTP EMAIL ROUTING ENDPOINT
 // ----------------------------------------------------
 app.post("/api/send-email", async (req, res) => {
-  const { email, subject, html, facilityId } = req.body;
+  const { email, subject, html, facilityId, smtpConfig } = req.body;
   if (!email || !subject || !html) {
     return res
       .status(400)
@@ -1194,10 +1194,10 @@ app.post("/api/send-email", async (req, res) => {
 
   try {
     // Try to get SMTP settings (defaults to Titan SMTP or system values)
-    const host = process.env.SMTP_HOST || "smtp.titan.email";
-    const port = parseInt(process.env.SMTP_PORT || "465");
-    const userMail = process.env.SMTP_USER || "noreply@eagletechsolutions.tech";
-    const passMail = process.env.SMTP_PASS || "";
+    const host = smtpConfig?.host || process.env.SMTP_HOST || "smtp.titan.email";
+    const port = parseInt(smtpConfig?.port || process.env.SMTP_PORT || "465");
+    const userMail = smtpConfig?.username || process.env.SMTP_USER || "noreply@eagletechsolutions.tech";
+    const passMail = smtpConfig?.password || process.env.SMTP_PASS || "";
 
     if (!passMail) {
       console.log(
@@ -1234,8 +1234,11 @@ app.post("/api/send-email", async (req, res) => {
       },
     });
 
+    const senderName = smtpConfig?.sender_name || "Eagle Tech HMIS";
+    const senderEmail = smtpConfig?.sender_email || userMail;
+
     const mailOptions = {
-      from: `"Eagle Tech HMIS" <${userMail}>`,
+      from: `"${senderName}" <${senderEmail}>`,
       to: email,
       subject,
       html,

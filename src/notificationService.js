@@ -525,42 +525,37 @@ export const sendNotification = async (event, payload, facilityId = null) => {
         // Update log to sent
         updateEmailLogStatus(logId, 'sent', { retry_count: currentAttempt });
       } else {
-        // Real outbound dispatch via Supabase Edge Function
-        const invokeRes = await supabase.functions.invoke('send-email', {
-          smtpConfig: {
-            host: smtp.host,
-            port: smtp.port,
-            encryption: smtp.encryption,
-            username: smtp.username,
-            password: smtp.password,
-            sender_email: smtp.sender_email,
-            sender_name: smtp.sender_name
+        // Real outbound dispatch via backend server endpoint
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${API_URL}/send-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-          emailDetails: {
-            recipient,
-            subject,
-            body
-          }
+          body: JSON.stringify({
+            email: recipient,
+            subject: subject,
+            html: body,
+            facilityId: finalFacId,
+            smtpConfig: {
+              host: smtp.host,
+              port: smtp.port,
+              encryption: smtp.encryption,
+              username: smtp.username,
+              password: smtp.password,
+              sender_email: smtp.sender_email,
+              sender_name: smtp.sender_name
+            }
+          })
         });
 
-        if (invokeRes.error) {
-          throw new Error(invokeRes.error);
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `Server returned HTTP ${response.status}`);
         }
 
-        const resBody = invokeRes.data?.responseBody;
-        let parsed = {};
-        try {
-          parsed = typeof resBody === 'string' ? JSON.parse(resBody) : resBody;
-        } catch (e) {
-          parsed = { success: false, error: 'Failed to parse function execution response body: ' + resBody };
-        }
-
-        // Check response code and parsed response status
-        if (invokeRes.data?.statusCode !== 200 || !parsed.success) {
-          throw new Error(parsed.error || `Serverless Function returned HTTP ${invokeRes.data?.statusCode}`);
-        }
-
-        messageId = parsed.messageId || null;
+        const resData = await response.json();
+        messageId = resData.messageId || null;
 
         // Update log to sent with real message ID
         updateEmailLogStatus(logId, 'sent', { 

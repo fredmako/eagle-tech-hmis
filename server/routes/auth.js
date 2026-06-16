@@ -469,7 +469,7 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
     let htmlContent = "";
     try {
       htmlContent = fs.readFileSync(templatePath, "utf8");
-      const origin = req.headers.origin || "http://localhost:5174";
+      const origin = req.headers.origin || "https://www.eagletechsolutions.tech";
       htmlContent = htmlContent
         .replace(/\{\{team\}\}/g, facility?.name || "Eagle Tech Clinic")
         .replace(/\{\{user\}\}/g, targetEmail)
@@ -479,7 +479,7 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
       console.error("Error reading invite email template:", e);
       htmlContent =
         `<p>You have been invited to join ${facility?.name || "Eagle Tech Clinic"} as a ${role} in ${department} department.</p>` +
-        `<p>Click here to accept: <a href="${req.headers.origin || "http://localhost:5174"}/login?invite=${token}">Accept Invite</a></p>`;
+        `<p>Click here to accept: <a href="${req.headers.origin || "https://www.eagletechsolutions.tech"}/login?invite=${token}">Accept Invite</a></p>`;
     }
 
     // Try sending email

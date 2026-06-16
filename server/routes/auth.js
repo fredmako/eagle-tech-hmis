@@ -497,7 +497,25 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
     let mailSent = false;
     let errMessage = null;
 
-    if (passMail) {
+    if (isRealSupabase) {
+      try {
+        const origin = req.headers.origin || "https://www.eagletechsolutions.tech";
+        const { error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(targetEmail, {
+          redirectTo: `${origin}/login?invite=${token}`,
+          data: {
+            facility_name: facility?.name || "Eagle Tech Clinic",
+            project_name: "Eagle Tech HMIS",
+            role: role,
+            department: department
+          }
+        });
+        if (inviteError) throw inviteError;
+        mailSent = true;
+      } catch (err) {
+        console.error("Failed sending invite email via Supabase Auth Admin API:", err);
+        errMessage = err.message || "Supabase Auth Admin API invite failed";
+      }
+    } else if (passMail) {
       try {
         const transporter = nodemailer.createTransport({
           host,
@@ -523,6 +541,20 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
         console.error("Failed sending invite email via nodemailer:", err);
         errMessage = err.message;
       }
+    } else {
+      errMessage = "SMTP Password not configured and Supabase not in use. Mail logged to simulated outbox.";
+      const sandboxData = loadSandboxDB();
+      if (!sandboxData.email_logs) sandboxData.email_logs = [];
+      sandboxData.email_logs.push({
+        id: "mail_" + Math.random().toString(36).substring(2, 12),
+        recipient: targetEmail,
+        subject: `[System Invite] Join ${facility?.name || "Eagle Tech Clinic"} on Eagle Tech HMIS`,
+        html: htmlContent,
+        status: "sent_simulated",
+        created_at: new Date().toISOString(),
+      });
+      saveSandboxDB(sandboxData);
+      mailSent = true;
     }
 
     // Write audit log
@@ -576,18 +608,51 @@ router.post("/accept-invite", async (req, res) => {
     // 2. Register User in Auth provider
     let userId = null;
     if (isRealSupabase) {
-      const { data: user, error } = await supabaseClient.auth.admin.createUser({
-        email: invite.email,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: name,
-        },
-      });
+      let user = null;
+      let userError = null;
+      try {
+        const result = await supabaseClient.auth.admin.createUser({
+          email: invite.email,
+          password,
+          email_confirm: true,
+          user_metadata: {
+            full_name: name,
+          },
+        });
+        user = result.data;
+        userError = result.error;
+      } catch (e) {
+        userError = e;
+      }
 
-      if (error) throw error;
+      if (userError) {
+        // If user already exists (e.g. they were invited via Supabase inviteUserByEmail),
+        // update their password and user metadata instead.
+        if (userError.message?.includes("already") || userError.status === 422 || userError.code === "email_exists") {
+          console.log("User already exists in Supabase. Attempting to update credentials...");
+          const { data: { users }, error: listError } = await supabaseClient.auth.admin.listUsers();
+          if (listError) throw listError;
+          const found = users.find(u => u.email.toLowerCase() === invite.email.toLowerCase());
+          if (!found) throw new Error("User email exists but user record could not be found");
 
-      userId = user.user.id;
+          const { data: updatedUser, error: updateError } = await supabaseClient.auth.admin.updateUserById(
+            found.id,
+            {
+              password: password,
+              email_confirm: true,
+              user_metadata: {
+                full_name: name,
+              }
+            }
+          );
+          if (updateError) throw updateError;
+          userId = updatedUser.user.id;
+        } else {
+          throw userError;
+        }
+      } else {
+        userId = user.user.id;
+      }
     } else {
       const uId = "u_mock_" + Math.random().toString(36).substring(2, 10);
       const salt = await bcrypt.genSalt(10);

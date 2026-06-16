@@ -356,6 +356,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
   const handleProvisionPortal = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError('');
 
@@ -373,15 +374,15 @@ export default function SaaSOnboarding({ onBackToLogin }) {
           name: adminName
         });
 
-        if (authError) throw new Error(authError);
+        if (authError) throw new Error(authError.message || authError);
         userId = authData.user.id;
       }
 
       const facilityId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
       const logoUrl = getActiveLogoUrl();
 
-      // 2. Insert new facility document including logo_url & address
-      const { error: facError } = await supabase.from('facilities').insert({
+      // 2. Upsert new facility document including logo_url & address
+      const { error: facError } = await supabase.from('facilities').upsert({
         id: facilityId,
         name: hospitalName,
         code: hospitalCode,
@@ -389,10 +390,10 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         address: hospitalAddress
       });
 
-      if (facError) throw new Error(facError);
+      if (facError) throw new Error(facError.message || facError);
 
-      // 3. Insert admin profile document
-      const { error: profError } = await supabase.from('profiles').insert({
+      // 3. Upsert admin profile document
+      const { error: profError } = await supabase.from('profiles').upsert({
         id: userId,
         full_name: adminName,
         role: 'admin',
@@ -400,7 +401,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         email: adminEmail
       });
 
-      if (profError) throw new Error(profError);
+      if (profError) throw new Error(profError.message || profError);
 
       // 4. Trigger welcome email notification
       await sendNotification('USER_SIGNUP', {

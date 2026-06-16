@@ -26,11 +26,29 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      const userData = {
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.user_metadata?.full_name || session.user.email
-      };
+      // Check if sessionStorage already has the enriched user details (like facility_id or specific roles)
+      const storedUser = sessionStorage.getItem('egesa_health_active_user');
+      let userData = null;
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser);
+          if (parsed && parsed.email === session.user.email) {
+            userData = parsed;
+          }
+        } catch (e) {
+          // ignore parsing error
+        }
+      }
+
+      if (!userData) {
+        userData = {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.full_name || session.user.email,
+          full_name: session.user.user_metadata?.full_name || session.user.email,
+          role: session.user.user_metadata?.role || 'staff'
+        };
+      }
       
       console.log('[AuthContext:checkSession] ✅ Session valid:', userData.email);
       setUser(userData);
@@ -59,7 +77,9 @@ export const AuthProvider = ({ children }) => {
       const userData = {
         id: authUser.id,
         email: authUser.email,
-        name: authUser.user_metadata?.full_name || authUser.email
+        name: authUser.user_metadata?.full_name || authUser.email,
+        full_name: authUser.user_metadata?.full_name || authUser.email,
+        role: authUser.user_metadata?.role || 'staff'
       };
 
       console.log('[AuthContext:login] ✅ Login successful:', userData.email);

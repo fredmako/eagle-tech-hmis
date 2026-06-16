@@ -5,21 +5,19 @@ const { createClient } = require("@supabase/supabase-js");
 // Make sure env is loaded
 require("../config/env");
 
-const isRealSupabase = !!(
-  process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+const isRealSupabase = !!(supabaseUrl && supabaseKey);
 
 let supabaseClient = null;
 
 if (isRealSupabase) {
   console.log(
     "Database Engine: Real Supabase Mode connecting to:",
-    process.env.VITE_SUPABASE_URL
+    supabaseUrl
   );
-  supabaseClient = createClient(
-    process.env.VITE_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY
-  );
+  supabaseClient = createClient(supabaseUrl, supabaseKey);
 } else {
   console.log(
     "Database Engine: Local Sandbox Simulation Mode (sandbox_db.json)"

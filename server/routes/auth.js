@@ -193,13 +193,19 @@ router.post("/supabase-login", async (req, res) => {
   const { access_token } = req.body;
 
   try {
-    const {
-      data: { user },
-      error,
-    } = await supabaseClient.auth.getUser(access_token);
+    if (!supabaseClient) {
+      return res.status(400).json({ error: "Supabase client is not configured on this server. Check env keys." });
+    }
+
+    const { data, error } = await supabaseClient.auth.getUser(access_token);
 
     if (error) {
       return res.status(401).json({ error: error.message });
+    }
+
+    const user = data?.user;
+    if (!user) {
+      return res.status(401).json({ error: "Invalid Supabase session." });
     }
 
     // Check if profile exists

@@ -51,6 +51,8 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
   const [requestRole, setRequestRole] = useState('receptionist');
   const [requestName, setRequestName] = useState('');
   const [requestSuccess, setRequestSuccess] = useState('');
+  const [facilitySearchQuery, setFacilitySearchQuery] = useState('');
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
 
   useEffect(() => {
     setIsSandbox(!!supabase.isSandbox);
@@ -212,6 +214,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                   setRequestName(resData.user.name || '');
                   if (data.length > 0) {
                     setRequestFacility(data[0].id);
+                    setFacilitySearchQuery(`${data[0].name} (${data[0].code})`);
                   }
                   setPendingRequest(resData.pendingRequest || null);
                   return;
@@ -505,6 +508,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       setPendingRequest(null);
       setRequestName('');
       setRequestSuccess('');
+      setFacilitySearchQuery('');
       setError('');
     } catch (err) {
       console.error('Logout error:', err);
@@ -608,6 +612,65 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     }
   };
 
+  const handleGoogleGlobalLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      if (supabase.isSandbox) {
+        // In sandbox, simulate a choice: does the profile exist?
+        const simulateExists = window.confirm(
+          "Sandbox Mock Google Login:\n\nClick [OK] to simulate a user WITH an existing facility profile.\nClick [Cancel] to simulate a user WITHOUT a facility profile (Request Access flow)."
+        );
+        
+        if (simulateExists) {
+          // Case 1: profile exists
+          const activeFac = facilities[0];
+          const loggedUser = {
+            id: 'u_mock_google_user',
+            email: 'google.user@egesa.com',
+            full_name: 'Google Sandbox User',
+            role: 'clinician',
+            facility_id: activeFac?.id,
+            facility_name: activeFac?.name || 'Default Facility',
+            facility_logo: activeFac?.logo_url || null
+          };
+          sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUser));
+          if (checkSession) await checkSession();
+          onLoginSuccess(loggedUser);
+        } else {
+          // Case 2: profile does not exist (no profile request access flow)
+          const mockUser = {
+            id: 'u_mock_google_user_new',
+            email: 'new.google.user@egesa.com',
+            name: 'New Google User'
+          };
+          setTempUser(mockUser);
+          setHasNoProfile(true);
+          setRequestName(mockUser.name);
+          if (facilities.length > 0) {
+            setRequestFacility(facilities[0].id);
+            setFacilitySearchQuery(`${facilities[0].name} (${facilities[0].code})`);
+          }
+          setPendingRequest(null);
+        }
+        setLoading(false);
+        return;
+      } else {
+        sessionStorage.setItem('egesa_health_google_global_login', 'true');
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+        if (error) throw error;
+      }
+    } catch (err) {
+      setError(err.message || 'Google Login failed.');
+      setLoading(false);
+    }
+  };
+
   const handleGoogleSignUp = async () => {
     setLoading(true);
     setError('');
@@ -624,6 +687,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         setRequestName(mockUser.name);
         if (facilities.length > 0) {
           setRequestFacility(facilities[0].id);
+          setFacilitySearchQuery(`${facilities[0].name} (${facilities[0].code})`);
         }
         setPendingRequest(null);
       } else {
@@ -774,6 +838,11 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
 
   // If user is authenticated but has no profile, render role request forms
   if (hasNoProfile) {
+    const filteredFacilities = facilities.filter(fac => 
+      fac.name.toLowerCase().includes(facilitySearchQuery.toLowerCase()) ||
+      fac.code.toLowerCase().includes(facilitySearchQuery.toLowerCase())
+    );
+
     if (pendingRequest) {
       // Render State A: Request Pending Screen
       return (
@@ -851,6 +920,13 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
               <p className="text-xs text-slate-400 mt-1">Specify your clinical role and hospital to request access.</p>
             </div>
 
+            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg p-3 text-xs leading-relaxed mb-4 flex gap-2 font-sans">
+              <ShieldAlert size={16} className="shrink-0 mt-0.5" />
+              <span>
+                <strong>Workspace Not Configured:</strong> We verified your Google account, but it does not belong to any active facility. Search for your hospital below to request access.
+              </span>
+            </div>
+
             {error && (
               <div className="mb-4 bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg p-3 text-xs flex items-start gap-2">
                 <ShieldAlert size={16} className="shrink-0 mt-0.5" />
@@ -880,22 +956,49 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                 />
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Select Target Facility / Hospital
+                  Search & Select Target Facility
                 </label>
-                <select
-                  value={requestFacility}
-                  onChange={(e) => setRequestFacility(e.target.value)}
+                <input
+                  type="text"
+                  value={facilitySearchQuery}
+                  onChange={(e) => {
+                    setFacilitySearchQuery(e.target.value);
+                    setIsSearchDropdownOpen(true);
+                  }}
+                  onFocus={() => setIsSearchDropdownOpen(true)}
+                  placeholder="Type to search facility..."
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 text-xs focus:outline-none focus:border-teal-500 transition"
                   required
-                >
-                  {facilities.map((fac) => (
-                    <option key={fac.id} value={fac.id}>
-                      {fac.name} ({fac.code})
-                    </option>
-                  ))}
-                </select>
+                />
+                {isSearchDropdownOpen && (
+                  <div 
+                    onMouseLeave={() => setIsSearchDropdownOpen(false)}
+                    className="absolute z-10 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-slate-950 border border-slate-800 rounded-lg shadow-xl divide-y divide-slate-900"
+                  >
+                    {filteredFacilities.length > 0 ? (
+                      filteredFacilities.map((fac) => (
+                        <button
+                          key={fac.id}
+                          type="button"
+                          onClick={() => {
+                            setRequestFacility(fac.id);
+                            setFacilitySearchQuery(`${fac.name} (${fac.code})`);
+                            setIsSearchDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-slate-800 transition text-slate-300 hover:text-white cursor-pointer"
+                        >
+                          <span className="font-bold">{fac.name}</span> <span className="text-[10px] text-slate-500">({fac.code})</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2.5 text-xs text-slate-500 italic text-center">
+                        No facilities match your search
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1004,6 +1107,32 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                   {loading ? 'Resolving workspace...' : 'Continue'}
                 </button>
 
+                {/* Divider */}
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-800"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-slate-900 px-3 text-slate-500 font-bold">Or continue with</span>
+                  </div>
+                </div>
+
+                {/* Continue with Google button */}
+                <button
+                  type="button"
+                  onClick={handleGoogleGlobalLogin}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2.5 bg-slate-950 hover:bg-slate-805 border border-slate-800 text-slate-200 font-semibold text-sm py-2.5 px-4 rounded-lg transition active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                >
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+                  </svg>
+                  <span>Continue with Google</span>
+                </button>
+
                 <div className="text-center mt-3">
                   <button
                     type="button"
@@ -1012,7 +1141,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                       setLoginStage('manual_select');
                       if (facilities.length > 0) setSelectedFacility(facilities[0].id);
                     }}
-                    className="text-xs text-teal-400 hover:text-teal-300 font-bold hover:underline"
+                    className="text-xs text-teal-400 hover:text-teal-300 font-bold hover:underline cursor-pointer"
                   >
                     Or select hospital manually
                   </button>

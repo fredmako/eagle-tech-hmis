@@ -525,7 +525,7 @@ export const sendNotification = async (event, payload, facilityId = null) => {
         // Update log to sent
         updateEmailLogStatus(logId, 'sent', { retry_count: currentAttempt });
       } else {
-        // Real outbound dispatch via Appwrite Serverless Function
+        // Real outbound dispatch via Supabase Edge Function
         const invokeRes = await supabase.functions.invoke('send-email', {
           smtpConfig: {
             host: smtp.host,

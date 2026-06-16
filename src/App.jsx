@@ -160,7 +160,7 @@ export default function App() {
   if (!user) {
     const publicContent = (() => {
       if (publicView === 'callback') {
-        return <AuthCallback onCallbackComplete={() => setPublicView('signup')} />;
+        return <AuthCallback onCallbackComplete={(targetView) => setPublicView(targetView || 'signup')} />;
       }
       if (publicView === 'signup') {
         return <SaaSOnboarding onBackToLogin={() => setPublicView('landing')} />;

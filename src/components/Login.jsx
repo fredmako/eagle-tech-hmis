@@ -584,18 +584,12 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         console.log(`[GoogleAuthBroker] Redirecting via custom client: ${clientId}`);
         window.location.href = googleAuthUrl;
       } else {
-        // Fallback to standard Supabase Google Sign-In
-        sessionStorage.setItem('egesa_health_pending_facility', selectedFacility);
-        const { data, error } = await supabase.auth.signInWithGoogle();
-        if (error) throw new Error(error);
-
-        // If in Sandbox Mode, log in immediately because there is no redirect callback
-        if (supabase.isSandbox && data && data.user) {
+        if (supabase.isSandbox) {
           const activeFac = facilities.find(f => f.id === selectedFacility) || facilities[0];
           const loggedUser = {
-            id: data.user.id,
-            full_name: data.user.user_metadata.full_name,
-            role: data.user.user_metadata.role,
+            id: 'u_mock_google_admin',
+            full_name: 'Google Admin',
+            role: 'admin',
             facility_id: selectedFacility,
             facility_name: activeFac?.name || 'Default Facility',
             facility_logo: activeFac?.logo_url || null
@@ -604,6 +598,16 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
           onLoginSuccess(loggedUser);
           setLoading(false);
           return;
+        } else {
+          // Fallback to standard Supabase Google Sign-In
+          sessionStorage.setItem('egesa_health_pending_facility', selectedFacility);
+          const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: `${window.location.origin}/auth/callback`,
+            },
+          });
+          if (error) throw error;
         }
       }
     } catch (err) {
@@ -631,8 +635,13 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         }
         setPendingRequest(null);
       } else {
-        const { error } = await supabase.auth.signInWithGoogle();
-        if (error) throw new Error(error);
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+        if (error) throw error;
       }
     } catch (err) {
       setError(err.message || 'Google Sign-up failed.');

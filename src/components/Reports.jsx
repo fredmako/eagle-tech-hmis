@@ -1166,12 +1166,12 @@ export default function Reports({ user }) {
       await supabase.from('audit_logs').insert({
         facility_id: user.facility_id,
         user_id: user.id,
-        action: 'Appwrite Report Executed',
-        details: `Appwrite Function generated ${reportCategory.toUpperCase()} register report containing ${filteredRecords.length} entries.`
+        action: 'Supabase Report Executed',
+        details: `Supabase Edge Function generated ${reportCategory.toUpperCase()} register report containing ${filteredRecords.length} entries.`
       });
 
       await sendNotification('REPORT_GENERATED', {
-        details: `Custom ${reportCategory.toUpperCase()} report generated via serverless Appwrite Function context (${brandingMode.toUpperCase()} branding).`,
+        details: `Custom ${reportCategory.toUpperCase()} report generated via serverless Supabase Function context (${brandingMode.toUpperCase()} branding).`,
         userName: user.full_name,
         recipientEmail: brandingMode === 'platform' ? 'info@eagletechsolutions.tech' : `info@${facilityInfo.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
       }, user.facility_id);
@@ -1290,7 +1290,7 @@ export default function Reports({ user }) {
             </div>
             <div>
               <span class="meta-label">Compile Engine</span>
-              <span class="meta-val">Appwrite Serverless</span>
+              <span class="meta-val">Supabase Serverless</span>
             </div>
             <div>
               <span class="meta-label">Security Clearance</span>
@@ -1853,7 +1853,7 @@ export default function Reports({ user }) {
                         </div>
                         <div>
                           <span className="text-slate-400 block font-semibold">Compile System</span>
-                          <span className="font-bold">Appwrite serverless</span>
+                          <span className="font-bold">Supabase serverless</span>
                         </div>
                         <div>
                           <span className="text-slate-400 block font-semibold">Printed Date</span>
@@ -2093,7 +2093,7 @@ export default function Reports({ user }) {
                         </div>
                         <div>
                           <span className="text-slate-400 block font-semibold">Compile System</span>
-                          <span className="font-bold">Appwrite serverless</span>
+                          <span className="font-bold">Supabase serverless</span>
                         </div>
                         <div>
                           <span className="text-slate-400 block font-semibold">Printed Date</span>
@@ -2317,7 +2317,7 @@ export default function Reports({ user }) {
                     {genLoading ? (
                       <>
                         <RefreshCw size={14} className="animate-spin" />
-                        Executing Appwrite Function...
+                        Executing Supabase Edge Function...
                       </>
                     ) : genSuccess ? (
                       <>
@@ -2338,7 +2338,7 @@ export default function Reports({ user }) {
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex gap-2.5 items-start">
               <Info size={16} className="text-teal-400 shrink-0 mt-0.5" />
               <p className="text-[10px] text-slate-450 leading-relaxed font-medium">
-                Clicking "Generate & Download" sends the parameters to an Appwrite Cloud Function, which runs server-side compilation, writes an outbox email compliance notice using your Titan SMTP credentials, and records the event in the system audit database.
+                Clicking "Generate & Download" sends the parameters to a Supabase Edge Function, which runs server-side compilation, writes an outbox email compliance notice using your Titan SMTP credentials, and records the event in the system audit database.
               </p>
             </div>
           </div>
@@ -2426,7 +2426,7 @@ export default function Reports({ user }) {
                   </div>
                   <div>
                     <span className="text-slate-400 block font-semibold">Compile System</span>
-                    <span className="font-bold">Appwrite serverless</span>
+                    <span className="font-bold">Supabase serverless</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block font-semibold">Printed Date</span>

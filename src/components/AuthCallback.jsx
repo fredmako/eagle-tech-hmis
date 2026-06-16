@@ -10,30 +10,38 @@ export default function AuthCallback({ onCallbackComplete }) {
 
         if (error) {
           console.error('Auth callback error:', error);
-          setTimeout(() => onCallbackComplete?.(), 2000);
+          window.history.replaceState({}, document.title, '/');
+          setTimeout(() => onCallbackComplete?.('login'), 2000);
           return;
         }
 
         if (data?.session) {
           // User successfully authenticated
           const user = data.session.user;
+          const isOnboarding = sessionStorage.getItem('egesa_health_onboarding_redirect') === 'true';
 
-          // Store the Google user data for the onboarding form
-          sessionStorage.setItem('egesa_health_onboarding_google_user', JSON.stringify({
-            id: user.id,
-            email: user.email,
-            name: user.user_metadata?.full_name || user.email.split('@')[0] || 'Google User'
-          }));
+          if (isOnboarding) {
+            // Store the Google user data for the onboarding form
+            sessionStorage.setItem('egesa_health_onboarding_google_user', JSON.stringify({
+              id: user.id,
+              email: user.email,
+              name: user.user_metadata?.full_name || user.email.split('@')[0] || 'Google User'
+            }));
+          }
 
-          // Redirect back to onboarding with saved state
-          setTimeout(() => onCallbackComplete?.(), 1000);
+          // Clear access token hash and reset pathname to '/'
+          window.history.replaceState({}, document.title, '/');
+
+          // Redirect back with the correct screen view context
+          setTimeout(() => onCallbackComplete?.(isOnboarding ? 'signup' : 'login'), 1000);
         } else {
-          // No session found
-          setTimeout(() => onCallbackComplete?.(), 2000);
+          window.history.replaceState({}, document.title, '/');
+          setTimeout(() => onCallbackComplete?.('login'), 2000);
         }
       } catch (err) {
         console.error('Unexpected error in auth callback:', err);
-        setTimeout(() => onCallbackComplete?.(), 2000);
+        window.history.replaceState({}, document.title, '/');
+        setTimeout(() => onCallbackComplete?.('login'), 2000);
       }
     };
 

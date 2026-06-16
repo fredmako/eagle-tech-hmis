@@ -43,7 +43,7 @@ export default function LandingPage({ onNavigateToLogin, onNavigateToSignup }) {
       icon: Server, 
       title: 'Database & Server Infrastructure', 
       cost: '$29 / month', 
-      desc: 'Secure cloud hosting via dedicated Appwrite instances with automated daily backups and SSL certificates.' 
+      desc: 'Secure cloud hosting via dedicated Supabase instances with automated daily backups and SSL certificates.' 
     },
     { 
       icon: Coins, 

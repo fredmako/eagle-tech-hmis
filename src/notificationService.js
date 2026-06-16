@@ -7,7 +7,7 @@ const LICENSE_PREFIX = 'egesa_facility_license_';
 
 // Default Titan SMTP credentials and preferences
 export const getDefaultSmtpConfig = () => ({
-  host: 'mailbox.titan.email',
+  host: 'smtp.titan.email',
   port: 465,
   encryption: 'SSL',
   sender_email: 'noreply@eagletechsolutions.tech',

@@ -5,7 +5,7 @@ import { sendNotification, getSmtpConfig } from '../notificationService';
 import { Activity, ShieldAlert, CheckCircle, UserPlus, Clock, LogOut, UserCheck } from 'lucide-react';
 
 export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLanding }) {
-  const { login, signup, logout, submitRoleRequest, resolveTenant, acceptInvite } = useAuth();
+  const { login, signup, logout, submitRoleRequest, resolveTenant, acceptInvite, checkSession } = useAuth();
   const [facilities, setFacilities] = useState([]);
   const [selectedFacility, setSelectedFacility] = useState('');
   const [email, setEmail] = useState('');
@@ -86,6 +86,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         };
 
         sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUser));
+        if (checkSession) await checkSession();
 
         // Log auto login event
         await supabase.from('audit_logs').insert({
@@ -195,6 +196,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                   console.log('[Login:fetchFacilities] ✅ JWT exchange successful! Logging in user:', resData.user?.email);
                   localStorage.setItem('egesa_health_token', resData.token);
                   sessionStorage.setItem('egesa_health_active_user', JSON.stringify(resData.user));
+                  if (checkSession) await checkSession();
                   onLoginSuccess(resData.user);
                   return;
                 } else if (resData.status === 'no_profile') {
@@ -585,6 +587,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
           facility_logo: activeFac?.logo_url || null
         };
         sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUser));
+        if (checkSession) await checkSession();
         onLoginSuccess(loggedUser);
         setLoading(false);
         return;

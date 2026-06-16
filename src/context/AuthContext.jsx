@@ -26,6 +26,15 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
+      // If we are currently in the middle of onboarding Google redirect,
+      // DO NOT set the user session context. We need the onboarding flow to handle it.
+      if (sessionStorage.getItem('egesa_health_onboarding_redirect') === 'true') {
+        console.log('[AuthContext:checkSession] Onboarding redirect active. Skipping context auto-login.');
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       // Check if sessionStorage already has the enriched user details (like facility_id or specific roles)
       const storedUser = sessionStorage.getItem('egesa_health_active_user');
       let userData = null;
@@ -40,14 +49,47 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
+      // If we don't have cached user data, fetch the enriched profile from the backend
+      if (!userData && !supabase.isSandbox) {
+        try {
+          console.log('[AuthContext:checkSession] Fetching enriched profile from backend...');
+          const res = await fetch(`${API_URL}/auth/supabase-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: session.access_token })
+          });
+          
+          if (res.ok) {
+            const resData = await res.json();
+            if (resData.status === 'success') {
+              userData = resData.user;
+              localStorage.setItem('egesa_health_token', resData.token);
+              sessionStorage.setItem('egesa_health_active_user', JSON.stringify(userData));
+            } else {
+              console.warn('[AuthContext:checkSession] Backend supabase-login status:', resData.status);
+            }
+          }
+        } catch (fetchErr) {
+          console.error('[AuthContext:checkSession] Failed to fetch profile from backend:', fetchErr.message);
+        }
+      }
+
       if (!userData) {
-        userData = {
-          id: session.user.id,
-          email: session.user.email,
-          name: session.user.user_metadata?.full_name || session.user.email,
-          full_name: session.user.user_metadata?.full_name || session.user.email,
-          role: session.user.user_metadata?.role || 'staff'
-        };
+        if (supabase.isSandbox) {
+          userData = {
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.user_metadata?.full_name || session.user.email,
+            full_name: session.user.user_metadata?.full_name || session.user.email,
+            role: session.user.user_metadata?.role || 'staff'
+          };
+        } else {
+          // If not in sandbox and no profile exists, do not log them in
+          console.log('[AuthContext:checkSession] No profile found on backend, keeping user as null');
+          setUser(null);
+          setLoading(false);
+          return;
+        }
       }
       
       console.log('[AuthContext:checkSession] ✅ Session valid:', userData.email);
@@ -276,7 +318,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, signup, logout, submitRoleRequest, authFetch, resolveTenant, inviteStaff, acceptInvite, getInvitations, revokeInvite }}>
+    <AuthContext.Provider value={{ user, setUser, loading, error, login, signup, logout, submitRoleRequest, authFetch, resolveTenant, inviteStaff, acceptInvite, getInvitations, revokeInvite, checkSession }}>
       {children}
     </AuthContext.Provider>
   );

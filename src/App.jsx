@@ -36,12 +36,15 @@ import {
   Clipboard,
   Bed,
   ShieldCheck,
-  Sliders
+  Sliders,
+  Menu,
+  X
 } from 'lucide-react';
 
 export default function App() {
   const { user, logout, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [preselectedPatient, setPreselectedPatient] = useState(null);
   const [publicView, setPublicView] = useState(() => {
     // Check if we're coming back from OAuth callback
@@ -213,19 +216,41 @@ export default function App() {
 
   return (
     <div className={`flex h-screen bg-slate-950 text-slate-100 overflow-hidden theme-${theme} font-${font}`}>
+      {/* Sidebar Navigation Overlay Backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0
+        transition-transform duration-300 transform md:translate-x-0 md:static md:flex
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
         {/* Brand logo header */}
-        <div className="p-4 border-b border-slate-800 flex items-center gap-2.5">
-          {renderLogo(user.facility_logo)}
-          <div className="truncate flex-1">
-            <span className="font-bold tracking-wide text-xs text-white block uppercase truncate leading-tight">
-              {user.facility_name || 'Eagle Tech Hospital Management Systems'}
-            </span>
-            <span className="text-[9px] text-slate-505 font-bold uppercase tracking-wider block mt-0.5 truncate leading-none">
-              {t('poweredBy')}
-            </span>
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 truncate">
+            {renderLogo(user.facility_logo)}
+            <div className="truncate flex-1">
+              <span className="font-bold tracking-wide text-xs text-white block uppercase truncate leading-tight">
+                {user.facility_name || 'Eagle Tech Hospital Management Systems'}
+              </span>
+              <span className="text-[9px] text-slate-505 font-bold uppercase tracking-wider block mt-0.5 truncate leading-none">
+                {t('poweredBy')}
+              </span>
+            </div>
           </div>
+          {/* Close button for mobile sidebar drawer */}
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="md:hidden text-slate-450 hover:text-white p-1 rounded focus:outline-none"
+            aria-label="Close sidebar"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Menu Items */}
@@ -236,7 +261,10 @@ export default function App() {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  setIsSidebarOpen(false); // Close sidebar on selection for mobile screens
+                }}
                 className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 ${
                   isActive
                     ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
@@ -263,7 +291,10 @@ export default function App() {
           </div>
 
           <button
-            onClick={handleSignOut}
+            onClick={() => {
+              handleSignOut();
+              setIsSidebarOpen(false);
+            }}
             className="w-full flex items-center justify-center gap-2 border border-slate-800 hover:border-red-500/20 bg-slate-900/50 hover:bg-red-500/5 hover:text-red-400 py-1.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition duration-150"
           >
             <LogOut size={13} />
@@ -274,8 +305,30 @@ export default function App() {
 
       {/* Main Workspace Frame */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-950">
+        {/* Mobile Header Bar */}
+        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="text-slate-400 hover:text-white p-1 rounded focus:outline-none"
+              aria-label="Open sidebar"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="flex items-center gap-2">
+              {renderLogo(user.facility_logo)}
+              <span className="font-bold tracking-wide text-xs text-white uppercase truncate max-w-[180px]">
+                {user.facility_name || 'Eagle Tech'}
+              </span>
+            </div>
+          </div>
+          <span className="text-[10px] text-teal-400 font-semibold uppercase bg-teal-500/10 px-2 py-0.5 rounded">
+            {user.role}
+          </span>
+        </header>
+
         {/* Workspace view area */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8">
           {activeTab === 'dashboard' && <Dashboard user={user} onNavigate={setActiveTab} />}
           {activeTab === 'registration' && <Registration user={user} onNavigateToQueue={handleNavigateToQueue} />}
           {activeTab === 'queue' && (

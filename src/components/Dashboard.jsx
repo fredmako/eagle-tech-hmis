@@ -148,47 +148,52 @@ export default function Dashboard({ user, onNavigate }) {
     if (user.role === "admin") return true;
     return roleAccess[tab]?.includes(user.role) || false;
   };
-
   return (
     <div className="space-y-6">
       {/* Top Banner / Welcome */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 sm:p-6 rounded-2xl">
         <div>
-          <h1 className="text-xl font-bold text-white">
+          <h1 className="text-lg sm:text-xl font-bold text-white">
             Welcome, {user.full_name}
           </h1>
-          <p className="text-slate-400 text-sm mt-0.5">
+          <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
             Facility:{" "}
             <span className="text-teal-400 font-semibold">
               {user.facility_name}
             </span>{" "}
             | Role:{" "}
-            <span className="text-teal-400 uppercase font-semibold text-xs tracking-wider bg-teal-500/10 px-2 py-0.5 rounded">
+            <span className="text-teal-400 uppercase font-semibold text-[10px] tracking-wider bg-teal-500/10 px-2 py-0.5 rounded">
               {user.role}
             </span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {stats.failedSync > 0 ? (
             <button
               onClick={handleManualSync}
               disabled={syncing}
-              className="flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 font-medium text-xs px-4 py-2 rounded-lg transition"
+              className="flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 font-medium text-xs px-3 sm:px-4 py-2 rounded-lg transition"
             >
               <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
-              {syncing
-                ? "Syncing DHIS2..."
-                : "DHIS2 Sync Failed: Click to retry"}
+              {syncing ? (
+                <span>Syncing...</span>
+              ) : (
+                <>
+                  <span className="hidden sm:inline">DHIS2 Sync Failed: Click to retry</span>
+                  <span className="sm:hidden">Sync Failed: Retry</span>
+                </>
+              )}
             </button>
           ) : (
-            <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 text-green-400 font-medium text-xs px-4 py-2 rounded-lg">
+            <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 text-green-400 font-medium text-xs px-3 sm:px-4 py-2 rounded-lg">
               <CheckCircle size={14} />
-              MOH Systems Fully Synced
+              <span className="hidden sm:inline">MOH Systems Fully Synced</span>
+              <span className="sm:hidden">MOH Synced</span>
             </div>
           )}
           <button
             onClick={() => onNavigate("registration")}
-            className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-semibold text-xs px-4 py-2 rounded-lg shadow-lg shadow-teal-500/10 transition active:scale-[0.98]"
+            className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-semibold text-xs px-3 sm:px-4 py-2 rounded-lg shadow-lg shadow-teal-500/10 transition active:scale-[0.98] whitespace-nowrap"
           >
             Register Patient
           </button>
@@ -267,15 +272,15 @@ export default function Dashboard({ user, onNavigate }) {
               <button
                 key={i}
                 onClick={() => onNavigate(item.tab)}
-                className={`border ${item.color} ${item.bg} ${item.hover} p-4 rounded-xl flex flex-col justify-between shadow-sm transition-all duration-300 hover:scale-[1.03] hover:shadow-lg active:scale-[0.98] cursor-pointer text-left w-full`}
+                className={`border ${item.color} ${item.bg} ${item.hover} p-3.5 sm:p-4 rounded-xl flex flex-col justify-between shadow-sm transition-all duration-300 hover:scale-[1.03] hover:shadow-lg active:scale-[0.98] cursor-pointer text-left w-full`}
               >
                 <div className="flex justify-between items-start w-full">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-tight">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-tight">
                     {item.label}
                   </span>
-                  <Icon size={16} className="opacity-80" />
+                  <Icon size={16} className="opacity-80 shrink-0 ml-1" />
                 </div>
-                <span className="text-3xl font-extrabold text-white mt-4">
+                <span className="text-2xl sm:text-3xl font-extrabold text-white mt-3 sm:mt-4">
                   {item.value}
                 </span>
               </button>
@@ -284,16 +289,16 @@ export default function Dashboard({ user, onNavigate }) {
             return (
               <div
                 key={i}
-                className="border border-slate-800/40 bg-slate-900/20 opacity-50 p-4 rounded-xl flex flex-col justify-between shadow-sm text-left w-full select-none"
+                className="border border-slate-800/40 bg-slate-900/20 opacity-50 p-3.5 sm:p-4 rounded-xl flex flex-col justify-between shadow-sm text-left w-full select-none"
                 title="Your current role does not have permission to access this module"
               >
                 <div className="flex justify-between items-start w-full">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider leading-tight">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider leading-tight">
                     {item.label}
                   </span>
-                  <Icon size={16} className="text-slate-600" />
+                  <Icon size={16} className="text-slate-600 shrink-0 ml-1" />
                 </div>
-                <span className="text-3xl font-extrabold text-slate-600 mt-4">
+                <span className="text-2xl sm:text-3xl font-extrabold text-slate-600 mt-3 sm:mt-4">
                   {item.value}
                 </span>
               </div>

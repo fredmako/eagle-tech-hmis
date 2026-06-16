@@ -578,7 +578,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       if (smtp && smtp.google_auth_enabled && smtp.google_client_id) {
         // Custom OAuth Identity Broker redirect
         const clientId = smtp.google_client_id;
-        const callbackUrl = encodeURIComponent(`${window.location.origin}${window.location.pathname}`);
+        const callbackUrl = encodeURIComponent(`${window.location.origin}/auth/callback`);
         const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${callbackUrl}&response_type=code&scope=email%20profile%20openid&state=${selectedFacility}`;
 
         console.log(`[GoogleAuthBroker] Redirecting via custom client: ${clientId}`);

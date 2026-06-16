@@ -574,41 +574,30 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     setLoading(true);
     setError('');
     try {
-      const smtp = getSmtpConfig(selectedFacility);
-      if (smtp && smtp.google_auth_enabled && smtp.google_client_id) {
-        // Custom OAuth Identity Broker redirect
-        const clientId = smtp.google_client_id;
-        const callbackUrl = encodeURIComponent(`${window.location.origin}/auth/callback`);
-        const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${callbackUrl}&response_type=code&scope=email%20profile%20openid&state=${selectedFacility}`;
-
-        console.log(`[GoogleAuthBroker] Redirecting via custom client: ${clientId}`);
-        window.location.href = googleAuthUrl;
+      if (supabase.isSandbox) {
+        const activeFac = facilities.find(f => f.id === selectedFacility) || facilities[0];
+        const loggedUser = {
+          id: 'u_mock_google_admin',
+          full_name: 'Google Admin',
+          role: 'admin',
+          facility_id: selectedFacility,
+          facility_name: activeFac?.name || 'Default Facility',
+          facility_logo: activeFac?.logo_url || null
+        };
+        sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUser));
+        onLoginSuccess(loggedUser);
+        setLoading(false);
+        return;
       } else {
-        if (supabase.isSandbox) {
-          const activeFac = facilities.find(f => f.id === selectedFacility) || facilities[0];
-          const loggedUser = {
-            id: 'u_mock_google_admin',
-            full_name: 'Google Admin',
-            role: 'admin',
-            facility_id: selectedFacility,
-            facility_name: activeFac?.name || 'Default Facility',
-            facility_logo: activeFac?.logo_url || null
-          };
-          sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loggedUser));
-          onLoginSuccess(loggedUser);
-          setLoading(false);
-          return;
-        } else {
-          // Fallback to standard Supabase Google Sign-In
-          sessionStorage.setItem('egesa_health_pending_facility', selectedFacility);
-          const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-              redirectTo: `${window.location.origin}/auth/callback`,
-            },
-          });
-          if (error) throw error;
-        }
+        // Link directly to Supabase Google Sign-In
+        sessionStorage.setItem('egesa_health_pending_facility', selectedFacility);
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+        if (error) throw error;
       }
     } catch (err) {
       setError(err.message || 'Google Login failed.');

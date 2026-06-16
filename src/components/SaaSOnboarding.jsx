@@ -403,12 +403,16 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
       if (profError) throw new Error(profError.message || profError);
 
-      // 4. Trigger welcome email notification
-      await sendNotification('USER_SIGNUP', {
-        adminName,
-        adminEmail,
-        recipientEmail: adminEmail
-      }, facilityId);
+      // 4. Trigger welcome email notification (non-blocking, should not crash onboarding if SMTP fails)
+      try {
+        await sendNotification('USER_SIGNUP', {
+          adminName,
+          adminEmail,
+          recipientEmail: adminEmail
+        }, facilityId);
+      } catch (emailErr) {
+        console.warn('[SaaSOnboarding] Welcome email notification dispatch failed:', emailErr.message || emailErr);
+      }
 
       // Cache details for redirect auto-fill
       sessionStorage.setItem('egesa_health_new_facility_id', facilityId);

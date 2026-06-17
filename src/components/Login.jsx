@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { sendNotification, getSmtpConfig } from '../notificationService';
-import { Activity, ShieldAlert, CheckCircle, UserPlus, Clock, LogOut, UserCheck } from 'lucide-react';
+import { Activity, ShieldAlert, CheckCircle, UserPlus, Clock, LogOut, UserCheck, ShieldCheck, Heart } from 'lucide-react';
 
 export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLanding }) {
   const { login, signup, logout, submitRoleRequest, resolveTenant, acceptInvite, checkSession } = useAuth();
@@ -18,6 +18,48 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
   const [loginStage, setLoginStage] = useState('email_check'); // 'email_check', 'password_entry', 'oauth_entry', 'accept_invite', 'manual_select'
   const [resolvedTenant, setResolvedTenant] = useState(null);
   const [resolvedInvite, setResolvedInvite] = useState(null);
+
+  const renderLogo = (logoUrl) => {
+    if (!logoUrl) {
+      return (
+        <div className="bg-teal-500/10 text-teal-400 p-1.5 rounded">🏥</div>
+      );
+    }
+    
+    if (logoUrl.startsWith('preset:')) {
+      const presetKey = logoUrl.split(':')[1];
+      if (presetKey === 'shield') {
+        return (
+          <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 p-1.5 rounded">
+            <ShieldCheck size={18} fill="currentColor" />
+          </div>
+        );
+      }
+      if (presetKey === 'cross') {
+        return (
+          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-1.5 rounded">
+            <Activity size={18} />
+          </div>
+        );
+      }
+      return (
+        <div className="bg-teal-500/10 border border-teal-500/20 text-teal-400 p-1.5 rounded">
+          <Heart size={18} fill="currentColor" />
+        </div>
+      );
+    }
+    
+    return (
+      <img 
+        src={logoUrl} 
+        alt="Facility Logo" 
+        className="w-8 h-8 rounded object-cover border border-slate-700"
+        onError={(e) => {
+          e.target.src = 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=128&auto=format&fit=crop&q=60';
+        }}
+      />
+    );
+  };
   
   // Accept invite fields
   const [inviteName, setInviteName] = useState('');
@@ -1154,11 +1196,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                 {/* Resolved Tenant Branding Header */}
                 <div className="bg-slate-950/40 border border-slate-850 p-3 rounded-xl flex items-center gap-3 mb-2">
                   <div className="shrink-0">
-                    {resolvedTenant?.logo_url ? (
-                      <img src={resolvedTenant.logo_url} className="w-8 h-8 rounded object-cover" alt="logo" />
-                    ) : (
-                      <div className="bg-teal-500/10 text-teal-400 p-1.5 rounded">🏥</div>
-                    )}
+                    {renderLogo(resolvedTenant?.logo_url)}
                   </div>
                   <div className="truncate">
                     <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider block">Resolved Facility</span>
@@ -1231,11 +1269,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                 {/* Resolved Tenant Branding Header */}
                 <div className="bg-slate-950/40 border border-slate-850 p-3 rounded-xl flex items-center gap-3 mb-2">
                   <div className="shrink-0">
-                    {resolvedTenant?.logo_url ? (
-                      <img src={resolvedTenant.logo_url} className="w-8 h-8 rounded object-cover" alt="logo" />
-                    ) : (
-                      <div className="bg-teal-500/10 text-teal-400 p-1.5 rounded">🏥</div>
-                    )}
+                    {renderLogo(resolvedTenant?.logo_url)}
                   </div>
                   <div className="truncate">
                     <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider block">Resolved Facility</span>

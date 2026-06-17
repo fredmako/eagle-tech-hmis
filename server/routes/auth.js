@@ -830,6 +830,8 @@ router.post("/role-request", async (req, res) => {
       "audit_logs",
       "log_" + Math.random().toString(36).substring(2, 12),
       {
+        facility_id: facility_id,
+        user_id: user_id,
         action: "ROLE_REQUEST_SUBMITTED",
         details: `${full_name} (${email}) requested role ${requested_role.toUpperCase()} for facility ID ${facility_id}.`,
       }
@@ -906,6 +908,8 @@ router.post("/approve-request", authenticateToken, async (req, res) => {
       "audit_logs",
       "log_" + Math.random().toString(36).substring(2, 12),
       {
+        facility_id: req.user.facility_id,
+        user_id: req.user.id,
         action: "ROLE_REQUEST_APPROVED",
         details: `Admin ${req.user.full_name} approved role ${request.requested_role.toUpperCase()} for ${request.full_name}.`,
       }
@@ -942,6 +946,8 @@ router.post("/reject-request", authenticateToken, async (req, res) => {
       "audit_logs",
       "log_" + Math.random().toString(36).substring(2, 12),
       {
+        facility_id: req.user.facility_id,
+        user_id: req.user.id,
         action: "ROLE_REQUEST_REJECTED",
         details: `Admin ${req.user.full_name} rejected role request ID ${request_id}.`,
       }

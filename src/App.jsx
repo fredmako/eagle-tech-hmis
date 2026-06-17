@@ -14,6 +14,8 @@ import Reports from './components/Reports';
 import Admin from './components/Admin';
 import PatientDashboard from './components/PatientDashboard';
 import Ward from './components/Ward';
+import Radiology from './components/Radiology';
+import Surgery from './components/Surgery';
 import SaaSOnboarding from './components/SaaSOnboarding';
 import LandingPage from './components/LandingPage';
 import Preferences from './components/Preferences';
@@ -36,6 +38,7 @@ import {
   Clipboard,
   Bed,
   ShieldCheck,
+  Camera,
   Sliders,
   Menu,
   X
@@ -200,6 +203,8 @@ export default function App() {
     { id: 'triage', label: 'Triage Desk', icon: Heart, roles: ['nurse', 'admin'] },
     { id: 'consultation', label: 'OPD Consultation', icon: Stethoscope, roles: ['clinician', 'admin'] },
     { id: 'orders', label: 'Laboratory Desk', icon: FlaskConical, roles: ['lab_tech', 'admin'] },
+    { id: 'radiology', label: 'Radiology Desk', icon: Camera, roles: ['lab_tech', 'clinician', 'admin'] },
+    { id: 'surgery', label: 'Surgery Desk', icon: ShieldCheck, roles: ['clinician', 'admin'] },
     { id: 'pharmacy', label: 'Pharmacy Desk', icon: Pill, roles: ['pharmacist', 'admin'] },
     { id: 'billing', label: 'Cashier / Billing', icon: DollarSign, roles: ['cashier', 'admin'] },
     { id: 'reports', label: 'MOH Reports', icon: FileSpreadsheet, roles: ['admin'] },
@@ -341,6 +346,8 @@ export default function App() {
           {activeTab === 'triage' && <Triage user={user} onComplete={() => setActiveTab('dashboard')} />}
           {activeTab === 'consultation' && <Consultation user={user} onComplete={() => setActiveTab('dashboard')} />}
           {activeTab === 'orders' && <Orders user={user} onComplete={() => setActiveTab('dashboard')} />}
+          {activeTab === 'radiology' && <Radiology user={user} onComplete={() => setActiveTab('dashboard')} />}
+          {activeTab === 'surgery' && <Surgery user={user} onComplete={() => setActiveTab('dashboard')} />}
           {activeTab === 'pharmacy' && <Pharmacy user={user} onComplete={() => setActiveTab('dashboard')} />}
           {activeTab === 'billing' && <Billing user={user} onComplete={() => setActiveTab('dashboard')} />}
           {activeTab === 'reports' && <Reports user={user} />}

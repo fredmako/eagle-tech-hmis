@@ -59,7 +59,8 @@ export const diseaseMaster = [
     suggestedDepartment: "Ward",
     severityDefault: "Severe",
     suggestedMedications: ["Ceftriaxone", "Amoxicillin", "Paracetamol"],
-    suggestedLabs: ["Full Blood Count (FBC)", "Sputum Gram Stain", "Blood Culture"]
+    suggestedLabs: ["Full Blood Count (FBC)", "Sputum Gram Stain", "Blood Culture"],
+    suggestedRadiology: ["Chest X-Ray"]
   },
   {
     code: "J45.909",
@@ -189,7 +190,8 @@ export const diseaseMaster = [
     suggestedDepartment: "Maternity",
     severityDefault: "Severe",
     suggestedMedications: ["Magnesium sulfate", "Hydrochlorothiazide"],
-    suggestedLabs: ["Urinalysis Dipstick", "Kidney Function Test (KFT)", "Urine Protein 24h"]
+    suggestedLabs: ["Urinalysis Dipstick", "Kidney Function Test (KFT)", "Urine Protein 24h"],
+    suggestedSurgeries: ["Caesarean Section"]
   },
   {
     code: "G40.9",
@@ -648,5 +650,79 @@ export const labTestMaster = [
       { name: "H. pylori Antigen", unit: "", range: "Negative" }
     ],
     sampleType: "Stool"
+  }
+];
+
+export const radiologyTestMaster = [
+  {
+    id: "rad_1",
+    name: "Chest X-Ray",
+    price: 600,
+    modality: "X-RAY",
+    bodyPart: "Chest",
+    description: "Standard posteroanterior view of chest to evaluate lungs and heart."
+  },
+  {
+    id: "rad_2",
+    name: "Abdominal Ultrasound",
+    price: 1000,
+    modality: "US",
+    bodyPart: "Abdomen",
+    description: "Ultrasound of abdomen to examine organs like liver, kidneys, gallbladder."
+  },
+  {
+    id: "rad_3",
+    name: "Brain CT Scan",
+    price: 4500,
+    modality: "CT",
+    bodyPart: "Head",
+    description: "Computed Tomography scan of brain to evaluate for hemorrhage, masses, or stroke."
+  },
+  {
+    id: "rad_4",
+    name: "Knee MRI",
+    price: 8000,
+    modality: "MRI",
+    bodyPart: "Extremities",
+    description: "Magnetic Resonance Imaging of knee joint to evaluate ligaments and cartilage."
+  },
+  {
+    id: "rad_5",
+    name: "Pelvic Ultrasound",
+    price: 1000,
+    modality: "US",
+    bodyPart: "Pelvis",
+    description: "Pelvic ultrasound to examine reproductive organs."
+  }
+];
+
+export const surgicalProcedureMaster = [
+  {
+    id: "surg_1",
+    name: "Hernia Repair",
+    price: 25000,
+    department: "General Surgery",
+    description: "Surgical correction of inguinal or abdominal wall hernia."
+  },
+  {
+    id: "surg_2",
+    name: "Caesarean Section",
+    price: 35000,
+    department: "Obstetrics / Gynecology",
+    description: "Surgical delivery of a baby through abdominal and uterine incisions."
+  },
+  {
+    id: "surg_3",
+    name: "Appendectomy",
+    price: 20000,
+    department: "General Surgery",
+    description: "Emergency surgical removal of inflamed appendix."
+  },
+  {
+    id: "surg_4",
+    name: "Cholecystectomy",
+    price: 30000,
+    department: "General Surgery",
+    description: "Surgical removal of gallbladder due to gallstones."
   }
 ];

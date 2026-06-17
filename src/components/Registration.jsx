@@ -39,10 +39,7 @@ export default function Registration({ user, onNavigateToQueue }) {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-
+  const performSearch = async (query) => {
     setSearching(true);
     setMessage({ type: '', text: '' });
     try {
@@ -50,18 +47,52 @@ export default function Registration({ user, onNavigateToQueue }) {
       if (error) throw error;
       
       const filtered = data ? data.filter(p => 
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        p.national_id?.includes(searchQuery) ||
-        p.facility_id_code?.toLowerCase().includes(searchQuery.toLowerCase())
+        p.name.toLowerCase().includes(query.toLowerCase()) || 
+        p.national_id?.includes(query) ||
+        p.facility_id_code?.toLowerCase().includes(query.toLowerCase())
       ) : [];
 
-      setSearchResults(filtered);
+      if (filtered.length > 0) {
+        const patientIds = filtered.map(p => p.id);
+        const { data: ords } = await supabase.from('orders').select('*').in('status', ['ordered', 'pending', 'prescribed', 'scheduled', 'completed', 'verified']);
+        const { data: invs } = await supabase.from('invoices').select('*').eq('status', 'unpaid');
+        const { data: vsts } = await supabase.from('visits').select('*').in('patient_id', patientIds);
+
+        const enriched = filtered.map(p => {
+          const ptVisits = vsts ? vsts.filter(v => v.patient_id === p.id) : [];
+          const ptVisitIds = ptVisits.map(v => v.id);
+
+          const pendingLabs = ords ? ords.filter(o => ptVisitIds.includes(o.visit_id) && o.type === 'lab' && o.status !== 'released' && o.status !== 'cancelled') : [];
+          const pendingRad = ords ? ords.filter(o => ptVisitIds.includes(o.visit_id) && o.type === 'radiology' && o.status !== 'released' && o.status !== 'cancelled') : [];
+          const scheduledFollowups = ords ? ords.filter(o => ptVisitIds.includes(o.visit_id) && o.type === 'follow_up' && o.status === 'scheduled') : [];
+          const unpaidInvoices = invs ? invs.filter(i => ptVisitIds.includes(i.visit_id)) : [];
+
+          return {
+            ...p,
+            alerts: {
+              pendingLabsCount: pendingLabs.length,
+              pendingRadCount: pendingRad.length,
+              scheduledFollowups,
+              unpaidBalance: unpaidInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
+            }
+          };
+        });
+        setSearchResults(enriched);
+      } else {
+        setSearchResults([]);
+      }
       setSearched(true);
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
     } finally {
       setSearching(false);
     }
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    performSearch(searchQuery);
   };
 
   const handleRegister = async (e) => {
@@ -182,21 +213,74 @@ export default function Registration({ user, onNavigateToQueue }) {
             ) : (
               <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                 {searchResults.map((pt) => (
-                  <div key={pt.id} className="bg-slate-950 border border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-teal-500/30 transition">
-                    <div>
-                      <span className="font-bold text-slate-200 block text-sm">{pt.name}</span>
-                      <span className="text-xs text-slate-505 font-semibold uppercase">{pt.gender} | Age: {new Date().getFullYear() - new Date(pt.dob).getFullYear()} yrs</span>
-                      <div className="grid grid-cols-2 gap-x-4 mt-1 text-[10px] text-slate-400">
-                        <span>Code: <span className="text-teal-400 font-semibold">{pt.facility_id_code}</span></span>
-                        <span>Phone: <span className="text-slate-300 font-semibold">{parsePatientContact(pt.phone).phone}</span></span>
+                  <div key={pt.id} className="bg-slate-950 border border-slate-800/80 rounded-xl p-4 flex flex-col justify-between gap-3 hover:border-teal-500/30 transition">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                      <div>
+                        <span className="font-bold text-slate-200 block text-sm">{pt.name}</span>
+                        <span className="text-xs text-slate-500 font-semibold uppercase">{pt.gender} | Age: {new Date().getFullYear() - new Date(pt.dob).getFullYear()} yrs</span>
+                        <div className="grid grid-cols-2 gap-x-4 mt-1 text-[10px] text-slate-400">
+                          <span>Code: <span className="text-teal-400 font-semibold">{pt.facility_id_code}</span></span>
+                          <span>Phone: <span className="text-slate-300 font-semibold">{parsePatientContact(pt.phone).phone}</span></span>
+                        </div>
                       </div>
+                      <button
+                        onClick={() => onNavigateToQueue(pt)}
+                        className="bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 font-semibold text-xs py-1.5 px-3 rounded-lg border border-teal-500/20 transition self-end sm:self-center shrink-0"
+                      >
+                        Open Visit / Queue
+                      </button>
                     </div>
-                    <button
-                      onClick={() => onNavigateToQueue(pt)}
-                      className="bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 font-semibold text-xs py-1.5 px-3 rounded-lg border border-teal-500/20 transition self-end sm:self-center"
-                    >
-                      Open Visit / Queue
-                    </button>
+                    
+                    {/* Clinical Journey Alerts */}
+                    {pt.alerts && (
+                      <div className="flex flex-wrap gap-1.5 mt-1 border-t border-slate-900 pt-2 w-full">
+                        {pt.alerts.pendingLabsCount > 0 && (
+                          <span className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                            ⚠️ {pt.alerts.pendingLabsCount} Pending Lab
+                          </span>
+                        )}
+                        {pt.alerts.pendingRadCount > 0 && (
+                          <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                            ⚡ {pt.alerts.pendingRadCount} Imaging Ordered
+                          </span>
+                        )}
+                        {pt.alerts.unpaidBalance > 0 && (
+                          <span className="bg-red-500/10 text-red-400 border border-red-500/20 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                            💳 Bill Unpaid: {pt.alerts.unpaidBalance}/-
+                          </span>
+                        )}
+                        {pt.alerts.scheduledFollowups.map((f, fIdx) => (
+                          <div key={fIdx} className="bg-teal-500/10 text-teal-400 border border-teal-500/20 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider flex items-center gap-1.5">
+                            📅 Follow-up: {f.instructions}
+                            <button
+                              onClick={async () => {
+                                try {
+                                  // Mark scheduled follow-up order as completed
+                                  await supabase.from('orders').update({ status: 'completed' }).eq('id', f.id);
+                                  // Create active visit in OPD Consultation
+                                  await supabase.from('visits').insert({
+                                    patient_id: pt.id,
+                                    facility_id: user.facility_id,
+                                    department: 'consultation',
+                                    priority: 'routine',
+                                    status: 'waiting'
+                                  });
+                                  setMessage({ type: 'success', text: `Patient successfully checked in for scheduled follow-up review!` });
+                                  // Refresh search
+                                  performSearch(searchQuery); 
+                                } catch (err) {
+                                  setMessage({ type: 'error', text: err.message });
+                                }
+                              }}
+                              className="bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold px-1.5 py-0.2 rounded transition active:scale-[0.96]"
+                              title="Check-in patient now"
+                            >
+                              Check-in
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

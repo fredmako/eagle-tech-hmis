@@ -104,7 +104,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
   };
 
   // Group visits by department
-  const depts = ['triage', 'consultation', 'lab', 'pharmacy', 'billing'];
+  const depts = ['triage', 'consultation', 'lab', 'radiology', 'surgery', 'ward', 'pharmacy', 'billing'];
   const getDeptVisits = (deptName) => {
     return activeVisits.filter(v => v.department === deptName && v.status !== 'completed');
   };
@@ -162,6 +162,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
               <option value="triage">Triage (Vitals)</option>
               <option value="consultation">OPD Consultation</option>
               <option value="lab">Lab Orders</option>
+              <option value="radiology">Radiology / Imaging</option>
+              <option value="surgery">Surgery / Theatre</option>
+              <option value="ward">Inpatient Ward</option>
               <option value="pharmacy">Pharmacy Dispensing</option>
               <option value="billing">Billing Payments</option>
             </select>
@@ -209,7 +212,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
           <Layers size={14} /> Clinical Queue Board
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           {depts.map((deptName) => {
             const list = getDeptVisits(deptName);
             return (

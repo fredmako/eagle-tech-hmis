@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { parsePatientContact } from '../notificationService';
-import { User, Clipboard, Activity, FlaskConical, Pill, FileText, Calendar, DollarSign, Bed } from 'lucide-react';
+import { User, Clipboard, Activity, FlaskConical, Pill, FileText, Calendar, DollarSign, Bed, ShieldCheck, Camera } from 'lucide-react';
 
 export default function PatientDashboard() {
   const [patients, setPatients] = useState([]);
@@ -14,6 +14,7 @@ export default function PatientDashboard() {
   const [consultations, setConsultations] = useState([]);
   const [orders, setOrders] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [wardLogs, setWardLogs] = useState([]);
 
   useEffect(() => {
     fetchPatients();
@@ -29,6 +30,7 @@ export default function PatientDashboard() {
       setConsultations([]);
       setOrders([]);
       setInvoices([]);
+      setWardLogs([]);
     }
   }, [selectedPatientId]);
 
@@ -48,8 +50,23 @@ export default function PatientDashboard() {
     try {
       // 1. Get patient details
       const { data: pts } = await supabase.from('patients').select('*').eq('id', patientId);
+      let patientName = '';
       if (pts && pts.length > 0) {
         setPatientData(pts[0]);
+        patientName = pts[0].name;
+      }
+
+      // Fetch ward observations matching patient name
+      if (patientName) {
+        const { data: wlogs } = await supabase
+          .from('audit_logs')
+          .select('*')
+          .eq('action', 'Ward Observation Logged')
+          .ilike('details', `%${patientName}%`)
+          .order('created_at', { ascending: false });
+        setWardLogs(wlogs || []);
+      } else {
+        setWardLogs([]);
       }
 
       // 2. Get visits
@@ -294,9 +311,8 @@ export default function PatientDashboard() {
                               </div>
                             </div>
                           )}
-
-                          {/* Orders and Prescriptions List */}
-                          {vOrders.length > 0 && (
+                                                 {/* Orders and Prescriptions List */}
+                          {(vOrders.length > 0 || (visit.department === 'ward' && wardLogs.length > 0)) && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                               {/* Labs */}
                               {vOrders.some(o => o.type === 'lab') && (
@@ -312,9 +328,9 @@ export default function PatientDashboard() {
                                         <div className="flex justify-between items-center">
                                           <span className="font-semibold text-slate-350">{o.item_name}</span>
                                           <span className={`px-1.5 py-0.2 rounded text-[8px] font-bold uppercase tracking-wider ${
-                                            o.status === 'released' || o.status === 'completed' ? 'bg-green-500/10 text-green-450 border border-green-500/15' :
-                                            o.status === 'rejected' ? 'bg-red-500/10 text-red-450 border border-red-500/15' :
-                                            'bg-yellow-500/10 text-yellow-450 border border-yellow-500/15'
+                                            o.status === 'released' || o.status === 'completed' ? 'bg-green-500/10 text-green-455 border border-green-500/15' :
+                                            o.status === 'rejected' ? 'bg-red-500/10 text-red-455 border border-red-500/15' :
+                                            'bg-yellow-500/10 text-yellow-455 border border-yellow-500/15'
                                           }`}>
                                             {o.status || 'ordered'}
                                           </span>
@@ -351,7 +367,7 @@ export default function PatientDashboard() {
                                         <div className="flex justify-between items-start gap-1">
                                           <div>
                                             <span className="font-semibold text-slate-350">{o.item_name}</span>
-                                            <p className="text-[10px] text-slate-500">{o.instructions}</p>
+                                            <p className="text-[10px] text-slate-505">{o.instructions}</p>
                                           </div>
                                           <span className={`px-1.5 py-0.2 rounded text-[8px] font-bold uppercase tracking-wider shrink-0 ${
                                             o.status === 'dispensed' ? 'bg-green-500/10 text-green-455 border border-green-500/15' :
@@ -370,6 +386,130 @@ export default function PatientDashboard() {
                                       </div>
                                     );
                                   })}
+                                </div>
+                              )}
+
+                              {/* Radiology Scans */}
+                              {vOrders.some(o => o.type === 'radiology') && (
+                                <div className="bg-slate-900/20 border border-slate-850 p-2.5 rounded-lg space-y-1.5 md:col-span-2">
+                                  <span className="font-bold text-slate-400 uppercase tracking-wide text-[9px] flex items-center gap-1"><Camera size={10} className="text-teal-400" /> Radiology Scans & Reports</span>
+                                  {vOrders.filter(o => o.type === 'radiology').map(o => {
+                                    let meta = {};
+                                    if (o.results && o.results.startsWith('{')) {
+                                      try { meta = JSON.parse(o.results); } catch (e) {}
+                                    }
+                                    return (
+                                      <div key={o.id} className="border-b border-slate-800/40 pb-2.5 mb-2.5 last:border-0 last:pb-0 last:mb-0 text-[11px] space-y-2">
+                                        <div className="flex justify-between items-center">
+                                          <span className="font-semibold text-slate-300">{o.item_name}</span>
+                                          <span className={`px-1.5 py-0.2 rounded text-[8px] font-bold uppercase tracking-wider ${
+                                            o.status === 'released' ? 'bg-green-500/10 text-green-400 border border-green-500/15' :
+                                            'bg-yellow-500/10 text-yellow-450 border border-yellow-500/15'
+                                          }`}>
+                                            {o.status || 'ordered'}
+                                          </span>
+                                        </div>
+                                        {o.status === 'released' && (
+                                          <div className="bg-slate-950 p-2.5 rounded border border-slate-855 space-y-2.5">
+                                            {meta.captured_image && (
+                                              <div className="max-w-[220px] border border-slate-800 rounded overflow-hidden aspect-[4/3] bg-slate-900">
+                                                <img 
+                                                  src={meta.captured_image} 
+                                                  alt="PACS scan preview" 
+                                                  className="w-full h-full object-cover"
+                                                />
+                                              </div>
+                                            )}
+                                            <div className="space-y-1 font-sans">
+                                              <p className="text-[10px] text-slate-400"><span className="text-slate-500 font-medium">Indications:</span> {meta.exam_reason || o.instructions}</p>
+                                              <p className="text-[10px] text-slate-300"><span className="text-slate-500 font-medium">Findings:</span> {meta.findings}</p>
+                                              {meta.comparison && <p className="text-[9px] text-slate-500"><span className="text-slate-600 font-medium">Comparison:</span> {meta.comparison}</p>}
+                                              <div className="flex justify-between items-center text-[8px] text-teal-400/85 pt-1.5 border-t border-slate-900/60 font-mono mt-2">
+                                                <span>Modality: {meta.modality || 'X-Ray'} ({meta.urgency})</span>
+                                                <span>Reviewed by: {meta.reviewer}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Surgical Procedures */}
+                              {vOrders.some(o => o.type === 'surgery') && (
+                                <div className="bg-slate-900/20 border border-slate-850 p-2.5 rounded-lg space-y-1.5 md:col-span-2">
+                                  <span className="font-bold text-slate-400 uppercase tracking-wide text-[9px] flex items-center gap-1"><ShieldCheck size={10} className="text-teal-400" /> Surgical Procedure & Theatre Logs</span>
+                                  {vOrders.filter(o => o.type === 'surgery').map(o => {
+                                    let meta = {};
+                                    if (o.results && o.results.startsWith('{')) {
+                                      try { meta = JSON.parse(o.results); } catch (e) {}
+                                    }
+                                    return (
+                                      <div key={o.id} className="border-b border-slate-800/40 pb-2.5 mb-2.5 last:border-0 last:pb-0 last:mb-0 text-[11px] space-y-2">
+                                        <div className="flex justify-between items-center">
+                                          <span className="font-semibold text-slate-300">{o.item_name}</span>
+                                          <span className={`px-1.5 py-0.2 rounded text-[8px] font-bold uppercase tracking-wider ${
+                                            o.status === 'completed' ? 'bg-green-500/10 text-green-400 border border-green-500/15' :
+                                            'bg-yellow-500/10 text-yellow-455 border border-yellow-500/15'
+                                          }`}>
+                                            {o.status || 'requested'}
+                                          </span>
+                                        </div>
+                                        {o.status === 'completed' && (
+                                          <div className="bg-slate-950 p-2.5 rounded border border-slate-855 space-y-2 text-[10px] font-sans">
+                                            {/* Preop clearance summary */}
+                                            <div className="grid grid-cols-2 gap-1.5 text-[9px] text-slate-500 border-b border-slate-900 pb-1.5 mb-1.5 font-mono">
+                                              <span>Hb Level: <span className="text-slate-300">{meta.clearance?.hb || 'N/A'}</span></span>
+                                              <span>Blood Group: <span className="text-slate-300">{meta.clearance?.blood_group || 'N/A'}</span></span>
+                                              <span>Consent: <span className="text-slate-300">{meta.clearance?.consent_signed ? 'Signed ✓' : 'Pending'}</span></span>
+                                              <span>Anesthesia: <span className="text-slate-300">{meta.clearance?.anesthetic_clearance ? 'Cleared ✓' : 'Pending'}</span></span>
+                                            </div>
+                                            {/* Booking */}
+                                            <div className="text-[9px] text-slate-400 flex justify-between font-mono">
+                                              <span>Surgeon: <span className="text-slate-205">{meta.booking?.surgeon}</span></span>
+                                              <span>Room: <span className="text-slate-205">{meta.booking?.theatre_room}</span></span>
+                                            </div>
+                                            {/* Op findings */}
+                                            <div className="space-y-1">
+                                              <p className="text-slate-300"><span className="text-slate-500 font-medium">Incision:</span> {meta.op_notes?.incision} | <span className="text-slate-500 font-medium">Closure:</span> {meta.op_notes?.closure}</p>
+                                              <p className="text-slate-250"><span className="text-slate-500 font-medium">Findings:</span> {meta.op_notes?.findings}</p>
+                                              {meta.op_notes?.postop_plan && <p className="text-teal-400/90 text-[9px] bg-teal-950/20 p-1.5 rounded border border-teal-500/10 mt-1"><span className="text-teal-500 font-semibold block">Post-op Plan:</span> {meta.op_notes?.postop_plan}</p>}
+                                            </div>
+                                            {/* Outcome info */}
+                                            <div className="flex justify-between items-center text-[8px] text-slate-500 pt-1 border-t border-slate-900/40 font-mono">
+                                              <span>EBL: {meta.op_notes?.blood_loss} mL</span>
+                                              <span>Outcome: <span className="text-green-400 font-bold">{meta.op_notes?.outcome}</span></span>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Ward Observations logs */}
+                              {visit.department === 'ward' && wardLogs.length > 0 && (
+                                <div className="bg-slate-900/20 border border-slate-850 p-2.5 rounded-lg space-y-1.5 md:col-span-2">
+                                  <span className="font-bold text-slate-400 uppercase tracking-wide text-[9px] flex items-center gap-1"><Bed size={10} className="text-teal-400" /> Inpatient Observations & Progress Notes</span>
+                                  <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                                    {wardLogs.map(log => {
+                                      const rawDetails = log.details;
+                                      const markerIdx = rawDetails.indexOf(':');
+                                      const obsText = markerIdx !== -1 ? rawDetails.substring(markerIdx + 1).trim() : rawDetails;
+                                      return (
+                                        <div key={log.id} className="border-b border-slate-800/40 pb-1.5 last:border-0 last:pb-0 text-[11px] space-y-1">
+                                          <div className="flex justify-between items-center text-[9px] text-slate-500 font-mono">
+                                            <span>Logged Bed Progress</span>
+                                            <span>{new Date(log.created_at).toLocaleString()}</span>
+                                          </div>
+                                          <p className="text-slate-350 font-sans">{obsText}</p>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
                               )}
                             </div>

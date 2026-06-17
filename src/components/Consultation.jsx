@@ -8,7 +8,7 @@ import {
   FileText,
   ClipboardList,
 } from "lucide-react";
-import { diseaseMaster, medicineMaster, labTestMaster } from "../medicalMaster";
+import { diseaseMaster, medicineMaster, labTestMaster, radiologyTestMaster, surgicalProcedureMaster } from "../medicalMaster";
 
 export default function Consultation({ user, onComplete }) {
   const [queue, setQueue] = useState([]);
@@ -23,6 +23,10 @@ export default function Consultation({ user, onComplete }) {
 
   // Orders
   const [orderedLabs, setOrderedLabs] = useState([]);
+  const [orderedRadiology, setOrderedRadiology] = useState([]);
+  const [orderedSurgeries, setOrderedSurgeries] = useState([]);
+  const [followUpDate, setFollowUpDate] = useState("");
+  const [patientHistory, setPatientHistory] = useState(null);
 
   const [prescriptions, setPrescriptions] = useState([
     { name: "", dosage: "", frequency: "1x1", duration: "3 days", price: 0 },
@@ -90,6 +94,10 @@ export default function Consultation({ user, onComplete }) {
     setDiagnosis("");
     setTreatmentPlan("");
     setOrderedLabs([]);
+    setOrderedRadiology([]);
+    setOrderedSurgeries([]);
+    setFollowUpDate("");
+    setPatientHistory(null);
     setPrescriptions([
       { name: "", dosage: "", frequency: "1x1", duration: "3 days", price: 0 },
     ]);
@@ -109,6 +117,31 @@ export default function Consultation({ user, onComplete }) {
       }
     } catch (err) {
       console.error("Error fetching triage data:", err);
+    }
+
+    // Fetch patient history profile
+    try {
+      const { data: prevVisits } = await supabase
+        .from("visits")
+        .select("*")
+        .eq("patient_id", visit.patient_id)
+        .order("created_at", { ascending: false });
+
+      if (prevVisits && prevVisits.length > 0) {
+        const visitIds = prevVisits.map(v => v.id);
+        const { data: prevConsults } = await supabase.from("consultations").select("*");
+        const { data: prevTriages } = await supabase.from("triages").select("*");
+        const { data: prevOrders } = await supabase.from("orders").select("*");
+
+        setPatientHistory({
+          visits: prevVisits,
+          consultations: prevConsults ? prevConsults.filter(c => visitIds.includes(c.visit_id)) : [],
+          triages: prevTriages ? prevTriages.filter(t => visitIds.includes(t.visit_id)) : [],
+          orders: prevOrders ? prevOrders.filter(o => visitIds.includes(o.visit_id)) : []
+        });
+      }
+    } catch (err) {
+      console.error("Error loading patient clinical history:", err);
     }
   };
 
@@ -176,10 +209,13 @@ export default function Consultation({ user, onComplete }) {
         .insert(consultRecord);
       if (consultErr) throw consultErr;
 
-      // 2. Insert Lab/Radiology Orders
+      // 2. Insert Lab, Radiology, Surgery, Follow-up Orders
       const orderPromises = [];
       const labsOrdered = [];
+      const radsOrdered = [];
+      const surgeriesOrdered = [];
 
+      // Lab
       orderedLabs.forEach((testName) => {
         const testObj = labTestMaster.find(t => t.name === testName);
         if (testObj) {
@@ -191,12 +227,60 @@ export default function Consultation({ user, onComplete }) {
               item_name: testObj.name,
               status: "ordered",
               price: testObj.price,
-            }),
+            })
           );
         }
       });
 
-      // 3. Insert Prescriptions
+      // Radiology
+      orderedRadiology.forEach((scanName) => {
+        const testObj = radiologyTestMaster.find(t => t.name === scanName);
+        if (testObj) {
+          radsOrdered.push(testObj.name);
+          orderPromises.push(
+            supabase.from("orders").insert({
+              visit_id: selectedVisit.id,
+              type: "radiology",
+              item_name: testObj.name,
+              status: "ordered",
+              price: testObj.price,
+            })
+          );
+        }
+      });
+
+      // Surgery
+      orderedSurgeries.forEach((surgName) => {
+        const surgObj = surgicalProcedureMaster.find(s => s.name === surgName);
+        if (surgObj) {
+          surgeriesOrdered.push(surgObj.name);
+          orderPromises.push(
+            supabase.from("orders").insert({
+              visit_id: selectedVisit.id,
+              type: "surgery",
+              item_name: surgObj.name,
+              status: "waiting_clearance",
+              price: surgObj.price,
+            })
+          );
+        }
+      });
+
+      // Follow-up Review Date
+      if (followUpDate) {
+        orderPromises.push(
+          supabase.from("orders").insert({
+            visit_id: selectedVisit.id,
+            type: "follow_up",
+            item_name: "Follow-up Review",
+            instructions: followUpDate,
+            status: "scheduled",
+            price: 0
+          })
+        );
+      }
+
+      // Prescriptions
       const drugPromises = [];
       prescriptions.forEach((p) => {
         if (p.name) {
@@ -208,7 +292,7 @@ export default function Consultation({ user, onComplete }) {
               instructions: `Dosage: ${p.dosage} | Freq: ${p.frequency} | Dur: ${p.duration}`,
               status: "prescribed",
               price: p.price,
-            }),
+            })
           );
         }
       });
@@ -222,35 +306,47 @@ export default function Consultation({ user, onComplete }) {
 
       // 4. Intelligent Routing
       let nextDept = "completed";
-      if (orderPromises.length > 0) {
+      if (surgeriesOrdered.length > 0) {
+        nextDept = "surgery";
+      } else if (radsOrdered.length > 0) {
+        nextDept = "radiology";
+      } else if (labsOrdered.length > 0) {
         nextDept = "lab";
       } else if (drugPromises.length > 0) {
         nextDept = "billing";
       }
 
       const { error: visitErr } = await supabase
-          .from("visits")
-          .update({
-            department: nextDept,
-            status: nextDept === "completed" ? "completed" : "waiting",
-          })
-          .eq("id", selectedVisit.id);
+        .from("visits")
+        .update({
+          department: nextDept,
+          status: nextDept === "completed" ? "completed" : "waiting",
+        })
+        .eq("id", selectedVisit.id);
 
       if (visitErr) throw visitErr;
 
       // 5. Generate Billing Invoice automatically if items ordered
-      const totalBill =
-        (orderedLabs.length > 0
-          ? orderedLabs.reduce((sum, testName) => {
-              const testObj = labTestMaster.find(t => t.name === testName);
-              return sum + (testObj ? testObj.price : 0);
-            }, 0)
-          : 0) +
-        (drugPromises.length > 0
-          ? prescriptions
-              .filter((p) => p.name)
-              .reduce((sum, p) => sum + p.price, 0)
-          : 0);
+      const labBill = orderedLabs.reduce((sum, testName) => {
+        const testObj = labTestMaster.find(t => t.name === testName);
+        return sum + (testObj ? testObj.price : 0);
+      }, 0);
+
+      const radBill = orderedRadiology.reduce((sum, scanName) => {
+        const testObj = radiologyTestMaster.find(t => t.name === scanName);
+        return sum + (testObj ? testObj.price : 0);
+      }, 0);
+
+      const surgBill = orderedSurgeries.reduce((sum, surgName) => {
+        const surgObj = surgicalProcedureMaster.find(s => s.name === surgName);
+        return sum + (surgObj ? surgObj.price : 0);
+      }, 0);
+
+      const pharmBill = prescriptions
+        .filter((p) => p.name)
+        .reduce((sum, p) => sum + (p.price || 0), 0);
+
+      const totalBill = labBill + radBill + surgBill + pharmBill;
 
       if (totalBill > 0) {
         await supabase.from("invoices").insert({
@@ -431,6 +527,108 @@ export default function Consultation({ user, onComplete }) {
               )}
             </div>
 
+            {/* Historical Clinical Review Panel */}
+            {patientHistory && patientHistory.visits.length > 1 && (
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+                <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5 pb-2 border-b border-slate-850">
+                  <ClipboardList size={14} /> Clinical Review & History Trends (Prior Visits: {patientHistory.visits.length - 1})
+                </h4>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 text-xs">
+                  {/* Previous Consultations */}
+                  <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block">SOAP History</span>
+                    {patientHistory.consultations.length === 0 ? (
+                      <p className="text-slate-600 italic">No prior consultations recorded.</p>
+                    ) : (
+                      patientHistory.consultations.map((c, idx) => {
+                        const vObj = patientHistory.visits.find(v => v.id === c.visit_id);
+                        return (
+                          <div key={idx} className="bg-slate-950 p-3 rounded-lg border border-slate-850 space-y-1.5">
+                            <div className="flex justify-between items-center text-[9px] text-slate-500 font-mono">
+                              <span>Date: {vObj ? new Date(vObj.created_at).toLocaleDateString() : 'N/A'}</span>
+                              <span className="bg-teal-500/10 text-teal-400 px-1.5 py-0.5 rounded font-bold">{c.diagnosis_icd10}</span>
+                            </div>
+                            <p className="text-slate-300 font-medium"><span className="text-slate-505 font-bold">Hx:</span> {c.history}</p>
+                            <p className="text-slate-300"><span className="text-slate-505 font-bold">Exam:</span> {c.examination}</p>
+                            {c.treatment_plan && <p className="text-slate-400 italic"><span className="text-slate-505 font-bold">Plan:</span> {c.treatment_plan}</p>}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Vitals Trends Table */}
+                  <div className="space-y-2.5">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Vitals Trends Chart</span>
+                    {patientHistory.triages.length === 0 ? (
+                      <p className="text-slate-600 italic">No prior vitals recorded.</p>
+                    ) : (
+                      <div className="overflow-x-auto border border-slate-850 rounded-lg bg-slate-950">
+                        <table className="w-full text-left text-[10px] border-collapse font-mono">
+                          <thead>
+                            <tr className="bg-slate-900 border-b border-slate-850 text-slate-400">
+                              <th className="p-2">Date</th>
+                              <th className="p-2">BP</th>
+                              <th className="p-2">Temp</th>
+                              <th className="p-2">Pulse</th>
+                              <th className="p-2">Weight</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {patientHistory.triages.map((t, idx) => {
+                              const vObj = patientHistory.visits.find(v => v.id === t.visit_id);
+                              return (
+                                <tr key={idx} className="border-b border-slate-900/50 hover:bg-slate-900/40 text-slate-300">
+                                  <td className="p-2">{vObj ? new Date(vObj.created_at).toLocaleDateString() : 'N/A'}</td>
+                                  <td className="p-2 text-slate-200 font-bold">{t.systolic}/{t.diastolic}</td>
+                                  <td className={t.temperature >= 38 ? 'p-2 text-red-400' : 'p-2'}>{t.temperature}°C</td>
+                                  <td className="p-2">{t.heart_rate}</td>
+                                  <td className="p-2">{t.weight || '—'}kg</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Previous Diagnostic Findings */}
+                  <div className="lg:col-span-2 space-y-2.5 max-h-52 overflow-y-auto pr-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Diagnostic Reports & Released Results</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {patientHistory.orders.filter(o => o.status === 'released' || o.status === 'completed' || o.status === 'dispensed').length === 0 ? (
+                        <p className="text-slate-650 col-span-2 italic">No prior released results recorded.</p>
+                      ) : (
+                        patientHistory.orders
+                          .filter(o => o.status === 'released' || o.status === 'completed' || o.status === 'dispensed')
+                          .map((o, idx) => {
+                            const vObj = patientHistory.visits.find(v => v.id === o.visit_id);
+                            let meta = {};
+                            if (o.results && o.results.startsWith('{')) {
+                              try { meta = JSON.parse(o.results); } catch (e) {}
+                            }
+                            const formattedResult = meta.values || o.results || '';
+                            return (
+                              <div key={idx} className="bg-slate-950 p-3 rounded-lg border border-slate-850 flex justify-between gap-4">
+                                <div className="space-y-1">
+                                  <span className="font-bold text-slate-200 block text-xs">{o.item_name}</span>
+                                  <span className="text-[9px] text-slate-505 font-mono">Date: {vObj ? new Date(vObj.created_at).toLocaleDateString() : 'N/A'} | Type: {o.type.toUpperCase()}</span>
+                                  <p className="text-slate-400 font-mono text-[10px] mt-1 bg-slate-900/50 p-1.5 rounded border border-slate-900">Result: {formattedResult}</p>
+                                </div>
+                              </div>
+                            );
+                          })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4">
+
             {message.text && (
               <div
                 className={`p-3 rounded-lg border text-sm flex gap-2.5 ${
@@ -447,6 +645,7 @@ export default function Consultation({ user, onComplete }) {
                 <span>{message.text}</span>
               </div>
             )}
+            </div>
 
             <form onSubmit={handleSaveConsultation} className="space-y-6">
               {/* SOAP Text Area Notes */}
@@ -604,38 +803,119 @@ export default function Consultation({ user, onComplete }) {
                   </div>
                 );
               })()}
+                            {/* Orders Generator */}
+              <div className="border-t border-slate-850 pt-4 mt-4 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  {/* Lab Orders Box */}
+                  <div className="bg-slate-950/60 border border-slate-850 p-4 rounded-xl flex flex-col gap-2.5">
+                    <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-1">
+                      Order Labs
+                    </h4>
+                    {labTestMaster.map((test) => (
+                      <label
+                        key={test.id}
+                        className="flex items-center gap-2 text-xs text-slate-350 cursor-pointer select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={orderedLabs.includes(test.name)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setOrderedLabs([...orderedLabs, test.name]);
+                            } else {
+                              setOrderedLabs(orderedLabs.filter((l) => l !== test.name));
+                            }
+                          }}
+                          className="accent-teal-500 rounded border-slate-800 bg-slate-950 text-teal-600 focus:ring-teal-500 h-3.5 w-3.5"
+                        />
+                        {test.name} ({test.price}/-)
+                      </label>
+                    ))}
+                  </div>
 
-              {/* Orders Generator */}
-              <div className="border-t border-slate-850 pt-4 mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Lab Orders Box */}
-                <div className="bg-slate-950/60 border border-slate-850 p-4 rounded-xl flex flex-col gap-2.5">
-                  <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-1">
-                    Order Labs
-                  </h4>
-                  {labTestMaster.map((test) => (
-                    <label
-                      key={test.id}
-                      className="flex items-center gap-2 text-xs text-slate-350 cursor-pointer select-none"
-                    >
+                  {/* Radiology Orders Box */}
+                  <div className="bg-slate-950/60 border border-slate-850 p-4 rounded-xl flex flex-col gap-2.5">
+                    <h4 className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-1">
+                      Order Radiology Scans
+                    </h4>
+                    {radiologyTestMaster.map((scan) => (
+                      <label
+                        key={scan.id}
+                        className="flex items-center gap-2 text-xs text-slate-350 cursor-pointer select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={orderedRadiology.includes(scan.name)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setOrderedRadiology([...orderedRadiology, scan.name]);
+                            } else {
+                              setOrderedRadiology(orderedRadiology.filter((r) => r !== scan.name));
+                            }
+                          }}
+                          className="accent-purple-500 rounded border-slate-800 bg-slate-950 text-purple-600 focus:ring-purple-500 h-3.5 w-3.5"
+                        />
+                        <div>
+                          <span className="block font-medium">{scan.name}</span>
+                          <span className="text-[9px] text-slate-500">{scan.modality} | {scan.price}/-</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* Surgery Referral Box */}
+                  <div className="bg-slate-950/60 border border-slate-850 p-4 rounded-xl flex flex-col gap-2.5">
+                    <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider mb-1">
+                      Refer to Surgery
+                    </h4>
+                    {surgicalProcedureMaster.map((surg) => (
+                      <label
+                        key={surg.id}
+                        className="flex items-center gap-2 text-xs text-slate-350 cursor-pointer select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={orderedSurgeries.includes(surg.name)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setOrderedSurgeries([...orderedSurgeries, surg.name]);
+                            } else {
+                              setOrderedSurgeries(orderedSurgeries.filter((s) => s !== surg.name));
+                            }
+                          }}
+                          className="accent-red-500 rounded border-slate-800 bg-slate-950 text-red-600 focus:ring-red-500 h-3.5 w-3.5"
+                        />
+                        <div>
+                          <span className="block font-medium">{surg.name}</span>
+                          <span className="text-[9px] text-slate-500">{surg.price}/-</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* Follow-up Scheduler Box */}
+                  <div className="bg-slate-950/60 border border-slate-850 p-4 rounded-xl flex flex-col gap-2.5">
+                    <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">
+                      Schedule Follow-up
+                    </h4>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Review Visit Date</label>
                       <input
-                        type="checkbox"
-                        checked={orderedLabs.includes(test.name)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setOrderedLabs([...orderedLabs, test.name]);
-                          } else {
-                            setOrderedLabs(orderedLabs.filter((l) => l !== test.name));
-                          }
-                        }}
-                        className="accent-teal-500 rounded border-slate-800 bg-slate-950 text-teal-600 focus:ring-teal-500 h-3.5 w-3.5"
+                        type="date"
+                        value={followUpDate}
+                        onChange={(e) => setFollowUpDate(e.target.value)}
+                        className="bg-slate-950 border border-slate-800 text-white rounded-lg p-2 focus:outline-none focus:border-teal-500 text-xs w-full font-mono"
+                        min={new Date().toISOString().split('T')[0]}
                       />
-                      {test.name} ({test.price}/-)
-                    </label>
-                  ))}
+                      <p className="text-[9px] text-slate-500 leading-relaxed mt-1">
+                        Scheduling a review writes a scheduled follow-up order on the patient's care timeline.
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Prescription Box */}
-                <div className="md:col-span-2 bg-slate-950/60 border border-slate-850 p-4 rounded-xl space-y-3">
+                <div className="bg-slate-950/60 border border-slate-850 p-4 rounded-xl space-y-3">
                   <div className="flex justify-between items-center">
                     <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">
                       Prescribe Medication

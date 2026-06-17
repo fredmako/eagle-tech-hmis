@@ -99,6 +99,13 @@ const getInitialSandboxData = () => {
         facility_id: "f1",
         email: "admin@egesa.com",
       },
+      {
+        id: "u_super_admin",
+        full_name: "Fredrick Makori (Super Admin)",
+        role: "super_admin",
+        facility_id: null,
+        email: "fredrickmakori102@gmail.com",
+      },
     ],
     users: [
       {
@@ -142,6 +149,12 @@ const getInitialSandboxData = () => {
         email: "admin@egesa.com",
         passwordHash: defaultHash,
         name: "Admin Grace",
+      },
+      {
+        id: "u_super_admin",
+        email: "fredrickmakori102@gmail.com",
+        passwordHash: defaultHash,
+        name: "Fredrick Makori (Super Admin)",
       },
     ],
     role_requests: [

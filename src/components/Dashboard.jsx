@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { supabase } from "../supabaseClient";
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 import {
-  Users,
-  Hourglass,
-  Activity,
-  ShieldAlert,
-  CheckCircle,
-  RefreshCw,
-  Send,
-} from "lucide-react";
+  Users, Hourglass, Activity, ShieldAlert, CheckCircle, RefreshCw, ArrowRight,
+} from 'lucide-react';
+import { motion } from 'motion/react';
+import { Reveal } from './landing/motion/Reveal';
+import { Stagger, StaggerItem } from './landing/motion/Stagger';
+import { CountUp } from './landing/motion/CountUp';
 
 export default function Dashboard({ user, onNavigate }) {
   const [stats, setStats] = useState({
@@ -26,404 +24,251 @@ export default function Dashboard({ user, onNavigate }) {
 
   useEffect(() => {
     fetchDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch patients
-      const { data: pts } = await supabase.from("patients").select("*");
-      // Fetch visits
-      const { data: vsts } = await supabase.from("visits").select("*");
-      // Fetch orders
-      const { data: ords } = await supabase.from("orders").select("*");
-      // Fetch invoices
-      const { data: invs } = await supabase.from("invoices").select("*");
-
-      const todayStr = new Date().toISOString().split("T")[0];
-      const todayPts = pts
-        ? pts.filter((p) => p.created_at.startsWith(todayStr)).length
-        : 0;
-
+      const [{ data: pts }, { data: vsts }, { data: invs }] = await Promise.all([
+        supabase.from('patients').select('*'),
+        supabase.from('visits').select('*'),
+        supabase.from('invoices').select('*'),
+      ]);
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todayPts = pts ? pts.filter((p) => p.created_at?.startsWith(todayStr)).length : 0;
       const activeVisits = vsts || [];
-      const pendingTriage = activeVisits.filter(
-        (v) => v.department === "triage" && v.status !== "completed",
-      ).length;
-      const pendingConsult = activeVisits.filter(
-        (v) => v.department === "consultation" && v.status !== "completed",
-      ).length;
-      const pendingLab = activeVisits.filter(
-        (v) => v.department === "lab" && v.status !== "completed",
-      ).length;
-      const pendingPharm = activeVisits.filter(
-        (v) => v.department === "pharmacy" && v.status !== "completed",
-      ).length;
-      const unpaidInvoices = invs
-        ? invs.filter((i) => i.status !== "paid").length
-        : 0;
+      const pendingTriage = activeVisits.filter((v) => v.department === 'triage' && v.status !== 'completed').length;
+      const pendingConsult = activeVisits.filter((v) => v.department === 'consultation' && v.status !== 'completed').length;
+      const pendingLab = activeVisits.filter((v) => v.department === 'lab' && v.status !== 'completed').length;
+      const pendingPharm = activeVisits.filter((v) => v.department === 'pharmacy' && v.status !== 'completed').length;
+      const unpaidInvoices = invs ? invs.filter((i) => i.status !== 'paid').length : 0;
 
-      setStats({
+      setStats((prev) => ({
         todayPatients: todayPts,
         pendingTriage,
         pendingConsultation: pendingConsult,
         pendingLab,
         pendingPharmacy: pendingPharm,
         unpaidBilling: unpaidInvoices,
-        failedSync: stats.failedSync, // Keep our mock failed sync
-      });
+        failedSync: prev.failedSync,
+      }));
 
-      // Construct a queue list
       const list = activeVisits
-        .filter((v) => v.status !== "completed")
+        .filter((v) => v.status !== 'completed')
         .map((v) => {
           const patient = pts?.find((p) => p.id === v.patient_id);
           return {
             id: v.id,
-            name: patient?.name || "Unknown Patient",
-            idCode: patient?.facility_id_code || "N/A",
+            name: patient?.name || 'Unknown Patient',
+            idCode: patient?.facility_id_code || 'N/A',
             dept: v.department.toUpperCase(),
             priority: v.priority,
-            time: new Date(v.created_at).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
+            time: new Date(v.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           };
         });
       setQueueList(list);
 
-      // Construct system alerts/notifications
       const alerts = [];
-      if (pendingTriage > 2) {
-        alerts.push({
-          id: "a1",
-          type: "warning",
-          message: `High triage queue: ${pendingTriage} patients waiting.`,
-        });
-      }
-      if (unpaidInvoices > 0) {
-        alerts.push({
-          id: "a2",
-          type: "info",
-          message: `${unpaidInvoices} pending billing payments require processing.`,
-        });
-      }
-      alerts.push({
-        id: "a3",
-        type: "error",
-        message:
-          "MOH 717 monthly export: 1 unsynced record due to invalid ID validation.",
-      });
+      if (pendingTriage > 2) alerts.push({ id: 'a1', type: 'warning', message: `High triage queue: ${pendingTriage} patients waiting.` });
+      if (unpaidInvoices > 0) alerts.push({ id: 'a2', type: 'info', message: `${unpaidInvoices} pending billing payments require processing.` });
+      alerts.push({ id: 'a3', type: 'error', message: 'MOH 717 monthly export: 1 unsynced record due to invalid ID validation.' });
       setNotifications(alerts);
     } catch (err) {
-      console.error("Error fetching dashboard data:", err);
+      console.error('Error fetching dashboard data:', err);
     }
   };
 
   const handleManualSync = async () => {
     setSyncing(true);
-    // Simulate API push delay
     await new Promise((resolve) => setTimeout(resolve, 2000));
     setStats((prev) => ({ ...prev, failedSync: 0 }));
-    setNotifications((prev) => prev.filter((n) => n.id !== "a3"));
+    setNotifications((prev) => prev.filter((n) => n.id !== 'a3'));
     setSyncing(false);
-
-    // Log sync in audit trail
-    await supabase.from("audit_logs").insert({
-      action: "MOH Interoperability Sync",
-      details:
-        "Pushed pending daily register data to DHIS2. 1 corrected record sync completed successfully.",
+    await supabase.from('audit_logs').insert({
+      action: 'MOH Interoperability Sync',
+      details: 'Pushed pending daily register data to DHIS2. 1 corrected record sync completed successfully.',
     });
   };
 
   const roleAccess = {
-    registration: ["receptionist", "admin"],
-    triage: ["nurse", "admin"],
-    consultation: ["clinician", "admin"],
-    orders: ["lab_tech", "admin"],
-    pharmacy: ["pharmacist", "admin"],
-    billing: ["cashier", "admin"],
+    registration: ['receptionist', 'admin'],
+    triage: ['nurse', 'admin'],
+    consultation: ['clinician', 'admin'],
+    orders: ['lab_tech', 'admin'],
+    pharmacy: ['pharmacist', 'admin'],
+    billing: ['cashier', 'admin'],
   };
-
   const checkAccess = (tab) => {
     if (!user || !user.role) return false;
-    if (user.role === "admin") return true;
+    if (user.role === 'admin') return true;
     return roleAccess[tab]?.includes(user.role) || false;
   };
+
+  const cards = [
+    { label: "Today's Registrations", value: stats.todayPatients, accent: 'teal', icon: Users, tab: 'registration' },
+    { label: 'Pending Triage', value: stats.pendingTriage, accent: 'orange', icon: Hourglass, tab: 'triage' },
+    { label: 'Pending Consultation', value: stats.pendingConsultation, accent: 'blue', icon: Activity, tab: 'consultation' },
+    { label: 'Pending Lab', value: stats.pendingLab, accent: 'purple', icon: RefreshCw, tab: 'orders' },
+    { label: 'Pending Pharmacy', value: stats.pendingPharmacy, accent: 'emerald', icon: CheckCircle, tab: 'pharmacy' },
+    { label: 'Pending Invoices', value: stats.unpaidBilling, accent: 'rose', icon: ShieldAlert, tab: 'billing' },
+  ];
+
+  const accentMap = {
+    teal:    { border: 'border-teal-500/25',    bg: 'bg-teal-500/5',    text: 'text-teal-400',    hover: 'hover:border-teal-500/50 hover:bg-teal-500/10' },
+    orange:  { border: 'border-orange-500/25',  bg: 'bg-orange-500/5',  text: 'text-orange-400',  hover: 'hover:border-orange-500/50 hover:bg-orange-500/10' },
+    blue:    { border: 'border-blue-500/25',    bg: 'bg-blue-500/5',    text: 'text-blue-400',    hover: 'hover:border-blue-500/50 hover:bg-blue-500/10' },
+    purple:  { border: 'border-purple-500/25',  bg: 'bg-purple-500/5',  text: 'text-purple-400',  hover: 'hover:border-purple-500/50 hover:bg-purple-500/10' },
+    emerald: { border: 'border-emerald-500/25', bg: 'bg-emerald-500/5', text: 'text-emerald-400', hover: 'hover:border-emerald-500/50 hover:bg-emerald-500/10' },
+    rose:    { border: 'border-rose-500/25',    bg: 'bg-rose-500/5',    text: 'text-rose-400',    hover: 'hover:border-rose-500/50 hover:bg-rose-500/10' },
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Top Banner / Welcome */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 sm:p-6 rounded-2xl">
-        <div>
-          <h1 className="text-lg sm:text-xl font-bold text-white">
-            Welcome, {user.full_name}
-          </h1>
-          <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
-            Facility:{" "}
-            <span className="text-teal-400 font-semibold">
-              {user.facility_name}
-            </span>{" "}
-            | Role:{" "}
-            <span className="text-teal-400 uppercase font-semibold text-[10px] tracking-wider bg-teal-500/10 px-2 py-0.5 rounded">
-              {user.role}
-            </span>
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {stats.failedSync > 0 ? (
-            <button
-              onClick={handleManualSync}
-              disabled={syncing}
-              className="flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 font-medium text-xs px-3 sm:px-4 py-2 rounded-lg transition"
-            >
-              <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
-              {syncing ? (
-                <span>Syncing...</span>
-              ) : (
-                <>
-                  <span className="hidden sm:inline">DHIS2 Sync Failed: Click to retry</span>
-                  <span className="sm:hidden">Sync Failed: Retry</span>
-                </>
-              )}
-            </button>
-          ) : (
-            <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 text-green-400 font-medium text-xs px-3 sm:px-4 py-2 rounded-lg">
-              <CheckCircle size={14} />
-              <span className="hidden sm:inline">MOH Systems Fully Synced</span>
-              <span className="sm:hidden">MOH Synced</span>
+    <div className="space-y-6 font-['DM_Sans',system-ui,sans-serif]">
+
+      {/* Welcome banner */}
+      <Reveal className="relative overflow-hidden rounded-2xl border border-teal-500/15 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-900/40">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_85%_50%,rgba(45,212,191,0.08),transparent_60%)]" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6">
+          <div className="space-y-1">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">
+              {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
             </div>
-          )}
-          <button
-            onClick={() => onNavigate("registration")}
-            className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-semibold text-xs px-3 sm:px-4 py-2 rounded-lg shadow-lg shadow-teal-500/10 transition active:scale-[0.98] whitespace-nowrap"
-          >
-            Register Patient
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        {[
-          {
-            label: "Today's Registrations",
-            value: stats.todayPatients,
-            color: "border-teal-500/20 text-teal-400",
-            bg: "bg-teal-500/5",
-            hover:
-              "hover:border-teal-500/50 hover:bg-teal-500/10 hover:shadow-teal-500/5",
-            icon: Users,
-            tab: "registration",
-          },
-          {
-            label: "Pending Triage",
-            value: stats.pendingTriage,
-            color: "border-orange-500/20 text-orange-400",
-            bg: "bg-orange-500/5",
-            hover:
-              "hover:border-orange-500/50 hover:bg-orange-500/10 hover:shadow-orange-500/5",
-            icon: Hourglass,
-            tab: "triage",
-          },
-          {
-            label: "Pending Consultation",
-            value: stats.pendingConsultation,
-            color: "border-blue-500/20 text-blue-400",
-            bg: "bg-blue-500/5",
-            hover:
-              "hover:border-blue-500/50 hover:bg-blue-500/10 hover:shadow-blue-500/5",
-            icon: Activity,
-            tab: "consultation",
-          },
-          {
-            label: "Pending Lab",
-            value: stats.pendingLab,
-            color: "border-purple-500/20 text-purple-400",
-            bg: "bg-purple-500/5",
-            hover:
-              "hover:border-purple-500/50 hover:bg-purple-500/10 hover:shadow-purple-500/5",
-            icon: RefreshCw,
-            tab: "orders",
-          },
-          {
-            label: "Pending Pharmacy",
-            value: stats.pendingPharmacy,
-            color: "border-emerald-500/20 text-emerald-400",
-            bg: "bg-emerald-500/5",
-            hover:
-              "hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:shadow-emerald-500/5",
-            icon: CheckCircle,
-            tab: "pharmacy",
-          },
-          {
-            label: "Pending Invoices",
-            value: stats.unpaidBilling,
-            color: "border-rose-500/20 text-rose-400",
-            bg: "bg-rose-500/5",
-            hover:
-              "hover:border-rose-500/50 hover:bg-rose-500/10 hover:shadow-rose-500/5",
-            icon: ShieldAlert,
-            tab: "billing",
-          },
-        ].map((item, i) => {
-          const Icon = item.icon;
-          const hasAccess = checkAccess(item.tab);
-
-          if (hasAccess) {
-            return (
-              <button
-                key={i}
-                onClick={() => onNavigate(item.tab)}
-                className={`border ${item.color} ${item.bg} ${item.hover} p-3.5 sm:p-4 rounded-xl flex flex-col justify-between shadow-sm transition-all duration-300 hover:scale-[1.03] hover:shadow-lg active:scale-[0.98] cursor-pointer text-left w-full`}
-              >
-                <div className="flex justify-between items-start w-full">
-                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-tight">
-                    {item.label}
-                  </span>
-                  <Icon size={16} className="opacity-80 shrink-0 ml-1" />
-                </div>
-                <span className="text-2xl sm:text-3xl font-extrabold text-white mt-3 sm:mt-4">
-                  {item.value}
-                </span>
+            <h1 className="font-['Instrument_Serif',serif] text-2xl sm:text-3xl text-slate-100 leading-tight font-normal">
+              Welcome back, <span className="text-teal-400">{user.full_name}</span>
+            </h1>
+            <p className="text-[12px] text-slate-400">
+              <span className="text-slate-300 font-semibold">{user.facility_name}</span>
+              <span className="mx-2 text-slate-700">·</span>
+              <span className="font-['JetBrains_Mono',monospace] text-[10px] uppercase tracking-wider bg-teal-500/10 text-teal-400 px-2 py-0.5 rounded">{user.role}</span>
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {stats.failedSync > 0 ? (
+              <button onClick={handleManualSync} disabled={syncing} className="flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 font-medium text-xs px-3 sm:px-4 py-2 rounded-lg transition">
+                <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+                {syncing ? <span>Syncing…</span> : (<><span className="hidden sm:inline">DHIS2 Sync Failed — Retry</span><span className="sm:hidden">Retry Sync</span></>)}
               </button>
-            );
-          } else {
+            ) : (
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }} className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 text-green-400 font-medium text-xs px-3 sm:px-4 py-2 rounded-lg">
+                <CheckCircle size={14} />
+                <span className="hidden sm:inline">MOH Systems Fully Synced</span>
+                <span className="sm:hidden">Synced</span>
+              </motion.div>
+            )}
+            <button onClick={() => onNavigate('registration')} className="flex items-center gap-2 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold text-[12px] px-4 py-2 rounded-lg shadow-[0_0_20px_rgba(45,212,191,0.2)] transition active:scale-[0.97]">
+              Register Patient <ArrowRight size={13} />
+            </button>
+          </div>
+        </div>
+      </Reveal>
+
+      {/* Stat cards */}
+      <Stagger className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" stagger={0.06}>
+        {cards.map((c) => {
+          const Icon = c.icon;
+          const a = accentMap[c.accent];
+          const hasAccess = checkAccess(c.tab);
+          const base = `border ${a.border} ${a.bg} p-4 rounded-xl flex flex-col justify-between shadow-sm transition-all duration-300 text-left`;
+          if (!hasAccess) {
             return (
-              <div
-                key={i}
-                className="border border-slate-800/40 bg-slate-900/20 opacity-50 p-3.5 sm:p-4 rounded-xl flex flex-col justify-between shadow-sm text-left w-full select-none"
-                title="Your current role does not have permission to access this module"
-              >
+              <StaggerItem key={c.label} className={`${base} opacity-50 select-none`} title="Your role does not have permission to access this module">
                 <div className="flex justify-between items-start w-full">
-                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider leading-tight">
-                    {item.label}
-                  </span>
-                  <Icon size={16} className="text-slate-600 shrink-0 ml-1" />
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-tight">{c.label}</span>
+                  <Icon size={14} className="text-slate-600 shrink-0" />
                 </div>
-                <span className="text-2xl sm:text-3xl font-extrabold text-slate-600 mt-3 sm:mt-4">
-                  {item.value}
-                </span>
-              </div>
+                <span className="font-['JetBrains_Mono',monospace] text-2xl font-black text-slate-600 mt-3">{c.value}</span>
+              </StaggerItem>
             );
           }
+          return (
+            <StaggerItem key={c.label}>
+              <motion.button onClick={() => onNavigate(c.tab)} whileHover={{ y: -3 }} whileTap={{ scale: 0.97 }} transition={{ duration: 0.2, ease: 'easeOut' }} className={`${base} ${a.hover} w-full hover:shadow-lg cursor-pointer`}>
+                <div className="flex justify-between items-start w-full">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-tight">{c.label}</span>
+                  <Icon size={14} className={`${a.text} opacity-90 shrink-0`} />
+                </div>
+                <span className={`font-['JetBrains_Mono',monospace] text-2xl sm:text-3xl font-black text-slate-100 mt-3`}>
+                  <CountUp to={c.value} duration={1} />
+                </span>
+              </motion.button>
+            </StaggerItem>
+          );
         })}
-      </div>
+      </Stagger>
 
-      {/* Main Grid: Queue & Alerts */}
+      {/* Queue + Notifications */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Queue Status Table */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+        <Reveal className="lg:col-span-2 bg-slate-900 border border-teal-500/12 rounded-2xl p-5 shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h2 className="text-sm font-bold text-slate-200">
-                Active Facility Queue
-              </h2>
-              <p className="text-[11px] text-slate-500">
-                Live patient traffic across departments
-              </p>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">Live Workspace</div>
+              <h2 className="font-['Instrument_Serif',serif] text-xl text-slate-100 font-normal mt-0.5">Active Facility Queue</h2>
+              <p className="text-[11px] text-slate-500 mt-0.5">Patient traffic across departments · updated live</p>
             </div>
-            <button
-              onClick={() => onNavigate("queue")}
-              className="text-teal-400 hover:text-teal-300 text-xs font-semibold"
-            >
-              Manage Queue
+            <button onClick={() => onNavigate('queue')} className="flex items-center gap-1 text-teal-400 hover:text-teal-300 text-xs font-semibold transition-colors">
+              Manage Queue <ArrowRight size={12} />
             </button>
           </div>
 
           {queueList.length === 0 ? (
-            <div className="border border-dashed border-slate-800 rounded-lg p-8 text-center text-slate-500 text-sm">
+            <div className="border border-dashed border-teal-500/15 rounded-xl p-10 text-center text-slate-500 text-sm">
+              <Hourglass size={20} className="mx-auto mb-2 text-teal-400/50" />
               No active patients waiting in the queue.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-800 text-[10px] uppercase font-semibold text-slate-400 tracking-wider">
+                  <tr className="border-b border-teal-500/10 text-[10px] uppercase font-bold text-slate-400 tracking-widest">
                     <th className="py-2.5">Patient</th>
                     <th className="py-2.5">Dept</th>
                     <th className="py-2.5">Priority</th>
-                    <th className="py-2.5 text-right">Time Entered</th>
+                    <th className="py-2.5 text-right">Entered</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/50 text-xs">
-                  {queueList.map((q) => (
-                    <tr
-                      key={q.id}
-                      className="hover:bg-slate-800/30 transition-colors"
-                    >
+                <tbody className="divide-y divide-teal-500/8 text-xs">
+                  {queueList.map((q, idx) => (
+                    <motion.tr key={q.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: idx * 0.03 }} className="hover:bg-slate-800/30 transition-colors">
                       <td className="py-2.5 pr-2">
-                        <span className="font-semibold text-slate-200 block">
-                          {q.name}
-                        </span>
-                        <span className="text-[10px] text-slate-500">
-                          {q.idCode}
-                        </span>
+                        <span className="font-semibold text-slate-200 block">{q.name}</span>
+                        <span className="font-['JetBrains_Mono',monospace] text-[10px] text-slate-500">{q.idCode}</span>
                       </td>
                       <td className="py-2.5">
-                        <span className="bg-slate-850 border border-slate-800 text-slate-300 font-semibold px-2 py-0.5 rounded text-[10px]">
-                          {q.dept}
-                        </span>
+                        <span className="font-['JetBrains_Mono',monospace] bg-teal-500/5 border border-teal-500/15 text-teal-400 font-bold px-2 py-0.5 rounded text-[10px]">{q.dept}</span>
                       </td>
                       <td className="py-2.5">
-                        <span
-                          className={`capitalize font-semibold text-[10px] px-2 py-0.5 rounded ${
-                            q.priority === "emergency"
-                              ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                              : q.priority === "urgent"
-                                ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-                                : "bg-slate-800 text-slate-400"
-                          }`}
-                        >
-                          {q.priority}
-                        </span>
+                        <span className={`capitalize font-semibold text-[10px] px-2 py-0.5 rounded ${q.priority === 'emergency' ? 'bg-red-500/10 text-red-400 border border-red-500/25' : q.priority === 'urgent' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/25' : 'bg-slate-800 text-slate-400 border border-slate-700/50'}`}>{q.priority}</span>
                       </td>
-                      <td className="py-2.5 text-right text-slate-400 font-mono">
-                        {q.time}
-                      </td>
-                    </tr>
+                      <td className="py-2.5 text-right text-slate-400 font-['JetBrains_Mono',monospace]">{q.time}</td>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
+        </Reveal>
 
-        {/* Notifications & System Health */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+        <Reveal className="bg-slate-900 border border-teal-500/12 rounded-2xl p-5 shadow-sm space-y-4" delay={0.1}>
           <div>
-            <h2 className="text-sm font-bold text-slate-200">
-              System Notifications
-            </h2>
-            <p className="text-[11px] text-slate-500">
-              MOH reporting and record completion alerts
-            </p>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">System Health</div>
+            <h2 className="font-['Instrument_Serif',serif] text-xl text-slate-100 font-normal mt-0.5">Notifications</h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">MOH reporting and record alerts</p>
           </div>
-
-          <div className="space-y-3">
+          <Stagger className="space-y-2.5" stagger={0.06}>
             {notifications.map((notif) => (
-              <div
-                key={notif.id}
-                className={`p-3 rounded-lg border text-xs flex gap-2.5 ${
-                  notif.type === "error"
-                    ? "bg-red-500/5 border-red-500/20 text-red-400"
-                    : notif.type === "warning"
-                      ? "bg-yellow-500/5 border-yellow-500/20 text-yellow-400"
-                      : "bg-blue-500/5 border-blue-500/20 text-blue-400"
-                }`}
-              >
-                <ShieldAlert size={16} className="shrink-0 mt-0.5" />
-                <span>{notif.message}</span>
-              </div>
+              <StaggerItem key={notif.id} className={`p-3 rounded-xl border text-xs flex gap-2.5 items-start ${notif.type === 'error' ? 'bg-red-500/5 border-red-500/25 text-red-400' : notif.type === 'warning' ? 'bg-yellow-500/5 border-yellow-500/25 text-yellow-400' : 'bg-blue-500/5 border-blue-500/25 text-blue-400'}`}>
+                <ShieldAlert size={15} className="shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{notif.message}</span>
+              </StaggerItem>
             ))}
-
             {notifications.length === 0 && (
-              <div className="bg-teal-500/5 border border-teal-500/20 text-teal-400 p-4 rounded-lg text-center text-xs flex flex-col items-center justify-center gap-1.5">
-                <CheckCircle size={20} />
-                <span>
-                  All systems operational. No outstanding critical alerts.
-                </span>
+              <div className="bg-teal-500/5 border border-teal-500/25 text-teal-400 p-5 rounded-xl text-center text-xs flex flex-col items-center justify-center gap-2">
+                <CheckCircle size={22} />
+                <span>All systems operational. No outstanding alerts.</span>
               </div>
             )}
-          </div>
-        </div>
+          </Stagger>
+        </Reveal>
       </div>
     </div>
   );

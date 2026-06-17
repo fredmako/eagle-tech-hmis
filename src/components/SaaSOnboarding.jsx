@@ -56,6 +56,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         console.error('Failed to restore onboarding state:', e);
       }
       sessionStorage.removeItem('egesa_health_onboarding_saved_state');
+      sessionStorage.removeItem('egesa_health_onboarding_redirect');
     }
 
     // 2. Check if a Google user was stored on redirect callback
@@ -70,6 +71,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         console.error('Failed to parse Google user details:', e);
       }
       sessionStorage.removeItem('egesa_health_onboarding_google_user');
+      sessionStorage.removeItem('egesa_health_onboarding_redirect');
     }
   }, []);
 

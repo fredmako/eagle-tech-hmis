@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     console.log('[AuthContext:login] ▶ Attempting login with Supabase:', email);
     try {
-      const { data: { user: authUser }, error: authErr } = await supabase.auth.signInWithPassword({
+      const { data: { user: authUser, session }, error: authErr } = await supabase.auth.signInWithPassword({
         email,
         password
       });
@@ -125,13 +125,48 @@ export const AuthProvider = ({ children }) => {
       if (authErr) throw authErr;
       if (!authUser) throw new Error('Login failed: no user returned');
 
-      const userData = {
+      let userData = {
         id: authUser.id,
         email: authUser.email,
         name: authUser.user_metadata?.full_name || authUser.email,
         full_name: authUser.user_metadata?.full_name || authUser.email,
         role: authUser.user_metadata?.role || 'staff'
       };
+
+      // Enrich user profile details from backend if not in sandbox mode
+      if (!supabase.isSandbox && session) {
+        try {
+          console.log('[AuthContext:login] Fetching enriched profile from backend...');
+          const res = await fetch(`${API_URL}/auth/supabase-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: session.access_token })
+          });
+          
+          if (res.ok) {
+            const resData = await res.json();
+            if (resData.status === 'success') {
+              userData = resData.user;
+              localStorage.setItem('egesa_health_token', resData.token);
+              console.log('[AuthContext:login] Enriched profile fetched successfully:', userData.email);
+            } else if (resData.status === 'no_profile') {
+              console.warn('[AuthContext:login] No profile found on backend, returning no_profile status');
+              setLoading(false);
+              return { 
+                status: 'no_profile', 
+                user: userData, 
+                pendingRequest: resData.pendingRequest || null 
+              };
+            } else {
+              console.warn('[AuthContext:login] Backend supabase-login returned non-success status:', resData.status);
+            }
+          } else {
+            console.error('[AuthContext:login] Backend supabase-login fetch failed with HTTP status:', res.status);
+          }
+        } catch (fetchErr) {
+          console.error('[AuthContext:login] Failed to fetch profile from backend:', fetchErr.message);
+        }
+      }
 
       console.log('[AuthContext:login] ✅ Login successful:', userData.email);
       setUser(userData);

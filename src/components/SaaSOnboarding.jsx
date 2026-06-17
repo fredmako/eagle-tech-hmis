@@ -381,16 +381,50 @@ export default function SaaSOnboarding({ onBackToLogin }) {
       const facilityId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
       const logoUrl = getActiveLogoUrl();
 
+      // Map selectedPlan to license_tier: clinic -> basic, hospital/enterprise -> extensive
+      const licenseTier = selectedPlan === 'clinic' ? 'basic' : 'extensive';
+
       // 2. Upsert new facility document including logo_url & address
       const { error: facError } = await supabase.from('facilities').upsert({
         id: facilityId,
         name: hospitalName,
         code: hospitalCode,
         logo_url: logoUrl,
-        address: hospitalAddress
+        address: hospitalAddress,
+        license_tier: licenseTier
       });
 
       if (facError) throw new Error(facError.message || facError);
+
+      // 2b. Seed default departments for the new facility
+      const defaultDepts = [
+        { name: "Triage (Vitals)", code: "TRI", type: "triage", specialty: "general" },
+        { name: "OPD Consult", code: "CON", type: "consultation", specialty: "general" },
+        { name: "Laboratory", code: "LAB", type: "lab", specialty: "general" },
+        { name: "Pharmacy", code: "PHA", type: "pharmacy", specialty: "general" },
+        { name: "Billing Desk", code: "BIL", type: "billing", specialty: "general" }
+      ];
+
+      // If Extensive Plan (hospital/enterprise), add advanced departments
+      if (licenseTier === 'extensive') {
+        defaultDepts.push(
+          { name: "Radiology", code: "RAD", type: "radiology", specialty: "general" },
+          { name: "Theatre", code: "SUR", type: "surgery", specialty: "general" },
+          { name: "Inpatient Ward", code: "WAR", type: "ward", specialty: "general" }
+        );
+      }
+
+      const deptRows = defaultDepts.map(d => ({
+        facility_id: facilityId,
+        name: d.name,
+        code: d.code,
+        type: d.type,
+        specialty: d.specialty,
+        is_active: true
+      }));
+
+      const { error: deptError } = await supabase.from('departments').insert(deptRows);
+      if (deptError) throw new Error(deptError.message || deptError);
 
       // 3. Upsert admin profile document
       const { error: profError } = await supabase.from('profiles').upsert({

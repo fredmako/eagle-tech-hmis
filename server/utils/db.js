@@ -169,6 +169,16 @@ const getInitialSandboxData = () => {
     orders: [],
     visits: [],
     email_logs: [],
+    departments: [
+      { id: "d_triage", facility_id: "f1", name: "Triage (Vitals)", code: "TRI", type: "triage", specialty: "general", is_active: true },
+      { id: "d_consult", facility_id: "f1", name: "OPD Consult", code: "CON", type: "consultation", specialty: "general", is_active: true },
+      { id: "d_lab", facility_id: "f1", name: "Laboratory", code: "LAB", type: "lab", specialty: "general", is_active: true },
+      { id: "d_rad", facility_id: "f1", name: "Radiology", code: "RAD", type: "radiology", specialty: "general", is_active: true },
+      { id: "d_surg", facility_id: "f1", name: "Theatre", code: "SUR", type: "surgery", specialty: "general", is_active: true },
+      { id: "d_ward", facility_id: "f1", name: "Inpatient Ward", code: "WAR", type: "ward", specialty: "general", is_active: true },
+      { id: "d_pharm", facility_id: "f1", name: "Pharmacy", code: "PHA", type: "pharmacy", specialty: "general", is_active: true },
+      { id: "d_bill", facility_id: "f1", name: "Billing Desk", code: "BIL", type: "billing", specialty: "general", is_active: true }
+    ]
   };
 };
 

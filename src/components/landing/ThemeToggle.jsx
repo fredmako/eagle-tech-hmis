@@ -8,7 +8,7 @@ export function ThemeToggle({ theme, onToggle, className = '' }) {
       onClick={onToggle}
       aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
       title={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
-      className={`relative w-9 h-9 rounded-lg border border-teal-500/20 hover:border-teal-500/40 bg-slate-900/40 hover:bg-slate-900/70 transition-all duration-200 flex items-center justify-center cursor-pointer overflow-hidden ${className}`}
+      className={`relative w-9 h-9 rounded-lg border border-border-strong hover:border-border-emphasis bg-card/40 hover:bg-card/70 transition-all duration-medium flex items-center justify-center cursor-pointer overflow-hidden ${className}`}
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
@@ -19,7 +19,7 @@ export function ThemeToggle({ theme, onToggle, className = '' }) {
           transition={{ duration: 0.25, ease: 'easeOut' }}
           className="absolute inset-0 flex items-center justify-center"
         >
-          {isLight ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} className="text-teal-400" />}
+          {isLight ? <Sun size={15} className="text-chart-4" /> : <Moon size={15} className="text-primary" />}
         </motion.span>
       </AnimatePresence>
     </button>

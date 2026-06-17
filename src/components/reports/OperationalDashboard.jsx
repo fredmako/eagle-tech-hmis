@@ -17,14 +17,19 @@ export default function OperationalDashboard({
   hyperCount,
   utiCount,
   batches,
-  dataErrors
+  dataErrors,
+  facilityInfo,
+  renderFacilityLogo
 }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-        <div>
-          <h3 className="text-sm font-bold text-slate-200">Management & Supervisor Intelligence</h3>
-          <p className="text-xs text-slate-400 mt-0.5">Real-time status summaries tracking outpatient volumes, laboratory load, and cash flow.</p>
+        <div className="flex items-center gap-3">
+          {renderFacilityLogo && renderFacilityLogo(facilityInfo?.logo_url, "h-10 w-10", "text-sm")}
+          <div>
+            <h3 className="text-sm font-bold text-slate-200">{facilityInfo?.name || "Management & Supervisor Intelligence"}</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Real-time status summaries tracking outpatient volumes, laboratory load, and cash flow.</p>
+          </div>
         </div>
         
         <div className="flex items-center gap-2">

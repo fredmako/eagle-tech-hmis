@@ -86,7 +86,7 @@ export default function Reports({ user }) {
 
   // Custom Report Builder states
   const [reportCategory, setReportCategory] = useState('outpatient'); // 'outpatient' | 'billing' | 'inpatient'
-  const [brandingMode, setBrandingMode] = useState('platform'); // 'platform' | 'hospital'
+  const [brandingMode, setBrandingMode] = useState('hospital'); // 'platform' | 'hospital'
   const [reportFormat, setReportFormat] = useState('csv'); // 'csv' | 'json'
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -1506,11 +1506,14 @@ export default function Reports({ user }) {
     <div className="space-y-6">
       {/* Tab Navigation header */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center border-b border-slate-800 pb-3 gap-3">
-        <div>
-          <h2 className="text-base font-bold text-slate-100 flex items-center gap-1.5">
-            <FileSpreadsheet size={18} className="text-teal-400" /> Eagle Tech Reports Dashboard
-          </h2>
-          <p className="text-xs text-slate-400 mt-0.5">Access compliance structures, department ledgers, and manage operational databases.</p>
+        <div className="flex items-center gap-3">
+          {renderFacilityLogo(facilityInfo.logo_url, "h-10 w-10", "text-sm")}
+          <div>
+            <h2 className="text-base font-bold text-slate-100 flex items-center gap-1.5">
+              {facilityInfo.name} Reports Dashboard
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">Access compliance structures, department ledgers, and manage operational databases.</p>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-1 bg-slate-900 border border-slate-855 p-1 rounded-xl">
@@ -1564,6 +1567,8 @@ export default function Reports({ user }) {
           utiCount={utiCount}
           batches={batches}
           dataErrors={dataErrors}
+          facilityInfo={facilityInfo}
+          renderFacilityLogo={renderFacilityLogo}
         />
       )}
 

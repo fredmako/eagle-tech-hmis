@@ -100,7 +100,7 @@ export default function SmtpSettings({
               type="email"
               value={smtp.sender_email}
               onChange={(e) => setSmtp({ ...smtp, sender_email: e.target.value })}
-              placeholder="noreply@eagletechsolutions.tech"
+              placeholder="admin@eagletechsolutions.tech"
               className="w-full bg-slate-955 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 font-mono focus:border-teal-500 transition"
               required
             />
@@ -125,7 +125,7 @@ export default function SmtpSettings({
               type="text"
               value={smtp.username}
               onChange={(e) => setSmtp({ ...smtp, username: e.target.value })}
-              placeholder="noreply@eagletechsolutions.tech"
+              placeholder="admin@eagletechsolutions.tech"
               className="w-full bg-slate-955 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:border-teal-500 transition"
               required
             />

@@ -32,7 +32,7 @@ router.post("/send-email", async (req, res) => {
     // Try to get SMTP settings (defaults to Titan SMTP or system values)
     const host = smtpConfig?.host || process.env.SMTP_HOST || "smtp.titan.email";
     const port = parseInt(smtpConfig?.port || process.env.SMTP_PORT || "465");
-    const userMail = smtpConfig?.username || process.env.SMTP_USER || "noreply@eagletechsolutions.tech";
+    const userMail = smtpConfig?.username || process.env.SMTP_USER || "admin@eagletechsolutions.tech";
     const passMail = smtpConfig?.password || process.env.SMTP_PASS || "";
 
     if (!passMail) {

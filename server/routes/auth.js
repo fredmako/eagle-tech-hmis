@@ -491,7 +491,7 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
     // Try sending email
     const host = process.env.SMTP_HOST || "smtp.titan.email";
     const port = parseInt(process.env.SMTP_PORT || "465");
-    const userMail = process.env.SMTP_USER || "noreply@eagletechsolutions.tech";
+    const userMail = process.env.SMTP_USER || "admin@eagletechsolutions.tech";
     const passMail = process.env.SMTP_PASS || "";
 
     let mailSent = false;

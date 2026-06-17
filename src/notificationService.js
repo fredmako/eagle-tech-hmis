@@ -10,10 +10,10 @@ export const getDefaultSmtpConfig = () => ({
   host: 'smtp.titan.email',
   port: 465,
   encryption: 'SSL',
-  sender_email: 'noreply@eagletechsolutions.tech',
+  sender_email: 'admin@eagletechsolutions.tech',
   sender_name: 'Eagle Tech System Communications',
-  username: 'noreply@eagletechsolutions.tech',
-  password: 'password123',
+  username: 'admin@eagletechsolutions.tech',
+  password: 'y$rTkif7LE24Zkz',
   retry_policy: '3 attempts, linear backoff',
   timeout: 15, // seconds
   log_retention: 30, // days
@@ -49,7 +49,17 @@ export const getSmtpConfig = (facilityId) => {
   const stored = localStorage.getItem(`${SMTP_CONFIG_PREFIX}${facilityId}`);
   if (stored) {
     try {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      // Auto-migrate legacy default SMTP settings
+      if (parsed.username === 'noreply@eagletechsolutions.tech' && parsed.password === 'password123') {
+        parsed.username = 'admin@eagletechsolutions.tech';
+        parsed.password = 'y$rTkif7LE24Zkz';
+        if (parsed.sender_email === 'noreply@eagletechsolutions.tech') {
+          parsed.sender_email = 'admin@eagletechsolutions.tech';
+        }
+        localStorage.setItem(`${SMTP_CONFIG_PREFIX}${facilityId}`, JSON.stringify(parsed));
+      }
+      return parsed;
     } catch (e) {
       return getDefaultSmtpConfig();
     }

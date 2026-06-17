@@ -99,6 +99,12 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
   useEffect(() => {
     setIsSandbox(!!supabase.isSandbox);
     fetchFacilitiesAndCheckAutoLogin();
+
+    // Check if recovery link was clicked
+    if (sessionStorage.getItem('egesa_health_recovery_active') === 'true') {
+      setShowRecovery(true);
+      setCodeSent(true); // Direct to Choose New Password view
+    }
   }, []);
 
   const handleAutoLogin = async (token, facId, facList) => {
@@ -567,21 +573,31 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     setRecoveryError('');
     setRecoverySuccess('');
     try {
-      const code = `ET-${Math.floor(100000 + Math.random() * 900000)}`;
-      setGeneratedCode(code);
+      if (!supabase.isSandbox) {
+        // Real Supabase native reset password flow
+        const { error } = await supabase.auth.resetPasswordForEmail(recoveryEmail, {
+          redirectTo: `${window.location.origin}/auth/callback?type=recovery`
+        });
+        if (error) throw error;
 
-      // Trigger PASSWORD_RESET notification
-      const response = await sendNotification('PASSWORD_RESET', {
-        resetCode: code,
-        recipientEmail: recoveryEmail
-      }, selectedFacility || facilities[0]?.id || 'f1');
+        setRecoverySuccess(`Password reset link sent to ${recoveryEmail}. Please check your email inbox.`);
+      } else {
+        const code = `ET-${Math.floor(100000 + Math.random() * 900000)}`;
+        setGeneratedCode(code);
 
-      if (response.blocked) {
-        throw new Error('Outbound emails blocked: The facility license is EXPIRED. Please contact the administrator.');
+        // Trigger PASSWORD_RESET notification
+        const response = await sendNotification('PASSWORD_RESET', {
+          resetCode: code,
+          recipientEmail: recoveryEmail
+        }, selectedFacility || facilities[0]?.id || 'f1');
+
+        if (response.blocked) {
+          throw new Error('Outbound emails blocked: The facility license is EXPIRED. Please contact the administrator.');
+        }
+
+        setRecoverySuccess(`Verification code sent to ${recoveryEmail}. Check webmail inbox.`);
+        setCodeSent(true);
       }
-
-      setRecoverySuccess(`Verification code sent to ${recoveryEmail}. Check webmail inbox.`);
-      setCodeSent(true);
     } catch (err) {
       setRecoveryError(err.message || 'Failed to dispatch reset code.');
     } finally {
@@ -589,18 +605,34 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     }
   };
 
-  const handleVerifyResetCode = (e) => {
+  const handleVerifyResetCode = async (e) => {
     e.preventDefault();
     setRecoveryError('');
     setRecoverySuccess('');
     
-    if (enteredCode.trim().toUpperCase() !== generatedCode) {
-      setRecoveryError('Invalid verification reset code. Please check your inbox again.');
-      return;
+    if (supabase.isSandbox) {
+      if (enteredCode.trim().toUpperCase() !== generatedCode) {
+        setRecoveryError('Invalid verification reset code. Please check your inbox again.');
+        return;
+      }
     }
     if (newPass.length < 8) {
       setRecoveryError('Password must be at least 8 characters long.');
       return;
+    }
+
+    if (!supabase.isSandbox) {
+      try {
+        const { error } = await supabase.auth.updateUser({ password: newPass });
+        if (error) throw error;
+
+        sessionStorage.removeItem('egesa_health_recovery_active');
+        // Auto-check session to log user in immediately
+        if (checkSession) await checkSession();
+      } catch (err) {
+        setRecoveryError(err.message || 'Failed to update password in Supabase.');
+        return;
+      }
     }
 
     setRecoverySuccess('Password updated successfully! Redirecting you to login...');
@@ -610,6 +642,8 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       setCodeSent(false);
       setRecoverySuccess('');
       setRecoveryEmail('');
+      setEnteredCode('');
+      setNewPass('');
     }, 1500);
   };
 
@@ -775,7 +809,11 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
           <div className="mt-2">
             <h2 className="text-xl font-bold text-slate-100 mb-1">Account Password Recovery</h2>
-            <p className="text-xs text-slate-400 mb-6 font-medium">A security verification code will be generated and dispatched through Titan SMTP.</p>
+            <p className="text-xs text-slate-400 mb-6 font-medium">
+              {isSandbox 
+                ? "A security verification code will be generated and dispatched through Titan SMTP."
+                : "A password reset link will be sent to your email address from Supabase Auth."}
+            </p>
           </div>
 
           {recoveryError && (
@@ -794,24 +832,26 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
 
           {!codeSent ? (
             <form onSubmit={handleRequestCode} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Select Facility / Tenant
-                </label>
-                <select
-                  value={selectedFacility}
-                  onChange={(e) => setSelectedFacility(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 text-xs focus:outline-none focus:border-teal-500 transition"
-                  required
-                >
-                  <option value="">-- Choose Facility --</option>
-                  {facilities.map((fac) => (
-                    <option key={fac.id} value={fac.id}>
-                      {fac.name} ({fac.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {isSandbox && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Select Facility / Tenant
+                  </label>
+                  <select
+                    value={selectedFacility}
+                    onChange={(e) => setSelectedFacility(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 text-xs focus:outline-none focus:border-teal-500 transition"
+                    required
+                  >
+                    <option value="">-- Choose Facility --</option>
+                    {facilities.map((fac) => (
+                      <option key={fac.id} value={fac.id}>
+                        {fac.name} ({fac.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
@@ -829,27 +869,35 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
 
               <button
                 type="submit"
-                disabled={recoveryLoading || !selectedFacility}
+                disabled={recoveryLoading || (isSandbox && !selectedFacility)}
                 className="w-full bg-teal-500 hover:bg-teal-600 disabled:bg-slate-850 disabled:text-slate-600 text-slate-950 font-semibold text-sm py-2.5 px-4 rounded-lg shadow-lg active:scale-[0.98] transition mt-2"
               >
-                {recoveryLoading ? 'Generating Reset Code...' : 'Dispatch Reset Code'}
+                {recoveryLoading 
+                  ? (isSandbox ? 'Generating Reset Code...' : 'Sending Reset Link...') 
+                  : (isSandbox ? 'Dispatch Reset Code' : 'Send Reset Link')}
               </button>
             </form>
           ) : (
             <form onSubmit={handleVerifyResetCode} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Verification Reset Code
-                </label>
-                <input
-                  type="text"
-                  value={enteredCode}
-                  onChange={(e) => setEnteredCode(e.target.value)}
-                  placeholder="ET-XXXXXX"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm font-mono focus:outline-none focus:border-teal-500 transition"
-                  required
-                />
-              </div>
+              {isSandbox ? (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Verification Reset Code
+                  </label>
+                  <input
+                    type="text"
+                    value={enteredCode}
+                    onChange={(e) => setEnteredCode(e.target.value)}
+                    placeholder="ET-XXXXXX"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm font-mono focus:outline-none focus:border-teal-500 transition"
+                    required
+                  />
+                </div>
+              ) : (
+                <div className="text-xs text-teal-400 bg-teal-500/10 border border-teal-500/20 rounded-lg p-3 font-medium">
+                  Updating password for Supabase Auth account.
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
@@ -869,7 +917,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                 type="submit"
                 className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-semibold text-sm py-2.5 px-4 rounded-lg shadow-lg active:scale-[0.98] transition mt-2"
               >
-                Update Password & Return to Login
+                {isSandbox ? 'Update Password & Return to Login' : 'Update Password & Enter Portal'}
               </button>
             </form>
           )}

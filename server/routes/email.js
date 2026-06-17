@@ -13,6 +13,21 @@ router.post("/send-email", async (req, res) => {
       .json({ error: "Email, subject, and html body are required" });
   }
 
+  // Bypass on server for Supabase native/supported emails in production
+  const isAuthEmail = subject.includes("Password Reset") || 
+                      subject.includes("Welcome to your Eagle Tech") || 
+                      subject.includes("Portal Setup Success") ||
+                      subject.includes("Reset Request");
+
+  if (isRealSupabase && isAuthEmail) {
+    console.log(`[Server Email Router] Bypassing custom SMTP send for Supabase-supported email subject: "${subject}"`);
+    return res.json({
+      success: true,
+      message: "Bypassed on server. Delegated to Supabase native email template.",
+      messageId: "supabase-delegated-server"
+    });
+  }
+
   try {
     // Try to get SMTP settings (defaults to Titan SMTP or system values)
     const host = smtpConfig?.host || process.env.SMTP_HOST || "smtp.titan.email";

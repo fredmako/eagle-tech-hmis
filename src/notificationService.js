@@ -509,6 +509,27 @@ export const sendNotification = async (event, payload, facilityId = null) => {
     try {
       let messageId = null;
 
+      if (!supabase.isSandbox && (event === 'USER_SIGNUP' || event === 'PASSWORD_RESET')) {
+        console.log(`[NotificationService] Bypassing real SMTP send for Supabase-supported event: ${event}`);
+        updateEmailLogStatus(logId, 'sent', { 
+          retry_count: currentAttempt, 
+          message_id: 'supabase-delegated'
+        });
+
+        try {
+          await supabase.from('audit_logs').insert({
+            facility_id: finalFacId,
+            user_id: 'system',
+            action: 'Email Dispatch Bypassed',
+            details: `Bypassed custom SMTP for Supabase-supported event "${event}" to ${recipient}. Delegated to Supabase native email templates.`
+          });
+        } catch (auditErr) {
+          console.warn('Failed to write audit log for email bypass:', auditErr);
+        }
+
+        return { success: true };
+      }
+
       if (supabase.isSandbox) {
         // Simulate network delay
         await new Promise((resolve, reject) => {

@@ -35,6 +35,15 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
+      // If we are currently in the middle of password recovery,
+      // DO NOT set the user session context. We need the recovery flow on Login page to handle it.
+      if (sessionStorage.getItem('egesa_health_recovery_active') === 'true') {
+        console.log('[AuthContext:checkSession] Recovery redirect active. Skipping context auto-login.');
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       // Check if sessionStorage already has the enriched user details (like facility_id or specific roles)
       const storedUser = sessionStorage.getItem('egesa_health_active_user');
       let userData = null;

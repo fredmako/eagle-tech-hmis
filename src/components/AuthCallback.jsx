@@ -5,6 +5,11 @@ export default function AuthCallback({ onCallbackComplete }) {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        // Parse redirect parameters
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const searchParams = new URLSearchParams(window.location.search);
+        const isRecovery = searchParams.get('type') === 'recovery' || hashParams.get('type') === 'recovery';
+
         // Get the session from the URL hash (Supabase redirects with #access_token=...)
         const { data, error } = await supabase.auth.getSession();
 
@@ -19,6 +24,11 @@ export default function AuthCallback({ onCallbackComplete }) {
           // User successfully authenticated
           const user = data.session.user;
           const isOnboarding = sessionStorage.getItem('egesa_health_onboarding_redirect') === 'true';
+
+          if (isRecovery) {
+            console.log('[AuthCallback] Detected password recovery callback. Storing flag.');
+            sessionStorage.setItem('egesa_health_recovery_active', 'true');
+          }
 
           if (isOnboarding) {
             // Store the Google user data for the onboarding form

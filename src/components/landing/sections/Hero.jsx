@@ -17,7 +17,13 @@ export function Hero({ onPrimary, onSecondary }) {
         >
           <SafeImage src={PHOTO_HERO} alt="Clinician using a digital health system" className="w-full h-full object-cover clinical-photo" />
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/97 via-slate-950/88 to-slate-950/65" />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, var(--landing-overlay-from, rgba(6,11,20,0.97)), var(--landing-overlay-via, rgba(6,11,20,0.88)), var(--landing-overlay-to, rgba(6,11,20,0.65)))',
+          }}
+        />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_15%_50%,rgba(45,212,191,0.07),transparent_60%)]" />
       </div>
 

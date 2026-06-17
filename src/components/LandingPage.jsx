@@ -6,8 +6,9 @@ import { ModulesGrid } from './landing/sections/ModulesGrid';
 import { Pricing } from './landing/sections/Pricing';
 import { About } from './landing/sections/About';
 import { Footer } from './landing/sections/Footer';
+import { ThemeToggle } from './landing/ThemeToggle';
 
-export default function LandingPage({ onNavigateToLogin, onNavigateToSignup }) {
+export default function LandingPage({ onNavigateToLogin, onNavigateToSignup, theme, onToggleTheme }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -42,6 +43,7 @@ export default function LandingPage({ onNavigateToLogin, onNavigateToSignup }) {
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
+            {onToggleTheme && <ThemeToggle theme={theme} onToggle={onToggleTheme} />}
             <button onClick={onNavigateToLogin} className="text-[13px] font-semibold text-slate-400 hover:text-slate-100 transition-colors px-3 py-1.5 cursor-pointer">
               Sign In
             </button>
@@ -50,9 +52,12 @@ export default function LandingPage({ onNavigateToLogin, onNavigateToSignup }) {
             </button>
           </div>
 
-          <button className="md:hidden text-slate-400 hover:text-slate-100 transition-colors" onClick={() => setMobileOpen(!mobileOpen)}>
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          <div className="md:hidden flex items-center gap-2">
+            {onToggleTheme && <ThemeToggle theme={theme} onToggle={onToggleTheme} />}
+            <button className="text-slate-400 hover:text-slate-100 transition-colors p-1" onClick={() => setMobileOpen(!mobileOpen)}>
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
 
         {mobileOpen && (

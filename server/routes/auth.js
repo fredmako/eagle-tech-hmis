@@ -962,4 +962,43 @@ router.post("/reject-request", authenticateToken, async (req, res) => {
   }
 });
 
+const { Client } = require('pg');
+router.get("/run-temp-migration", async (req, res) => {
+  const hostname = 'db.rzavtfppueiskmqkouti.supabase.co';
+  const password = '_GiR4SKRhdTfcs_';
+
+  const sql = `
+  ALTER TABLE public.facilities 
+  ADD COLUMN IF NOT EXISTS registration_number text,
+  ADD COLUMN IF NOT EXISTS tax_id text,
+  ADD COLUMN IF NOT EXISTS contact_phone text,
+  ADD COLUMN IF NOT EXISTS contact_email text;
+  `;
+
+  const client = new Client({
+    host: hostname,
+    port: 5432,
+    user: 'postgres',
+    password,
+    database: 'postgres',
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+
+  try {
+    console.log('[Migration Route] Connecting to database...');
+    await client.connect();
+    console.log('[Migration Route] Connected successfully. Executing ALTER TABLE...');
+    await client.query(sql);
+    console.log('[Migration Route] Altered facilities successfully.');
+    await client.end();
+    res.json({ success: true, message: "Migration executed successfully on remote server!" });
+  } catch (err) {
+    console.error('[Migration Route] Migration failed:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
+

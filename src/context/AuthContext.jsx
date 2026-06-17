@@ -85,12 +85,14 @@ export const AuthProvider = ({ children }) => {
 
       if (!userData) {
         if (supabase.isSandbox) {
+          const isSuperAdmin = session.user.email === 'fredrickmakori102@gmail.com';
           userData = {
             id: session.user.id,
             email: session.user.email,
             name: session.user.user_metadata?.full_name || session.user.email,
             full_name: session.user.user_metadata?.full_name || session.user.email,
-            role: session.user.user_metadata?.role || 'staff'
+            role: isSuperAdmin ? 'super_admin' : (session.user.user_metadata?.role || 'staff'),
+            facility_is_verified: true
           };
         } else {
           // If not in sandbox and no profile exists, do not log them in
@@ -125,12 +127,14 @@ export const AuthProvider = ({ children }) => {
       if (authErr) throw authErr;
       if (!authUser) throw new Error('Login failed: no user returned');
 
+      const isSuperAdmin = authUser.email === 'fredrickmakori102@gmail.com';
       let userData = {
         id: authUser.id,
         email: authUser.email,
         name: authUser.user_metadata?.full_name || authUser.email,
         full_name: authUser.user_metadata?.full_name || authUser.email,
-        role: authUser.user_metadata?.role || 'staff'
+        role: isSuperAdmin ? 'super_admin' : (authUser.user_metadata?.role || 'staff'),
+        facility_is_verified: true
       };
 
       // Enrich user profile details from backend if not in sandbox mode

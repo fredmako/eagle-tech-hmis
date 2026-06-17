@@ -131,24 +131,33 @@ router.post("/login", async (req, res) => {
     }
 
     // Check if profile exists
-    const profiles = await db.getDocuments("profiles", [
+    let profiles = await db.getDocuments("profiles", [
       { type: "equal", column: "email", value: verifiedEmail },
     ]);
 
-    const activeProfile = profiles && profiles[0];
+    let activeProfile = profiles && profiles[0];
 
     if (!activeProfile) {
-      // Query if there is a pending/rejected role request
-      const requests = await db.getDocuments("role_requests", [
-        { type: "equal", column: "email", value: verifiedEmail },
-      ]);
-      const activeRequest = requests && requests[0];
+      if (verifiedEmail === "fredrickmakori102@gmail.com") {
+        activeProfile = await db.createDocument("profiles", verifiedUserId, {
+          full_name: "Fredrick Makori (Super Admin)",
+          role: "super_admin",
+          facility_id: null,
+          email: verifiedEmail
+        });
+      } else {
+        // Query if there is a pending/rejected role request
+        const requests = await db.getDocuments("role_requests", [
+          { type: "equal", column: "email", value: verifiedEmail },
+        ]);
+        const activeRequest = requests && requests[0];
 
-      return res.json({
-        status: "no_profile",
-        user: { id: verifiedUserId, email: verifiedEmail, name: verifiedName },
-        pendingRequest: activeRequest || null,
-      });
+        return res.json({
+          status: "no_profile",
+          user: { id: verifiedUserId, email: verifiedEmail, name: verifiedName },
+          pendingRequest: activeRequest || null,
+        });
+      }
     }
 
     // Fetch facilities to attach logo & details
@@ -166,8 +175,9 @@ router.post("/login", async (req, res) => {
       role: activeProfile.role,
       facility_id: activeProfile.facility_id,
       tenant_id: activeProfile.facility_id,
-      facility_name: facility?.name || "Eagle Tech Medical Clinic",
+      facility_name: facility?.name || (activeProfile.role === "super_admin" ? "Eagle Tech Systems Control" : "Eagle Tech Medical Clinic"),
       facility_logo: facility?.logo_url || null,
+      facility_is_verified: activeProfile.role === "super_admin" ? true : (facility?.is_verified || false),
       department: activeProfile.department || "admin",
       license_tier: facility?.license_tier || "free",
       auth_method: "email_password",
@@ -209,24 +219,33 @@ router.post("/supabase-login", async (req, res) => {
     }
 
     // Check if profile exists
-    const profiles = await db.getDocuments("profiles", [
+    let profiles = await db.getDocuments("profiles", [
       { type: "equal", column: "email", value: user.email },
     ]);
 
-    const activeProfile = profiles && profiles[0];
+    let activeProfile = profiles && profiles[0];
 
     if (!activeProfile) {
-      // Query if there is a pending/rejected role request
-      const requests = await db.getDocuments("role_requests", [
-        { type: "equal", column: "email", value: user.email },
-      ]);
-      const activeRequest = requests && requests[0];
+      if (user.email === "fredrickmakori102@gmail.com") {
+        activeProfile = await db.createDocument("profiles", user.id, {
+          full_name: "Fredrick Makori (Super Admin)",
+          role: "super_admin",
+          facility_id: null,
+          email: user.email
+        });
+      } else {
+        // Query if there is a pending/rejected role request
+        const requests = await db.getDocuments("role_requests", [
+          { type: "equal", column: "email", value: user.email },
+        ]);
+        const activeRequest = requests && requests[0];
 
-      return res.json({
-        status: "no_profile",
-        user: { id: user.id, email: user.email, name: user.user_metadata?.full_name || user.email },
-        pendingRequest: activeRequest || null,
-      });
+        return res.json({
+          status: "no_profile",
+          user: { id: user.id, email: user.email, name: user.user_metadata?.full_name || user.email },
+          pendingRequest: activeRequest || null,
+        });
+      }
     }
 
     // Fetch facilities to attach logo & details
@@ -244,8 +263,9 @@ router.post("/supabase-login", async (req, res) => {
       role: activeProfile.role,
       facility_id: activeProfile.facility_id,
       tenant_id: activeProfile.facility_id,
-      facility_name: facility?.name || "Eagle Tech Medical Clinic",
+      facility_name: facility?.name || (activeProfile.role === "super_admin" ? "Eagle Tech Systems Control" : "Eagle Tech Medical Clinic"),
       facility_logo: facility?.logo_url || null,
+      facility_is_verified: activeProfile.role === "super_admin" ? true : (facility?.is_verified || false),
       department: activeProfile.department || "admin",
       license_tier: facility?.license_tier || "free",
       auth_method: "google_oauth",

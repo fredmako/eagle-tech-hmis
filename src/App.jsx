@@ -21,6 +21,7 @@ import LandingPage from './components/LandingPage';
 import Preferences from './components/Preferences';
 import AuthCallback from './components/AuthCallback';
 import translations from './translations';
+import SuperAdminDashboard from './components/SuperAdminDashboard';
 
 import {
   LayoutDashboard,
@@ -45,7 +46,7 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  const { user, logout, loading } = useAuth();
+  const { user, logout, loading, checkSession } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [preselectedPatient, setPreselectedPatient] = useState(null);
@@ -189,8 +190,71 @@ export default function App() {
     })();
 
     return (
-      <div className={`theme-${theme} font-${font} min-h-screen bg-slate-950 text-slate-100`}>
+      <div className={`theme-${theme} font-${font} min-h-screen bg-slate-955 text-slate-100`}>
         {publicContent}
+      </div>
+    );
+  }
+
+  // Intercept Super Admin
+  if (user.role === 'super_admin') {
+    return (
+      <div className={`theme-${theme} font-${font} min-h-screen bg-slate-955 text-slate-100`}>
+        <SuperAdminDashboard user={user} onSignOut={handleSignOut} />
+      </div>
+    );
+  }
+
+  // Intercept Unverified Facilities
+  if (user.facility_is_verified === false) {
+    return (
+      <div className={`theme-${theme} font-${font} min-h-screen bg-slate-955 text-slate-100 flex flex-col justify-center items-center p-4`}>
+        <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-xl text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="bg-amber-500/10 border border-amber-500/25 p-4 rounded-full text-amber-400">
+              <Clock size={48} className="animate-pulse" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-white uppercase tracking-wide font-sans">Registration Under Review</h2>
+            <p className="text-xs text-slate-400 leading-relaxed font-sans">
+              Your facility <strong>{user.facility_name}</strong> has been registered successfully. A system supervisor must verify your credentials before access is granted to your dashboard.
+            </p>
+          </div>
+
+          <div className="bg-slate-955 border border-slate-855 p-4 rounded-xl text-left space-y-2.5 text-xs text-slate-300 font-sans">
+            <div className="flex justify-between text-[11px]">
+              <span className="text-slate-500 font-bold">Facility Code</span>
+              <span className="font-mono text-teal-400 font-black">{user.facility_id}</span>
+            </div>
+            <div className="flex justify-between text-[11px]">
+              <span className="text-slate-500 font-bold">Admin Email</span>
+              <span className="text-slate-300 font-semibold">{user.email}</span>
+            </div>
+            <div className="border-t border-slate-900 pt-2 text-[10px] text-slate-500 leading-relaxed font-sans">
+              Please contact the platform supervisor at <span className="text-teal-400 font-bold">fredrickmakori102@gmail.com</span> if you require immediate verification.
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 pt-2">
+            <button
+              onClick={async () => {
+                sessionStorage.removeItem('egesa_health_active_user');
+                await checkSession();
+              }}
+              className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2.5 px-6 rounded-lg shadow-lg active:scale-[0.98] transition w-full cursor-pointer font-sans"
+            >
+              Refresh Verification Status
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 font-bold text-xs py-2 px-4 rounded-lg flex items-center justify-center gap-1.5 transition active:scale-[0.98] cursor-pointer font-sans"
+            >
+              <LogOut size={12} /> Sign Out
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

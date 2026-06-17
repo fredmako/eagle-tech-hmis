@@ -393,7 +393,8 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         code: hospitalCode,
         logo_url: logoUrl,
         address: hospitalAddress,
-        license_tier: licenseTier
+        license_tier: licenseTier,
+        is_verified: false
       });
 
       if (facError) throw new Error(facError.message || facError);

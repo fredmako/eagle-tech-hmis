@@ -38,6 +38,7 @@ const getInitialSandboxData = () => {
         code: "EMC-001",
         logo_url: "preset:shield",
         address: "Nairobi, Kenya",
+        is_verified: true,
       },
       {
         id: "f2",
@@ -45,6 +46,7 @@ const getInitialSandboxData = () => {
         code: "MRH-002",
         logo_url: "preset:cross",
         address: "Mombasa, Kenya",
+        is_verified: true,
       },
     ],
     profiles: [

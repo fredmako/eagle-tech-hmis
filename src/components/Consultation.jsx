@@ -8,6 +8,7 @@ import {
   FileText,
   ClipboardList,
 } from "lucide-react";
+import { diseaseMaster, medicineMaster, labTestMaster } from "../medicalMaster";
 
 export default function Consultation({ user, onComplete }) {
   const [queue, setQueue] = useState([]);
@@ -21,12 +22,7 @@ export default function Consultation({ user, onComplete }) {
   const [treatmentPlan, setTreatmentPlan] = useState("");
 
   // Orders
-  const [labTests, setLabTests] = useState({
-    malaria: false,
-    fbc: false,
-    urinalysis: false,
-    widal: false,
-  });
+  const [orderedLabs, setOrderedLabs] = useState([]);
 
   const [prescriptions, setPrescriptions] = useState([
     { name: "", dosage: "", frequency: "1x1", duration: "3 days", price: 0 },
@@ -35,25 +31,23 @@ export default function Consultation({ user, onComplete }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
-  const availableDrugs = [
-    { name: "Artemether-Lumefantrine (AL)", price: 450, unit: "dose" },
-    { name: "Paracetamol 500mg", price: 50, unit: "strip" },
-    { name: "Amoxicillin 500mg", price: 180, unit: "strip" },
-    { name: "Metronidazole 400mg", price: 120, unit: "strip" },
-    { name: "ORS + Zinc", price: 100, unit: "sachet" },
-    { name: "Ciprofloxacin 500mg", price: 250, unit: "strip" },
-  ];
+  const patientAge = selectedVisit?.patient ? getPatientAge(selectedVisit.patient.dob) : 0;
+  const patientGender = selectedVisit?.patient?.gender || "unknown";
 
-  const icd10Diagnoses = [
-    "Malaria (B54)",
-    "Acute Upper Respiratory Infection (J06.9)",
-    "Gastroenteritis (A09)",
-    "Hypertension (I10)",
-    "Urinary Tract Infection (N39.0)",
-    "Typhoid Fever (A01.0)",
-    "Amoebiasis (A06.9)",
-    "Tonsillitis (J03.9)",
-  ];
+  const availableDrugs = medicineMaster.map((m) => ({
+    name: `${m.genericName} (${m.brandName || ""}) ${m.strength}`.trim(),
+    genericName: m.genericName,
+    price: m.price,
+    unit: m.unit,
+    id: m.id,
+    controlled: m.controlledDrugFlag,
+    childSafe: m.childSafeFlag,
+    pregnancySafe: m.pregnancySafeFlag,
+    lactationSafe: m.lactationSafeFlag,
+    strength: m.strength
+  }));
+
+  const icd10Diagnoses = diseaseMaster.map((d) => `${d.name} (${d.code})`);
 
   useEffect(() => {
     fetchConsultationQueue();
@@ -95,12 +89,7 @@ export default function Consultation({ user, onComplete }) {
     setExam("");
     setDiagnosis("");
     setTreatmentPlan("");
-    setLabTests({
-      malaria: false,
-      fbc: false,
-      urinalysis: false,
-      widal: false,
-    });
+    setOrderedLabs([]);
     setPrescriptions([
       { name: "", dosage: "", frequency: "1x1", duration: "3 days", price: 0 },
     ]);
@@ -114,7 +103,6 @@ export default function Consultation({ user, onComplete }) {
         .eq("visit_id", visit.id);
       if (data && data.length > 0) {
         setTriageData(data[0]);
-        // Prefill chief complaint as history starter
         setHistory(`Chief Complaint: ${data[0].chief_complaint}\n`);
       } else {
         setTriageData(null);
@@ -122,6 +110,21 @@ export default function Consultation({ user, onComplete }) {
     } catch (err) {
       console.error("Error fetching triage data:", err);
     }
+  };
+
+  const getPatientAge = (dobString) => {
+    if (!dobString) return 0;
+    const dob = new Date(dobString);
+    const diffMs = Date.now() - dob.getTime();
+    const ageDate = new Date(diffMs);
+    return Math.abs(ageDate.getUTCFullYear() - 1970);
+  };
+
+  const getMedicineDetails = (fullName) => {
+    return medicineMaster.find(m => {
+      const matchName = `${m.genericName} (${m.brandName || ''}) ${m.strength}`.trim();
+      return matchName === fullName || m.genericName === fullName;
+    });
   };
 
   const addPrescriptionRow = () => {
@@ -177,24 +180,17 @@ export default function Consultation({ user, onComplete }) {
       const orderPromises = [];
       const labsOrdered = [];
 
-      const labMapping = {
-        malaria: { name: "Malaria BS/RDT", price: 150 },
-        fbc: { name: "Full Blood Count (FBC)", price: 400 },
-        urinalysis: { name: "Urinalysis Dipstick", price: 200 },
-        widal: { name: "Widal Agglutination Test", price: 300 },
-      };
-
-      Object.entries(labTests).forEach(([testKey, ordered]) => {
-        if (ordered) {
-          const test = labMapping[testKey];
-          labsOrdered.push(test.name);
+      orderedLabs.forEach((testName) => {
+        const testObj = labTestMaster.find(t => t.name === testName);
+        if (testObj) {
+          labsOrdered.push(testObj.name);
           orderPromises.push(
             supabase.from("orders").insert({
               visit_id: selectedVisit.id,
               type: "lab",
-              item_name: test.name,
+              item_name: testObj.name,
               status: "ordered",
-              price: test.price,
+              price: testObj.price,
             }),
           );
         }
@@ -225,11 +221,6 @@ export default function Consultation({ user, onComplete }) {
       }
 
       // 4. Intelligent Routing
-      // If Lab tests ordered, route to 'lab'
-      // Else if drugs prescribed but no lab, route to 'billing' (or pharmacy, but billing is required before dispensing in many health systems)
-      // We will route: Lab -> Pharmacy/Billing.
-      // Let's decide: if lab tests exist, next station is 'lab'. If no lab but drugs exist, next station is 'billing' (to pay for drugs first).
-      // If nothing ordered, complete the visit.
       let nextDept = "completed";
       if (orderPromises.length > 0) {
         nextDept = "lab";
@@ -238,21 +229,22 @@ export default function Consultation({ user, onComplete }) {
       }
 
       const { error: visitErr } = await supabase
-        .from("visits")
-        .update({
-          department: nextDept,
-          status: nextDept === "completed" ? "completed" : "waiting",
-        })
-        .eq("id", selectedVisit.id);
+          .from("visits")
+          .update({
+            department: nextDept,
+            status: nextDept === "completed" ? "completed" : "waiting",
+          })
+          .eq("id", selectedVisit.id);
 
       if (visitErr) throw visitErr;
 
       // 5. Generate Billing Invoice automatically if items ordered
       const totalBill =
-        (orderPromises.length > 0
-          ? Object.entries(labTests)
-              .filter(([k, v]) => v)
-              .reduce((sum, [k]) => sum + labMapping[k].price, 0)
+        (orderedLabs.length > 0
+          ? orderedLabs.reduce((sum, testName) => {
+              const testObj = labTestMaster.find(t => t.name === testName);
+              return sum + (testObj ? testObj.price : 0);
+            }, 0)
           : 0) +
         (drugPromises.length > 0
           ? prescriptions
@@ -523,6 +515,96 @@ export default function Consultation({ user, onComplete }) {
                 </div>
               </div>
 
+              {/* Clinical Recommendations (ICD-10 Suggestions) */}
+              {diagnosis && (() => {
+                const disease = diseaseMaster.find(d => `${d.name} (${d.code})` === diagnosis);
+                if (!disease) return null;
+                
+                return (
+                  <div className="bg-slate-950 border border-teal-500/20 p-4 rounded-xl space-y-2 mt-4">
+                    <h4 className="text-[10px] text-teal-400 font-bold uppercase tracking-wider">
+                      ICD-10 Suggested Protocol: {disease.name} ({disease.code})
+                    </h4>
+                    <p className="text-[10px] text-slate-405">
+                      <strong>Typical Symptoms:</strong> {disease.symptoms} | <strong>Suggested Dept:</strong> {disease.suggestedDepartment}
+                    </p>
+                    
+                    <div className="flex flex-wrap gap-4 pt-2">
+                      {/* Suggested Labs */}
+                      {disease.suggestedLabs && disease.suggestedLabs.length > 0 && (
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-slate-500 font-bold uppercase block">Suggested Labs:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {disease.suggestedLabs.map((labName, idx) => {
+                              const alreadyOrdered = orderedLabs.includes(labName);
+                              return (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => {
+                                    if (!alreadyOrdered) {
+                                      setOrderedLabs([...orderedLabs, labName]);
+                                    }
+                                  }}
+                                  className={`text-[9px] font-bold px-2 py-1 rounded transition ${
+                                    alreadyOrdered 
+                                      ? "bg-teal-500/10 text-teal-400 border border-teal-500/20" 
+                                      : "bg-slate-900 text-slate-350 border border-slate-800 hover:border-teal-500/30"
+                                  }`}
+                                >
+                                  {alreadyOrdered ? "✓ " : "+ "} {labName}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Suggested Meds */}
+                      {disease.suggestedMedications && disease.suggestedMedications.length > 0 && (
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-slate-500 font-bold uppercase block">Suggested Medications:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {disease.suggestedMedications.map((medName, idx) => {
+                              const drugObj = availableDrugs.find(d => d.genericName.toLowerCase() === medName.toLowerCase());
+                              const fullName = drugObj ? drugObj.name : medName;
+                              
+                              const alreadyPrescribed = prescriptions.some(p => p.name === fullName);
+                              return (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => {
+                                    if (!alreadyPrescribed) {
+                                      const emptyIndex = prescriptions.findIndex(p => !p.name);
+                                      if (emptyIndex !== -1) {
+                                        handlePrescriptionChange(emptyIndex, "name", fullName);
+                                      } else {
+                                        setPrescriptions([
+                                          ...prescriptions,
+                                          { name: fullName, dosage: drugObj ? drugObj.strength : "", frequency: "1x1", duration: "3 days", price: drugObj ? drugObj.price : 0 }
+                                        ]);
+                                      }
+                                    }
+                                  }}
+                                  className={`text-[9px] font-bold px-2 py-1 rounded transition ${
+                                    alreadyPrescribed 
+                                      ? "bg-teal-500/10 text-teal-400 border border-teal-500/20" 
+                                      : "bg-slate-900 text-slate-350 border border-slate-800 hover:border-teal-500/30"
+                                  }`}
+                                >
+                                  {alreadyPrescribed ? "✓ " : "+ "} {medName}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Orders Generator */}
               <div className="border-t border-slate-850 pt-4 mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Lab Orders Box */}
@@ -530,28 +612,24 @@ export default function Consultation({ user, onComplete }) {
                   <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-1">
                     Order Labs
                   </h4>
-                  {[
-                    { key: "malaria", label: "Malaria BS/RDT (150/-)" },
-                    { key: "fbc", label: "Full Blood Count (400/-)" },
-                    { key: "urinalysis", label: "Urinalysis (200/-)" },
-                    { key: "widal", label: "Widal Agglutination (300/-)" },
-                  ].map((test) => (
+                  {labTestMaster.map((test) => (
                     <label
-                      key={test.key}
+                      key={test.id}
                       className="flex items-center gap-2 text-xs text-slate-350 cursor-pointer select-none"
                     >
                       <input
                         type="checkbox"
-                        checked={labTests[test.key]}
-                        onChange={(e) =>
-                          setLabTests({
-                            ...labTests,
-                            [test.key]: e.target.checked,
-                          })
-                        }
+                        checked={orderedLabs.includes(test.name)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setOrderedLabs([...orderedLabs, test.name]);
+                          } else {
+                            setOrderedLabs(orderedLabs.filter((l) => l !== test.name));
+                          }
+                        }}
                         className="accent-teal-500 rounded border-slate-800 bg-slate-950 text-teal-600 focus:ring-teal-500 h-3.5 w-3.5"
                       />
-                      {test.label}
+                      {test.name} ({test.price}/-)
                     </label>
                   ))}
                 </div>
@@ -571,70 +649,95 @@ export default function Consultation({ user, onComplete }) {
                     </button>
                   </div>
 
-                  <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                  <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
                     {prescriptions.map((p, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-2 bg-slate-900 border border-slate-850 p-2 rounded-lg relative group"
-                      >
-                        <select
-                          value={p.name}
-                          onChange={(e) =>
-                            handlePrescriptionChange(
-                              idx,
-                              "name",
-                              e.target.value,
-                            )
-                          }
-                          className="flex-1 bg-slate-950 border border-slate-800 rounded py-1 px-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
-                        >
-                          <option value="">-- Choose Drug --</option>
-                          {availableDrugs.map((d, i) => (
-                            <option key={i} value={d.name}>
-                              {d.name} ({d.price}/-)
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          type="text"
-                          value={p.dosage}
-                          onChange={(e) =>
-                            handlePrescriptionChange(
-                              idx,
-                              "dosage",
-                              e.target.value,
-                            )
-                          }
-                          placeholder="Dosage (e.g. 500mg)"
-                          className="w-24 bg-slate-950 border border-slate-800 rounded py-1 px-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
-                        />
-                        <select
-                          value={p.frequency}
-                          onChange={(e) =>
-                            handlePrescriptionChange(
-                              idx,
-                              "frequency",
-                              e.target.value,
-                            )
-                          }
-                          className="w-18 bg-slate-950 border border-slate-800 rounded py-1 px-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
-                        >
-                          <option value="1x1">1x1</option>
-                          <option value="2x1">2x1</option>
-                          <option value="3x1">3x1</option>
-                          <option value="2x2">2x2</option>
-                          <option value="PRN">PRN</option>
-                        </select>
-
-                        {prescriptions.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removePrescriptionRow(idx)}
-                            className="text-slate-500 hover:text-red-400 font-bold px-1 transition"
+                      <div key={idx} className="flex flex-col bg-slate-900 border border-slate-850 p-2 rounded-lg gap-2">
+                        <div className="flex items-center gap-2 relative group w-full">
+                          <select
+                            value={p.name}
+                            onChange={(e) =>
+                              handlePrescriptionChange(
+                                idx,
+                                "name",
+                                e.target.value,
+                              )
+                            }
+                            className="flex-1 bg-slate-950 border border-slate-800 rounded py-1 px-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
                           >
-                            ×
-                          </button>
-                        )}
+                            <option value="">-- Choose Drug --</option>
+                            {availableDrugs.map((d, i) => (
+                              <option key={i} value={d.name}>
+                                {d.name} ({d.price}/-)
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            value={p.dosage}
+                            onChange={(e) =>
+                              handlePrescriptionChange(
+                                idx,
+                                "dosage",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Dosage (e.g. 500mg)"
+                            className="w-24 bg-slate-950 border border-slate-800 rounded py-1 px-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                          />
+                          <select
+                            value={p.frequency}
+                            onChange={(e) =>
+                              handlePrescriptionChange(
+                                idx,
+                                "frequency",
+                                e.target.value,
+                              )
+                            }
+                            className="w-18 bg-slate-950 border border-slate-800 rounded py-1 px-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                          >
+                            <option value="1x1">1x1</option>
+                            <option value="2x1">2x1</option>
+                            <option value="3x1">3x1</option>
+                            <option value="2x2">2x2</option>
+                            <option value="PRN">PRN</option>
+                          </select>
+
+                          {prescriptions.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removePrescriptionRow(idx)}
+                              className="text-slate-550 hover:text-red-400 font-bold px-1 transition"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Live Warnings and Alerts */}
+                        {p.name && (() => {
+                          const med = getMedicineDetails(p.name);
+                          if (!med) return null;
+                          const warnings = [];
+                          if (!med.childSafeFlag && patientAge < 12) {
+                            warnings.push(`Not recommended for pediatric patient (Age: ${patientAge})`);
+                          }
+                          if (!med.pregnancySafeFlag && patientGender.toLowerCase() === 'female') {
+                            warnings.push(`Pregnancy Contraindication: verify pregnancy state`);
+                          }
+                          if (med.controlledDrugFlag) {
+                            warnings.push(`Controlled Drug Lot: require secure storage & check`);
+                          }
+                          if (warnings.length > 0) {
+                            return (
+                              <div className="text-[10px] text-yellow-450 font-bold bg-yellow-950/20 border border-yellow-500/15 py-0.5 px-2 rounded flex flex-col gap-0.5 w-full">
+                                {warnings.map((w, wIdx) => (
+                                  <span key={wIdx}>⚠️ {w}</span>
+                                ))}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     ))}
                   </div>

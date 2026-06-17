@@ -15,6 +15,7 @@ import {
   Send, 
   UserCheck 
 } from 'lucide-react';
+import { labTestMaster } from '../medicalMaster';
 
 export default function Orders({ user, onComplete }) {
   const [labVisits, setLabVisits] = useState([]);
@@ -90,13 +91,8 @@ export default function Orders({ user, onComplete }) {
       const initialResults = {};
       const initialRejections = {};
       ords?.forEach(o => {
-        let meta = { values: '' };
-        if (o.results && o.results.startsWith('{')) {
-          try { meta = JSON.parse(o.results); } catch (e) {}
-        } else if (o.results) {
-          meta.values = o.results;
-        }
-        initialResults[o.id] = meta.values || '';
+        const meta = parseOrderMeta(o.results);
+        initialResults[o.id] = meta.parameters || meta.values || '';
         initialRejections[o.id] = '';
       });
       setResultsInputs(initialResults);
@@ -224,14 +220,149 @@ export default function Orders({ user, onComplete }) {
     });
   };
 
+  const handleStructuredResultChange = (orderId, paramName, val) => {
+    const current = resultsInputs[orderId];
+    const currentObj = (current && typeof current === 'object') ? current : {};
+    setResultsInputs({
+      ...resultsInputs,
+      [orderId]: {
+        ...currentObj,
+        [paramName]: val
+      }
+    });
+  };
+
+  const checkRangeStatus = (param, val) => {
+    if (!val || !param.range) return 'normal';
+    
+    // If range is like "12.0 - 16.0"
+    if (param.range.includes('-')) {
+      const parts = param.range.split('-').map(p => parseFloat(p.trim()));
+      const numVal = parseFloat(val);
+      if (isNaN(numVal)) return 'normal';
+      if (numVal < parts[0]) return 'low';
+      if (numVal > parts[1]) return 'high';
+    }
+    
+    // If range is like "< 1:80"
+    if (param.range.startsWith('<')) {
+      const normalLimit = param.range.replace('<', '').trim();
+      if (val.trim() !== normalLimit && val.trim().toLowerCase() !== 'negative' && val.trim().toLowerCase() !== 'normal') {
+        return 'abnormal';
+      }
+    }
+    
+    // If range is like "Negative"
+    if (param.range.toLowerCase() === 'negative') {
+      if (val.trim().toLowerCase() !== 'negative' && val.trim().toLowerCase() !== 'trace' && val.trim() !== '') {
+        return 'abnormal';
+      }
+    }
+    
+    return 'normal';
+  };
+
+  const renderFindingsTable = (ord, meta) => {
+    if (!meta || !meta.parameters || typeof meta.parameters !== 'object') {
+      return (
+        <p className="text-slate-200 font-bold">Findings: {meta.values || 'No findings recorded.'}</p>
+      );
+    }
+
+    const testObj = labTestMaster.find(t => t.name === ord.item_name);
+    const params = Object.keys(meta.parameters);
+
+    return (
+      <div className="overflow-x-auto mt-1.5 border border-slate-800/60 rounded-lg bg-slate-950/60 max-w-xl">
+        <table className="w-full text-left border-collapse text-[10px]">
+          <thead>
+            <tr className="bg-slate-900 text-slate-400 font-bold border-b border-slate-800">
+              <th className="p-2">Parameter</th>
+              <th className="p-2">Result</th>
+              <th className="p-2">Unit</th>
+              <th className="p-2">Reference Range</th>
+              <th className="p-2">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {params.map((pName, idx) => {
+              const val = meta.parameters[pName];
+              const pSchema = testObj?.parameters?.find(p => p.name === pName);
+              const status = pSchema ? checkRangeStatus(pSchema, val) : 'normal';
+              
+              let statusText = 'Normal';
+              let statusClass = 'text-slate-350 font-semibold';
+              let rowBg = 'border-slate-900/50';
+
+              if (status === 'low') {
+                statusText = 'Low';
+                statusClass = 'text-red-400 font-bold';
+                rowBg = 'bg-red-500/[0.02] border-slate-900/50';
+              } else if (status === 'high') {
+                statusText = 'High';
+                statusClass = 'text-red-400 font-bold';
+                rowBg = 'bg-red-500/[0.02] border-slate-900/50';
+              } else if (status === 'abnormal') {
+                statusText = 'Abnormal';
+                statusClass = 'text-yellow-400 font-bold';
+                rowBg = 'bg-yellow-500/[0.02] border-slate-900/50';
+              }
+
+              return (
+                <tr key={idx} className={`border-b ${rowBg} hover:bg-slate-900/40`}>
+                  <td className="p-2 font-semibold text-slate-350">{pName}</td>
+                  <td className={`p-2 font-mono ${statusClass}`}>{val}</td>
+                  <td className="p-2 text-slate-550">{pSchema?.unit || '-'}</td>
+                  <td className="p-2 text-slate-400 font-mono">{pSchema?.range || '-'}</td>
+                  <td className="p-2">
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase ${
+                      status === 'normal' ? 'bg-green-500/10 text-green-400 border border-green-500/10' :
+                      status === 'abnormal' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/10' :
+                      'bg-red-500/10 text-red-400 border border-red-500/10'
+                    }`}>
+                      {statusText}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   const handleSaveResults = async (orderId) => {
+    const activeOrder = pendingOrders.find(o => o.id === orderId);
     const findings = resultsInputs[orderId];
-    if (!findings.trim()) {
+    if (!findings) {
       setMessage({ type: 'error', text: 'Please enter result values before saving.' });
       return;
     }
+
+    const testObj = labTestMaster.find(t => t.name === activeOrder?.item_name);
+    let valuesStr = '';
+    let isStructured = testObj && testObj.parameters && testObj.parameters.length > 0;
+
+    if (isStructured) {
+      // Check if all parameters have been filled
+      const missing = testObj.parameters.filter(p => !findings[p.name]);
+      if (missing.length > 0) {
+        setMessage({ type: 'error', text: `Please fill in all test parameters: ${missing.map(m => m.name).join(', ')}` });
+        return;
+      }
+      valuesStr = testObj.parameters.map(p => `${p.name}: ${findings[p.name]} ${p.unit}`).join(', ');
+    } else {
+      if (typeof findings === 'string' && !findings.trim()) {
+        setMessage({ type: 'error', text: 'Please enter result values before saving.' });
+        return;
+      }
+      valuesStr = findings;
+    }
+
     updateOrderStatus(orderId, 'completed', { 
-      values: findings,
+      values: valuesStr,
+      parameters: isStructured ? findings : null,
       completed_at: new Date().toISOString()
     });
   };
@@ -531,22 +662,25 @@ export default function Orders({ user, onComplete }) {
                           )}
                           {/* Completed results info */}
                           {ord.status === 'completed' && (
-                            <div className="space-y-1">
-                              <p className="text-slate-200 font-bold">Findings: {meta.values}</p>
+                            <div className="space-y-2">
+                              <span className="text-[10px] text-slate-500 font-semibold block uppercase">Lab Diagnostic Findings</span>
+                              {renderFindingsTable(ord, meta)}
                               <p className="text-slate-500 text-[9px]">Awaiting supervisor/senior verifier sign-off.</p>
                             </div>
                           )}
                           {/* Verified info */}
                           {ord.status === 'verified' && (
-                            <div className="space-y-1">
-                              <p className="text-slate-200 font-bold">Findings: {meta.values}</p>
+                            <div className="space-y-2">
+                              <span className="text-[10px] text-slate-500 font-semibold block uppercase">Verified Lab Findings</span>
+                              {renderFindingsTable(ord, meta)}
                               <p className="text-teal-400 text-[9px] font-bold">Verified by {meta.verifier}. Ready for medical release.</p>
                             </div>
                           )}
                           {/* Released state */}
                           {ord.status === 'released' && (
-                            <div className="space-y-1">
-                              <p className="text-green-400 font-bold">Released Findings: {meta.values}</p>
+                            <div className="space-y-2">
+                              <span className="text-[10px] text-slate-500 font-semibold block uppercase">Released Findings</span>
+                              {renderFindingsTable(ord, meta)}
                               <p className="text-slate-500 text-[9px]">Released by {meta.released_by || 'Technician'} | Verified: {meta.verifier}</p>
                             </div>
                           )}
@@ -653,27 +787,91 @@ export default function Orders({ user, onComplete }) {
                               Process / Load Analyzer
                             </button>
                           )}
-
                           {/* Input Results form */}
-                          {ord.status === 'in_process' && (
-                            <div className="flex items-center gap-2 w-full max-w-md">
-                              <input
-                                type="text"
-                                value={resultsInputs[ord.id] || ''}
-                                onChange={(e) => handleResultChange(ord.id, e.target.value)}
-                                placeholder="Enter diagnostic findings..."
-                                className="bg-slate-950 border border-slate-800 rounded text-[10px] py-1.5 px-2 text-white placeholder:text-slate-700 w-full focus:outline-none focus:border-teal-500"
-                                required
-                              />
-                              <button
-                                disabled={loading}
-                                onClick={() => handleSaveResults(ord.id)}
-                                className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1.5 px-3 rounded shrink-0 transition"
-                              >
-                                Submit Results
-                              </button>
-                            </div>
-                          )}
+                          {ord.status === 'in_process' && (() => {
+                            const testObj = labTestMaster.find(t => t.name === ord.item_name);
+                            const isStructured = testObj && testObj.parameters && testObj.parameters.length > 0;
+                            
+                            if (isStructured) {
+                              return (
+                                <div className="w-full flex flex-col gap-3">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {testObj.parameters.map((p, pIdx) => {
+                                      const currentVal = (resultsInputs[ord.id] && typeof resultsInputs[ord.id] === 'object') 
+                                        ? (resultsInputs[ord.id][p.name] || '') 
+                                        : '';
+                                      const rangeStatus = checkRangeStatus(p, currentVal);
+                                      let statusColor = 'text-slate-200 border-slate-800 focus:border-teal-500';
+                                      let badge = null;
+                                      
+                                      if (rangeStatus === 'low') {
+                                        statusColor = 'text-red-400 border-red-500/50 focus:border-red-500';
+                                        badge = <span className="text-[8px] bg-red-500/10 text-red-400 px-1 py-0.5 rounded font-bold uppercase border border-red-500/10">Low</span>;
+                                      } else if (rangeStatus === 'high') {
+                                        statusColor = 'text-red-400 border-red-500/50 focus:border-red-500';
+                                        badge = <span className="text-[8px] bg-red-500/10 text-red-400 px-1 py-0.5 rounded font-bold uppercase border border-red-500/10">High</span>;
+                                      } else if (rangeStatus === 'abnormal') {
+                                        statusColor = 'text-yellow-400 border-yellow-500/50 focus:border-yellow-500';
+                                        badge = <span className="text-[8px] bg-yellow-500/10 text-yellow-400 px-1 py-0.5 rounded font-bold uppercase border border-yellow-500/10">Abnormal</span>;
+                                      }
+                                      
+                                      return (
+                                        <div key={pIdx} className="bg-slate-950 p-2.5 rounded-lg border border-slate-900 flex flex-col gap-1 w-full">
+                                          <div className="flex justify-between items-center gap-2">
+                                            <span className="text-[10px] text-slate-350 font-bold">{p.name}</span>
+                                            <div className="flex items-center gap-1.5">
+                                              {badge}
+                                              <span className="text-[8px] text-slate-500">Ref: {p.range} {p.unit}</span>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-1.5">
+                                            <input
+                                              type="text"
+                                              value={currentVal}
+                                              onChange={(e) => handleStructuredResultChange(ord.id, p.name, e.target.value)}
+                                              placeholder={`Value...`}
+                                              className={`bg-slate-900 border rounded text-[10px] py-1 px-2 w-full focus:outline-none ${statusColor}`}
+                                              required
+                                            />
+                                            {p.unit && <span className="text-[9px] text-slate-500 shrink-0 font-medium">{p.unit}</span>}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  <div className="flex justify-end">
+                                    <button
+                                      disabled={loading}
+                                      onClick={() => handleSaveResults(ord.id)}
+                                      className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1.5 px-4 rounded transition active:scale-[0.97]"
+                                    >
+                                      Submit Structured Results
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            } else {
+                              return (
+                                <div className="flex items-center gap-2 w-full max-w-md">
+                                  <input
+                                    type="text"
+                                    value={typeof resultsInputs[ord.id] === 'string' ? resultsInputs[ord.id] : ''}
+                                    onChange={(e) => handleResultChange(ord.id, e.target.value)}
+                                    placeholder="Enter diagnostic findings..."
+                                    className="bg-slate-950 border border-slate-850 rounded text-[10px] py-1.5 px-2 text-white placeholder:text-slate-700 w-full focus:outline-none focus:border-teal-500"
+                                    required
+                                  />
+                                  <button
+                                    disabled={loading}
+                                    onClick={() => handleSaveResults(ord.id)}
+                                    className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1.5 px-3 rounded shrink-0 transition"
+                                  >
+                                    Submit Results
+                                  </button>
+                                </div>
+                              );
+                            }
+                          })()}
 
                           {/* Verify double-check (restricted to admins/clinicians or senior tech) */}
                           {ord.status === 'completed' && (

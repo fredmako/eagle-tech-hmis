@@ -16,6 +16,7 @@ import {
   Search,
   CornerDownRight,
 } from "lucide-react";
+import { medicineMaster } from "../medicalMaster";
 
 export default function Pharmacy({ user, onComplete }) {
   const [pharmVisits, setPharmVisits] = useState([]);
@@ -95,6 +96,27 @@ export default function Pharmacy({ user, onComplete }) {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
+
+  const [showRestockModal, setShowRestockModal] = useState(false);
+  const [restockForm, setRestockForm] = useState({
+    drugName: '',
+    customName: '',
+    batch: '',
+    qty: '',
+    expiry: ''
+  });
+
+  const getPatientAge = (dobString) => {
+    if (!dobString) return 0;
+    const today = new Date();
+    const birthDate = new Date(dobString);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   useEffect(() => {
     fetchPharmacyQueue();
@@ -367,78 +389,75 @@ export default function Pharmacy({ user, onComplete }) {
     }
   };
 
-  const handleRestock = () => {
-    const defaultBatches = [
-      {
-        name: "Artemether-Lumefantrine (AL)",
-        batch: "AL-B902",
-        stock: 50,
-        expiry: "2026-10-15",
-        unit: "doses",
-      },
-      {
-        name: "Artemether-Lumefantrine (AL)",
-        batch: "AL-B903",
-        stock: 70,
-        expiry: "2027-04-20",
-        unit: "doses",
-      },
-      {
-        name: "Paracetamol 500mg",
-        batch: "PARA-L02",
-        stock: 450,
-        expiry: "2026-08-01",
-        unit: "tabs",
-      },
-      {
-        name: "Paracetamol 500mg",
-        batch: "PARA-L03",
-        stock: 400,
-        expiry: "2027-02-10",
-        unit: "tabs",
-      },
-      {
-        name: "Amoxicillin 500mg",
-        batch: "AMOX-B12",
-        stock: 240,
-        expiry: "2026-12-05",
-        unit: "tabs",
-      },
-      {
-        name: "Amoxicillin 500mg",
-        batch: "AMOX-B13",
-        stock: 100,
-        expiry: "2027-09-18",
-        unit: "tabs",
-      },
-      {
-        name: "Metronidazole 400mg",
-        batch: "MET-K90",
-        stock: 410,
-        expiry: "2027-03-30",
-        unit: "tabs",
-      },
-      {
-        name: "ORS + Zinc",
-        batch: "ORS-Z01",
-        stock: 95,
-        expiry: "2026-09-10",
-        unit: "sachets",
-      },
-      {
-        name: "Ciprofloxacin 500mg",
-        batch: "CIP-C44",
-        stock: 180,
-        expiry: "2027-01-15",
-        unit: "tabs",
-      },
-    ];
-    setBatches(defaultBatches);
-    localStorage.setItem(
-      "egesa_pharmacy_batches",
-      JSON.stringify(defaultBatches),
+  const handleSaveRestock = async (e) => {
+    e.preventDefault();
+    const { drugName, customName, batch, qty, expiry } = restockForm;
+    
+    const finalDrugName = drugName === "Custom" ? customName : drugName;
+    if (!finalDrugName || !batch || !qty || !expiry) {
+      setMessage({ type: "error", text: "Please fill in all restocking fields." });
+      return;
+    }
+
+    const parsedQty = parseInt(qty);
+    if (isNaN(parsedQty) || parsedQty <= 0) {
+      setMessage({ type: "error", text: "Please enter a valid positive quantity." });
+      return;
+    }
+
+    // Find if medicine details exist to get the unit
+    const medSchema = medicineMaster.find(m => 
+      finalDrugName.toLowerCase().includes(m.genericName.toLowerCase()) ||
+      m.genericName.toLowerCase().includes(finalDrugName.toLowerCase())
     );
-    setMessage({ type: "success", text: "Inventory successfully restocked!" });
+    const unit = medSchema?.unit || "units";
+
+    // Create new batch object
+    const newBatch = {
+      name: finalDrugName,
+      batch: batch.toUpperCase(),
+      stock: parsedQty,
+      expiry: expiry,
+      unit: unit
+    };
+
+    // Check if batch already exists in our batches list
+    let updatedBatches;
+    const existingIdx = batches.findIndex(b => b.name === finalDrugName && b.batch === newBatch.batch);
+    if (existingIdx > -1) {
+      // Add quantity to existing batch
+      updatedBatches = batches.map((b, idx) => 
+        idx === existingIdx ? { ...b, stock: b.stock + parsedQty, expiry: expiry } : b
+      );
+    } else {
+      // Prepend new batch
+      updatedBatches = [newBatch, ...batches];
+    }
+
+    setBatches(updatedBatches);
+    localStorage.setItem("egesa_pharmacy_batches", JSON.stringify(updatedBatches));
+    
+    // Reset form and close modal
+    setRestockForm({
+      drugName: '',
+      customName: '',
+      batch: '',
+      qty: '',
+      expiry: ''
+    });
+    setShowRestockModal(false);
+
+    // Add audit log
+    try {
+      await supabase.from("audit_logs").insert({
+        action: "Inventory Restocked",
+        details: `Restocked ${parsedQty} ${unit} of ${finalDrugName} (Batch: ${newBatch.batch}, Expiry: ${expiry}) by ${user.full_name}.`
+      });
+    } catch (err) {
+      console.error("Error logging restock to audit logs:", err);
+    }
+
+    setMessage({ type: "success", text: `Inventory updated successfully for ${finalDrugName}!` });
   };
 
   // Determine low stock (< 100 units total) and near expiry (< 6 months)
@@ -624,6 +643,57 @@ export default function Pharmacy({ user, onComplete }) {
                           <p className="text-[10px] text-slate-500 font-medium">
                             Sig: {presc.instructions}
                           </p>
+                          {/* Safety Alerts */}
+                          {(() => {
+                            const medDetails = medicineMaster.find(m => 
+                              drugName.toLowerCase().includes(m.genericName.toLowerCase()) || 
+                              m.genericName.toLowerCase().includes(drugName.toLowerCase())
+                            );
+                            if (!medDetails) return null;
+                            
+                            const age = getPatientAge(selectedVisit.patient?.dob);
+                            const isFemale = selectedVisit.patient?.gender?.toLowerCase() === 'female';
+                            const alerts = [];
+
+                            if (medDetails.controlledDrugFlag) {
+                              alerts.push({
+                                text: "Controlled Substance - Secure Storage Required",
+                                type: "controlled"
+                              });
+                            }
+                            if (!medDetails.childSafeFlag && age < 12) {
+                              alerts.push({
+                                text: `Pediatric Warning: Avoid in children <12 yrs (Patient is ${age} yrs)`,
+                                type: "pediatric"
+                              });
+                            }
+                            if (!medDetails.pregnancySafeFlag && isFemale) {
+                              alerts.push({
+                                text: "Pregnancy Contraindication: Verify pregnancy/lactation status",
+                                type: "pregnancy"
+                              });
+                            }
+
+                            if (alerts.length === 0) return null;
+
+                            return (
+                              <div className="flex flex-col gap-1 mt-1.5">
+                                {alerts.map((alert, idx) => {
+                                  let badgeColor = "bg-red-500/10 text-red-400 border-red-500/20";
+                                  if (alert.type === "pregnancy") {
+                                    badgeColor = "bg-yellow-550/10 text-yellow-450 border-yellow-500/20";
+                                  } else if (alert.type === "controlled") {
+                                    badgeColor = "bg-purple-500/10 text-purple-400 border-purple-500/20";
+                                  }
+                                  return (
+                                    <div key={idx} className={`text-[8px] px-1.5 py-0.5 rounded border ${badgeColor} font-bold w-fit flex items-center gap-1 uppercase tracking-wider`}>
+                                      <ShieldAlert size={10} /> {alert.text}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <span
                           className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase border ${
@@ -798,7 +868,7 @@ export default function Pharmacy({ user, onComplete }) {
             </p>
           </div>
           <button
-            onClick={handleRestock}
+            onClick={() => setShowRestockModal(true)}
             className="text-[9px] text-teal-400 hover:text-teal-300 font-bold flex items-center gap-1 border border-teal-500/20 px-2 py-0.5 rounded hover:bg-teal-500/5 transition"
           >
             <RefreshCw size={8} /> Restock
@@ -877,6 +947,123 @@ export default function Pharmacy({ user, onComplete }) {
           ))}
         </div>
       </div>
+
+      {/* Restocking Modal */}
+      {showRestockModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150 text-left">
+            <div className="flex justify-between items-start border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wide flex items-center gap-1.5">
+                  <Package size={16} className="text-teal-400" /> Restock Medicine Inventory
+                </h3>
+                <p className="text-[10px] text-slate-500 mt-0.5">Add a new batch or top up existing lots</p>
+              </div>
+              <button 
+                onClick={() => setShowRestockModal(false)}
+                className="text-slate-500 hover:text-white text-xs font-bold transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRestock} className="space-y-4 text-[11px]">
+              {/* Select Medicine */}
+              <div className="flex flex-col gap-1">
+                <label className="text-slate-400 font-semibold uppercase tracking-wider text-[9px]">Select Medication</label>
+                <select
+                  value={restockForm.drugName}
+                  onChange={(e) => setRestockForm({ ...restockForm, drugName: e.target.value })}
+                  className="bg-slate-950 border border-slate-800 text-white rounded-lg p-2 focus:outline-none focus:border-teal-500 w-full text-xs"
+                  required
+                >
+                  <option value="">-- Choose Medication --</option>
+                  {medicineMaster.map((m) => {
+                    const nameWithStrength = `${m.genericName} ${m.strength || ""}`.trim();
+                    return (
+                      <option key={m.id} value={nameWithStrength}>
+                        {nameWithStrength} ({m.therapeuticClass})
+                      </option>
+                    );
+                  })}
+                  <option value="Custom">-- Custom / Other Drug --</option>
+                </select>
+              </div>
+
+              {/* Custom Name if chosen */}
+              {restockForm.drugName === "Custom" && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-slate-400 font-semibold uppercase tracking-wider text-[9px]">Custom Drug Name</label>
+                  <input
+                    type="text"
+                    value={restockForm.customName || ''}
+                    onChange={(e) => setRestockForm({ ...restockForm, customName: e.target.value })}
+                    placeholder="Enter generic and strength (e.g. Ciprofloxacin 500mg)"
+                    className="bg-slate-950 border border-slate-800 text-white rounded-lg p-2 focus:outline-none focus:border-teal-500 w-full text-xs"
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Batch Code & Quantity */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-slate-400 font-semibold uppercase tracking-wider text-[9px]">Batch / Lot Code</label>
+                  <input
+                    type="text"
+                    value={restockForm.batch}
+                    onChange={(e) => setRestockForm({ ...restockForm, batch: e.target.value })}
+                    placeholder="e.g. PARA-L04"
+                    className="bg-slate-950 border border-slate-800 text-white rounded-lg p-2 focus:outline-none focus:border-teal-500 w-full text-xs"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-slate-400 font-semibold uppercase tracking-wider text-[9px]">Quantity</label>
+                  <input
+                    type="number"
+                    value={restockForm.qty}
+                    onChange={(e) => setRestockForm({ ...restockForm, qty: e.target.value })}
+                    placeholder="e.g. 200"
+                    className="bg-slate-950 border border-slate-800 text-white rounded-lg p-2 focus:outline-none focus:border-teal-500 w-full text-xs"
+                    min="1"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Expiry Date */}
+              <div className="flex flex-col gap-1">
+                <label className="text-slate-400 font-semibold uppercase tracking-wider text-[9px]">Expiry Date</label>
+                <input
+                  type="date"
+                  value={restockForm.expiry}
+                  onChange={(e) => setRestockForm({ ...restockForm, expiry: e.target.value })}
+                  className="bg-slate-950 border border-slate-800 text-white rounded-lg p-2 focus:outline-none focus:border-teal-500 w-full text-xs"
+                  required
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2.5 pt-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowRestockModal(false)}
+                  className="bg-slate-850 hover:bg-slate-800 text-slate-300 font-bold py-2 px-4 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold py-2 px-4 rounded-lg shadow-md transition active:scale-[0.98]"
+                >
+                  Save Batch
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

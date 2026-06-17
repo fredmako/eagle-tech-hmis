@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700;900&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 /* Custom utility variables for the health application */
@@ -11,6 +11,22 @@
   body {
     @apply bg-slate-950 text-slate-100 antialiased selection:bg-teal-500 selection:text-white;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Landing page utilities */
+@layer utilities {
+  .clinical-photo {
+    filter: saturate(0.55) brightness(0.92);
+  }
+  .clinical-photo-soft {
+    filter: saturate(0.65) brightness(0.95);
+  }
+  .ambient-grid {
+    background-image:
+      linear-gradient(rgba(45, 212, 191, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(45, 212, 191, 0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
   }
 }
 

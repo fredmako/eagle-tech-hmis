@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import OperationalDashboard from './reports/OperationalDashboard';
+import DepartmentReports from './reports/DepartmentReports';
+import ComplianceMOH from './reports/ComplianceMOH';
+import CustomReportBuilder from './reports/CustomReportBuilder';
+
 import { supabase } from '../supabaseClient';
 import { sendNotification, parsePatientContact } from '../notificationService';
 import { 
@@ -1541,975 +1546,104 @@ export default function Reports({ user }) {
         </div>
       )}
 
+      
       {/* TIER 1: OPERATIONAL DASHBOARD */}
       {activeTab === 'dashboards' && (
-        <div className="space-y-6">
-          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-            <div>
-              <h3 className="text-sm font-bold text-slate-200">Management & Supervisor Intelligence</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Real-time status summaries tracking outpatient volumes, laboratory load, and cash flow.</p>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              {syncStatus === 'fully_synced' ? (
-                <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold">
-                  <CheckCircle size={14} /> DHIS2 Synced
-                </div>
-              ) : (
-                <button
-                  onClick={forceSync}
-                  disabled={syncLoading}
-                  className="bg-yellow-500/10 border border-yellow-500/25 hover:bg-yellow-500/20 text-yellow-400 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold transition cursor-pointer"
-                >
-                  <RefreshCw size={14} className={syncLoading ? 'animate-spin' : ''} />
-                  {syncLoading ? 'Uploading...' : 'MOH Warn: Force DHIS2 Sync'}
-                </button>
-              )}
-
-              <button
-                onClick={handlePrintDashboard}
-                className="bg-teal-500 hover:bg-teal-600 text-slate-950 text-xs py-2 px-4 rounded-lg flex items-center gap-1.5 transition font-bold cursor-pointer"
-              >
-                <Printer size={13} /> Print Dashboard
-              </button>
-            </div>
-          </div>
-
-          {/* Metrics Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[
-              { label: 'Patient Volume', val: visits.length, desc: 'Total visits in log' },
-              { label: 'Triage Queue', val: visits.filter(v => v.department === 'triage' && v.status !== 'completed').length, desc: 'Pending vitals desk' },
-              { label: 'Clinician Consults', val: visits.filter(v => v.department === 'consultation' && v.status !== 'completed').length, desc: 'Pending clinical SOAP' },
-              { label: 'Lab Tests Pending', val: orders.filter(o => o.type === 'lab' && o.status !== 'completed').length, desc: 'Awaiting lab releases' },
-              { label: 'Pharmacy Pending', val: orders.filter(o => o.type === 'prescription' && o.status === 'prescribed').length, desc: 'Awaiting drug dispense' },
-              { label: 'Billed Revenue', val: `KES ${invoices.reduce((acc, i) => acc + parseFloat(i.total_amount || 0), 0).toFixed(0)}`, desc: 'Billed invoices sum' }
-            ].map((card, i) => (
-              <div key={i} className="border border-slate-800 bg-slate-900/40 p-4 rounded-xl flex flex-col justify-between">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{card.label}</span>
-                  <span className="text-2xl font-black text-white block mt-2">{card.val}</span>
-                </div>
-                <span className="text-[9px] text-slate-500 mt-2 block font-medium">{card.desc}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <BarChart2 size={14} className="text-teal-400" /> Disease Surveillance Summary
-              </h3>
-              <div className="space-y-4 pt-1">
-                {[
-                  { label: 'Malaria Infections (B54)', count: malariaCount, percentage: visits.length > 0 ? (malariaCount / visits.length) * 100 : 0, color: 'bg-teal-500' },
-                  { label: 'Respiratory Diseases (J06.9)', count: respiratoryCount, percentage: visits.length > 0 ? (respiratoryCount / visits.length) * 100 : 0, color: 'bg-blue-500' },
-                  { label: 'Gastroenteritis (A09)', count: gastroCount, percentage: visits.length > 0 ? (gastroCount / visits.length) * 100 : 0, color: 'bg-orange-500' },
-                  { label: 'Hypertension (I10)', count: hyperCount, percentage: visits.length > 0 ? (hyperCount / visits.length) * 100 : 0, color: 'bg-rose-500' },
-                  { label: 'UTI (N39.0)', count: utiCount, percentage: visits.length > 0 ? (utiCount / visits.length) * 100 : 0, color: 'bg-purple-500' }
-                ].map((dis, idx) => (
-                  <div key={idx} className="space-y-1">
-                    <div className="flex justify-between text-xs font-semibold text-slate-350">
-                      <span className="truncate max-w-[80%]">{dis.label}</span>
-                      <span className="font-mono text-slate-400">{dis.count} cases ({dis.percentage.toFixed(1)}%)</span>
-                    </div>
-                    <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-855">
-                      <div className={`${dis.color} h-1.5 rounded-full transition-all duration-500`} style={{ width: `${dis.percentage || 2}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* General Health Warnings */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <ShieldAlert size={14} className="text-teal-400" /> Operational Warnings
-              </h4>
-              <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
-                {batches.some(b => new Date(b.expiry) < new Date()) && (
-                  <div className="p-3 rounded-lg border bg-red-500/5 border-red-500/15 text-red-400 text-xs flex gap-2">
-                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold block uppercase tracking-wide text-[9px] mb-0.5">EXPIRED STOCK ALERT</span>
-                      <span>Certain medication batches have expired! Review pharmacy stock reports.</span>
-                    </div>
-                  </div>
-                )}
-                {dataErrors.length > 0 && (
-                  <div className="p-3 rounded-lg border bg-yellow-500/5 border-yellow-500/15 text-yellow-450 text-xs flex gap-2">
-                    <ShieldAlert size={14} className="shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold block uppercase tracking-wide text-[9px] mb-0.5">DATA QUALITY WARNING</span>
-                      <span>{dataErrors.length} clinical record deficits identified. Resolve missing values prior to final DHIS2 upload.</span>
-                    </div>
-                  </div>
-                )}
-                {dataErrors.length === 0 && !batches.some(b => new Date(b.expiry) < new Date()) && (
-                  <div className="bg-teal-500/5 border border-teal-500/20 text-teal-400 p-4 rounded-lg text-center text-xs flex flex-col items-center justify-center gap-1">
-                    <CheckCircle size={18} />
-                    <span>All systems fully operational. No outstanding critical alerts.</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <OperationalDashboard
+          syncStatus={syncStatus}
+          syncLoading={syncLoading}
+          forceSync={forceSync}
+          handlePrintDashboard={handlePrintDashboard}
+          visits={visits}
+          orders={orders}
+          invoices={invoices}
+          malariaCount={malariaCount}
+          respiratoryCount={respiratoryCount}
+          gastroCount={gastroCount}
+          hyperCount={hyperCount}
+          utiCount={utiCount}
+          batches={batches}
+          dataErrors={dataErrors}
+        />
       )}
 
       {/* TIER 2: DEPARTMENT REPORTS */}
       {activeTab === 'departments' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Navigation Sidebar (3/12 width) */}
-          <div className="lg:col-span-3 space-y-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl self-start">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 px-1">Clinic Departments</span>
-            {[
-              { id: 'reg_daily', label: 'Patient Register', desk: 'Front Office' },
-              { id: 'clinical_encounter', label: 'Encounter Log', desk: 'Consultation' },
-              { id: 'lab_order', label: 'Lab Orders Worklist', desk: 'Laboratory' },
-              { id: 'lab_results', label: 'Lab Results Released', desk: 'Laboratory' },
-              { id: 'pharm_prescription', label: 'Prescription Log', desk: 'Pharmacy' },
-              { id: 'pharm_dispense', label: 'Drug Dispense Log', desk: 'Pharmacy' },
-              { id: 'pharm_revenue', label: 'Pharmacy Revenue', desk: 'Pharmacy' },
-              { id: 'pharm_stock', label: 'Stock-on-Hand & Expiry', desk: 'Pharmacy' },
-              { id: 'billing_receipts', label: 'Receipts & Payments', desk: 'Billing Cashier' },
-              { id: 'ward_admissions', label: 'Admission & Bed Use', desk: 'Inpatient Ward' }
-            ].map(rep => {
-              const active = selectedDeptReport === rep.id;
-              return (
-                <button
-                  key={rep.id}
-                  onClick={() => setSelectedDeptReport(rep.id)}
-                  className={`w-full text-left p-2.5 rounded-lg border text-xs font-bold transition flex flex-col justify-center cursor-pointer ${
-                    active
-                      ? 'bg-teal-500/10 border-teal-500 text-teal-400'
-                      : 'bg-slate-950/40 border-slate-850 hover:border-slate-800 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <span className="text-[9px] font-extrabold uppercase text-slate-500 leading-none">{rep.desk}</span>
-                  <span className="block mt-1 leading-snug">{rep.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Preview & Controls Frame (9/12 width) */}
-          <div className="lg:col-span-9 space-y-6">
-            {!checkReportAccess(selectedDeptReport) ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-4">
-                <Lock size={40} className="text-red-400 animate-bounce" />
-                <h3 className="text-sm font-black text-red-400 uppercase tracking-widest">Access Restriction Gate</h3>
-                <p className="text-xs text-slate-400 max-w-md leading-relaxed">
-                  Your current credentials (role: <strong className="text-teal-400 uppercase">{user.role}</strong>) do not possess the necessary clearance level to view or download this report. Please contact the Facility Administrator for system permission elevation.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                <div className="xl:col-span-4 space-y-5 bg-slate-900 border border-slate-800 p-5 rounded-2xl self-start">
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-800 pb-2">
-                    <Settings size={14} className="text-teal-400" /> Export Controls
-                  </h4>
-
-                  {/* Date selection */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Start Date</label>
-                      <div className="relative">
-                        <Calendar size={12} className="absolute left-3 top-2.5 text-slate-500" />
-                        <input
-                          type="date"
-                          value={startDate}
-                          onChange={(e) => setStartDate(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-855 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">End Date</label>
-                      <div className="relative">
-                        <Calendar size={12} className="absolute left-3 top-2.5 text-slate-550" />
-                        <input
-                          type="date"
-                          value={endDate}
-                          onChange={(e) => setEndDate(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-855 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Identity branding selection */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Branding Scope</label>
-                    <select
-                      value={brandingMode}
-                      onChange={(e) => setBrandingMode(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-855 rounded-lg py-1.5 px-3 text-xs text-slate-355 focus:outline-none focus:border-teal-500 transition font-bold"
-                    >
-                      <option value="platform">Eagle Tech Platform Branding</option>
-                      <option value="hospital">Hospital Specific Branding</option>
-                    </select>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="space-y-2.5 pt-2 border-t border-slate-800">
-                    <button
-                      onClick={() => handleExportReport(selectedDeptReport, 'csv', 'dept')}
-                      disabled={genLoading}
-                      className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow active:scale-[0.98] transition cursor-pointer"
-                    >
-                      <Download size={13} />
-                      Export to Excel (CSV)
-                    </button>
-                    <button
-                      onClick={() => handleExportReport(selectedDeptReport, 'json', 'dept')}
-                      disabled={genLoading}
-                      className="w-full bg-slate-955 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    >
-                      <Download size={13} />
-                      Export Data (JSON)
-                    </button>
-                    <button
-                      onClick={() => handlePrint(activeReport.name, activeReport.headers, activeReport.rows, activeReport.totals)}
-                      className="w-full bg-slate-955 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    >
-                      <Printer size={13} />
-                      Print Layout
-                    </button>
-                    <button
-                      onClick={() => handleScheduleReport(activeReport.name)}
-                      disabled={scheduleLoading}
-                      className="w-full border border-teal-500/20 hover:border-teal-500/30 text-teal-400 bg-teal-500/5 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    >
-                      {scheduleLoading ? <RefreshCw size={13} className="animate-spin" /> : <Clock size={13} />}
-                      Schedule Auto-Email
-                    </button>
-                  </div>
-                </div>
-
-                <div className="xl:col-span-8 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Eye size={14} className="text-teal-400" /> Print Sheet Preview Canvas
-                    </span>
-                    <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[9px] font-bold">
-                      <button
-                        onClick={() => setPreviewTheme('light')}
-                        className={`px-3 py-1 rounded transition ${previewTheme === 'light' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
-                      >
-                        Light Mode
-                      </button>
-                      <button
-                        onClick={() => setPreviewTheme('dark')}
-                        className={`px-3 py-1 rounded transition ${previewTheme === 'dark' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
-                      >
-                        Dark Mode
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Dynamic Print Card Frame */}
-                  <div className={`border rounded-2xl p-6 shadow-lg transition-all min-h-[500px] flex flex-col justify-between ${
-                    previewTheme === 'light' 
-                      ? 'bg-white border-slate-200 text-slate-800' 
-                      : 'bg-slate-950 border-slate-855 text-slate-300'
-                  }`}>
-                    <div>
-                      {/* Brand Header */}
-                      <div className="flex justify-between items-start border-b pb-4 border-dashed border-slate-300/60">
-                        <div className="flex gap-2.5 items-center">
-                          {brandingMode === 'platform' ? (
-                            <div className="h-8 w-8 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center shrink-0 font-bold text-teal-600 text-xs">
-                              ET
-                            </div>
-                          ) : (
-                            renderFacilityLogo(facilityInfo.logo_url, "h-8 w-8", "text-xs")
-                          )}
-                          <div>
-                            <h4 className="font-extrabold text-xs tracking-tight uppercase leading-none">
-                              {brandingMode === 'platform' ? 'Eagle Tech Solutions Ltd' : facilityInfo.name}
-                            </h4>
-                            <span className="text-[9px] text-slate-500 block mt-1 font-semibold leading-none">
-                              {brandingMode === 'platform' ? 'HQ: Avenue Rd, Nairobi' : `Address: ${facilityInfo.address || 'N/A'} | Code: ${facilityInfo.code}`}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">Draft Layout</span>
-                          <h3 className="font-black text-xs uppercase tracking-wide mt-1.5">{activeReport.name}</h3>
-                        </div>
-                      </div>
-
-                      {/* Meta Columns */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 py-3.5 text-[9px] border-b border-dashed border-slate-300/40">
-                        <div>
-                          <span className="text-slate-400 block font-semibold">Report Period</span>
-                          <span className="font-bold">{startDate} to {endDate}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-semibold">Generated By</span>
-                          <span className="font-bold">{user.full_name}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-semibold">Compile System</span>
-                          <span className="font-bold">Supabase serverless</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-semibold">Printed Date</span>
-                          <span className="font-bold font-mono">{new Date().toLocaleDateString()}</span>
-                        </div>
-                      </div>
-
-                      {/* Results Table */}
-                      <div className="mt-4 overflow-x-auto">
-                        <table className="w-full text-left border-collapse text-[9px]">
-                          <thead>
-                            <tr className="border-b border-slate-300/60 uppercase font-black text-slate-500 tracking-wider">
-                              {activeReport.headers.map(col => (
-                                <th key={col} className="py-1.5">{col}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
-                            {activeReport.rows.slice(0, 5).map((row, idx) => (
-                              <tr key={idx} className="hover:bg-slate-50/20">
-                                {row.map((cell, cidx) => (
-                                  <td key={cidx} className="py-2 pr-2 font-mono">{cell}</td>
-                                ))}
-                              </tr>
-                            ))}
-                            {activeReport.rows.length === 0 && (
-                              <tr>
-                                <td colSpan={activeReport.headers.length || 1} className="text-center py-10 text-slate-400 italic">
-                                  No records found matching date filter selection.
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {activeReport.rows.length > 5 && (
-                        <p className="text-[8px] text-slate-400 italic mt-2 text-center border-t pt-1.5 border-dashed border-slate-200/50">
-                          ... Showing 5 of {activeReport.rows.length} records. Export standard CSV to download the complete spreadsheet.
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Footer Totals */}
-                    <div className="border-t pt-3.5 border-slate-300/60 flex justify-between gap-4 text-[9px] font-extrabold uppercase mt-4">
-                      <div>{activeReport.totals?.left}</div>
-                      <div>{activeReport.totals?.right}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <DepartmentReports
+          selectedDeptReport={selectedDeptReport}
+          setSelectedDeptReport={setSelectedDeptReport}
+          checkReportAccess={checkReportAccess}
+          user={user}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          brandingMode={brandingMode}
+          setBrandingMode={setBrandingMode}
+          handleExportReport={handleExportReport}
+          handlePrint={handlePrint}
+          handleScheduleReport={handleScheduleReport}
+          previewTheme={previewTheme}
+          setPreviewTheme={setPreviewTheme}
+          activeReport={activeReport}
+          genLoading={genLoading}
+          scheduleLoading={scheduleLoading}
+          facilityInfo={facilityInfo}
+          renderFacilityLogo={renderFacilityLogo}
+        />
       )}
 
       {/* TIER 3: COMPLIANCE & MOH REPORTS */}
       {activeTab === 'compliance' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Navigation Sidebar */}
-          <div className="lg:col-span-3 space-y-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl self-start">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 px-1">MOH & Security Registry</span>
-            {[
-              { id: 'moh_daily_under5', label: 'MOH 204A Outpatient (< 5 yrs)', desk: 'MOH 204A Register' },
-              { id: 'moh_daily_over5', label: 'MOH 204B Outpatient (≥ 5 yrs)', desk: 'MOH 204B Register' },
-              { id: 'moh_anc', label: 'MOH 405 Antenatal Care (ANC)', desk: 'MOH 405 Register' },
-              { id: 'moh_fp', label: 'MOH 512 Family Planning (FP)', desk: 'MOH 512 Register' },
-              { id: 'moh_lab', label: 'MOH 240 Laboratory Register', desk: 'MOH 240 Register' },
-              { id: 'moh_705a', label: 'MOH 705A Under 5 Summary', desk: 'MOH 705A Summary' },
-              { id: 'moh_705b', label: 'MOH 705B Over 5 Summary', desk: 'MOH 705B Summary' },
-              { id: 'moh_daily', label: 'MOH Daily Register (MOH 717)', desk: 'Kenyan MOH-717' },
-              { id: 'moh_monthly', label: 'Monthly Aggregate Submission', desk: 'Kenyan MOH-717' },
-              { id: 'audit_logs', label: 'Activity Audit Log', desk: 'System Security' }
-            ].map(rep => {
-              const active = selectedCompReport === rep.id;
-              return (
-                <button
-                  key={rep.id}
-                  onClick={() => setSelectedCompReport(rep.id)}
-                  className={`w-full text-left p-2.5 rounded-lg border text-xs font-bold transition flex flex-col justify-center cursor-pointer ${
-                    active
-                      ? 'bg-teal-500/10 border-teal-500 text-teal-400'
-                      : 'bg-slate-955 border-slate-850 hover:border-slate-800 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <span className="text-[9px] font-extrabold uppercase text-slate-500 leading-none">{rep.desk}</span>
-                  <span className="block mt-1 leading-snug">{rep.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Preview & Controls Frame */}
-          <div className="lg:col-span-9 space-y-6">
-            {!checkReportAccess(selectedCompReport) ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-4">
-                <Lock size={40} className="text-red-400 animate-bounce" />
-                <h3 className="text-sm font-black text-red-400 uppercase tracking-widest">Access Restriction Gate</h3>
-                <p className="text-xs text-slate-400 max-w-md leading-relaxed">
-                  Your current credentials (role: <strong className="text-teal-400 uppercase">{user.role}</strong>) do not possess the necessary clearance level to view or download this report. Please contact the Facility Administrator for system permission elevation.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                <div className="xl:col-span-4 space-y-5 bg-slate-900 border border-slate-800 p-5 rounded-2xl self-start">
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-800 pb-2">
-                    <Settings size={14} className="text-teal-400" /> Export Controls
-                  </h4>
-
-                  {/* Date selection */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Start Date</label>
-                      <div className="relative">
-                        <Calendar size={12} className="absolute left-3 top-2.5 text-slate-550" />
-                        <input
-                          type="date"
-                          value={startDate}
-                          onChange={(e) => setStartDate(e.target.value)}
-                          className="w-full bg-slate-955 border border-slate-855 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">End Date</label>
-                      <div className="relative">
-                        <Calendar size={12} className="absolute left-3 top-2.5 text-slate-550" />
-                        <input
-                          type="date"
-                          value={endDate}
-                          onChange={(e) => setEndDate(e.target.value)}
-                          className="w-full bg-slate-955 border border-slate-855 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="space-y-2.5 pt-2 border-t border-slate-800">
-                    <button
-                      onClick={() => handleExportReport(selectedCompReport, 'csv', 'compliance')}
-                      disabled={genLoading}
-                      className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow active:scale-[0.98] transition cursor-pointer"
-                    >
-                      <Download size={13} />
-                      Export to Excel (CSV)
-                    </button>
-                    <button
-                      onClick={() => handleExportReport(selectedCompReport, 'json', 'compliance')}
-                      disabled={genLoading}
-                      className="w-full bg-slate-955 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    >
-                      <Download size={13} />
-                      Export Data (JSON)
-                    </button>
-                    <button
-                      onClick={() => handlePrint(activeReport.name, activeReport.headers, activeReport.rows, activeReport.totals)}
-                      className="w-full bg-slate-955 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    >
-                      <Printer size={13} />
-                      Print Layout
-                    </button>
-                    <button
-                      onClick={() => handleScheduleReport(activeReport.name)}
-                      disabled={scheduleLoading}
-                      className="w-full border border-teal-500/20 hover:border-teal-500/30 text-teal-400 bg-teal-500/5 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    >
-                      {scheduleLoading ? <RefreshCw size={13} className="animate-spin" /> : <Clock size={13} />}
-                      Schedule Auto-Email
-                    </button>
-                  </div>
-                </div>
-
-                <div className="xl:col-span-8 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Eye size={14} className="text-teal-400" /> Print Sheet Preview Canvas
-                    </span>
-                    <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[9px] font-bold">
-                      <button
-                        onClick={() => setPreviewTheme('light')}
-                        className={`px-3 py-1 rounded transition ${previewTheme === 'light' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
-                      >
-                        Light Mode
-                      </button>
-                      <button
-                        onClick={() => setPreviewTheme('dark')}
-                        className={`px-3 py-1 rounded transition ${previewTheme === 'dark' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
-                      >
-                        Dark Mode
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Dynamic Print Card Frame */}
-                  <div className={`border rounded-2xl p-6 shadow-lg transition-all min-h-[500px] flex flex-col justify-between ${
-                    previewTheme === 'light' 
-                      ? 'bg-white border-slate-200 text-slate-800' 
-                      : 'bg-slate-955 border-slate-855 text-slate-300'
-                  }`}>
-                    <div>
-                      {/* Brand Header */}
-                      <div className="flex justify-between items-start border-b pb-4 border-dashed border-slate-300/60">
-                        <div className="flex gap-2.5 items-center">
-                          {brandingMode === 'platform' ? (
-                            <div className="h-8 w-8 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center shrink-0 font-bold text-teal-600 text-xs">
-                              ET
-                            </div>
-                          ) : (
-                            renderFacilityLogo(facilityInfo.logo_url, "h-8 w-8", "text-xs")
-                          )}
-                          <div>
-                            <h4 className="font-extrabold text-xs tracking-tight uppercase leading-none">
-                              {brandingMode === 'platform' ? 'Eagle Tech Solutions Ltd' : facilityInfo.name}
-                            </h4>
-                            <span className="text-[9px] text-slate-500 block mt-1 font-semibold leading-none">
-                              {brandingMode === 'platform' ? 'HQ: Avenue Rd, Nairobi' : `Address: ${facilityInfo.address || 'N/A'} | Code: ${facilityInfo.code}`}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">Draft Layout</span>
-                          <h3 className="font-black text-xs uppercase tracking-wide mt-1.5">{activeReport.name}</h3>
-                        </div>
-                      </div>
-
-                      {/* Meta Columns */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 py-3.5 text-[9px] border-b border-dashed border-slate-300/40">
-                        <div>
-                          <span className="text-slate-400 block font-semibold">Report Period</span>
-                          <span className="font-bold">{startDate} to {endDate}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-semibold">Generated By</span>
-                          <span className="font-bold">{user.full_name}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-semibold">Compile System</span>
-                          <span className="font-bold">Supabase serverless</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-semibold">Printed Date</span>
-                          <span className="font-bold font-mono">{new Date().toLocaleDateString()}</span>
-                        </div>
-                      </div>
-
-                      {/* Results Table */}
-                      <div className="mt-4 overflow-x-auto">
-                        <table className="w-full text-left border-collapse text-[9px]">
-                          <thead>
-                            <tr className="border-b border-slate-300/60 uppercase font-black text-slate-500 tracking-wider">
-                              {activeReport.headers.map(col => (
-                                <th key={col} className="py-1.5">{col}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
-                            {activeReport.rows.slice(0, 5).map((row, idx) => (
-                              <tr key={idx} className="hover:bg-slate-50/20">
-                                {row.map((cell, cidx) => (
-                                  <td key={cidx} className="py-2 pr-2 font-mono">{cell}</td>
-                                ))}
-                              </tr>
-                            ))}
-                            {activeReport.rows.length === 0 && (
-                              <tr>
-                                <td colSpan={activeReport.headers.length || 1} className="text-center py-10 text-slate-400 italic">
-                                  No records found matching date filter selection.
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {activeReport.rows.length > 5 && (
-                        <p className="text-[8px] text-slate-400 italic mt-2 text-center border-t pt-1.5 border-dashed border-slate-200/50">
-                          ... Showing 5 of {activeReport.rows.length} records. Export standard CSV to download the complete spreadsheet.
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Footer Totals */}
-                    <div className="border-t pt-3.5 border-slate-300/60 flex justify-between gap-4 text-[9px] font-extrabold uppercase mt-4">
-                      <div>{activeReport.totals?.left}</div>
-                      <div>{activeReport.totals?.right}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <ComplianceMOH
+          selectedCompReport={selectedCompReport}
+          setSelectedCompReport={setSelectedCompReport}
+          checkReportAccess={checkReportAccess}
+          user={user}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          brandingMode={brandingMode}
+          handleExportReport={handleExportReport}
+          handlePrint={handlePrint}
+          handleScheduleReport={handleScheduleReport}
+          previewTheme={previewTheme}
+          setPreviewTheme={setPreviewTheme}
+          activeReport={activeReport}
+          genLoading={genLoading}
+          scheduleLoading={scheduleLoading}
+          facilityInfo={facilityInfo}
+          renderFacilityLogo={renderFacilityLogo}
+        />
       )}
 
-      {/* TIER 4: CUSTOM REPORT BUILDER (PREVIOUS BUILDER TAB) */}
+      {/* TIER 4: CUSTOM REPORT BUILDER */}
       {activeTab === 'builder' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Controls Sidebar (Left 5/12 width) */}
-          <div className="lg:col-span-5 space-y-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Settings size={14} className="text-teal-400" /> Report Configuration Details
-              </h3>
-
-              {/* Form Controls */}
-              <div className="space-y-4">
-                {/* Category Selection */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">1. Select Report Category</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'outpatient', label: 'Outpatient', icon: Activity },
-                      { id: 'billing', label: 'Billing Invoices', icon: FileText },
-                      { id: 'inpatient', label: 'Inpatient Admissions', icon: Layers }
-                    ].map(cat => {
-                      const Icon = cat.icon;
-                      return (
-                        <button
-                          key={cat.id}
-                          onClick={() => setReportCategory(cat.id)}
-                          className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition ${
-                            reportCategory === cat.id
-                              ? 'bg-teal-500/10 border-teal-500 text-teal-400'
-                              : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400'
-                          }`}
-                        >
-                          <Icon size={18} className="mb-1.5" />
-                          <span className="text-[10px] font-bold leading-tight">{cat.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Branding Scope Selection */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">2. Branding & Logo Identity</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setBrandingMode('platform')}
-                      className={`flex items-center gap-2 p-2.5 rounded-lg border text-left transition text-xs font-bold ${
-                        brandingMode === 'platform'
-                          ? 'bg-teal-500/10 border-teal-500 text-teal-400'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                      }`}
-                    >
-                      <Building size={14} />
-                      <div>
-                        <span className="block">Eagle Tech Platform</span>
-                        <span className="text-[9px] font-semibold text-slate-500 block">Default corporate details</span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => setBrandingMode('hospital')}
-                      className={`flex items-center gap-2 p-2.5 rounded-lg border text-left transition text-xs font-bold ${
-                        brandingMode === 'hospital'
-                          ? 'bg-teal-500/10 border-teal-500 text-teal-400'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                      }`}
-                    >
-                      <Building size={14} />
-                      <div>
-                        <span className="block">Hospital / Facility Specific</span>
-                        <span className="text-[9px] font-semibold text-slate-500 block">{facilityInfo.name}</span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Date Ranges */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">3. Start Date</label>
-                    <div className="relative">
-                      <Calendar size={12} className="absolute left-3 top-2.5 text-slate-550" />
-                      <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full bg-slate-955 border border-slate-855 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">4. End Date</label>
-                    <div className="relative">
-                      <Calendar size={12} className="absolute left-3 top-2.5 text-slate-555" />
-                      <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full bg-slate-955 border border-slate-855 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Columns Checklist */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">5. Selected Report Fields (Preview Grid Columns)</label>
-                  <div className="bg-slate-955 border border-slate-855 rounded-xl p-3 grid grid-cols-2 gap-2 text-xs font-bold">
-                    {Object.keys(selectedFields[reportCategory]).map(field => {
-                      const isChecked = selectedFields[reportCategory][field];
-                      return (
-                        <button
-                          key={field}
-                          type="button"
-                          onClick={() => toggleField(reportCategory, field)}
-                          className="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition select-none text-left py-1"
-                        >
-                          {isChecked ? (
-                            <CheckSquare size={14} className="text-teal-400 shrink-0" />
-                          ) : (
-                            <Square size={14} className="text-slate-700 shrink-0" />
-                          )}
-                          <span className="truncate capitalize">{field.replace('_', ' ')}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* File Format Selection */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">6. Download Extension</label>
-                  <div className="flex gap-4 text-xs font-bold">
-                    <label className="flex items-center gap-2 text-slate-400 cursor-pointer select-none hover:text-white transition">
-                      <input
-                        type="radio"
-                        name="format"
-                        value="csv"
-                        checked={reportFormat === 'csv'}
-                        onChange={() => setReportFormat('csv')}
-                        className="accent-teal-500 h-4 w-4 bg-slate-955 border-slate-800 rounded text-teal-500"
-                      />
-                      Standard Excel (CSV)
-                    </label>
-                    <label className="flex items-center gap-2 text-slate-400 cursor-pointer select-none hover:text-white transition">
-                      <input
-                        type="radio"
-                        name="format"
-                        value="json"
-                        checked={reportFormat === 'json'}
-                        onChange={() => setReportFormat('json')}
-                        className="accent-teal-500 h-4 w-4 bg-slate-955 border-slate-800 rounded text-teal-500"
-                      />
-                      Data Interchange (JSON)
-                    </label>
-                  </div>
-                </div>
-
-                {/* Action buttons */}
-                <div className="pt-2 border-t border-slate-850 flex gap-2">
-                  <button
-                    onClick={handleGenerateReport}
-                    disabled={genLoading || customFilteredData.length === 0}
-                    className="flex-1 bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-teal-500/10 active:scale-[0.98] transition disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-                  >
-                    {genLoading ? (
-                      <>
-                        <RefreshCw size={14} className="animate-spin" />
-                        Executing Supabase Edge Function...
-                      </>
-                    ) : genSuccess ? (
-                      <>
-                        <CheckCircle size={14} />
-                        Report Dispatched!
-                      </>
-                    ) : (
-                      <>
-                        <Download size={14} />
-                        Generate & Download Report
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex gap-2.5 items-start">
-              <Info size={16} className="text-teal-400 shrink-0 mt-0.5" />
-              <p className="text-[10px] text-slate-450 leading-relaxed font-medium">
-                Clicking "Generate & Download" sends the parameters to a Supabase Edge Function, which runs server-side compilation, writes an outbox email compliance notice using your Titan SMTP credentials, and records the event in the system audit database.
-              </p>
-            </div>
-          </div>
-
-          {/* Formatted Preview Frame (Right 7/12 width) */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Eye size={14} className="text-teal-400" /> Interactive Report Preview Canvas
-              </span>
-              
-              <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[10px]">
-                <button
-                  onClick={() => setPreviewTheme('light')}
-                  className={`px-3 py-1 font-bold rounded transition ${previewTheme === 'light' ? 'bg-slate-880 text-white' : 'text-slate-500'}`}
-                >
-                  Light Mode
-                </button>
-                <button
-                  onClick={() => setPreviewTheme('dark')}
-                  className={`px-3 py-1 font-bold rounded transition ${previewTheme === 'dark' ? 'bg-slate-880 text-white' : 'text-slate-500'}`}
-                >
-                  Dark Mode
-                </button>
-              </div>
-            </div>
-
-            {/* Print Sheet Card */}
-            <div className={`border rounded-2xl p-8 shadow-lg transition-all min-h-[580px] flex flex-col justify-between ${
-              previewTheme === 'light' 
-                ? 'bg-white border-slate-250 text-slate-800' 
-                : 'bg-slate-950 border-slate-855 text-slate-300'
-            }`}>
-              
-              {/* Header: Branded Logo, Title & Metas */}
-              <div>
-                <div className="flex justify-between items-start border-b pb-5 border-dashed border-slate-300/60">
-                  <div className="flex gap-3 items-center">
-                    {brandingMode === 'platform' ? (
-                      <div className="h-10 w-10 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center shrink-0">
-                        <svg className="w-6 h-6 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                          <path d="M8 11h8" />
-                          <path d="M12 7v8" />
-                        </svg>
-                      </div>
-                    ) : (
-                      renderFacilityLogo(facilityInfo.logo_url, "h-10 w-10", "text-sm")
-                    )}
-                    
-                    <div>
-                      <h4 className="font-extrabold text-sm tracking-tight leading-tight uppercase">
-                        {brandingMode === 'platform' ? 'Eagle Tech Solutions Ltd' : facilityInfo.name}
-                      </h4>
-                      <p className="text-[10px] font-semibold text-slate-505 mt-0.5">
-                        {brandingMode === 'platform' 
-                          ? 'HQ: 12th Floor, Eagle Tech Tower, Avenue Rd, Nairobi' 
-                          : `Address: ${facilityInfo.address || 'N/A'} | Code: ${facilityInfo.code}`}
-                      </p>
-                      <p className="text-[10px] font-semibold text-slate-405">
-                        Email: {brandingMode === 'platform' ? 'info@eagletechsolutions.tech' : `info@${facilityInfo.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">
-                      Draft Preview
-                    </span>
-                    <h3 className="font-black text-sm uppercase tracking-wide mt-2">
-                      {reportCategory === 'outpatient' ? 'Outpatient Register' : reportCategory === 'billing' ? 'Revenue Register' : 'Inpatient Admissions'}
-                    </h3>
-                  </div>
-                </div>
-
-                {/* Sub-Header Metadata */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 text-[10px] border-b border-dashed border-slate-300/40">
-                  <div>
-                    <span className="text-slate-400 block font-semibold">Report Period</span>
-                    <span className="font-bold">{startDate} to {endDate}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-semibold">Generated By</span>
-                    <span className="font-bold">{user.full_name}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-semibold">Compile System</span>
-                    <span className="font-bold">Supabase serverless</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-semibold">Printed Date</span>
-                    <span className="font-bold font-mono">{new Date().toLocaleDateString()}</span>
-                  </div>
-                </div>
-
-                {/* Preview Table */}
-                <div className="mt-5 overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-[10px]">
-                    <thead>
-                      <tr className="border-b border-slate-300/60 uppercase font-black text-slate-500 tracking-wider">
-                        {customActiveColumns.map(col => (
-                          <th key={col} className="py-2">{col.replace('_', ' ')}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                      {customFilteredData.slice(0, 5).map((row, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/20">
-                          {customActiveColumns.map(col => (
-                            <td key={col} className="py-2.5 pr-2 font-mono">
-                              {col === 'total_amount' || col === 'amount_paid' ? (
-                                `KES ${row[col]}/-`
-                              ) : col === 'status' ? (
-                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
-                                  row[col] === 'paid' || row[col] === 'Discharged'
-                                    ? 'bg-green-100 text-green-700 border border-green-200'
-                                    : 'bg-yellow-100 text-yellow-700 border border-yellow-250'
-                                }`}>
-                                  {row[col]}
-                                </span>
-                              ) : (
-                                row[col]
-                              )}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                      
-                      {customFilteredData.length === 0 && (
-                        <tr>
-                          <td colSpan={customActiveColumns.length || 1} className="text-center py-10 text-slate-400 italic font-normal">
-                            No records found matching date filter selection.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {customFilteredData.length > 5 && (
-                  <p className="text-[9px] text-slate-450 italic mt-3 text-center border-t pt-2 border-dashed border-slate-350/20">
-                    ... Showing 5 of {customFilteredData.length} records. Generate report to extract complete spreadsheet data.
-                  </p>
-                )}
-              </div>
-
-              {/* Bottom Totals Summary */}
-              <div className="border-t pt-4 border-slate-300/60 flex flex-col md:flex-row justify-between gap-4 text-[10px] font-extrabold uppercase mt-6">
-                <div className="flex gap-4">
-                  <span>Total Records: <span className="text-teal-600">{customFilteredData.length}</span></span>
-                  
-                  {reportCategory === 'billing' && (
-                    <>
-                      <span>Total Revenue: <span className="text-teal-600">KES {
-                        customFilteredData.reduce((acc, row) => acc + parseFloat(row.total_amount || 0), 0).toFixed(2)
-                      }/-</span></span>
-                      <span>Total Paid: <span className="text-teal-600">KES {
-                        customFilteredData.reduce((acc, row) => acc + parseFloat(row.amount_paid || 0), 0).toFixed(2)
-                      }/-</span></span>
-                    </>
-                  )}
-                </div>
-
-                <div className="text-right text-[8px] font-normal text-slate-400 italic">
-                  <span>Eagle Tech Outsource Compliance Intelligence Unit. Confidential.</span>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
+        <CustomReportBuilder
+          reportCategory={reportCategory}
+          setReportCategory={setReportCategory}
+          brandingMode={brandingMode}
+          setBrandingMode={setBrandingMode}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          selectedFields={selectedFields}
+          toggleField={toggleField}
+          reportFormat={reportFormat}
+          setReportFormat={setReportFormat}
+          handleGenerateReport={handleGenerateReport}
+          genLoading={genLoading}
+          genSuccess={genSuccess}
+          customFilteredData={customFilteredData}
+          previewTheme={previewTheme}
+          setPreviewTheme={setPreviewTheme}
+          facilityInfo={facilityInfo}
+          renderFacilityLogo={renderFacilityLogo}
+          user={user}
+          customActiveColumns={customActiveColumns}
+        />
       )}
     </div>
   );

@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import PasswordRecovery from './login/PasswordRecovery';
+import RoleRequestPending from './login/RoleRequestPending';
+import RoleRequestForm from './login/RoleRequestForm';
+
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { sendNotification, getSmtpConfig } from '../notificationService';
@@ -783,146 +787,32 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
 
 
 
+
   // If password recovery toggle is clicked
   if (showRecovery) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4">
-        <div className="w-full max-w-md mb-4 flex justify-start">
-          <button
-            onClick={() => {
-              setShowRecovery(false);
-              setRecoveryError('');
-              setRecoverySuccess('');
-              setCodeSent(false);
-            }}
-            className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition font-semibold"
-          >
-            ← Back to Login
-          </button>
-        </div>
-
-        <div className="flex flex-col items-center mb-6">
-          <img src="/logo.png" alt="Eagle Tech Logo" className="h-28 object-contain" />
-          <span className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-2">HMIS SECURITY LAYER</span>
-        </div>
-
-        <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-          <div className="mt-2">
-            <h2 className="text-xl font-bold text-slate-100 mb-1">Account Password Recovery</h2>
-            <p className="text-xs text-slate-400 mb-6 font-medium">
-              {isSandbox 
-                ? "A security verification code will be generated and dispatched through Titan SMTP."
-                : "A password reset link will be sent to your email address from Supabase Auth."}
-            </p>
-          </div>
-
-          {recoveryError && (
-            <div className="mb-4 bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg p-3 text-xs flex items-start gap-2">
-              <ShieldAlert size={16} className="shrink-0 mt-0.5" />
-              <span>{recoveryError}</span>
-            </div>
-          )}
-
-          {recoverySuccess && (
-            <div className="mb-4 bg-teal-500/10 border border-teal-500/25 text-teal-400 rounded-lg p-3 text-xs flex items-start gap-2 font-medium">
-              <CheckCircle size={16} className="shrink-0 mt-0.5" />
-              <span>{recoverySuccess}</span>
-            </div>
-          )}
-
-          {!codeSent ? (
-            <form onSubmit={handleRequestCode} className="space-y-4">
-              {isSandbox && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Select Facility / Tenant
-                  </label>
-                  <select
-                    value={selectedFacility}
-                    onChange={(e) => setSelectedFacility(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 text-xs focus:outline-none focus:border-teal-500 transition"
-                    required
-                  >
-                    <option value="">-- Choose Facility --</option>
-                    {facilities.map((fac) => (
-                      <option key={fac.id} value={fac.id}>
-                        {fac.name} ({fac.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Your Account Email
-                </label>
-                <input
-                  type="email"
-                  value={recoveryEmail}
-                  onChange={(e) => setRecoveryEmail(e.target.value)}
-                  placeholder="e.g. nurse@egesa.com"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm focus:outline-none focus:border-teal-500 transition"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={recoveryLoading || (isSandbox && !selectedFacility)}
-                className="w-full bg-teal-500 hover:bg-teal-600 disabled:bg-slate-850 disabled:text-slate-600 text-slate-950 font-semibold text-sm py-2.5 px-4 rounded-lg shadow-lg active:scale-[0.98] transition mt-2"
-              >
-                {recoveryLoading 
-                  ? (isSandbox ? 'Generating Reset Code...' : 'Sending Reset Link...') 
-                  : (isSandbox ? 'Dispatch Reset Code' : 'Send Reset Link')}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyResetCode} className="space-y-4">
-              {isSandbox ? (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Verification Reset Code
-                  </label>
-                  <input
-                    type="text"
-                    value={enteredCode}
-                    onChange={(e) => setEnteredCode(e.target.value)}
-                    placeholder="ET-XXXXXX"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm font-mono focus:outline-none focus:border-teal-500 transition"
-                    required
-                  />
-                </div>
-              ) : (
-                <div className="text-xs text-teal-400 bg-teal-500/10 border border-teal-500/20 rounded-lg p-3 font-medium">
-                  Updating password for Supabase Auth account.
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Choose New Password
-                </label>
-                <input
-                  type="password"
-                  value={newPass}
-                  onChange={(e) => setNewPass(e.target.value)}
-                  placeholder="Minimum 8 characters"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm focus:outline-none focus:border-teal-500 transition"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-semibold text-sm py-2.5 px-4 rounded-lg shadow-lg active:scale-[0.98] transition mt-2"
-              >
-                {isSandbox ? 'Update Password & Return to Login' : 'Update Password & Enter Portal'}
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
+      <PasswordRecovery
+        isSandbox={isSandbox}
+        selectedFacility={selectedFacility}
+        setSelectedFacility={setSelectedFacility}
+        facilities={facilities}
+        recoveryEmail={recoveryEmail}
+        setRecoveryEmail={setRecoveryEmail}
+        recoveryLoading={recoveryLoading}
+        recoveryError={recoveryError}
+        setRecoveryError={setRecoveryError}
+        recoverySuccess={recoverySuccess}
+        setRecoverySuccess={setRecoverySuccess}
+        codeSent={codeSent}
+        setCodeSent={setCodeSent}
+        setShowRecovery={setShowRecovery}
+        handleRequestCode={handleRequestCode}
+        handleVerifyResetCode={handleVerifyResetCode}
+        enteredCode={enteredCode}
+        setEnteredCode={setEnteredCode}
+        newPass={newPass}
+        setNewPass={setNewPass}
+      />
     );
   }
 
@@ -934,203 +824,38 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     );
 
     if (pendingRequest) {
-      // Render State A: Request Pending Screen
       return (
-        <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 font-sans">
-          <div className="flex flex-col items-center mb-6">
-            <img src="/logo.png" alt="Eagle Tech Logo" className="h-28 object-contain" />
-            <span className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-2">HMIS SECURITY LAYER</span>
-          </div>
-
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-            <div className="flex flex-col items-center text-center my-4">
-              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 p-3 rounded-full mb-4">
-                <Clock size={36} className="animate-pulse" />
-              </div>
-              <h2 className="text-lg font-bold text-slate-100 mb-1">Access Authorization Pending</h2>
-              <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
-                Your request to join this hospital workspace has been successfully submitted and is awaiting administrator approval.
-              </p>
-            </div>
-
-            <div className="bg-slate-950 border border-slate-850 rounded-xl p-4 space-y-2.5 text-xs text-slate-300 my-4 font-sans">
-              <div className="flex justify-between border-b border-slate-900 pb-2">
-                <span className="text-slate-500 font-medium">Full Name:</span>
-                <span className="font-semibold text-slate-200">{pendingRequest.full_name}</span>
-              </div>
-              <div className="flex justify-between border-b border-slate-900 pb-2">
-                <span className="text-slate-500 font-medium">Hospital/Tenant:</span>
-                <span className="font-semibold text-slate-200">
-                  {facilities.find(f => f.id === pendingRequest.facility_id)?.name || 'Default Facility'}
-                </span>
-              </div>
-              <div className="flex justify-between border-b border-slate-900 pb-2">
-                <span className="text-slate-500 font-medium">Requested Role:</span>
-                <span className="font-semibold text-teal-400 uppercase font-mono">{pendingRequest.requested_role}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500 font-medium">Submitted At:</span>
-                <span className="font-semibold text-slate-400">
-                  {new Date(pendingRequest.created_at).toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-teal-500/5 border border-teal-500/20 text-teal-400 rounded-lg p-3 text-[11px] leading-relaxed my-4 flex gap-2">
-              <UserCheck size={16} className="shrink-0 mt-0.5" />
-              <span>
-                <strong>Action Needed:</strong> Once the facility admin approves your pending request, simply log in again to access the clinical desks.
-              </span>
-            </div>
-
-            <button
-              onClick={handleLogoutRequestScreen}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-850 border border-slate-850 text-slate-300 font-bold text-xs py-2.5 rounded-lg transition active:scale-[0.98]"
-            >
-              <LogOut size={14} /> Log Out / Cancel
-            </button>
-          </div>
-        </div>
+        <RoleRequestPending
+          pendingRequest={pendingRequest}
+          facilities={facilities}
+          handleLogoutRequestScreen={handleLogoutRequestScreen}
+          loading={loading}
+        />
       );
     } else {
-      // Render State B: Role Request Form
       return (
-        <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 font-sans">
-          <div className="flex flex-col items-center mb-6">
-            <img src="/logo.png" alt="Eagle Tech Logo" className="h-28 object-contain" />
-            <span className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-2">HMIS SECURITY LAYER</span>
-          </div>
-
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-            <div className="mt-2 text-center pb-3 border-b border-slate-800/60 mb-4">
-              <h2 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-2">
-                <UserPlus size={20} className="text-teal-400" /> Request Operational Role
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">Specify your clinical role and hospital to request access.</p>
-            </div>
-
-            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg p-3 text-xs leading-relaxed mb-4 flex gap-2 font-sans">
-              <ShieldAlert size={16} className="shrink-0 mt-0.5" />
-              <span>
-                <strong>Workspace Not Configured:</strong> We verified your Google account, but it does not belong to any active facility. Search for your hospital below to request access.
-              </span>
-            </div>
-
-            {error && (
-              <div className="mb-4 bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg p-3 text-xs flex items-start gap-2">
-                <ShieldAlert size={16} className="shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {requestSuccess && (
-              <div className="mb-4 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-lg p-3 text-xs flex items-start gap-2 font-medium">
-                <CheckCircle size={16} className="shrink-0 mt-0.5" />
-                <span>{requestSuccess}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleRoleRequestSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={requestName}
-                  onChange={(e) => setRequestName(e.target.value)}
-                  placeholder="e.g. Dr. Steve Rogers"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 text-xs focus:outline-none focus:border-teal-500 transition"
-                  required
-                />
-              </div>
-
-              <div className="relative">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Search & Select Target Facility
-                </label>
-                <input
-                  type="text"
-                  value={facilitySearchQuery}
-                  onChange={(e) => {
-                    setFacilitySearchQuery(e.target.value);
-                    setIsSearchDropdownOpen(true);
-                  }}
-                  onFocus={() => setIsSearchDropdownOpen(true)}
-                  placeholder="Type to search facility..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 text-xs focus:outline-none focus:border-teal-500 transition"
-                  required
-                />
-                {isSearchDropdownOpen && (
-                  <div 
-                    onMouseLeave={() => setIsSearchDropdownOpen(false)}
-                    className="absolute z-10 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-slate-950 border border-slate-800 rounded-lg shadow-xl divide-y divide-slate-900"
-                  >
-                    {filteredFacilities.length > 0 ? (
-                      filteredFacilities.map((fac) => (
-                        <button
-                          key={fac.id}
-                          type="button"
-                          onClick={() => {
-                            setRequestFacility(fac.id);
-                            setFacilitySearchQuery(`${fac.name} (${fac.code})`);
-                            setIsSearchDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-xs hover:bg-slate-800 transition text-slate-300 hover:text-white cursor-pointer"
-                        >
-                          <span className="font-bold">{fac.name}</span> <span className="text-[10px] text-slate-500">({fac.code})</span>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2.5 text-xs text-slate-500 italic text-center">
-                        No facilities match your search
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Requested Operational Role
-                </label>
-                <select
-                  value={requestRole}
-                  onChange={(e) => setRequestRole(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 text-xs focus:outline-none focus:border-teal-500 transition"
-                >
-                  <option value="receptionist">Receptionist</option>
-                  <option value="nurse">Triage Nurse</option>
-                  <option value="clinician">Clinician (Doctor)</option>
-                  <option value="lab_tech">Lab Technician</option>
-                  <option value="pharmacist">Pharmacist</option>
-                  <option value="cashier">Billing Cashier</option>
-                  <option value="reporting_officer">Reporting Officer</option>
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-teal-500 hover:bg-teal-600 disabled:bg-slate-850 text-slate-950 font-bold text-xs py-2.5 rounded-lg transition active:scale-[0.98] mt-2 shadow-lg shadow-teal-500/10"
-              >
-                {loading ? 'Submitting Request...' : 'Submit Role Request'}
-              </button>
-            </form>
-
-            <button
-              onClick={handleLogoutRequestScreen}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-850 border border-slate-850 text-slate-400 font-semibold text-xs py-2.5 rounded-lg transition active:scale-[0.98] mt-3"
-            >
-              <LogOut size={14} /> Cancel & Log Out
-            </button>
-          </div>
-        </div>
+        <RoleRequestForm
+          facilities={facilities}
+          facilitySearchQuery={facilitySearchQuery}
+          setFacilitySearchQuery={setFacilitySearchQuery}
+          isSearchDropdownOpen={isSearchDropdownOpen}
+          setIsSearchDropdownOpen={setIsSearchDropdownOpen}
+          filteredFacilities={filteredFacilities}
+          requestRole={requestRole}
+          setRequestRole={setRequestRole}
+          requestName={requestName}
+          setRequestName={setRequestName}
+          error={error}
+          requestSuccess={requestSuccess}
+          handleRoleRequestSubmit={handleRoleRequestSubmit}
+          handleLogoutRequestScreen={handleLogoutRequestScreen}
+          loading={loading}
+          setRequestFacility={setRequestFacility}
+        />
       );
     }
   }
+
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4">

@@ -1,4 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import AuditTrail from './admin/AuditTrail';
+import EmailLogs from './admin/EmailLogs';
+import SmtpSettings from './admin/SmtpSettings';
+import LicensingBilling from './admin/LicensingBilling';
+import StaffOnboarding from './admin/StaffOnboarding';
+import HospitalProfile from './admin/HospitalProfile';
+
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -741,917 +748,87 @@ export default function Admin({ user }) {
         {/* Tab Contents */}
         <div className="flex-1 overflow-y-auto max-h-[500px] pr-1 space-y-4">
           
+          
           {/* TAB 1: AUDIT TRAIL */}
           {activeSubTab === 'audit' && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center pb-1">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">System Activity Logs</h4>
-                <button
-                  onClick={fetchAdminData}
-                  className="text-[10px] text-teal-450 hover:text-teal-400 font-semibold flex items-center gap-1"
-                >
-                  <RefreshCw size={10} /> Refresh Log
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                {auditLogs.map((log) => {
-                  const actor = usersList.find(u => u.id === log.user_id)?.full_name || 'System Auto-Agent';
-                  return (
-                    <div key={log.id} className="bg-slate-950 border border-slate-850 p-3 rounded-lg text-xs space-y-1.5">
-                      <div className="flex justify-between text-[9px] text-slate-500 font-mono">
-                        <span>Timestamp: {new Date(log.created_at).toLocaleString()}</span>
-                        <span className="bg-slate-900 border border-slate-800 text-teal-400 px-1 py-0.5 rounded font-bold uppercase">{log.action}</span>
-                      </div>
-                      
-                      <p className="text-slate-350 leading-relaxed font-medium">
-                        {log.details}
-                      </p>
-
-                      <div className="text-[10px] text-slate-500">
-                        Transaction Agent: <span className="text-slate-400 font-semibold">{actor}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {auditLogs.length === 0 && (
-                  <div className="text-xs text-slate-600 text-center py-20">
-                    No audit log transactions registered.
-                  </div>
-                )}
-              </div>
-            </div>
+            <AuditTrail
+              fetchAdminData={fetchAdminData}
+              auditLogs={auditLogs}
+              usersList={usersList}
+            />
           )}
 
           {/* TAB 2: OUTBOUND EMAIL LOGS */}
           {activeSubTab === 'email_logs' && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center pb-1">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Outbound SMTP Communications</h4>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Logs pruned automatically based on your retention configuration ({smtp.log_retention || 30} days).</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handlePruneLogs}
-                    className="text-[10px] bg-red-950/40 hover:bg-red-900/10 border border-red-500/20 text-red-400 px-2 py-1 rounded font-semibold flex items-center gap-1.5"
-                  >
-                    <Trash2 size={10} /> Prune Now
-                  </button>
-                  <button
-                    onClick={fetchAdminData}
-                    className="text-[10px] text-teal-455 hover:text-teal-400 font-semibold flex items-center gap-1"
-                  >
-                    <RefreshCw size={10} /> Refresh
-                  </button>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto bg-slate-950 border border-slate-850 rounded-xl">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-850 bg-slate-900 text-slate-500 font-bold uppercase tracking-wider text-[9px]">
-                      <th className="py-2.5 px-3">Timestamp</th>
-                      <th className="py-2.5 px-3">Event</th>
-                      <th className="py-2.5 px-3">Sender Identity</th>
-                      <th className="py-2.5 px-3">Recipient</th>
-                      <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-3">Retry</th>
-                      <th className="py-2.5 px-3 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-850 font-medium">
-                    {emailLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-slate-900/40 text-slate-350">
-                        <td className="py-2 px-3 text-[10px] text-slate-500 whitespace-nowrap">
-                          {new Date(log.created_at).toLocaleString()}
-                        </td>
-                        <td className="py-2 px-3">
-                          <span className="text-[10px] font-semibold bg-slate-900 border border-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase">
-                            {log.event}
-                          </span>
-                        </td>
-                        <td className="py-2 px-3 text-[10px] text-slate-400 font-mono max-w-[130px] truncate" title={log.sender}>
-                          {log.sender}
-                        </td>
-                        <td className="py-2 px-3 text-[10px] text-slate-400 font-mono truncate" title={log.recipient}>
-                          {log.recipient}
-                        </td>
-                        <td className="py-2 px-3">
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
-                            log.status === 'sent' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                            log.status === 'queued' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                            log.status === 'bounced' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
-                            'bg-red-500/10 text-red-400 border border-red-500/20'
-                          }`}>
-                            {log.status}
-                          </span>
-                        </td>
-                        <td className="py-2 px-3 text-[10px] text-slate-450 font-mono text-center">
-                          {log.retry_count}
-                        </td>
-                        <td className="py-2 px-3 text-center">
-                          <button
-                            onClick={() => setSelectedLogBody(log)}
-                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 p-1 rounded text-teal-400 transition"
-                            title="View Rendered Email"
-                          >
-                            <Eye size={12} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-
-                    {emailLogs.length === 0 && (
-                      <tr>
-                        <td colSpan={7} className="text-center py-16 text-slate-600">
-                          No outbound email logs registered.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <EmailLogs
+              smtp={smtp}
+              handlePruneLogs={handlePruneLogs}
+              fetchAdminData={fetchAdminData}
+              emailLogs={emailLogs}
+              setSelectedLogBody={setSelectedLogBody}
+            />
           )}
 
           {/* TAB 3: SMTP SERVER SETTINGS */}
           {activeSubTab === 'smtp_settings' && (
-            <div className="space-y-6">
-              <form onSubmit={handleSaveSmtp} className="space-y-5">
-                <div className="flex justify-between items-center pb-1 border-b border-slate-850">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Titan Server Authentication Configuration</h4>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSmtp(getDefaultSmtpConfig())}
-                      className="text-[10px] text-slate-500 hover:text-slate-200 font-bold"
-                    >
-                      Reset Titan Presets
-                    </button>
-                  </div>
-                </div>
-
-                {smtpMessage.text && (
-                  <div className={`p-2.5 rounded text-xs flex gap-2 ${
-                    smtpMessage.type === 'success' ? 'bg-teal-500/5 border border-teal-500/20 text-teal-400' : 'bg-red-500/5 border border-red-500/20 text-red-400'
-                  }`}>
-                    <CheckCircle size={14} className="shrink-0 mt-0.5" />
-                    <span>{smtpMessage.text}</span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">SMTP Host</label>
-                    <input
-                      type="text"
-                      value={smtp.host}
-                      onChange={(e) => setSmtp({ ...smtp, host: e.target.value })}
-                      placeholder="smtp.titan.email"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 font-mono focus:border-teal-500 transition"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">SMTP Port</label>
-                    <input
-                      type="number"
-                      value={smtp.port}
-                      onChange={(e) => setSmtp({ ...smtp, port: parseInt(e.target.value) })}
-                      placeholder="465"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 font-mono focus:border-teal-500 transition"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Encryption Protocol</label>
-                    <select
-                      value={smtp.encryption}
-                      onChange={(e) => setSmtp({ ...smtp, encryption: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:border-teal-500 transition"
-                    >
-                      <option value="SSL">SSL (Implicit)</option>
-                      <option value="TLS">STARTTLS (Explicit)</option>
-                      <option value="None">None (Unsecured)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Timeout Settings (Seconds)</label>
-                    <input
-                      type="number"
-                      value={smtp.timeout || 15}
-                      onChange={(e) => setSmtp({ ...smtp, timeout: parseInt(e.target.value) })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 font-mono focus:border-teal-500 transition"
-                      min={5}
-                      max={90}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Sender Email Identity</label>
-                    <input
-                      type="email"
-                      value={smtp.sender_email}
-                      onChange={(e) => setSmtp({ ...smtp, sender_email: e.target.value })}
-                      placeholder="noreply@eagletechsolutions.tech"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 font-mono focus:border-teal-500 transition"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Sender Name Prefix</label>
-                    <input
-                      type="text"
-                      value={smtp.sender_name}
-                      onChange={(e) => setSmtp({ ...smtp, sender_name: e.target.value })}
-                      placeholder="Eagle Tech Medical Desk"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:border-teal-500 transition"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 font-mono">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">SMTP Username</label>
-                    <input
-                      type="text"
-                      value={smtp.username}
-                      onChange={(e) => setSmtp({ ...smtp, username: e.target.value })}
-                      placeholder="noreply@eagletechsolutions.tech"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:border-teal-500 transition"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">SMTP Password</label>
-                    <input
-                      type="password"
-                      value={smtp.password}
-                      onChange={(e) => setSmtp({ ...smtp, password: e.target.value })}
-                      placeholder="••••••••••••"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:border-teal-500 transition"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Retry & Failover Policy</label>
-                    <select
-                      value={smtp.retry_policy}
-                      onChange={(e) => setSmtp({ ...smtp, retry_policy: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:border-teal-500 transition"
-                    >
-                      <option value="3 attempts, linear backoff">3 attempts, linear backoff</option>
-                      <option value="5 attempts, exponential backoff">5 attempts, exponential backoff</option>
-                      <option value="No retries">No retries</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Log Retention Period (Days)</label>
-                    <input
-                      type="number"
-                      value={smtp.log_retention || 30}
-                      onChange={(e) => setSmtp({ ...smtp, log_retention: parseInt(e.target.value) })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 font-mono focus:border-teal-500 transition"
-                      min={1}
-                      max={365}
-                    />
-                  </div>
-                </div>
-
-                {/* Preferences Toggle Matrix */}
-                <div className="space-y-3 pt-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">System Notification Preferences Toggles</label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 bg-slate-950 border border-slate-850 p-4 rounded-xl">
-                    {Object.keys(smtp.preferences || {}).map((prefKey) => (
-                      <label key={prefKey} className="flex items-center gap-2 text-[10px] text-slate-350 cursor-pointer font-bold select-none hover:text-white transition">
-                        <input
-                          type="checkbox"
-                          checked={smtp.preferences[prefKey]}
-                          onChange={(e) => setSmtp({
-                            ...smtp,
-                            preferences: {
-                              ...smtp.preferences,
-                              [prefKey]: e.target.checked
-                            }
-                          })}
-                          className="w-3.5 h-3.5 accent-teal-500 rounded border-slate-800 bg-slate-900"
-                        />
-                        <span className="capitalize">{prefKey.replace(/_/g, ' ').toLowerCase()}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Custom Google OAuth Credentials Section */}
-                <div className="space-y-3 pt-4 border-t border-slate-850">
-                  <h5 className="text-[11px] font-bold text-slate-355 uppercase tracking-wider flex items-center gap-1.5">
-                    <Building size={12} className="text-teal-400" /> Custom Google Sign-In Credentials
-                  </h5>
-                  <p className="text-[10px] text-slate-500">Enable and configure hospital-specific Google OAuth credentials to display your logo and brand on the Google Consent Login screen.</p>
-                  
-                  <div className="bg-slate-950 border border-slate-850 p-4 rounded-xl space-y-3">
-                    <label className="flex items-center gap-2 text-[10px] text-slate-300 cursor-pointer font-bold select-none hover:text-white transition">
-                      <input
-                        type="checkbox"
-                        checked={smtp.google_auth_enabled || false}
-                        onChange={(e) => setSmtp({
-                          ...smtp,
-                          google_auth_enabled: e.target.checked
-                        })}
-                        className="w-3.5 h-3.5 accent-teal-500 rounded border-slate-800 bg-slate-900"
-                      />
-                      Enable Hospital-Specific Google Login
-                    </label>
-
-                    {(smtp.google_auth_enabled) && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Google Client ID</label>
-                          <input
-                            type="text"
-                            value={smtp.google_client_id || ''}
-                            onChange={(e) => setSmtp({ ...smtp, google_client_id: e.target.value })}
-                            placeholder="xxxx-xxxx.apps.googleusercontent.com"
-                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 font-mono focus:border-teal-500 transition"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Google Client Secret</label>
-                          <input
-                            type="password"
-                            value={smtp.google_client_secret || ''}
-                            onChange={(e) => setSmtp({ ...smtp, google_client_secret: e.target.value })}
-                            placeholder="••••••••••••"
-                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 font-mono focus:border-teal-500 transition"
-                            required
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-850">
-                  <button
-                    type="submit"
-                    disabled={smtpLoading}
-                    className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-5 rounded-lg shadow-md transition active:scale-[0.98]"
-                  >
-                    {smtpLoading ? 'Saving Configurations...' : 'Save SMTP Configurations'}
-                  </button>
-                </div>
-              </form>
-
-              {/* SMTP test utility */}
-              <form onSubmit={handleSendTestEmail} className="bg-slate-950 border border-slate-850 p-4 rounded-xl space-y-3.5">
-                <h5 className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Send size={11} className="text-teal-400" /> Outbound SMTP Test Utility
-                </h5>
-                <p className="text-[10px] text-slate-500">Dispatch a test welcome email using your active Titan credentials above to verify DNS connectivity.</p>
-
-                {testMessage.text && (
-                  <div className={`p-2.5 rounded text-xs flex gap-2 ${
-                    testMessage.type === 'success' ? 'bg-teal-500/5 border border-teal-500/20 text-teal-400' : 'bg-red-500/5 border border-red-500/20 text-red-400'
-                  }`}>
-                    <CheckCircle size={14} className="shrink-0 mt-0.5" />
-                    <span>{testMessage.text}</span>
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <input
-                      type="email"
-                      value={testRecipient}
-                      onChange={(e) => setTestRecipient(e.target.value)}
-                      placeholder="recipient@example.com"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 font-mono focus:border-teal-500 transition"
-                      required
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={testLoading}
-                    className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-teal-400 font-bold text-xs px-4 rounded-lg flex items-center gap-1.5 transition active:scale-[0.98]"
-                  >
-                    <Send size={12} /> {testLoading ? 'Sending Test...' : 'Send Test Mail'}
-                  </button>
-                </div>
-              </form>
-
-              {/* DNS settings checker */}
-              <div className="bg-slate-950 border border-slate-850 p-4 rounded-xl space-y-4">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-900">
-                  <h5 className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 font-sans">
-                    <Shield size={11} className="text-teal-400" /> Eagle Tech Outsource Custom Domain DNS Diagnostics
-                  </h5>
-                  <button
-                    type="button"
-                    onClick={handleCheckDns}
-                    disabled={dnsChecking}
-                    className="text-[10px] text-teal-400 hover:text-teal-300 font-bold flex items-center gap-1 font-sans"
-                  >
-                    <RefreshCw size={10} className={dnsChecking ? 'animate-spin' : ''} /> {dnsChecking ? 'Verifying...' : 'Re-check DNS'}
-                  </button>
-                </div>
-                <p className="text-[10px] text-slate-500 font-sans">Configure these DNS records at your domain registrar to authenticate your custom domain and maximize Titan SMTP inbox deliverability.</p>
-                
-                {dnsMessage && (
-                  <div className="bg-teal-500/5 border border-teal-500/20 text-teal-400 p-2.5 rounded text-[10px] flex gap-1.5 font-sans">
-                    <CheckCircle size={12} className="shrink-0 mt-0.5" />
-                    <span>{dnsMessage}</span>
-                  </div>
-                )}
-
-                <div className="overflow-x-auto border border-slate-900 rounded-lg">
-                  <table className="w-full text-left text-[10px] border-collapse font-mono">
-                    <thead>
-                      <tr className="bg-slate-900/60 text-slate-500 font-bold border-b border-slate-900 text-[9px] uppercase">
-                        <th className="py-1.5 px-2.5">Record Type</th>
-                        <th className="py-1.5 px-2.5">Host Name</th>
-                        <th className="py-1.5 px-2.5">Target/Value</th>
-                        <th className="py-1.5 px-2.5 text-center">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-slate-450 divide-y divide-slate-900 font-semibold">
-                      <tr>
-                        <td className="py-1.5 px-2.5 text-slate-300">TXT (SPF)</td>
-                        <td className="py-1.5 px-2.5 text-teal-500">@</td>
-                        <td className="py-1.5 px-2.5 break-all max-w-[200px]" title='v=spf1 include:spf.titan.email ~all'>"v=spf1 include:spf.titan.email ~all"</td>
-                        <td className="py-1.5 px-2.5 text-center text-green-400 font-bold">● Active</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1.5 px-2.5 text-slate-300">TXT (DKIM)</td>
-                        <td className="py-1.5 px-2.5 text-teal-500">titan1._domainkey</td>
-                        <td className="py-1.5 px-2.5 truncate max-w-[200px]" title='v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0G...'>"v=DKIM1; k=rsa; p=MIIBIjANBgkq..."</td>
-                        <td className="py-1.5 px-2.5 text-center text-green-400 font-bold">● Active</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1.5 px-2.5 text-slate-300">MX</td>
-                        <td className="py-1.5 px-2.5 text-teal-500">@</td>
-                        <td className="py-1.5 px-2.5">mx1.titan.email (10) / mx2.titan.email (20)</td>
-                        <td className="py-1.5 px-2.5 text-center text-green-400 font-bold">● Active</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1.5 px-2.5 text-slate-300">CNAME</td>
-                        <td className="py-1.5 px-2.5 text-teal-500">api</td>
-                        <td className="py-1.5 px-2.5">api.eagletechsolutions.tech</td>
-                        <td className="py-1.5 px-2.5 text-center text-green-400 font-bold">● Active</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <SmtpSettings
+              handleSaveSmtp={handleSaveSmtp}
+              smtp={smtp}
+              setSmtp={setSmtp}
+              smtpMessage={smtpMessage}
+              smtpLoading={smtpLoading}
+              handleSendTestEmail={handleSendTestEmail}
+              testMessage={testMessage}
+              testRecipient={testRecipient}
+              setTestRecipient={setTestRecipient}
+              testLoading={testLoading}
+              handleCheckDns={handleCheckDns}
+              dnsChecking={dnsChecking}
+              dnsMessage={dnsMessage}
+            />
           )}
 
           {/* TAB 4: LICENSING & BILLING */}
           {activeSubTab === 'licensing' && (
-            <div className="space-y-6">
-              <div className="bg-slate-950 border border-slate-850 rounded-xl p-5 space-y-4">
-                <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5 pb-2 border-b border-slate-900">
-                  <CreditCard size={14} className="text-teal-400" /> Subscription entitlement profile
-                </h4>
-
-                {licenseMessage && (
-                  <div className="bg-teal-500/5 border border-teal-500/20 text-teal-400 p-2.5 rounded text-xs flex gap-2">
-                    <CheckCircle size={14} className="shrink-0 mt-0.5" />
-                    <span>{licenseMessage}</span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-slate-900 border border-slate-850 p-4 rounded-lg space-y-1">
-                    <span className="text-[10px] text-slate-500 block uppercase font-bold">Licensing Tier</span>
-                    <span className="text-sm font-black text-slate-100 uppercase tracking-wide">{license.tier}</span>
-                  </div>
-                  <div className="bg-slate-900 border border-slate-850 p-4 rounded-lg space-y-1">
-                    <span className="text-[10px] text-slate-500 block uppercase font-bold">Status Badge</span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className={`h-2 w-2 rounded-full ${
-                        license.status === 'active' ? 'bg-green-400' :
-                        license.status === 'warning' ? 'bg-yellow-400' : 'bg-red-400'
-                      }`}></span>
-                      <span className={`text-xs font-bold uppercase ${
-                        license.status === 'active' ? 'text-green-400' :
-                        license.status === 'warning' ? 'text-yellow-400' : 'text-red-400'
-                      }`}>{license.status}</span>
-                    </div>
-                  </div>
-                  <div className="bg-slate-900 border border-slate-850 p-4 rounded-lg space-y-1">
-                    <span className="text-[10px] text-slate-500 block uppercase font-bold">Trial / Term Expiry</span>
-                    <span className="text-xs font-mono font-bold text-slate-300 block mt-0.5">
-                      {new Date(license.expiry).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-[11px] text-slate-400 leading-relaxed space-y-2 bg-slate-900/40 p-4 rounded-lg">
-                  <p className="font-semibold text-slate-200">Eagle Tech Licensing Entitlement Rules:</p>
-                  <ul className="list-disc pl-4 space-y-1">
-                    <li><strong>Active State:</strong> Outbound SMTP service handles transactional patient notifications normally.</li>
-                    <li><strong>Warning State:</strong> Alerts facility administrator of upcoming renewal requirements, but remains operational.</li>
-                    <li><strong className="text-red-400">Expired State (Service Blocked):</strong> Locks all clinical workflow and reporting outbound emails. Password resets and license compliance messages are permitted.</li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* License status simulator utility */}
-              <div className="bg-slate-950 border border-slate-850 rounded-xl p-5 space-y-4">
-                <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                  <AlertTriangle size={14} className="text-yellow-500" /> Entitlement Gate & Compliance Simulator
-                </h4>
-                <p className="text-[10px] text-slate-500">Toggle simulation states below to immediately modify active license status and trigger subscription warning notifications.</p>
-
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={() => handleSimulateLicense('active')}
-                    className="bg-green-500 hover:bg-green-600 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg shadow transition active:scale-[0.98]"
-                  >
-                    Simulate Active License
-                  </button>
-                  <button
-                    onClick={() => handleSimulateLicense('warning')}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg shadow transition active:scale-[0.98]"
-                  >
-                    Simulate Expiry Warning (3 Days Expiry)
-                  </button>
-                  <button
-                    onClick={() => handleSimulateLicense('expired')}
-                    className="bg-red-500 hover:bg-red-600 text-white font-bold text-xs py-2 px-4 rounded-lg shadow transition active:scale-[0.98]"
-                  >
-                    Simulate Expired Block (1 Day Expired)
-                  </button>
-                </div>
-              </div>
-            </div>
+            <LicensingBilling
+              license={license}
+              licenseMessage={licenseMessage}
+              handleSimulateLicense={handleSimulateLicense}
+            />
           )}
 
           {/* TAB 5: STAFF ONBOARDING & INVITATIONS PORTAL */}
           {activeSubTab === 'role_requests' && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="bg-slate-950 border border-slate-850 rounded-xl p-5 space-y-4">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-900">
-                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5 font-sans">
-                    <UserPlus size={14} className="text-teal-400" /> Send Staff Onboarding Invitation
-                  </h4>
-                </div>
-
-                {inviteMessage.text && (
-                  <div className={`p-2.5 rounded text-xs flex gap-2 font-sans ${
-                    inviteMessage.type === 'success' ? 'bg-teal-500/5 border border-teal-500/20 text-teal-400' : 'bg-red-500/5 border border-red-500/20 text-red-400'
-                  }`}>
-                    <CheckCircle size={14} className="shrink-0 mt-0.5" />
-                    <span>{inviteMessage.text}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSendInvite} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Staff Email Address</label>
-                    <input
-                      type="email"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      placeholder="nurse@hospital.com"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Operational Role</label>
-                    <select
-                      value={inviteRole}
-                      onChange={(e) => setInviteRole(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                    >
-                      <option value="receptionist">Receptionist</option>
-                      <option value="nurse">Triage Nurse</option>
-                      <option value="clinician">Clinician (Doctor)</option>
-                      <option value="lab_tech">Lab Technician</option>
-                      <option value="pharmacist">Pharmacist</option>
-                      <option value="cashier">Billing Cashier</option>
-                      <option value="admin">Administrator</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Department</label>
-                    <select
-                      value={inviteDept}
-                      onChange={(e) => setInviteDept(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                    >
-                      <option value="triage">Triage</option>
-                      <option value="consultation">Consultation</option>
-                      <option value="laboratory">Laboratory</option>
-                      <option value="pharmacy">Pharmacy</option>
-                      <option value="billing">Billing</option>
-                      <option value="ward">Ward</option>
-                      <option value="admin">Administration</option>
-                    </select>
-                  </div>
-
-                  <div className="md:col-span-3 flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={invitesLoading}
-                      className="bg-teal-500 hover:bg-teal-600 hover:scale-[1.02] text-slate-950 font-bold text-xs py-2 px-5 rounded-lg shadow-md transition active:scale-[0.98] flex items-center gap-1.5"
-                    >
-                      <Send size={12} /> {invitesLoading ? 'Sending Invitation...' : 'Send Onboarding Invite'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              <div className="bg-slate-950 border border-slate-850 rounded-xl p-5 space-y-4">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-900">
-                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5 font-sans">
-                    <Mail size={14} className="text-teal-400" /> Active & Sent Onboarding Invites
-                  </h4>
-                  <span className="text-[10px] text-slate-500 font-semibold font-sans">
-                    Total Sent: {invitationsList.length}
-                  </span>
-                </div>
-
-                {invitesLoading && invitationsList.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500 text-xs font-sans">
-                    Loading invitations list...
-                  </div>
-                ) : invitationsList.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500 text-xs leading-relaxed font-sans">
-                    No staff invitations generated yet.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto border border-slate-900 rounded-lg">
-                    <table className="w-full text-left text-xs border-collapse font-sans">
-                      <thead>
-                        <tr className="bg-slate-900 text-slate-400 border-b border-slate-900 text-[10px] uppercase font-bold">
-                          <th className="py-2.5 px-3">Email Address</th>
-                          <th className="py-2.5 px-3">Role</th>
-                          <th className="py-2.5 px-3">Department</th>
-                          <th className="py-2.5 px-3">Sent By</th>
-                          <th className="py-2.5 px-3">Status</th>
-                          <th className="py-2.5 px-3 text-center">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-900 text-slate-300 font-medium">
-                        {invitationsList.map((invite) => (
-                          <tr key={invite.id || invite.$id} className="hover:bg-slate-900/40 transition">
-                            <td className="py-2.5 px-3 font-semibold text-slate-100 font-mono">{invite.email}</td>
-                            <td className="py-2.5 px-3 uppercase text-[10px] font-mono text-teal-400">{invite.role}</td>
-                            <td className="py-2.5 px-3 capitalize text-[10px] font-mono text-slate-400">{invite.department}</td>
-                            <td className="py-2.5 px-3 font-mono text-[10px] text-slate-500">{invite.invited_by || 'Admin'}</td>
-                            <td className="py-2.5 px-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
-                                invite.status === 'pending' ? 'bg-amber-400/10 text-amber-400 border border-amber-500/20' :
-                                invite.status === 'accepted' ? 'bg-green-400/10 text-green-400 border border-green-500/20' :
-                                'bg-red-400/10 text-red-400 border border-red-500/20'
-                              }`}>
-                                {invite.status}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3">
-                              {invite.status === 'pending' ? (
-                                <div className="flex items-center justify-center">
-                                  <button
-                                    onClick={() => handleRevokeInvite(invite.id || invite.$id, invite.email)}
-                                    className="bg-slate-850 hover:bg-slate-800 border border-slate-700 text-red-400 hover:text-red-300 font-bold text-[10px] py-1 px-2.5 rounded transition active:scale-[0.96] flex items-center gap-1"
-                                  >
-                                    <Trash2 size={10} /> Revoke
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="text-center text-[10px] text-slate-500 italic uppercase font-bold">
-                                  {invite.status}
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
+            <StaffOnboarding
+              inviteMessage={inviteMessage}
+              handleSendInvite={handleSendInvite}
+              inviteEmail={inviteEmail}
+              setInviteEmail={setInviteEmail}
+              inviteRole={inviteRole}
+              setInviteRole={setInviteRole}
+              inviteDept={inviteDept}
+              setInviteDept={setInviteDept}
+              invitesLoading={invitesLoading}
+              invitationsList={invitationsList}
+              handleRevokeInvite={handleRevokeInvite}
+            />
           )}
 
           {/* TAB 6: HOSPITAL PROFILE PARTICULARS */}
           {activeSubTab === 'facility_profile' && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="bg-slate-950 border border-slate-850 rounded-xl p-5 space-y-4">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-900">
-                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5 font-sans">
-                    <Building size={14} className="text-teal-400" /> Update Hospital Profile Particulars
-                  </h4>
-                </div>
-
-                {facilityMessage.text && (
-                  <div className={`p-2.5 rounded text-xs flex gap-2 font-sans ${
-                    facilityMessage.type === 'success' ? 'bg-teal-500/5 border border-teal-500/20 text-teal-400' : 'bg-red-500/5 border border-red-500/20 text-red-400'
-                  }`}>
-                    <CheckCircle size={14} className="shrink-0 mt-0.5" />
-                    <span>{facilityMessage.text}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSaveFacilityDetails} className="space-y-6">
-                  {/* Grid 1: Basic Particulars */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Hospital / Clinic Name</label>
-                      <input
-                        type="text"
-                        value={facilityDetails.name}
-                        onChange={(e) => setFacilityDetails(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="e.g. Eagle Tech Medical Referral Hospital"
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">MOH Identifier / Code</label>
-                      <input
-                        type="text"
-                        value={facilityDetails.code}
-                        disabled
-                        className="w-full bg-slate-900/40 border border-slate-855 rounded-lg py-2 px-3 text-xs text-slate-450 cursor-not-allowed font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Physical / Postal Address</label>
-                      <input
-                        type="text"
-                        value={facilityDetails.address}
-                        onChange={(e) => setFacilityDetails(prev => ({ ...prev, address: e.target.value }))}
-                        placeholder="e.g. Block C, Avenue Rd, Nairobi, Kenya"
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Official Contact Email</label>
-                      <input
-                        type="email"
-                        value={facilityDetails.contact_email}
-                        onChange={(e) => setFacilityDetails(prev => ({ ...prev, contact_email: e.target.value }))}
-                        placeholder="e.g. info@yourhospital.com"
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Official Contact Phone</label>
-                      <input
-                        type="text"
-                        value={facilityDetails.contact_phone}
-                        onChange={(e) => setFacilityDetails(prev => ({ ...prev, contact_phone: e.target.value }))}
-                        placeholder="e.g. +254 712 345678"
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Grid 2: Legal Details */}
-                  <div className="bg-slate-950/40 border border-slate-850 p-4 rounded-xl space-y-4">
-                    <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pb-1.5 border-b border-slate-900 flex items-center gap-1.5 font-sans">
-                      <Shield size={12} className="text-teal-400" /> Hospital Legal Particulars
-                    </h5>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Registration / License Number</label>
-                        <input
-                          type="text"
-                          value={facilityDetails.registration_number}
-                          onChange={(e) => setFacilityDetails(prev => ({ ...prev, registration_number: e.target.value }))}
-                          placeholder="e.g. MED/REG/2026/0890"
-                          className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tax Identification Number (TIN / PIN)</label>
-                        <input
-                          type="text"
-                          value={facilityDetails.tax_id}
-                          onChange={(e) => setFacilityDetails(prev => ({ ...prev, tax_id: e.target.value }))}
-                          placeholder="e.g. PIN-A009876543Z"
-                          className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Logo Config Block */}
-                  <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-3">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Update Hospital Logo / Icon</label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-                      {Object.keys(logoPresets).map((presetKey) => {
-                        const preset = logoPresets[presetKey];
-                        return (
-                          <button
-                            key={presetKey}
-                            type="button"
-                            onClick={() => {
-                              setLogoOption(presetKey);
-                              setFacilityDetails(prev => ({ ...prev, logo_url: `preset:${presetKey}` }));
-                            }}
-                            className={`p-2.5 rounded-lg border flex flex-col items-center justify-center gap-1.5 transition cursor-pointer ${
-                              logoOption === presetKey 
-                                ? 'border-teal-500 bg-teal-500/5 text-teal-400' 
-                                : 'border-slate-800 bg-slate-900 text-slate-450 hover:bg-slate-800 hover:text-slate-200'
-                            }`}
-                          >
-                            {preset.icon('w-5 h-5')}
-                            <span className="text-[8px] font-bold tracking-wide uppercase truncate max-w-full">{presetKey}</span>
-                          </button>
-                        );
-                      })}
-                      <button
-                        type="button"
-                        onClick={() => setLogoOption('custom')}
-                        className={`p-2.5 rounded-lg border flex flex-col items-center justify-center gap-1.5 transition cursor-pointer ${
-                          logoOption === 'custom' 
-                            ? 'border-teal-500 bg-teal-500/5 text-teal-400' 
-                            : 'border-slate-800 bg-slate-900 text-slate-450 hover:bg-slate-800'
-                        }`}
-                      >
-                        <Upload size={16} />
-                        <span className="text-[8px] font-bold tracking-wide uppercase">Custom Logo</span>
-                      </button>
-                    </div>
-
-                    {logoOption === 'custom' && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-center w-full">
-                          <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-800 border-dashed rounded-lg cursor-pointer bg-slate-900/40 hover:bg-slate-900/70 hover:border-teal-500/50 transition">
-                            <div className="flex flex-col items-center justify-center pt-4 pb-3">
-                              <Upload size={24} className="mb-2 text-slate-400" />
-                              <p className="text-[10px] text-slate-400 font-bold uppercase"><span className="text-teal-400">Click to upload</span> logo image</p>
-                              <p className="text-[8px] text-slate-500 mt-0.5">PNG, JPG or SVG (Auto-compressed)</p>
-                            </div>
-                            <input 
-                              type="file" 
-                              className="hidden" 
-                              accept="image/*" 
-                              onChange={handleLogoUpload} 
-                            />
-                          </label>
-                        </div>
-                        {customLogoUrl && (
-                          <div className="flex items-center gap-3 bg-slate-900/50 border border-slate-800 p-2 rounded-lg">
-                            <img src={customLogoUrl} alt="Uploaded Logo Preview" className="w-8 h-8 rounded object-cover border border-slate-700" />
-                            <div className="truncate flex-1">
-                              <span className="text-[10px] text-slate-450 block font-bold">Logo Uploaded Successfully</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setCustomLogoUrl('');
-                                setFacilityDetails(prev => ({ ...prev, logo_url: '' }));
-                              }}
-                              className="text-[9px] text-red-400 hover:text-red-300 font-bold px-2 py-1 rounded hover:bg-red-500/10 transition"
-                            >
-                              Clear
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex justify-end pt-4 border-t border-slate-900">
-                    <button
-                      type="submit"
-                      disabled={savingFacility}
-                      className="bg-teal-500 hover:bg-teal-600 disabled:bg-teal-500/20 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg shadow-md transition active:scale-[0.98] flex items-center gap-1.5"
-                    >
-                      <RefreshCw size={12} className={savingFacility ? 'animate-spin' : ''} />
-                      {savingFacility ? 'Saving particulars...' : 'Update Hospital Particulars'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
+            <HospitalProfile
+              facilityMessage={facilityMessage}
+              handleSaveFacilityDetails={handleSaveFacilityDetails}
+              facilityDetails={facilityDetails}
+              setFacilityDetails={setFacilityDetails}
+              logoOption={logoOption}
+              setLogoOption={setLogoOption}
+              handleLogoUpload={handleLogoUpload}
+              customLogoUrl={customLogoUrl}
+              setCustomLogoUrl={setCustomLogoUrl}
+              savingFacility={savingFacility}
+            />
           )}
-
         </div>
       </div>
 

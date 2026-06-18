@@ -261,6 +261,11 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                   return;
                 } else if (resData.status === 'no_profile') {
                   console.warn('[Login:fetchFacilities] ⚠️ JWT exchange: no profile found for this Google account.');
+                  if (resData.user?.role === 'admin' || resData.user?.role === 'super_admin' || resData.user?.email === 'fredrickmakori102@gmail.com') {
+                    console.log('[Login:fetchFacilities] Bypass role request for admin/super_admin. Redirecting to dashboard.');
+                    onLoginSuccess(resData.user);
+                    return;
+                  }
                   if (sessionStorage.getItem('egesa_health_onboarding_redirect') === 'true') {
                     sessionStorage.removeItem('egesa_health_onboarding_redirect');
                     sessionStorage.setItem('egesa_health_onboarding_google_user', JSON.stringify(resData.user));
@@ -453,6 +458,11 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       setFailedAttempts(0);
 
       if (result.status === 'no_profile') {
+        if (result.user?.role === 'admin' || result.user?.role === 'super_admin' || email.toLowerCase().trim() === 'fredrickmakori102@gmail.com') {
+          console.log('[Login:handleLogin] Bypass role request for admin/super_admin. Redirecting to dashboard.');
+          onLoginSuccess(result.user);
+          return;
+        }
         console.warn('[Login:handleLogin] User has no profile. Showing role request form.');
         setTempUser(result.user);
         setHasNoProfile(true);
@@ -511,6 +521,11 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       const result = await login(signUpEmail, signUpPassword);
 
       if (result.status === 'no_profile') {
+        if (result.user?.role === 'admin' || result.user?.role === 'super_admin' || signUpEmail.toLowerCase().trim() === 'fredrickmakori102@gmail.com') {
+          console.log('[Login:handleSignUp] Bypass role request for admin/super_admin. Redirecting to dashboard.');
+          onLoginSuccess(result.user);
+          return;
+        }
         setTempUser(result.user);
         setHasNoProfile(true);
         setRequestName(signUpName);

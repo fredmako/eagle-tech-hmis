@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Activity } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Hero } from './landing/sections/Hero';
 import { StatsStrip } from './landing/sections/StatsStrip';
 import { ModulesGrid } from './landing/sections/ModulesGrid';
@@ -22,7 +22,7 @@ export default function LandingPage({ onNavigateToLogin, onNavigateToSignup, the
       <header className={['sticky top-0 z-50 transition-all duration-medium', scrolled ? 'bg-background/90 backdrop-blur-md border-b border-border' : 'bg-transparent border-b border-transparent'].join(' ')}>
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg brand-gradient flex items-center justify-center"><Activity size={14} className="text-primary-foreground" /></div>
+            <img src="/logo.png" alt="Eagle Tech Logo" className="w-8 h-8 rounded-lg object-contain" />
             <span className="font-serif text-lg text-fg-strong">Eagle Tech <span className="text-primary">HMIS</span></span>
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-fg-muted">

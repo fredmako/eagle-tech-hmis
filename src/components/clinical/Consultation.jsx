@@ -12,6 +12,14 @@ import { diseaseMaster, medicineMaster, labTestMaster, radiologyTestMaster, surg
 import { parsePatientContact } from "../../notificationService";
 import { Heart, MapPin } from "lucide-react";
 
+const getPatientAge = (dobString) => {
+  if (!dobString) return 0;
+  const dob = new Date(dobString);
+  const diffMs = Date.now() - dob.getTime();
+  const ageDate = new Date(diffMs);
+  return Math.abs(ageDate.getUTCFullYear() - 1970);
+};
+
 export default function Consultation({ user, onComplete }) {
   const [queue, setQueue] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
@@ -154,14 +162,6 @@ export default function Consultation({ user, onComplete }) {
     } catch (err) {
       console.error("Error loading patient clinical history:", err);
     }
-  };
-
-  const getPatientAge = (dobString) => {
-    if (!dobString) return 0;
-    const dob = new Date(dobString);
-    const diffMs = Date.now() - dob.getTime();
-    const ageDate = new Date(diffMs);
-    return Math.abs(ageDate.getUTCFullYear() - 1970);
   };
 
   const getMedicineDetails = (fullName) => {

@@ -261,8 +261,8 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                   return;
                 } else if (resData.status === 'no_profile') {
                   console.warn('[Login:fetchFacilities] ⚠️ JWT exchange: no profile found for this Google account.');
-                  if (resData.user?.role === 'admin' || resData.user?.role === 'super_admin' || resData.user?.email === 'fredrickmakori102@gmail.com') {
-                    console.log('[Login:fetchFacilities] Bypass role request for admin/super_admin. Redirecting to dashboard.');
+                  if ((resData.user?.role && resData.user?.role !== 'staff') || resData.user?.email === 'fredrickmakori102@gmail.com') {
+                    console.log('[Login:fetchFacilities] Bypass role request (user has assigned role). Redirecting to dashboard.');
                     onLoginSuccess(resData.user);
                     return;
                   }
@@ -458,8 +458,8 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       setFailedAttempts(0);
 
       if (result.status === 'no_profile') {
-        if (result.user?.role === 'admin' || result.user?.role === 'super_admin' || email.toLowerCase().trim() === 'fredrickmakori102@gmail.com') {
-          console.log('[Login:handleLogin] Bypass role request for admin/super_admin. Redirecting to dashboard.');
+        if ((result.user?.role && result.user?.role !== 'staff') || email.toLowerCase().trim() === 'fredrickmakori102@gmail.com') {
+          console.log('[Login:handleLogin] Bypass role request (user has assigned role). Redirecting to dashboard.');
           onLoginSuccess(result.user);
           return;
         }
@@ -521,8 +521,8 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       const result = await login(signUpEmail, signUpPassword);
 
       if (result.status === 'no_profile') {
-        if (result.user?.role === 'admin' || result.user?.role === 'super_admin' || signUpEmail.toLowerCase().trim() === 'fredrickmakori102@gmail.com') {
-          console.log('[Login:handleSignUp] Bypass role request for admin/super_admin. Redirecting to dashboard.');
+        if ((result.user?.role && result.user?.role !== 'staff') || signUpEmail.toLowerCase().trim() === 'fredrickmakori102@gmail.com') {
+          console.log('[Login:handleSignUp] Bypass role request (user has assigned role). Redirecting to dashboard.');
           onLoginSuccess(result.user);
           return;
         }

@@ -25,29 +25,27 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
 
   const renderLogo = (logoUrl) => {
     if (!logoUrl) {
-      return (
-        <div className="bg-teal-500/10 text-teal-400 p-1.5 rounded">🏥</div>
-      );
+      return <img src="/logo.png" alt="Eagle Tech Logo" className="w-8 h-8 rounded-lg object-contain" />;
     }
     
     if (logoUrl.startsWith('preset:')) {
       const presetKey = logoUrl.split(':')[1];
       if (presetKey === 'shield') {
         return (
-          <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 p-1.5 rounded">
+          <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 p-1.5 rounded-lg">
             <ShieldCheck size={18} fill="currentColor" />
           </div>
         );
       }
       if (presetKey === 'cross') {
         return (
-          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-1.5 rounded">
+          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-1.5 rounded-lg">
             <Activity size={18} />
           </div>
         );
       }
       return (
-        <div className="bg-teal-500/10 border border-teal-500/20 text-teal-400 p-1.5 rounded">
+        <div className="bg-teal-500/10 border border-teal-500/20 text-teal-400 p-1.5 rounded-lg">
           <Heart size={18} fill="currentColor" />
         </div>
       );
@@ -57,7 +55,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       <img 
         src={logoUrl} 
         alt="Facility Logo" 
-        className="w-8 h-8 rounded object-cover border border-slate-700"
+        className="w-8 h-8 rounded-lg object-cover border border-slate-700"
         onError={(e) => {
           e.target.src = 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=128&auto=format&fit=crop&q=60';
         }}
@@ -1109,8 +1107,10 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
             {loginStage === 'accept_invite' && (
               <form onSubmit={handleAcceptInviteSubmit} className="space-y-4 mt-4 font-sans">
                 {/* Resolved Tenant Branding Header */}
-                <div className="bg-teal-500/5 border border-teal-500/20 p-3 rounded-xl flex items-center gap-3 mb-2">
-                  <div className="shrink-0 text-xl">🏥</div>
+                <div className="bg-slate-955 border border-slate-900 p-3 rounded-xl flex items-center gap-3 mb-2">
+                  <div className="shrink-0">
+                    {renderLogo(resolvedTenant?.logo_url)}
+                  </div>
                   <div className="truncate">
                     <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider block">Staff invitation resolved</span>
                     <span className="text-xs font-bold text-white block truncate">{resolvedTenant?.name}</span>

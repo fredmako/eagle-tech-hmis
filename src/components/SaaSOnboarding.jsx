@@ -483,10 +483,9 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
   return (
     <div className="min-h-screen bg-slate-955 flex flex-col justify-center items-center p-4">
-      {/* Header Branding */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 p-2.5 rounded-xl shadow-lg shadow-teal-500/10">
-          <Building2 size={24} className="animate-pulse" />
+        <div className="bg-slate-955 border border-slate-900 p-1.5 rounded-xl shadow-lg shadow-teal-500/5">
+          <img src="/logo.png" alt="Eagle Tech Logo" className="w-8 h-8 object-contain" />
         </div>
         <div>
           <h1 className="text-xl font-black text-white tracking-wider uppercase">Eagle Tech</h1>

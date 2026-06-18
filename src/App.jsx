@@ -152,8 +152,8 @@ export default function App() {
     return (
       <div className={`theme-${theme} font-${font} min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 font-['DM_Sans',system-ui,sans-serif]`}>
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex items-center gap-3 mb-6">
-          <div className="bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 p-2.5 rounded-xl shadow-lg shadow-teal-500/10">
-            <Activity size={28} className="animate-pulse" />
+          <div className="bg-slate-955 border border-slate-900 p-2.5 rounded-xl shadow-lg shadow-teal-500/5">
+            <img src="/logo.png" alt="Eagle Tech Logo" className="w-10 h-10 object-contain animate-pulse" />
           </div>
           <div>
             <h1 className="font-['Instrument_Serif',serif] text-2xl text-slate-100 leading-none">Eagle Tech <span className="text-teal-400">HMIS</span></h1>

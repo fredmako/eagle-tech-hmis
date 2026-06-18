@@ -5,7 +5,6 @@ import {
   Building2, 
   CheckCircle2, 
   XCircle, 
-  ShieldCheck, 
   Activity, 
   RefreshCw, 
   LogOut, 
@@ -142,8 +141,8 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
       {/* Super Admin Top Control Bar */}
       <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="bg-gradient-to-tr from-teal-500 to-emerald-400 text-slate-950 p-2.5 rounded-xl shadow-lg shadow-teal-500/10">
-            <ShieldCheck size={26} className="animate-pulse" />
+          <div className="bg-slate-955 border border-slate-900 p-1.5 rounded-xl shadow-lg shadow-teal-500/5">
+            <img src="/logo.png" alt="Eagle Tech Logo" className="w-9 h-9 object-contain" />
           </div>
           <div>
             <h1 className="text-md font-black tracking-wider text-white uppercase leading-none">Eagle Tech Systems Control</h1>

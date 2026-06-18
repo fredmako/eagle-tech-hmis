@@ -113,7 +113,19 @@ router.post("/stkpush", async (req, res) => {
       response.data.CheckoutRequestID ||
       reference;
 
-    if (!isRealSupabase) {
+    if (isRealSupabase) {
+      const { error } = await supabaseClient
+        .from("invoices")
+        .update({
+          checkout_id: mpesaTxnId,
+          status: "pending_stk",
+        })
+        .eq("id", reference);
+
+      if (error) {
+        console.error("Failed to update invoice checkout_id in Supabase:", error.message);
+      }
+    } else {
       const data = loadSandboxDB();
       data.invoices.push({
         id: reference,
@@ -210,27 +222,42 @@ router.post("/callback", async (req, res) => {
 
       // Update database status of the corresponding invoice
       if (isRealSupabase) {
-        // 1. Update invoice to paid
-        const { error } = await supabaseClient
+        // Find matching invoice by either id or checkout_id
+        const { data: invoices, error: fetchError } = await supabaseClient
           .from("invoices")
-          .update({
-            status: "paid",
-            amount_paid: amountPaid,
-            payment_method: "tuma",
-            receipt_number: receiptNumber,
-          })
-          .eq("id", invoiceId);
+          .select("id")
+          .or(`id.eq.${invoiceId},checkout_id.eq.${checkoutId}`);
 
-        if (error)
-          console.error("Supabase invoice update failed:", error.message);
+        if (fetchError) {
+          console.error("Supabase invoice fetch failed:", fetchError.message);
+        } else if (invoices && invoices.length > 0) {
+          const targetInvoiceId = invoices[0].id;
 
-        // 2. Log transaction
-        await supabaseClient.from("audit_logs").insert({
-          id: "log_" + Math.random().toString(36).substring(2, 12),
-          action: "TUMA_PAYMENT_RECEIVED",
-          details: `Tuma Pay payment confirmed. Receipt: ${receiptNumber}, Amount: ${amountPaid}, Invoice ID: ${invoiceId}.`,
-          created_at: new Date().toISOString(),
-        });
+          // 1. Update invoice to paid
+          const { error } = await supabaseClient
+            .from("invoices")
+            .update({
+              status: "paid",
+              amount_paid: amountPaid,
+              payment_method: "tuma",
+              receipt_number: receiptNumber,
+            })
+            .eq("id", targetInvoiceId);
+
+          if (error) {
+            console.error("Supabase invoice update failed:", error.message);
+          }
+
+          // 2. Log transaction
+          await supabaseClient.from("audit_logs").insert({
+            id: "log_" + Math.random().toString(36).substring(2, 12),
+            action: "TUMA_PAYMENT_RECEIVED",
+            details: `Tuma Pay payment confirmed. Receipt: ${receiptNumber}, Amount: ${amountPaid}, Invoice ID: ${targetInvoiceId}.`,
+            created_at: new Date().toISOString(),
+          });
+        } else {
+          console.warn(`No invoice found matching id=${invoiceId} or checkout_id=${checkoutId}`);
+        }
       } else {
         // Local sandbox db updates
         const data = loadSandboxDB();

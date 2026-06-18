@@ -106,6 +106,8 @@ CREATE TABLE IF NOT EXISTS public.invoices (
     amount_paid numeric DEFAULT 0.0,
     status text NOT NULL,
     payment_method text,
+    checkout_id text,
+    receipt_number text,
     created_at timestamp with time zone DEFAULT now()
 );
 

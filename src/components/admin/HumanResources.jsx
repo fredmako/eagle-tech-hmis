@@ -7,10 +7,20 @@ import {
   UserCheck, 
   CheckCircle, 
   AlertCircle,
-  Briefcase
+  Briefcase,
+  XCircle
 } from 'lucide-react';
 
-export default function HumanResources({ user, profiles, fetchAdminData }) {
+export default function HumanResources({ 
+  user, 
+  profiles, 
+  fetchAdminData,
+  roleRequests = [],
+  requestsLoading = false,
+  requestsMessage = '',
+  handleApproveRequest,
+  handleRejectRequest
+}) {
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffEmail, setNewStaffEmail] = useState('');
   const [newStaffRole, setNewStaffRole] = useState('nurse');
@@ -133,6 +143,67 @@ export default function HumanResources({ user, profiles, fetchAdminData }) {
         }`}>
           {message.type === 'success' ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
           <span>{message.text}</span>
+        </div>
+      )}
+
+      {/* PENDING ROLE AUTHORIZATION REQUESTS */}
+      {roleRequests && roleRequests.filter(r => r.status === 'pending').length > 0 && (
+        <div className="bg-slate-955 border border-slate-850 rounded-xl p-5 space-y-4 shadow-md animate-fadeIn">
+          <div className="flex justify-between items-center pb-2 border-b border-slate-900">
+            <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+              <UserCheck size={14} className="text-teal-400" /> Pending Role Authorization Requests
+            </h4>
+            <span className="text-[10px] text-slate-500 font-semibold font-sans">
+              Pending: {roleRequests.filter(r => r.status === 'pending').length}
+            </span>
+          </div>
+
+          {requestsMessage && (
+            <div className="bg-teal-500/5 border border-teal-500/20 text-teal-400 p-2.5 rounded text-xs flex gap-2 font-sans">
+              <CheckCircle size={14} className="shrink-0 mt-0.5" />
+              <span>{requestsMessage}</span>
+            </div>
+          )}
+
+          <div className="overflow-x-auto border border-slate-900 rounded-lg">
+            <table className="w-full text-left text-xs border-collapse font-sans">
+              <thead>
+                <tr className="bg-slate-900 text-slate-400 border-b border-slate-900 text-[10px] uppercase font-bold">
+                  <th className="py-2.5 px-3">Staff Member</th>
+                  <th className="py-2.5 px-3">Email Address</th>
+                  <th className="py-2.5 px-3">Requested Role</th>
+                  <th className="py-2.5 px-3 text-center">Action Controls</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-900 text-slate-300 font-medium">
+                {roleRequests.filter(r => r.status === 'pending').map((req) => (
+                  <tr key={req.id} className="hover:bg-slate-900/40 transition">
+                    <td className="py-2.5 px-3 font-semibold text-slate-100">{req.full_name}</td>
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-400">{req.email}</td>
+                    <td className="py-2.5 px-3 uppercase text-[10px] font-mono text-teal-400">{req.requested_role}</td>
+                    <td className="py-2.5 px-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleApproveRequest(req)}
+                          disabled={requestsLoading}
+                          className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1 px-3 rounded transition active:scale-[0.96] flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        >
+                          <UserCheck size={10} /> Approve
+                        </button>
+                        <button
+                          onClick={() => handleRejectRequest(req)}
+                          disabled={requestsLoading}
+                          className="bg-slate-850 hover:bg-slate-800 border border-slate-700 text-red-400 hover:text-red-300 font-bold text-[10px] py-1 px-3 rounded transition active:scale-[0.96] flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        >
+                          <XCircle size={10} /> Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

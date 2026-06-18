@@ -1033,6 +1033,11 @@ export default function Admin({ user }) {
               user={user}
               profiles={usersList}
               fetchAdminData={fetchAdminData}
+              roleRequests={roleRequests}
+              requestsLoading={requestsLoading}
+              requestsMessage={requestsMessage}
+              handleApproveRequest={handleApproveRequest}
+              handleRejectRequest={handleRejectRequest}
             />
           )}
 

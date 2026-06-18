@@ -31,6 +31,10 @@ export default function RoleRequestPending({
             <span className="font-semibold text-slate-200">{pendingRequest.full_name}</span>
           </div>
           <div className="flex justify-between border-b border-slate-900 pb-2">
+            <span className="text-slate-500 font-medium">Email Address:</span>
+            <span className="font-semibold text-slate-200 font-mono text-[11px]">{pendingRequest.email}</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-900 pb-2">
             <span className="text-slate-500 font-medium">Hospital/Tenant:</span>
             <span className="font-semibold text-slate-200">
               {facilities.find(f => f.id === pendingRequest.facility_id)?.name || 'Default Facility'}

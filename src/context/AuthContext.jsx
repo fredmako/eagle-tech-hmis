@@ -99,8 +99,8 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (!userData) {
-        if (supabase.isSandbox || session.user.email === 'fredrickmakori102@gmail.com') {
-          const isSuperAdmin = session.user.email === 'fredrickmakori102@gmail.com';
+        const isSuperAdmin = session.user.email && session.user.email.toLowerCase().trim() === 'fredrickmakori102@gmail.com';
+        if (supabase.isSandbox || isSuperAdmin) {
           userData = {
             id: session.user.id,
             email: session.user.email,
@@ -142,7 +142,7 @@ export const AuthProvider = ({ children }) => {
       if (authErr) throw authErr;
       if (!authUser) throw new Error('Login failed: no user returned');
 
-      const isSuperAdmin = authUser.email === 'fredrickmakori102@gmail.com';
+      const isSuperAdmin = authUser.email && authUser.email.toLowerCase().trim() === 'fredrickmakori102@gmail.com';
       let userData = {
         id: authUser.id,
         email: authUser.email,

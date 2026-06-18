@@ -139,6 +139,7 @@ CREATE TABLE IF NOT EXISTS public.invitations (
     role text NOT NULL,
     department text NOT NULL,
     facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
+    invited_by text,
     status text NOT NULL,
     expires_at timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now()

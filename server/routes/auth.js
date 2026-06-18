@@ -130,34 +130,45 @@ router.post("/login", async (req, res) => {
       verifiedName = user.name;
     }
 
+    const verifiedEmailClean = verifiedEmail ? verifiedEmail.toLowerCase().trim() : "";
+
     // Check if profile exists
     let profiles = await db.getDocuments("profiles", [
-      { type: "equal", column: "email", value: verifiedEmail },
+      { type: "equal", column: "email", value: verifiedEmailClean },
     ]);
 
     let activeProfile = profiles && profiles[0];
 
-    if (!activeProfile) {
-      if (verifiedEmail === "fredrickmakori102@gmail.com") {
+    if (verifiedEmailClean === "fredrickmakori102@gmail.com") {
+      if (!activeProfile) {
         activeProfile = await db.createDocument("profiles", verifiedUserId, {
           full_name: "Fredrick Makori (Super Admin)",
           role: "super_admin",
           facility_id: null,
-          email: verifiedEmail
+          email: verifiedEmailClean
         });
-      } else {
-        // Query if there is a pending/rejected role request
-        const requests = await db.getDocuments("role_requests", [
-          { type: "equal", column: "email", value: verifiedEmail },
-        ]);
-        const activeRequest = requests && requests[0];
-
-        return res.json({
-          status: "no_profile",
-          user: { id: verifiedUserId, email: verifiedEmail, name: verifiedName },
-          pendingRequest: activeRequest || null,
+      } else if (activeProfile.role !== "super_admin" || activeProfile.facility_id !== null || activeProfile.email !== verifiedEmailClean) {
+        await db.updateDocument("profiles", activeProfile.id, {
+          role: "super_admin",
+          facility_id: null,
+          email: verifiedEmailClean
         });
+        activeProfile.role = "super_admin";
+        activeProfile.facility_id = null;
+        activeProfile.email = verifiedEmailClean;
       }
+    } else if (!activeProfile) {
+      // Query if there is a pending/rejected role request
+      const requests = await db.getDocuments("role_requests", [
+        { type: "equal", column: "email", value: verifiedEmailClean },
+      ]);
+      const activeRequest = requests && requests[0];
+
+      return res.json({
+        status: "no_profile",
+        user: { id: verifiedUserId, email: verifiedEmailClean, name: verifiedName },
+        pendingRequest: activeRequest || null,
+      });
     }
 
     // Fetch facilities to attach logo & details
@@ -218,34 +229,45 @@ router.post("/supabase-login", async (req, res) => {
       return res.status(401).json({ error: "Invalid Supabase session." });
     }
 
+    const userEmailClean = user.email ? user.email.toLowerCase().trim() : "";
+
     // Check if profile exists
     let profiles = await db.getDocuments("profiles", [
-      { type: "equal", column: "email", value: user.email },
+      { type: "equal", column: "email", value: userEmailClean },
     ]);
 
     let activeProfile = profiles && profiles[0];
 
-    if (!activeProfile) {
-      if (user.email === "fredrickmakori102@gmail.com") {
+    if (userEmailClean === "fredrickmakori102@gmail.com") {
+      if (!activeProfile) {
         activeProfile = await db.createDocument("profiles", user.id, {
           full_name: "Fredrick Makori (Super Admin)",
           role: "super_admin",
           facility_id: null,
-          email: user.email
+          email: userEmailClean
         });
-      } else {
-        // Query if there is a pending/rejected role request
-        const requests = await db.getDocuments("role_requests", [
-          { type: "equal", column: "email", value: user.email },
-        ]);
-        const activeRequest = requests && requests[0];
-
-        return res.json({
-          status: "no_profile",
-          user: { id: user.id, email: user.email, name: user.user_metadata?.full_name || user.email },
-          pendingRequest: activeRequest || null,
+      } else if (activeProfile.role !== "super_admin" || activeProfile.facility_id !== null || activeProfile.email !== userEmailClean) {
+        await db.updateDocument("profiles", activeProfile.id, {
+          role: "super_admin",
+          facility_id: null,
+          email: userEmailClean
         });
+        activeProfile.role = "super_admin";
+        activeProfile.facility_id = null;
+        activeProfile.email = userEmailClean;
       }
+    } else if (!activeProfile) {
+      // Query if there is a pending/rejected role request
+      const requests = await db.getDocuments("role_requests", [
+        { type: "equal", column: "email", value: userEmailClean },
+      ]);
+      const activeRequest = requests && requests[0];
+
+      return res.json({
+        status: "no_profile",
+        user: { id: user.id, email: userEmailClean, name: user.user_metadata?.full_name || user.email },
+        pendingRequest: activeRequest || null,
+      });
     }
 
     // Fetch facilities to attach logo & details
@@ -880,23 +902,15 @@ router.post("/role-request", async (req, res) => {
       const facility = facs && facs[0];
       const facilityName = facility?.name || "Eagle Tech Medical Clinic";
 
-      const admins = await db.getDocuments("profiles", [
-        { type: "equal", column: "facility_id", value: facility_id },
-        { type: "equal", column: "role", value: "admin" },
-      ]);
-
-      const adminEmails = (admins || []).map((admin) => admin.email).filter(Boolean);
-      if (adminEmails.length === 0) {
-        adminEmails.push("fredrickmakori102@gmail.com");
-      }
+      const adminEmails = ["fredrickmakori102@gmail.com"];
 
       const origin = req.headers.origin || "https://www.eagletechsolutions.tech";
       const loginUrl = `${origin}/login`;
       const htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #0f172a; color: #f1f5f9;">
           <h2 style="color: #2dd4bf; border-bottom: 2px solid #1e293b; padding-bottom: 10px;">Role Access Request</h2>
-          <p>Hello Admin,</p>
-          <p>A new role access request has been submitted for your facility, <strong>${facilityName}</strong>.</p>
+          <p>Hello Systems Control Supervisor,</p>
+          <p>A new role access request has been submitted for facility <strong>${facilityName}</strong>.</p>
           
           <div style="background-color: #1e293b; padding: 15px; border-left: 4px solid #2dd4bf; border-radius: 4px; margin: 15px 0;">
             <p style="margin: 0; font-size: 14px;"><strong>Applicant Name:</strong> ${full_name}</p>
@@ -904,10 +918,10 @@ router.post("/role-request", async (req, res) => {
             <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Requested Role:</strong> <span style="font-family: monospace; color: #2dd4bf; font-weight: bold;">${requested_role.toUpperCase()}</span></p>
           </div>
           
-          <p>Please log into your dashboard to review and approve/reject this request under the Admin tab.</p>
+          <p>Please log into your dashboard to review and approve/reject this request under the Systems Control Dashboard.</p>
           <div style="text-align: center; margin: 25px 0;">
             <a href="${loginUrl}" style="background-color: #2dd4bf; color: #0f172a; padding: 12px 24px; border-radius: 8px; font-weight: bold; text-decoration: none; display: inline-block;">
-              Log In to Admin Dashboard
+              Log In to Systems Control Dashboard
             </a>
           </div>
           <p style="font-size: 12px; color: #94a3b8; margin-top: 25px; border-top: 1px solid #1e293b; padding-top: 10px;">
@@ -971,28 +985,32 @@ router.post("/role-request", async (req, res) => {
   }
 });
 
-// Admin: Get all Role Requests
+// Get all Role Requests (Super Admin: all; Facility Admin: filtered by facility)
 router.get("/role-requests", authenticateToken, async (req, res) => {
-  if (req.user.role !== "admin") {
-    return res
-      .status(403)
-      .json({ error: "Administrative privileges required" });
+  if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+    return res.json({ success: true, requests: [] });
   }
   try {
-    // Filter requests for the admin's facility
-    const requests = await db.getDocuments("role_requests", [
-      { type: "equal", column: "facility_id", value: req.user.facility_id },
-    ]);
-    res.json({ success: true, requests });
+    if (req.user.role === "super_admin") {
+      // Fetch all requests across all facilities for super admin
+      const requests = await db.getDocuments("role_requests", []);
+      res.json({ success: true, requests });
+    } else {
+      // Filter requests for the admin's facility
+      const requests = await db.getDocuments("role_requests", [
+        { type: "equal", column: "facility_id", value: req.user.facility_id },
+      ]);
+      res.json({ success: true, requests });
+    }
   } catch (err) {
     console.error("Fetch requests error:", err);
     res.status(500).json({ error: err.message || "Error loading requests" });
   }
 });
 
-// Admin: Approve Request
+// Approve Request (Super Admin or Facility Admin)
 router.post("/approve-request", authenticateToken, async (req, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "super_admin") {
     return res
       .status(403)
       .json({ error: "Administrative privileges required" });
@@ -1010,6 +1028,11 @@ router.post("/approve-request", authenticateToken, async (req, res) => {
     const request = requests && requests[0];
     if (!request) {
       return res.status(404).json({ error: "Role request not found" });
+    }
+
+    // Security check: Facility Admin can only approve requests for their own facility
+    if (req.user.role === "admin" && request.facility_id !== req.user.facility_id) {
+      return res.status(403).json({ error: "Access denied. Request belongs to another facility." });
     }
 
     // 1. Create Profile
@@ -1033,10 +1056,10 @@ router.post("/approve-request", authenticateToken, async (req, res) => {
       "audit_logs",
       "log_" + Math.random().toString(36).substring(2, 12),
       {
-        facility_id: req.user.facility_id,
+        facility_id: request.facility_id || null,
         user_id: req.user.id,
         action: "ROLE_REQUEST_APPROVED",
-        details: `Admin ${req.user.full_name} approved role ${request.requested_role.toUpperCase()} for ${request.full_name}.`,
+        details: `${req.user.role === "super_admin" ? "Super Admin" : "Admin"} ${req.user.full_name} approved role ${request.requested_role.toUpperCase()} for ${request.full_name}.`,
       }
     );
 
@@ -1047,9 +1070,9 @@ router.post("/approve-request", authenticateToken, async (req, res) => {
   }
 });
 
-// Admin: Reject Request
+// Reject Request (Super Admin or Facility Admin)
 router.post("/reject-request", authenticateToken, async (req, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "super_admin") {
     return res
       .status(403)
       .json({ error: "Administrative privileges required" });
@@ -1061,6 +1084,19 @@ router.post("/reject-request", authenticateToken, async (req, res) => {
   }
 
   try {
+    const requests = await db.getDocuments("role_requests", [
+      { type: "equal", column: "id", value: request_id },
+    ]);
+    const request = requests && requests[0];
+    if (!request) {
+      return res.status(404).json({ error: "Role request not found" });
+    }
+
+    // Security check: Facility Admin can only reject requests for their own facility
+    if (req.user.role === "admin" && request.facility_id !== req.user.facility_id) {
+      return res.status(403).json({ error: "Access denied. Request belongs to another facility." });
+    }
+
     // 1. Update Request
     await db.updateDocument("role_requests", request_id, {
       status: "rejected",
@@ -1071,10 +1107,10 @@ router.post("/reject-request", authenticateToken, async (req, res) => {
       "audit_logs",
       "log_" + Math.random().toString(36).substring(2, 12),
       {
-        facility_id: req.user.facility_id,
+        facility_id: request?.facility_id || null,
         user_id: req.user.id,
         action: "ROLE_REQUEST_REJECTED",
-        details: `Admin ${req.user.full_name} rejected role request ID ${request_id}.`,
+        details: `${req.user.role === "super_admin" ? "Super Admin" : "Admin"} ${req.user.full_name} rejected role request ID ${request_id} for ${request?.full_name || 'unknown'}.`,
       }
     );
 

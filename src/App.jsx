@@ -185,15 +185,15 @@ export default function App() {
     );
   }
 
-  if (user.role === 'super_admin') {
+  if (user.role === 'super_admin' || (user.email && user.email.toLowerCase().trim() === 'fredrickmakori102@gmail.com')) {
     return (
-      <div className={`theme-${theme} font-${font} min-h-screen bg-slate-950 text-slate-100`}>
+      <div className={`theme-${theme} font-${font} min-h-screen bg-slate-955 text-slate-100`}>
         <SuperAdminDashboard user={user} onSignOut={handleSignOut} />
       </div>
     );
   }
 
-  if (user.facility_is_verified === false) {
+  if (user.facility_is_verified === false && (!user.email || user.email.toLowerCase().trim() !== 'fredrickmakori102@gmail.com')) {
     return (
       <div className={`theme-${theme} font-${font} min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 font-['DM_Sans',system-ui,sans-serif]`}>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-md bg-slate-900 border border-teal-500/15 rounded-2xl p-6 md:p-8 shadow-xl text-center space-y-6">

@@ -437,7 +437,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!selectedFacility) {
+    if (!selectedFacility && email.toLowerCase().trim() !== 'fredrickmakori102@gmail.com') {
       setError('Please select a facility/tenant first.');
       return;
     }

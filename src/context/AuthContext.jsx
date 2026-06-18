@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (!userData) {
-        if (supabase.isSandbox) {
+        if (supabase.isSandbox || session.user.email === 'fredrickmakori102@gmail.com') {
           const isSuperAdmin = session.user.email === 'fredrickmakori102@gmail.com';
           userData = {
             id: session.user.id,
@@ -168,13 +168,17 @@ export const AuthProvider = ({ children }) => {
               localStorage.setItem('egesa_health_token', resData.token);
               console.log('[AuthContext:login] Enriched profile fetched successfully:', userData.email);
             } else if (resData.status === 'no_profile') {
-              console.warn('[AuthContext:login] No profile found on backend, returning no_profile status');
-              setLoading(false);
-              return { 
-                status: 'no_profile', 
-                user: userData, 
-                pendingRequest: resData.pendingRequest || null 
-              };
+              if (isSuperAdmin) {
+                console.log('[AuthContext:login] Super admin profile bypass on no_profile status');
+              } else {
+                console.warn('[AuthContext:login] No profile found on backend, returning no_profile status');
+                setLoading(false);
+                return { 
+                  status: 'no_profile', 
+                  user: userData, 
+                  pendingRequest: resData.pendingRequest || null 
+                };
+              }
             } else {
               console.warn('[AuthContext:login] Backend supabase-login returned non-success status:', resData.status);
             }

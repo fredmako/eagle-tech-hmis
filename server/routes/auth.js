@@ -338,6 +338,21 @@ router.post("/resolve-tenant", async (req, res) => {
 
     const targetEmail = email.toLowerCase().trim();
 
+    // Special bypass for super admin
+    if (targetEmail === "fredrickmakori102@gmail.com") {
+      return res.json({
+        resolved: true,
+        type: "login",
+        tenant: {
+          id: null,
+          name: "Eagle Tech Systems Control",
+          logo_url: "preset:shield",
+          license_tier: "enterprise",
+          auth_method: "email_password",
+        },
+      });
+    }
+
     // 1. Check if there is an active profile with this email
     const profiles = await db.getDocuments("profiles", [
       { type: "equal", column: "email", value: targetEmail },
@@ -856,6 +871,96 @@ router.post("/role-request", async (req, res) => {
         details: `${full_name} (${email}) requested role ${requested_role.toUpperCase()} for facility ID ${facility_id}.`,
       }
     );
+
+    // Redirect request to facility admin via SMTP
+    try {
+      const facs = await db.getDocuments("facilities", [
+        { type: "equal", column: "id", value: facility_id },
+      ]);
+      const facility = facs && facs[0];
+      const facilityName = facility?.name || "Eagle Tech Medical Clinic";
+
+      const admins = await db.getDocuments("profiles", [
+        { type: "equal", column: "facility_id", value: facility_id },
+        { type: "equal", column: "role", value: "admin" },
+      ]);
+
+      const adminEmails = (admins || []).map((admin) => admin.email).filter(Boolean);
+      if (adminEmails.length === 0) {
+        adminEmails.push("fredrickmakori102@gmail.com");
+      }
+
+      const origin = req.headers.origin || "https://www.eagletechsolutions.tech";
+      const loginUrl = `${origin}/login`;
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #0f172a; color: #f1f5f9;">
+          <h2 style="color: #2dd4bf; border-bottom: 2px solid #1e293b; padding-bottom: 10px;">Role Access Request</h2>
+          <p>Hello Admin,</p>
+          <p>A new role access request has been submitted for your facility, <strong>${facilityName}</strong>.</p>
+          
+          <div style="background-color: #1e293b; padding: 15px; border-left: 4px solid #2dd4bf; border-radius: 4px; margin: 15px 0;">
+            <p style="margin: 0; font-size: 14px;"><strong>Applicant Name:</strong> ${full_name}</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Applicant Email:</strong> ${email}</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Requested Role:</strong> <span style="font-family: monospace; color: #2dd4bf; font-weight: bold;">${requested_role.toUpperCase()}</span></p>
+          </div>
+          
+          <p>Please log into your dashboard to review and approve/reject this request under the Admin tab.</p>
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${loginUrl}" style="background-color: #2dd4bf; color: #0f172a; padding: 12px 24px; border-radius: 8px; font-weight: bold; text-decoration: none; display: inline-block;">
+              Log In to Admin Dashboard
+            </a>
+          </div>
+          <p style="font-size: 12px; color: #94a3b8; margin-top: 25px; border-top: 1px solid #1e293b; padding-top: 10px;">
+            This security notice was auto-dispatched by Eagle Tech HMIS Notification Engine.
+          </p>
+        </div>
+      `;
+
+      const host = process.env.SMTP_HOST || "smtp.titan.email";
+      const port = parseInt(process.env.SMTP_PORT || "465");
+      const userMail = process.env.SMTP_USER || "admin@eagletechsolutions.tech";
+      const passMail = process.env.SMTP_PASS || "";
+
+      if (passMail) {
+        const transporter = nodemailer.createTransport({
+          host,
+          port,
+          secure: port === 465,
+          auth: {
+            user: userMail,
+            pass: passMail,
+          },
+          tls: {
+            rejectUnauthorized: false,
+          },
+        });
+
+        for (const recipient of adminEmails) {
+          await transporter.sendMail({
+            from: `"Eagle Tech HMIS" <${userMail}>`,
+            to: recipient,
+            subject: `[System Alert] New Role Request for ${facilityName}`,
+            html: htmlContent,
+          });
+        }
+      } else {
+        const sandboxData = loadSandboxDB();
+        if (!sandboxData.email_logs) sandboxData.email_logs = [];
+        for (const recipient of adminEmails) {
+          sandboxData.email_logs.push({
+            id: "mail_" + Math.random().toString(36).substring(2, 12),
+            recipient,
+            subject: `[System Alert] New Role Request for ${facilityName}`,
+            html: htmlContent,
+            status: "sent_simulated",
+            created_at: new Date().toISOString(),
+          });
+        }
+        saveSandboxDB(sandboxData);
+      }
+    } catch (emailErr) {
+      console.error("Failed sending role request notification emails:", emailErr);
+    }
 
     res.json({ success: true, request: newRequest });
   } catch (err) {

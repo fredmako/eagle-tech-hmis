@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext';
 import { 
   Building2, 
   CheckCircle2, 
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 
 export default function SuperAdminDashboard({ user, onSignOut }) {
+  const { setUser } = useAuth();
   const [facilities, setFacilities] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -107,6 +109,24 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
     }
   };
 
+  const handleAccessPortal = () => {
+    const targetFacility = facilities.find(f => f.id === 'f1') || facilities[0];
+    if (!targetFacility) {
+      alert("No facilities onboarded yet to access.");
+      return;
+    }
+    const updatedUser = {
+      ...user,
+      role: 'admin',
+      facility_id: targetFacility.id,
+      facility_name: targetFacility.name,
+      facility_logo: targetFacility.logo_url,
+      facility_is_verified: true
+    };
+    setUser(updatedUser);
+    sessionStorage.setItem('egesa_health_active_user', JSON.stringify(updatedUser));
+  };
+
   const handleRefresh = () => {
     setRefreshing(true);
     fetchSuperAdminData();
@@ -132,6 +152,14 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
         </div>
 
         <div className="flex items-center gap-3">
+          <button 
+            onClick={handleAccessPortal}
+            className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg flex items-center gap-1.5 transition active:scale-[0.98] cursor-pointer"
+          >
+            <Building2 size={12} />
+            <span>Access Egesa Clinic Portal</span>
+          </button>
+
           <button 
             onClick={handleRefresh}
             disabled={refreshing}

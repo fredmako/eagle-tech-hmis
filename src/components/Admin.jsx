@@ -602,6 +602,34 @@ export default function Admin({ user }) {
           </div>
         </div>
 
+        {user.email === 'fredrickmakori102@gmail.com' && (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+            <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 pb-2.5 border-b border-slate-800">
+              <ShieldCheck size={14} className="text-yellow-400" /> Super Admin Portal
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed font-sans">
+              You are currently logged in as a clinic administrator for this tenant. Click below to return to the Systems Control Console.
+            </p>
+            <button
+              onClick={() => {
+                const updatedUser = {
+                  ...user,
+                  role: 'super_admin',
+                  facility_id: null,
+                  facility_name: 'Eagle Tech Systems Control',
+                  facility_logo: null,
+                  facility_is_verified: true
+                };
+                setUser(updatedUser);
+                sessionStorage.setItem('egesa_health_active_user', JSON.stringify(updatedUser));
+              }}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold text-xs py-2 rounded-lg transition active:scale-[0.98] cursor-pointer font-sans"
+            >
+              Go to Super Admin Console
+            </button>
+          </div>
+        )}
+
         {/* User Configuration */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
           <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 pb-2.5 border-b border-slate-800">
@@ -837,6 +865,11 @@ export default function Admin({ user }) {
               invitesLoading={invitesLoading}
               invitationsList={invitationsList}
               handleRevokeInvite={handleRevokeInvite}
+              roleRequests={roleRequests}
+              requestsLoading={requestsLoading}
+              requestsMessage={requestsMessage}
+              handleApproveRequest={handleApproveRequest}
+              handleRejectRequest={handleRejectRequest}
             />
           )}
 

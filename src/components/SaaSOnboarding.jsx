@@ -451,6 +451,22 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         console.warn('[SaaSOnboarding] Welcome email notification dispatch failed:', emailErr.message || emailErr);
       }
 
+      // 4b. Trigger verification email notification to super admin (non-blocking)
+      try {
+        await sendNotification('NEW_HOSPITAL_REGISTRATION', {
+          hospitalName,
+          hospitalCode,
+          hospitalAddress,
+          selectedPlan,
+          adminName,
+          adminEmail,
+          adminPhone,
+          recipientEmail: 'fredrickmakori102@gmail.com'
+        }, facilityId);
+      } catch (emailErr) {
+        console.warn('[SaaSOnboarding] Super Admin verification email notification dispatch failed:', emailErr.message || emailErr);
+      }
+
       // Cache details for redirect auto-fill
       sessionStorage.setItem('egesa_health_new_facility_id', facilityId);
       sessionStorage.setItem('egesa_health_new_facility_code', hospitalCode);

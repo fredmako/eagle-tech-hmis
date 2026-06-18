@@ -33,7 +33,8 @@ export const getDefaultSmtpConfig = () => ({
     LICENSE_WARNING: true,
     LICENSE_EXPIRED: true,
     INPATIENT_ADMITTED: true,
-    INPATIENT_DISCHARGED: true
+    INPATIENT_DISCHARGED: true,
+    NEW_HOSPITAL_REGISTRATION: true
   }
 });
 
@@ -146,7 +147,7 @@ export const pruneEmailLogs = (facilityId, retentionDays) => {
 };
 
 // Resolve HTML email template based on branding and payload details
-const resolveTemplate = (event, payload, branding) => {
+const resolveTemplate = (event, payload, branding, facilityId = null) => {
   const { facilityName, facilityCode, logoUrl } = branding;
   let subject = '';
   let body = '';
@@ -171,6 +172,52 @@ const resolveTemplate = (event, payload, branding) => {
           <p>You can now log in, configure user accounts, triage patients, and utilize laboratory and pharmacy modules under this facility context.</p>
           <p style="font-size: 12px; color: #94a3b8; margin-top: 25px; border-top: 1px solid #1e293b; padding-top: 10px;">
             This security email was auto-dispatched by Eagle Tech Authentication Gate.
+          </p>
+        </div>
+      `;
+      break;
+
+    case 'NEW_HOSPITAL_REGISTRATION':
+      senderPrefix = 'security';
+      subject = `[System Alert] New Hospital Onboarding: Verification Required`;
+      const originUrl = window.location.origin || 'https://www.eagletechsolutions.tech';
+      const approveUrl = `${originUrl}/?action=approve_facility&facility_id=${facilityId}`;
+      const rejectUrl = `${originUrl}/?action=reject_facility&facility_id=${facilityId}`;
+      body = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #0f172a; color: #f1f5f9;">
+          <h2 style="color: #fbbf24; border-bottom: 2px solid #1e293b; padding-bottom: 10px;">New Facility Onboarded</h2>
+          <p>Hello Super Admin,</p>
+          <p>A new hospital workspace has been successfully registered and requires administrative verification before clinical dashboard access is granted.</p>
+          
+          <div style="background-color: #1e293b; padding: 15px; border-left: 4px solid #fbbf24; border-radius: 4px; margin: 15px 0;">
+            <p style="margin: 0; font-size: 14px;"><strong>Hospital Name:</strong> ${payload.hospitalName}</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Proposed Code:</strong> <span style="font-family: monospace; color: #fbbf24; font-weight: bold;">${payload.hospitalCode}</span></p>
+            <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Address:</strong> ${payload.hospitalAddress}</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Licensing Plan:</strong> ${payload.selectedPlan ? payload.selectedPlan.toUpperCase() : 'N/A'}</p>
+          </div>
+          
+          <h3 style="color: #2dd4bf; font-size: 14px; margin-top: 20px;">Administrator Contact Details</h3>
+          <div style="background-color: #1e293b; padding: 15px; border-radius: 4px; margin: 10px 0;">
+            <p style="margin: 0; font-size: 14px;"><strong>Full Name:</strong> ${payload.adminName}</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Email Address:</strong> ${payload.adminEmail}</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Phone Number:</strong> ${payload.adminPhone}</p>
+          </div>
+          
+          <p>Please authorize or deny access for this facility context directly from this email:</p>
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${approveUrl}" style="background-color: #2dd4bf; color: #0f172a; padding: 12px 24px; border-radius: 8px; font-weight: bold; text-decoration: none; display: inline-block; margin-right: 15px;">
+              Approve & Verify
+            </a>
+            <a href="${rejectUrl}" style="background-color: #f43f5e; color: #ffffff; padding: 12px 24px; border-radius: 8px; font-weight: bold; text-decoration: none; display: inline-block;">
+              Reject & Suspend
+            </a>
+          </div>
+          
+          <p style="font-size: 11px; color: #94a3b8; line-height: 1.5; margin-top: 15px;">
+            Or log into the Systems Control Terminal manually to review and verify this registration context.
+          </p>
+          <p style="font-size: 12px; color: #94a3b8; margin-top: 25px; border-top: 1px solid #1e293b; padding-top: 10px;">
+            This system notice was auto-dispatched by Eagle Tech HMIS Notification Engine.
           </p>
         </div>
       `;
@@ -478,7 +525,7 @@ export const sendNotification = async (event, payload, facilityId = null) => {
   }
 
   // 6. Generate subject/body/sender from templates
-  const { subject, body, senderPrefix } = resolveTemplate(event, payload, branding);
+  const { subject, body, senderPrefix } = resolveTemplate(event, payload, branding, finalFacId);
   const smtpDomain = smtp.sender_email && smtp.sender_email.includes('@') 
     ? smtp.sender_email.split('@')[1] 
     : 'eagletechsolutions.tech';

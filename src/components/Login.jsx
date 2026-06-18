@@ -100,6 +100,8 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
   const [facilitySearchQuery, setFacilitySearchQuery] = useState('');
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
 
+   const [isAdminAction, setIsAdminAction] = useState(false);
+
   useEffect(() => {
     setIsSandbox(!!supabase.isSandbox);
     fetchFacilitiesAndCheckAutoLogin();
@@ -108,6 +110,12 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     if (sessionStorage.getItem('egesa_health_recovery_active') === 'true') {
       setShowRecovery(true);
       setCodeSent(true); // Direct to Choose New Password view
+    }
+
+    // Check if URL parameters request super admin action
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action')) {
+      setIsAdminAction(true);
     }
   }, []);
 
@@ -886,6 +894,16 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
 
         {!isSignUp ? (
           <>
+            {isAdminAction && (
+              <div className="mb-4 mt-4 bg-teal-500/5 border border-teal-500/25 text-teal-400 rounded-lg p-3.5 text-xs flex items-start gap-2.5 animate-pulse font-sans">
+                <UserCheck size={16} className="shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block uppercase tracking-wider">Super Admin Action Detected</span>
+                  <span className="text-slate-300 font-medium">Please sign in as the Super Admin (<strong>fredrickmakori102@gmail.com</strong>) to complete the verification action.</span>
+                </div>
+              </div>
+            )}
+
             {loginStage === 'email_check' && (
               <form onSubmit={handleResolveEmail} className="space-y-4 mt-4">
                 <div>

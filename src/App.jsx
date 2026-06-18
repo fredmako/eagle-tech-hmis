@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  const { user, logout, loading, checkSession } = useAuth();
+  const { user, setUser, logout, loading, checkSession } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [preselectedPatient, setPreselectedPatient] = useState(null);
@@ -44,6 +44,64 @@ export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('egesa_theme') || 'slate');
   const [lang, setLang] = useState(() => localStorage.getItem('egesa_lang') || 'en');
   const [font, setFont] = useState(() => localStorage.getItem('egesa_font') || 'sans');
+
+  useEffect(() => {
+    if (user && user.role === 'super_admin') {
+      const params = new URLSearchParams(window.location.search);
+      const action = params.get('action');
+      const facId = params.get('facility_id');
+      
+      if (action && facId) {
+        handleUrlAction(action, facId);
+      }
+    }
+  }, [user]);
+
+  const handleUrlAction = async (action, facId) => {
+    // Clear URL parameters immediately to avoid repeat execution on refresh
+    window.history.replaceState({}, document.title, window.location.pathname);
+    
+    try {
+      if (action === 'approve_facility') {
+        const { error } = await supabase
+          .from('facilities')
+          .update({ is_verified: true })
+          .eq('id', facId);
+          
+        if (error) throw error;
+        
+        await supabase.from('audit_logs').insert({
+          facility_id: facId,
+          user_id: user.id,
+          action: 'Facility Verified',
+          details: `Verified facility registration for ID ${facId} via email action link.`
+        });
+        
+        alert(`Successfully approved and verified facility ID: ${facId}!`);
+      } else if (action === 'reject_facility') {
+        const { error } = await supabase
+          .from('facilities')
+          .update({ is_verified: false })
+          .eq('id', facId);
+          
+        if (error) throw error;
+        
+        await supabase.from('audit_logs').insert({
+          facility_id: facId,
+          user_id: user.id,
+          action: 'Facility Suspended',
+          details: `Suspended/Deactivated facility registration for ID ${facId} via email action link.`
+        });
+        
+        alert(`Successfully suspended/rejected facility ID: ${facId}.`);
+      }
+      
+      if (checkSession) await checkSession();
+    } catch (err) {
+      console.error('[App URL Action] Failed:', err);
+      alert(`Action failed: ${err.message}`);
+    }
+  };
 
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme);
@@ -237,6 +295,28 @@ export default function App() {
             </div>
             <ThemeToggle theme={theme} onToggle={toggleLightDark} />
           </div>
+
+          {user.email === 'fredrickmakori102@gmail.com' && (
+            <button 
+              onClick={() => {
+                const updatedUser = {
+                  ...user,
+                  role: 'super_admin',
+                  facility_id: null,
+                  facility_name: 'Eagle Tech Systems Control',
+                  facility_logo: null,
+                  facility_is_verified: true
+                };
+                setUser(updatedUser);
+                sessionStorage.setItem('egesa_health_active_user', JSON.stringify(updatedUser));
+                setIsSidebarOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 border border-yellow-500/10 hover:border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10 text-yellow-400 py-1.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition duration-150 cursor-pointer"
+            >
+              <ShieldCheck size={13} />
+              <span>Systems Control Console</span>
+            </button>
+          )}
 
           <button onClick={() => { handleSignOut(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 border border-teal-500/10 hover:border-red-500/30 bg-slate-900/50 hover:bg-red-500/5 text-slate-400 hover:text-red-400 py-1.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition duration-150">
             <LogOut size={13} />

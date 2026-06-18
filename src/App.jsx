@@ -77,6 +77,9 @@ export default function App() {
           details: `Verified facility registration for ID ${facId} via email action link.`
         });
         
+        // Clear active user session cache to force fresh load
+        sessionStorage.removeItem('egesa_health_active_user');
+        
         alert(`Successfully approved and verified facility ID: ${facId}!`);
       } else if (action === 'reject_facility') {
         const { error } = await supabase
@@ -92,6 +95,9 @@ export default function App() {
           action: 'Facility Suspended',
           details: `Suspended/Deactivated facility registration for ID ${facId} via email action link.`
         });
+        
+        // Clear active user session cache to force fresh load
+        sessionStorage.removeItem('egesa_health_active_user');
         
         alert(`Successfully suspended/rejected facility ID: ${facId}.`);
       }

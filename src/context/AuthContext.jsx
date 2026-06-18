@@ -72,8 +72,9 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // If we don't have cached user data, fetch the enriched profile from the backend
-      if (!userData && !supabase.isSandbox) {
+      // If we don't have cached user data OR the cached user has facility_is_verified as false,
+      // fetch the enriched profile from the backend to check if verification status changed.
+      if ((!userData || userData.facility_is_verified === false) && !supabase.isSandbox) {
         try {
           console.log('[AuthContext:checkSession] Fetching enriched profile from backend...');
           const res = await fetch(`${API_URL}/auth/supabase-login`, {

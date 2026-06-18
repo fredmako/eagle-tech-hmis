@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../../supabaseClient';
 import { 
   ShieldCheck, 
   Bed, 
@@ -16,7 +16,7 @@ import {
   Heart,
   UserCheck
 } from 'lucide-react';
-import { surgicalProcedureMaster } from '../medicalMaster';
+import { surgicalProcedureMaster } from '../../medicalMaster';
 
 export default function Surgery({ user, onComplete }) {
   const [surgeryVisits, setSurgeryVisits] = useState([]);

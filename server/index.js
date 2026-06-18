@@ -16,6 +16,7 @@ const emailRouter = require("./routes/email");
 const mpesaRouter = require("./routes/mpesa");
 const dbRouter = require("./routes/db");
 const departmentsRouter = require("./routes/departments");
+const afyalinkRouter = require("./routes/afyalink");
 
 // Mount routes
 app.use("/api/auth", authRouter);
@@ -23,6 +24,7 @@ app.use("/api", emailRouter);
 app.use("/api/mpesa", mpesaRouter);
 app.use("/api/db", dbRouter);
 app.use("/api/departments", departmentsRouter);
+app.use("/api/afyalink", afyalinkRouter);
 
 // Start server
 app.listen(PORT, () => {

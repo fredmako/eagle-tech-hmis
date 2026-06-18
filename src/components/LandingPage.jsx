@@ -6,7 +6,7 @@ import { ModulesGrid } from './landing/sections/ModulesGrid';
 import { Pricing } from './landing/sections/Pricing';
 import { About } from './landing/sections/About';
 import { Footer } from './landing/sections/Footer';
-import { ThemeToggle } from './landing/ThemeToggle';
+import { ThemeToggle } from './ui/ThemeToggle';
 
 export default function LandingPage({ onNavigateToLogin, onNavigateToSignup, theme, onToggleTheme }) {
   const [mobileOpen, setMobileOpen] = useState(false);

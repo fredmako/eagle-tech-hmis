@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../../supabaseClient';
 import { 
   Camera, 
   Activity, 
@@ -18,7 +18,7 @@ import {
   SlidersHorizontal,
   Move
 } from 'lucide-react';
-import { radiologyTestMaster } from '../medicalMaster';
+import { radiologyTestMaster } from '../../medicalMaster';
 
 export default function Radiology({ user, onComplete }) {
   const [radiologyVisits, setRadiologyVisits] = useState([]);

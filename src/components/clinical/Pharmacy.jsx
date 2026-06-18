@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../supabaseClient";
-import { sendNotification } from "../notificationService";
+import { supabase } from "../../supabaseClient";
+import { sendNotification } from "../../notificationService";
 import {
   Pill,
   AlertCircle,
@@ -16,7 +16,7 @@ import {
   Search,
   CornerDownRight,
 } from "lucide-react";
-import { medicineMaster } from "../medicalMaster";
+import { medicineMaster } from "../../medicalMaster";
 
 export default function Pharmacy({ user, onComplete }) {
   const [pharmVisits, setPharmVisits] = useState([]);

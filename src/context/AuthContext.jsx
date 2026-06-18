@@ -21,6 +21,20 @@ export const AuthProvider = ({ children }) => {
       
       if (sessionErr) throw sessionErr;
       if (!session) {
+        const storedUser = sessionStorage.getItem('egesa_health_active_user');
+        if (storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser);
+            if (parsed) {
+              console.log('[AuthContext:checkSession] Restoring session from sessionStorage:', parsed.email || parsed.full_name);
+              setUser(parsed);
+              setLoading(false);
+              return;
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
         setUser(null);
         setLoading(false);
         return;

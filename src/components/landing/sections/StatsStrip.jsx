@@ -1,5 +1,5 @@
-import { Stagger, StaggerItem } from '../motion/Stagger';
-import { CountUp } from '../motion/CountUp';
+import { Stagger, StaggerItem } from '../../ui/Stagger';
+import { CountUp } from '../../ui/CountUp';
 import { stats } from '../data';
 
 export function StatsStrip() {

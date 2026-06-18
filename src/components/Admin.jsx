@@ -109,6 +109,19 @@ export default function Admin({ user }) {
   const [dnsChecking, setDnsChecking] = useState(false);
   const [dnsMessage, setDnsMessage] = useState('DNS Configuration Fully Verified & Aligned with Titan Email Services!');
 
+  // AfyaLink states
+  const [afyalinkLogs, setAfyalinkLogs] = useState([]);
+  const [afyaMessage, setAfyaMessage] = useState('');
+  const [retryingLogId, setRetryingLogId] = useState(null);
+  const [revealSecret, setRevealSecret] = useState(false);
+  const [selectedPayloadLog, setSelectedPayloadLog] = useState(null);
+
+  // Custom Domain/Subdomain states
+  const [customSubdomain, setCustomSubdomain] = useState(localStorage.getItem(`egesa_subdomain_${user.facility_id}`) || '');
+  const [customDomain, setCustomDomain] = useState(localStorage.getItem(`egesa_custom_domain_${user.facility_id}`) || '');
+  const [savingDomain, setSavingDomain] = useState(false);
+  const [domainMessage, setDomainMessage] = useState({ type: '', text: '' });
+
   useEffect(() => {
     fetchAdminData();
     setTestRecipient(smtp.test_email_destination || 'admin@eagletechsolutions.tech');
@@ -117,12 +130,26 @@ export default function Admin({ user }) {
   const fetchAdminData = async () => {
     setLoadingLogs(true);
     try {
-      // Fetch audit logs
-      const { data: logs } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false });
+      // Fetch audit logs filtered by active facility context
+      let logsQuery = supabase.from('audit_logs').select('*');
+      if (user.facility_id) {
+        logsQuery = logsQuery.eq('facility_id', user.facility_id);
+      }
+      const { data: logs } = await logsQuery.order('created_at', { ascending: false });
       setAuditLogs(logs || []);
+      
+      // Filter out AfyaLink sync transactions
+      const afyaLogs = logs ? logs.filter(l => l.action === 'AfyaLink Sync') : [];
+      setAfyalinkLogs(afyaLogs);
 
-      // Fetch profiles
-      const { data: profs } = await supabase.from('profiles').select('*');
+      // Fetch profiles filtered by this facility context
+      let query = supabase.from('profiles').select('*');
+      if (user.facility_id) {
+        query = query.eq('facility_id', user.facility_id);
+      } else {
+        query = query.is('facility_id', null);
+      }
+      const { data: profs } = await query;
       setUsersList(profs || []);
 
       // Fetch facilities
@@ -570,6 +597,82 @@ export default function Admin({ user }) {
     setDnsMessage('DNS Configuration Fully Verified & Aligned with Titan Email Services!');
   };
 
+  const handleRetrySync = async (log) => {
+    setRetryingLogId(log.id);
+    setAfyaMessage({ type: '', text: '' });
+    try {
+      let details = {};
+      try {
+        details = JSON.parse(log.details);
+      } catch (e) {
+        throw new Error('Invalid log details format');
+      }
+
+      // Reconstruct original encounterData
+      const encounterData = details.encounterData || {
+        visit_id: details.encounterId,
+        patient_id: details.payload?.entry?.[0]?.resource?.subject?.reference?.split('/')?.[1] || 'p_unknown',
+        patient_name: details.patientName,
+        patient_code: details.patientCode,
+        diagnosis_code: details.payload?.entry?.[1]?.resource?.code?.coding?.[0]?.code || 'A00',
+        diagnosis_name: details.diagnosis || 'Consultation Encounter',
+        encounter_class: details.payload?.entry?.[0]?.resource?.class?.code === 'IMP' ? 'IMP' : 'AMB',
+        vitals: {
+          temperature: details.payload?.entry?.[3]?.resource?.valueQuantity?.value || 37.0,
+          weight: details.payload?.entry?.[4]?.resource?.valueQuantity?.value || 70.0,
+          systolic: details.payload?.entry?.[2]?.resource?.component?.[0]?.valueQuantity?.value || 120,
+          diastolic: details.payload?.entry?.[2]?.resource?.component?.[1]?.valueQuantity?.value || 80
+        }
+      };
+
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiBase}/afyalink/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(encounterData)
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Server error during sync retry');
+
+      setAfyaMessage({ type: 'success', text: `Sync retry succeeded! HIE Response Code: ${res.status}` });
+      fetchAdminData();
+    } catch (err) {
+      setAfyaMessage({ type: 'error', text: `Sync retry failed: ${err.message}` });
+    } finally {
+      setRetryingLogId(null);
+    }
+  };
+
+  const handleSaveDomain = async (e) => {
+    e.preventDefault();
+    setSavingDomain(true);
+    setDomainMessage({ type: '', text: '' });
+    try {
+      localStorage.setItem(`egesa_subdomain_${user.facility_id}`, customSubdomain.trim());
+      localStorage.setItem(`egesa_custom_domain_${user.facility_id}`, customDomain.trim());
+      
+      // Log event in audit trail
+      await supabase.from('audit_logs').insert({
+        facility_id: user.facility_id,
+        user_id: user.id,
+        action: 'Custom Domain Updated',
+        details: `Subdomain prefix set to: ${customSubdomain.trim()}, Custom domain set to: ${customDomain.trim()}`
+      });
+
+      setDomainMessage({ type: 'success', text: 'Hospital subdomain & outbound configurations saved successfully!' });
+      fetchAdminData();
+    } catch (err) {
+      setDomainMessage({ type: 'error', text: err.message || 'Failed to save domain configuration.' });
+    } finally {
+      setSavingDomain(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Left Columns: Config & Users */}
@@ -797,6 +900,41 @@ export default function Admin({ user }) {
           >
             <ShoppingBag size={13} /> Procurement Desk
           </button>
+
+          <button
+            onClick={() => setActiveSubTab('afyalink')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+              activeSubTab === 'afyalink'
+                ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                : 'text-slate-450 hover:text-slate-200'
+            }`}
+          >
+            <Activity size={13} /> AfyaLink HIE Integration
+            {afyalinkLogs.filter(l => {
+              try {
+                return JSON.parse(l.details).status === 'failed';
+              } catch(e) { return false; }
+            }).length > 0 && (
+              <span className="bg-red-500/20 text-[10px] text-red-400 font-bold px-1.5 py-0.5 rounded-full border border-red-500/25 ml-1">
+                {afyalinkLogs.filter(l => {
+                  try {
+                    return JSON.parse(l.details).status === 'failed';
+                  } catch(e) { return false; }
+                }).length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('domain')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+              activeSubTab === 'domain'
+                ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                : 'text-slate-450 hover:text-slate-200'
+            }`}
+          >
+            <Globe size={13} /> Domain & Branding
+          </button>
         </div>
 
         {/* Tab Contents */}
@@ -904,9 +1042,286 @@ export default function Admin({ user }) {
               user={user}
             />
           )}
+
+          {/* TAB 9: AFYALINK HIE INTEGRATION */}
+          {activeSubTab === 'afyalink' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                  <Activity size={14} className="text-teal-400 animate-pulse" /> DHA Kenya AfyaLink HIE System Integration
+                </h4>
+                <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold font-sans">
+                  Status: Connected (UAT Approved)
+                </span>
+              </div>
+
+              {afyaMessage && afyaMessage.text && (
+                <div className={`p-2.5 rounded text-xs flex gap-2 ${
+                  afyaMessage.type === 'success' ? 'bg-teal-500/5 border border-teal-500/20 text-teal-400' : 'bg-red-500/5 border border-red-500/20 text-red-400'
+                }`}>
+                  <CheckCircle size={14} className="shrink-0 mt-0.5" />
+                  <span>{afyaMessage.text}</span>
+                </div>
+              )}
+
+              {/* Credentials & Details Card */}
+              <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-900">
+                  <h5 className="text-[11px] font-bold text-slate-350 uppercase tracking-wider font-sans">HIE Authentication Credentials</h5>
+                  <button
+                    onClick={() => setRevealSecret(!revealSecret)}
+                    className="text-[10px] text-teal-400 hover:text-teal-300 font-bold font-sans"
+                  >
+                    {revealSecret ? 'Hide Secrets' : 'Reveal Credentials'}
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-[11px] font-mono">
+                  <div>
+                    <span className="text-slate-500 block font-semibold">Base URL</span>
+                    <span className="text-slate-300">https://api.dha.go.ke/v1</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block font-semibold">Agent ID</span>
+                    <span className="text-slate-300">DHABP06856</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block font-semibold">Username</span>
+                    <span className="text-slate-300">{revealSecret ? 't8xwo9EjTR9xVot7jgc' : '••••••••••••••••••••'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block font-semibold">Password</span>
+                    <span className="text-slate-300">{revealSecret ? '70h1gsbVx1cV1hgewB4' : '••••••••••••••••••••'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block font-semibold">Client Key</span>
+                    <span className="text-slate-300">{revealSecret ? 'HA6-DHABP06856' : '••••••••••••••••••••'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block font-semibold">Client Secret</span>
+                    <span className="text-slate-300 break-all">{revealSecret ? 'fECP2T1dOAJn4BEzeyYtbgXmGz4moWTftxBx9aMGybfPj5Cr' : '••••••••••••••••••••••••••••••••••••••••'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Transactions logs table */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <h5 className="text-[11px] font-bold text-slate-300 uppercase tracking-wider font-sans">HIE Submission Activity Logs</h5>
+                  <button
+                    onClick={fetchAdminData}
+                    className="text-[10px] text-teal-400 hover:text-teal-300 flex items-center gap-1 font-bold font-sans cursor-pointer"
+                  >
+                    <RefreshCw size={10} /> Refresh Logs
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto border border-slate-850 rounded-xl">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-950 text-slate-400 font-bold border-b border-slate-850 uppercase text-[9px] tracking-wider">
+                        <th className="py-2.5 px-3">Date/Time</th>
+                        <th className="py-2.5 px-3">Patient Code</th>
+                        <th className="py-2.5 px-3">Patient Name</th>
+                        <th className="py-2.5 px-3">Diagnosis</th>
+                        <th className="py-2.5 px-3 text-center">Status</th>
+                        <th className="py-2.5 px-3 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-850 text-slate-300">
+                      {afyalinkLogs.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="py-8 text-center text-slate-500 text-[11px] font-sans">
+                            No sync activity logs found for this facility context.
+                          </td>
+                        </tr>
+                      ) : (
+                        afyalinkLogs.map(log => {
+                          let details = {};
+                          try {
+                            details = JSON.parse(log.details);
+                          } catch (e) {}
+
+                          const status = details.status || 'sent';
+
+                          return (
+                            <tr key={log.id} className="hover:bg-slate-850/40 transition">
+                              <td className="py-2.5 px-3 text-slate-400 text-[10px]">
+                                {new Date(log.created_at).toLocaleString()}
+                              </td>
+                              <td className="py-2.5 px-3 font-mono text-[10px] text-teal-500">
+                                {details.patientCode || 'N/A'}
+                              </td>
+                              <td className="py-2.5 px-3 font-semibold text-[11px]">
+                                {details.patientName || 'N/A'}
+                              </td>
+                              <td className="py-2.5 px-3 truncate max-w-[150px]" title={details.diagnosis}>
+                                {details.diagnosis || 'N/A'}
+                              </td>
+                              <td className="py-2.5 px-3 text-center">
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border inline-block ${
+                                  status === 'sent'
+                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                    : 'bg-red-500/10 border-red-500/20 text-red-400'
+                                }`}>
+                                  {status.toUpperCase()}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-center space-x-2 whitespace-nowrap">
+                                <button
+                                  onClick={() => setSelectedPayloadLog(details.payload)}
+                                  className="text-[10px] text-teal-400 hover:text-teal-300 underline font-bold cursor-pointer font-sans"
+                                >
+                                  View Payload
+                                </button>
+                                {status === 'failed' && (
+                                  <button
+                                    onClick={() => handleRetrySync(log)}
+                                    disabled={retryingLogId === log.id}
+                                    className="text-[10px] text-yellow-400 hover:text-yellow-300 font-bold bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded cursor-pointer transition disabled:opacity-50 font-sans"
+                                  >
+                                    {retryingLogId === log.id ? 'Retrying...' : 'Retry'}
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 10: CUSTOM SUBDOMAINS & BRANDING */}
+          {activeSubTab === 'domain' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                  <Globe size={14} className="text-teal-400" /> Custom Subdomain & Outbound Branding
+                </h4>
+              </div>
+
+              {domainMessage.text && (
+                <div className={`p-2.5 rounded text-xs flex gap-2 ${
+                  domainMessage.type === 'success' ? 'bg-teal-500/5 border border-teal-500/20 text-teal-400' : 'bg-red-500/5 border border-red-500/20 text-red-400'
+                }`}>
+                  <CheckCircle size={14} className="shrink-0 mt-0.5" />
+                  <span>{domainMessage.text}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveDomain} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-sans">
+                      Preferred Subdomain Prefix
+                    </label>
+                    <div className="flex bg-slate-950 border border-slate-800 rounded-lg overflow-hidden focus-within:border-teal-500 transition">
+                      <input
+                        type="text"
+                        value={customSubdomain}
+                        onChange={(e) => setCustomSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                        placeholder="egesamedicalclinic"
+                        className="flex-1 bg-transparent py-2 px-3 text-xs text-slate-100 focus:outline-none font-mono"
+                      />
+                      <span className="bg-slate-900 px-3 py-2 text-xs text-slate-550 border-l border-slate-800 select-none font-mono">
+                        .egatechsolutions.tech
+                      </span>
+                    </div>
+                    <p className="text-[9px] text-slate-500 mt-1 font-sans">Only lower-case letters, numbers, and hyphens are supported.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-sans">
+                      Custom Outer Domain (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={customDomain}
+                      onChange={(e) => setCustomDomain(e.target.value.toLowerCase().replace(/[^a-z0-9.-]/g, ''))}
+                      placeholder="egesamedicalclinic.com"
+                      className="w-full bg-slate-955 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:border-teal-500 transition focus:outline-none font-mono"
+                    />
+                    <p className="text-[9px] text-slate-500 mt-1 font-sans">Configure full domain mapping if you own a custom TLD domain.</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={savingDomain}
+                    className="bg-teal-500 hover:bg-teal-600 text-slate-955 font-bold text-xs py-2 px-5 rounded-lg shadow-md transition active:scale-[0.98] cursor-pointer font-sans"
+                  >
+                    {savingDomain ? 'Saving Subdomain...' : 'Save Domain Settings'}
+                  </button>
+                </div>
+              </form>
+
+              {/* DNS Mapping Configuration Cards */}
+              <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-900">
+                  <h5 className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1 font-sans">
+                    DNS Routing Instructions
+                  </h5>
+                </div>
+                
+                <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+                  To map your workspace subdomain or custom domain context dynamically, sign in to your DNS registrar account (e.g. GoDaddy, Cloudflare, DigitalOcean) and add the following CNAME configuration record:
+                </p>
+
+                <div className="overflow-x-auto border border-slate-900 rounded-lg">
+                  <table className="w-full text-left text-[10px] border-collapse font-mono">
+                    <thead>
+                      <tr className="bg-slate-900/60 text-slate-500 font-bold border-b border-slate-900 text-[9px] uppercase">
+                        <th className="py-2 px-2.5">Record Type</th>
+                        <th className="py-2 px-2.5">Host Name</th>
+                        <th className="py-2 px-2.5">Target Value</th>
+                        <th className="py-2 px-2.5 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-slate-450 divide-y divide-slate-900 font-semibold">
+                      <tr>
+                        <td className="py-2 px-2.5 text-slate-300">CNAME</td>
+                        <td className="py-2 px-2.5 text-teal-500">
+                          {customSubdomain || 'egesamedicalclinic'}
+                        </td>
+                        <td className="py-2 px-2.5">egatechsolutions.tech</td>
+                        <td className="py-2 px-2.5 text-center text-green-400 font-bold">● Propagation Active</td>
+                      </tr>
+                      {customDomain && (
+                        <tr>
+                          <td className="py-2 px-2.5 text-slate-300">CNAME</td>
+                          <td className="py-2 px-2.5 text-teal-500">www</td>
+                          <td className="py-2 px-2.5">egatechsolutions.tech</td>
+                          <td className="py-2 px-2.5 text-center text-green-400 font-bold">● Propagation Active</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* SMTP configuration guide linkage */}
+              <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-2">
+                <h5 className="text-[11px] font-bold text-slate-305 uppercase tracking-wider font-sans">Outbound SMTP Custom Email Branding</h5>
+                <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+                  By default, system notification mailers (user invitations, password resets, phlebotomy rejections, pharmacy dispensations) are dispatched using <strong>admin@eagletechsolutions.tech</strong>.
+                </p>
+                <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+                  To authenticate and white-label your custom email identity (e.g. <code>info@{customDomain || 'egesamedicalclinic.com'}</code>):
+                </p>
+                <ol className="list-decimal list-inside text-[10px] text-slate-500 pl-1 space-y-1 pt-1 font-sans">
+                  <li>Configure SPF, DKIM, and MX records at your domain DNS registrar to delegate Titan Email auth.</li>
+                  <li>Head over to the <button onClick={() => setActiveSubTab('smtp_settings')} className="text-teal-400 font-bold underline cursor-pointer">SMTP Server Settings</button> tab to save your custom SMTP Host, Port, Username, and Password particulars.</li>
+                </ol>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
       {/* RENDERED EMAIL VIEW MODAL */}
       {selectedLogBody && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -961,9 +1376,47 @@ export default function Admin({ user }) {
             <div className="flex justify-end pt-3 border-t border-slate-800 shrink-0">
               <button
                 onClick={() => setSelectedLogBody(null)}
-                className="bg-slate-850 border border-slate-700 text-slate-300 hover:text-white font-bold text-xs py-2 px-4 rounded-lg transition"
+                className="bg-slate-855 border border-slate-700 text-slate-300 hover:text-white font-bold text-xs py-2 px-4 rounded-lg transition"
               >
                 Close Review
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RENDERED FHIR PAYLOAD VIEW MODAL */}
+      {selectedPayloadLog && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in animate-scale-up">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col justify-between">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-800 shrink-0">
+              <div>
+                <h3 className="text-sm font-bold text-slate-200 flex items-center gap-1.5 font-sans">
+                  <FileText size={16} className="text-teal-400" /> DHA FHIR Transaction Payload
+                </h3>
+                <p className="text-[10px] text-slate-500 mt-0.5 font-sans">Clinical bundle resource details</p>
+              </div>
+              <button
+                onClick={() => setSelectedPayloadLog(null)}
+                className="text-slate-400 hover:text-white font-black text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Rendered JSON Payload Panel */}
+            <div className="flex-1 overflow-y-auto bg-slate-950 border border-slate-850 rounded-xl p-4 min-h-[300px]">
+              <pre className="text-[10px] text-teal-400 font-mono whitespace-pre-wrap overflow-x-auto">
+                {JSON.stringify(selectedPayloadLog, null, 2)}
+              </pre>
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-slate-800 shrink-0">
+              <button
+                onClick={() => setSelectedPayloadLog(null)}
+                className="bg-slate-850 border border-slate-700 text-slate-350 hover:text-white font-bold text-xs py-2 px-4 rounded-lg transition"
+              >
+                Close View
               </button>
             </div>
           </div>

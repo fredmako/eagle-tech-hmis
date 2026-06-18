@@ -4,9 +4,9 @@ import {
   Users, Hourglass, Activity, ShieldAlert, CheckCircle, RefreshCw, ArrowRight,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Reveal } from './landing/motion/Reveal';
-import { Stagger, StaggerItem } from './landing/motion/Stagger';
-import { CountUp } from './landing/motion/CountUp';
+import { Reveal } from './ui/Reveal';
+import { Stagger, StaggerItem } from './ui/Stagger';
+import { CountUp } from './ui/CountUp';
 
 export default function Dashboard({ user, onNavigate }) {
   const [stats, setStats] = useState({

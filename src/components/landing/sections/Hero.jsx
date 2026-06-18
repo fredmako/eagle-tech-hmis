@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, ChevronRight } from 'lucide-react';
-import { SafeImage } from '../SafeImage';
+import { SafeImage } from '../../ui/SafeImage';
 import { PHOTO_HERO } from '../data';
 
 export function Hero({ onPrimary, onSecondary }) {

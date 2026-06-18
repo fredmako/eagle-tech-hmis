@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
-import { sendNotification, parsePatientContact } from '../notificationService';
-import { Bed, PlusCircle, CheckCircle, AlertCircle, ClipboardList, Thermometer } from 'lucide-react';
+import { supabase } from '../../supabaseClient';
+import { sendNotification, parsePatientContact } from '../../notificationService';
+import { Bed, PlusCircle, CheckCircle, AlertCircle, ClipboardList, Thermometer, MapPin, Activity, Heart } from 'lucide-react';
 
 export default function Ward({ user }) {
   const [admissions, setAdmissions] = useState([]);
@@ -23,6 +23,16 @@ export default function Ward({ user }) {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  // MOH & AfyaLink validation states
+  const [showMOHModal, setShowMOHModal] = useState(false);
+  const [triageRecord, setTriageRecord] = useState(null);
+  const [mohVillage, setMohVillage] = useState("");
+  const [mohTemp, setMohTemp] = useState("");
+  const [mohWeight, setMohWeight] = useState("");
+  const [mohSystolic, setMohSystolic] = useState("");
+  const [mohDiastolic, setMohDiastolic] = useState("");
+  const [mohConfirmed, setMohConfirmed] = useState(false);
 
   const bedsList = ['Bed 01', 'Bed 02', 'Bed 03', 'Bed 04', 'Bed 05', 'Bed 06', 'Bed 07', 'Bed 08'];
 
@@ -155,14 +165,95 @@ export default function Ward({ user }) {
     }
   };
 
+  const getPatientAge = (dobString) => {
+    if (!dobString) return 0;
+    const dob = new Date(dobString);
+    const diffMs = Date.now() - dob.getTime();
+    const ageDate = new Date(diffMs);
+    return Math.abs(ageDate.getUTCFullYear() - 1970);
+  };
+
+  const handleDischargeClick = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!selectedAdmission) return;
+
+    if (!dischargeNotes.trim()) {
+      setMessage({ type: 'error', text: 'Please enter discharge diagnoses & instructions summary.' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Fetch existing triage data for this visit
+      const { data } = await supabase.from('triages').select('*').eq('visit_id', selectedAdmission.id);
+      const activeTriage = data && data[0];
+      setTriageRecord(activeTriage || null);
+
+      const contactInfo = selectedAdmission.patient ? parsePatientContact(selectedAdmission.patient.phone) : {};
+      setMohVillage(contactInfo.village || "");
+      setMohTemp(activeTriage?.temperature || "");
+      setMohWeight(activeTriage?.weight || "");
+      setMohSystolic(activeTriage?.systolic || "");
+      setMohDiastolic(activeTriage?.diastolic || "");
+      setMohConfirmed(false);
+      setShowMOHModal(true);
+    } catch (err) {
+      console.error('Error fetching discharge MOH stats:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveMOHRecords = async () => {
+    try {
+      // Save village to patient phone meta
+      const contactInfo = selectedAdmission.patient ? parsePatientContact(selectedAdmission.patient.phone) : {};
+      if (mohVillage !== contactInfo.village) {
+        const updatedPhone = JSON.stringify({
+          ...contactInfo,
+          village: mohVillage
+        });
+        await supabase.from('patients').update({ phone: updatedPhone }).eq('id', selectedAdmission.patient_id);
+      }
+
+      // Save vitals
+      if (triageRecord) {
+        await supabase.from('triages').update({
+          temperature: parseFloat(mohTemp) || triageRecord.temperature,
+          weight: parseFloat(mohWeight) || triageRecord.weight,
+          systolic: parseInt(mohSystolic) || triageRecord.systolic,
+          diastolic: parseInt(mohDiastolic) || triageRecord.diastolic
+        }).eq('id', triageRecord.id);
+      } else {
+        const triageId = 'tr_' + Math.random().toString(36).substring(2, 11);
+        await supabase.from('triages').insert({
+          id: triageId,
+          facility_id: user.facility_id,
+          visit_id: selectedAdmission.id,
+          temperature: parseFloat(mohTemp) || null,
+          weight: parseFloat(mohWeight) || null,
+          systolic: parseInt(mohSystolic) || null,
+          diastolic: parseInt(mohDiastolic) || null,
+          chief_complaint: dischargeNotes || "Inpatient Ward Encounter",
+          priority_flag: "green"
+        });
+      }
+    } catch (err) {
+      console.error('[MOH Record Save Error - Inpatient]', err);
+    }
+  };
+
   const handleDischarge = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!selectedAdmission) return;
 
     setLoading(true);
     setMessage({ type: '', text: '' });
 
     try {
+      // 0. Save validated MOH details
+      await saveMOHRecords();
+
       // 1. Complete the visit ticket
       const { error } = await supabase.from('visits').update({
         status: 'completed'
@@ -195,6 +286,36 @@ export default function Ward({ user }) {
         }
       } catch (e) {
         console.error('Discharge email trigger failed:', e);
+      }
+
+      // 4. Submit to AfyaLink automatically
+      try {
+        const token = localStorage.getItem('egesa_health_token');
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        await fetch(`${apiBase}/afyalink/submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            visit_id: selectedAdmission.id,
+            patient_id: selectedAdmission.patient_id,
+            patient_name: selectedAdmission.patient?.name,
+            patient_code: selectedAdmission.patient?.facility_id_code,
+            diagnosis_code: 'A00',
+            diagnosis_name: 'Inpatient Care Discharge',
+            encounter_class: 'IMP',
+            vitals: {
+              temperature: mohTemp || triageRecord?.temperature,
+              weight: mohWeight || triageRecord?.weight,
+              systolic: mohSystolic || triageRecord?.systolic,
+              diastolic: mohDiastolic || triageRecord?.diastolic
+            }
+          })
+        });
+      } catch (afyaErr) {
+        console.error('[AfyaLink Sync Trigger Failed - Inpatient]', afyaErr);
       }
 
       setMessage({ type: 'success', text: 'Patient successfully discharged. Bed freed.' });
@@ -393,7 +514,7 @@ export default function Ward({ user }) {
                 </form>
 
                 {/* Discharge Panel */}
-                <form onSubmit={handleDischarge} className="space-y-3.5 border-t md:border-t-0 md:border-l border-slate-850/80 pt-4 md:pt-0 md:pl-6">
+                <form onSubmit={handleDischargeClick} className="space-y-3.5 border-t md:border-t-0 md:border-l border-slate-850/80 pt-4 md:pt-0 md:pl-6">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Discharge Patient Summary</span>
                   
                   <div>
@@ -419,6 +540,177 @@ export default function Ward({ user }) {
             </div>
           )}
         </div>
+      {/* MOH DISCHARGE COMPLETION VERIFICATION MODAL */}
+      {showMOHModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 shadow-2xl space-y-5 flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-80 shrink-0">
+              <div>
+                <h3 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                  <Activity size={16} className="text-teal-400" /> Ministry of Health (MOH) Inpatient Sync
+                </h3>
+                <p className="text-[10px] text-slate-500 mt-0.5">Kenya Health Information Exchange (HIE) Compliance check</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setShowMOHModal(false)}
+                className="text-slate-400 hover:text-slate-200 font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-1 space-y-4 text-xs">
+              <div className="bg-slate-950/50 border border-slate-850 p-3.5 rounded-xl space-y-2">
+                <span className="font-bold text-slate-350 block uppercase text-[9px] tracking-wider mb-1">Verify Inpatient Demographics</span>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div><span className="text-slate-550">Name:</span> <span className="text-slate-300 font-bold">{selectedAdmission.patient?.name}</span></div>
+                  <div><span className="text-slate-550">Gender:</span> <span className="text-slate-300 font-bold uppercase">{selectedAdmission.patient?.gender}</span></div>
+                  <div><span className="text-slate-550">Age:</span> <span className="text-slate-300 font-bold">{getPatientAge(selectedAdmission.patient?.dob)} years</span></div>
+                  <div><span className="text-slate-550">Assigned Bed:</span> <span className="text-teal-450 font-bold">{selectedAdmission.bed}</span></div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <span className="font-bold text-slate-350 block uppercase text-[9px] tracking-wider">Required MOH Compliance Fields</span>
+
+                {/* Village field */}
+                <div className="bg-slate-950/20 border border-slate-850/80 p-3 rounded-lg flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-300 flex items-center gap-1">
+                      <MapPin size={11} className="text-slate-500" /> Patient Village / Residence *
+                    </label>
+                    {mohVillage ? (
+                      <span className="text-[9px] font-bold text-green-400 bg-green-500/10 px-1.5 py-0.2 rounded">✓ Captured</span>
+                    ) : (
+                      <span className="text-[9px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.2 rounded">⚠️ Missing</span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={mohVillage}
+                    onChange={(e) => setMohVillage(e.target.value)}
+                    placeholder="e.g. Kawangware / Riruta"
+                    className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                    required
+                  />
+                </div>
+
+                {/* Vital signs checks */}
+                <div className="bg-slate-950/20 border border-slate-850/80 p-3 rounded-lg space-y-3">
+                  <span className="font-bold text-slate-355 block uppercase text-[8px] tracking-wider">Triage & Vital Signs Parameters</span>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Temperature */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-slate-400">Temperature (°C) *</span>
+                        {mohTemp ? <span className="text-green-400 font-bold">✓</span> : <span className="text-red-400 font-bold">⚠️</span>}
+                      </div>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={mohTemp}
+                        onChange={(e) => setMohTemp(e.target.value)}
+                        placeholder="e.g. 37.0"
+                        className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                        required
+                      />
+                    </div>
+
+                    {/* Weight */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-slate-400">Weight (kg) *</span>
+                        {mohWeight ? <span className="text-green-400 font-bold">✓</span> : <span className="text-red-400 font-bold">⚠️</span>}
+                      </div>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={mohWeight}
+                        onChange={(e) => setMohWeight(e.target.value)}
+                        placeholder="e.g. 70.0"
+                        className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* BP for Adults */}
+                  {getPatientAge(selectedAdmission.patient?.dob) >= 18 && (
+                    <div className="space-y-1.5 border-t border-slate-850/60 pt-2.5">
+                      <div className="flex justify-between text-[10px] font-sans">
+                        <span className="text-slate-400 font-bold">Blood Pressure (Required for Adults &gt;= 18 yrs) *</span>
+                        {(mohSystolic && mohDiastolic) ? <span className="text-green-400 font-bold">✓</span> : <span className="text-red-400 font-bold">⚠️</span>}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 font-sans">
+                        <input
+                          type="number"
+                          value={mohSystolic}
+                          onChange={(e) => setMohSystolic(e.target.value)}
+                          placeholder="Systolic (e.g. 120)"
+                          className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                          required
+                        />
+                        <input
+                          type="number"
+                          value={mohDiastolic}
+                          onChange={(e) => setMohDiastolic(e.target.value)}
+                          placeholder="Diastolic (e.g. 80)"
+                          className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+
+
+
+
+
+
+
+
+
+
+              {/* Confirmation checkbox */}
+              <div className="flex items-start gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="confirmMOH"
+                  checked={mohConfirmed}
+                  onChange={(e) => setMohConfirmed(e.target.checked)}
+                  className="accent-teal-500 h-4 w-4 bg-slate-950 border-slate-800 rounded text-teal-500 cursor-pointer mt-0.5"
+                />
+                <label htmlFor="confirmMOH" className="text-[11px] text-slate-400 leading-normal cursor-pointer select-none">
+                  I confirm that all Ministry of Health (MOH) data fields are fully captured and verified for this inpatient discharge.
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowMOHModal(false)}
+                className="px-4 py-2 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-350 rounded-lg text-xs font-bold transition"
+              >
+                Cancel & Edit
+              </button>
+              <button
+                type="button"
+                disabled={!mohConfirmed || !mohVillage || !mohTemp || !mohWeight || (getPatientAge(selectedAdmission.patient?.dob) >= 18 && (!mohSystolic || !mohDiastolic))}
+                onClick={() => handleDischarge()}
+                className="px-5 py-2 bg-teal-500 hover:bg-teal-600 disabled:opacity-40 text-slate-950 font-black rounded-lg text-xs transition active:scale-[0.98]"
+              >
+                Verify & Complete Discharge Lifecycle
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

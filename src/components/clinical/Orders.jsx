@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
-import { sendNotification } from '../notificationService';
+import { supabase } from '../../supabaseClient';
+import { sendNotification } from '../../notificationService';
 import { 
   FlaskConical, 
   AlertCircle, 
@@ -15,7 +15,7 @@ import {
   Send, 
   UserCheck 
 } from 'lucide-react';
-import { labTestMaster } from '../medicalMaster';
+import { labTestMaster } from '../../medicalMaster';
 
 export default function Orders({ user, onComplete }) {
   const [labVisits, setLabVisits] = useState([]);

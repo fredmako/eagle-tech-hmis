@@ -1,5 +1,5 @@
 import { Activity } from 'lucide-react';
-import { Reveal } from '../motion/Reveal';
+import { Reveal } from '../../ui/Reveal';
 
 export function Footer() {
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../../supabaseClient';
 import { CreditCard, DollarSign, Printer, CheckCircle, AlertCircle, Eye } from 'lucide-react';
 
 export default function Billing({ user, onComplete }) {

@@ -1,8 +1,8 @@
 import { motion } from 'motion/react';
 import { ArrowRight, Calendar, CheckCircle2 } from 'lucide-react';
-import { Reveal } from '../motion/Reveal';
-import { Stagger, StaggerItem } from '../motion/Stagger';
-import { SafeImage } from '../SafeImage';
+import { Reveal } from '../../ui/Reveal';
+import { Stagger, StaggerItem } from '../../ui/Stagger';
+import { SafeImage } from '../../ui/SafeImage';
 import { PHOTO_ABOUT, PHOTO_ABOUT_SECONDARY, onboardingSteps, trustBadges } from '../data';
 
 export function About({ onRegister }) {

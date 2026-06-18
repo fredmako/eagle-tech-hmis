@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../supabaseClient";
+import { supabase } from "../../supabaseClient";
 import {
   Activity,
   ShieldAlert,
@@ -8,7 +8,9 @@ import {
   FileText,
   ClipboardList,
 } from "lucide-react";
-import { diseaseMaster, medicineMaster, labTestMaster, radiologyTestMaster, surgicalProcedureMaster } from "../medicalMaster";
+import { diseaseMaster, medicineMaster, labTestMaster, radiologyTestMaster, surgicalProcedureMaster } from "../../medicalMaster";
+import { parsePatientContact } from "../../notificationService";
+import { Heart, MapPin } from "lucide-react";
 
 export default function Consultation({ user, onComplete }) {
   const [queue, setQueue] = useState([]);
@@ -34,6 +36,15 @@ export default function Consultation({ user, onComplete }) {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
+
+  // MOH & AfyaLink validation states
+  const [showMOHModal, setShowMOHModal] = useState(false);
+  const [mohVillage, setMohVillage] = useState("");
+  const [mohTemp, setMohTemp] = useState("");
+  const [mohWeight, setMohWeight] = useState("");
+  const [mohSystolic, setMohSystolic] = useState("");
+  const [mohDiastolic, setMohDiastolic] = useState("");
+  const [mohConfirmed, setMohConfirmed] = useState(false);
 
   const patientAge = selectedVisit?.patient ? getPatientAge(selectedVisit.patient.dob) : 0;
   const patientGender = selectedVisit?.patient?.gender || "unknown";
@@ -187,14 +198,86 @@ export default function Consultation({ user, onComplete }) {
     setPrescriptions(updated);
   };
 
+  const handleSubmitClick = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!selectedVisit) return;
+
+    // Check if diagnosis is selected
+    if (!diagnosis) {
+      setMessage({ type: "error", text: "Please select an ICD-10 Diagnosis first." });
+      return;
+    }
+    // Check if history (HPI) is provided
+    if (!history.trim()) {
+      setMessage({ type: "error", text: "Please provide the History of Presenting Illness (HPI) notes." });
+      return;
+    }
+    // Check if physical exam is provided
+    if (!exam.trim()) {
+      setMessage({ type: "error", text: "Please enter the Physical Examination notes." });
+      return;
+    }
+
+    const contactInfo = selectedVisit.patient ? parsePatientContact(selectedVisit.patient.phone) : {};
+    setMohVillage(contactInfo.village || "");
+    setMohTemp(triageData?.temperature || "");
+    setMohWeight(triageData?.weight || "");
+    setMohSystolic(triageData?.systolic || "");
+    setMohDiastolic(triageData?.diastolic || "");
+    setMohConfirmed(false);
+    setShowMOHModal(true);
+  };
+
+  const saveMOHRecords = async () => {
+    try {
+      // Save village to patient phone meta
+      const contactInfo = selectedVisit.patient ? parsePatientContact(selectedVisit.patient.phone) : {};
+      if (mohVillage !== contactInfo.village) {
+        const updatedPhone = JSON.stringify({
+          ...contactInfo,
+          village: mohVillage
+        });
+        await supabase.from('patients').update({ phone: updatedPhone }).eq('id', selectedVisit.patient_id);
+      }
+
+      // Save vitals
+      if (triageData) {
+        await supabase.from('triages').update({
+          temperature: parseFloat(mohTemp) || triageData.temperature,
+          weight: parseFloat(mohWeight) || triageData.weight,
+          systolic: parseInt(mohSystolic) || triageData.systolic,
+          diastolic: parseInt(mohDiastolic) || triageData.diastolic
+        }).eq('id', triageData.id);
+      } else {
+        const triageId = 'tr_' + Math.random().toString(36).substring(2, 11);
+        await supabase.from('triages').insert({
+          id: triageId,
+          facility_id: user.facility_id,
+          visit_id: selectedVisit.id,
+          temperature: parseFloat(mohTemp) || null,
+          weight: parseFloat(mohWeight) || null,
+          systolic: parseInt(mohSystolic) || null,
+          diastolic: parseInt(mohDiastolic) || null,
+          chief_complaint: history || "Outpatient Encounter",
+          priority_flag: "green"
+        });
+      }
+    } catch (err) {
+      console.error('[MOH Record Save Error]', err);
+    }
+  };
+
   const handleSaveConsultation = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!selectedVisit) return;
 
     setLoading(true);
     setMessage({ type: "", text: "" });
 
     try {
+      // 0. Save validated MOH details
+      await saveMOHRecords();
+
       // 1. Insert Consultation Notes
       const consultRecord = {
         visit_id: selectedVisit.id,
@@ -355,6 +438,36 @@ export default function Consultation({ user, onComplete }) {
           amount_paid: 0.0,
           status: "unpaid",
         });
+      }
+
+      // 6. Submit to AfyaLink automatically
+      try {
+        const token = localStorage.getItem('egesa_health_token');
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        await fetch(`${apiBase}/afyalink/submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            visit_id: selectedVisit.id,
+            patient_id: selectedVisit.patient_id,
+            patient_name: selectedVisit.patient?.name,
+            patient_code: selectedVisit.patient?.facility_id_code,
+            diagnosis_code: diagnosis ? diagnosis.split('(')[1]?.replace(')', '') : 'A00',
+            diagnosis_name: diagnosis ? diagnosis.split(' (')[0] : 'Consultation Encounter',
+            encounter_class: 'AMB',
+            vitals: {
+              temperature: mohTemp || triageData?.temperature,
+              weight: mohWeight || triageData?.weight,
+              systolic: mohSystolic || triageData?.systolic,
+              diastolic: mohDiastolic || triageData?.diastolic
+            }
+          })
+        });
+      } catch (afyaErr) {
+        console.error('[AfyaLink Sync Trigger Failed]', afyaErr);
       }
 
       setMessage({
@@ -647,7 +760,7 @@ export default function Consultation({ user, onComplete }) {
             )}
             </div>
 
-            <form onSubmit={handleSaveConsultation} className="space-y-6">
+            <form onSubmit={handleSubmitClick} className="space-y-6">
               {/* SOAP Text Area Notes */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -1039,6 +1152,169 @@ export default function Consultation({ user, onComplete }) {
             </form>
           </div>
         )}
+      {/* MOH RECORD COMPLETION VERIFICATION MODAL */}
+      {showMOHModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 shadow-2xl space-y-5 flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-880 shrink-0">
+              <div>
+                <h3 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                  <Activity size={16} className="text-teal-400" /> Ministry of Health (MOH) Sync Verification
+                </h3>
+                <p className="text-[10px] text-slate-500 mt-0.5">Kenya Health Information Exchange (HIE) Compliance check</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setShowMOHModal(false)}
+                className="text-slate-400 hover:text-slate-200 font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-1 space-y-4 text-xs">
+              <div className="bg-slate-950/50 border border-slate-850 p-3.5 rounded-xl space-y-2">
+                <span className="font-bold text-slate-350 block uppercase text-[9px] tracking-wider mb-1">Verify Patient Demographics</span>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div><span className="text-slate-505">Name:</span> <span className="text-slate-300 font-bold">{selectedVisit.patient?.name}</span></div>
+                  <div><span className="text-slate-505">Gender:</span> <span className="text-slate-300 font-bold uppercase">{selectedVisit.patient?.gender}</span></div>
+                  <div><span className="text-slate-505">Age:</span> <span className="text-slate-300 font-bold">{patientAge} years</span></div>
+                  <div><span className="text-slate-505">Diagnosis:</span> <span className="text-teal-450 font-bold">{diagnosis.split(' (')[0]}</span></div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <span className="font-bold text-slate-350 block uppercase text-[9px] tracking-wider">Required MOH Compliance Fields</span>
+
+                {/* Village field */}
+                <div className="bg-slate-950/20 border border-slate-850/80 p-3 rounded-lg flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-300 flex items-center gap-1">
+                      <MapPin size={11} className="text-slate-500" /> Patient Village / Residence *
+                    </label>
+                    {mohVillage ? (
+                      <span className="text-[9px] font-bold text-green-400 bg-green-500/10 px-1.5 py-0.2 rounded">✓ Captured</span>
+                    ) : (
+                      <span className="text-[9px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.2 rounded">⚠️ Missing</span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={mohVillage}
+                    onChange={(e) => setMohVillage(e.target.value)}
+                    placeholder="e.g. Kawangware / Riruta"
+                    className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                    required
+                  />
+                </div>
+
+                {/* Vital signs checks */}
+                <div className="bg-slate-950/20 border border-slate-850/80 p-3 rounded-lg space-y-3">
+                  <span className="font-bold text-slate-355 block uppercase text-[8px] tracking-wider">Triage & Vital Signs Parameters</span>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Temperature */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-slate-400">Temperature (°C) *</span>
+                        {mohTemp ? <span className="text-green-400 font-bold">✓</span> : <span className="text-red-400 font-bold">⚠️</span>}
+                      </div>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={mohTemp}
+                        onChange={(e) => setMohTemp(e.target.value)}
+                        placeholder="e.g. 37.0"
+                        className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                        required
+                      />
+                    </div>
+
+                    {/* Weight */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-slate-400">Weight (kg) *</span>
+                        {mohWeight ? <span className="text-green-400 font-bold">✓</span> : <span className="text-red-400 font-bold">⚠️</span>}
+                      </div>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={mohWeight}
+                        onChange={(e) => setMohWeight(e.target.value)}
+                        placeholder="e.g. 70.0"
+                        className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* BP for Adults */}
+
+
+                  {patientAge >= 18 && (
+                    <div className="space-y-1.5 border-t border-slate-850/60 pt-2.5">
+                      <div className="flex justify-between text-[10px] font-sans">
+                        <span className="text-slate-400 font-bold">Blood Pressure (Required for Adults &gt;= 18 yrs) *</span>
+                        {(mohSystolic && mohDiastolic) ? <span className="text-green-400 font-bold">✓</span> : <span className="text-red-400 font-bold">⚠️</span>}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="number"
+                          value={mohSystolic}
+                          onChange={(e) => setMohSystolic(e.target.value)}
+                          placeholder="Systolic (e.g. 120)"
+                          className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                          required
+                        />
+                        <input
+                          type="number"
+                          value={mohDiastolic}
+                          onChange={(e) => setMohDiastolic(e.target.value)}
+                          placeholder="Diastolic (e.g. 80)"
+                          className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Confirmation checkbox */}
+              <div className="flex items-start gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="confirmMOH"
+                  checked={mohConfirmed}
+                  onChange={(e) => setMohConfirmed(e.target.checked)}
+                  className="accent-teal-500 h-4 w-4 bg-slate-950 border-slate-800 rounded text-teal-500 cursor-pointer mt-0.5"
+                />
+                <label htmlFor="confirmMOH" className="text-[11px] text-slate-400 leading-normal cursor-pointer select-none">
+                  I confirm that all Ministry of Health (MOH) data fields are fully captured and verified for this outpatient encounter.
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowMOHModal(false)}
+                className="px-4 py-2 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-350 rounded-lg text-xs font-bold transition"
+              >
+                Cancel & Edit
+              </button>
+              <button
+                type="button"
+                disabled={!mohConfirmed || !mohVillage || !mohTemp || !mohWeight || (patientAge >= 18 && (!mohSystolic || !mohDiastolic))}
+                onClick={() => handleSaveConsultation()}
+                className="px-5 py-2 bg-teal-500 hover:bg-teal-600 disabled:opacity-40 text-slate-950 font-black rounded-lg text-xs transition active:scale-[0.98]"
+              >
+                Verify & Complete Patient Lifecycle
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

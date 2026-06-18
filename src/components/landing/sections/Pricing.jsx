@@ -1,8 +1,8 @@
 import { motion } from 'motion/react';
 import { CheckCircle2, CreditCard } from 'lucide-react';
-import { Reveal } from '../motion/Reveal';
-import { Stagger, StaggerItem } from '../motion/Stagger';
-import { SafeImage } from '../SafeImage';
+import { Reveal } from '../../ui/Reveal';
+import { Stagger, StaggerItem } from '../../ui/Stagger';
+import { SafeImage } from '../../ui/SafeImage';
 import { budgetItems, PHOTO_PRICING_BAND } from '../data';
 
 export function Pricing() {

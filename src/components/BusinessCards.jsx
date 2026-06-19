@@ -11,8 +11,9 @@ import {
 import { motion } from "motion/react";
 
 const contacts = [
-  { icon: Phone, label: "+254 700 000 000", tone: "text-teal-300" },
-  { icon: Mail, label: "info@eagletechhmis.com", tone: "text-cyan-300" },
+  { icon: Phone, label: "+254 702 423 889", tone: "text-teal-300" },
+  { icon: Phone, label: "+254 746 081 588", tone: "text-teal-300" },
+  { icon: Mail, label: "info@eagletechsolutions.tech", tone: "text-cyan-300" },
   { icon: Globe, label: "eagletechhmis.com", tone: "text-sky-300" },
   { icon: MapPin, label: "Nairobi, Kenya", tone: "text-indigo-300" },
 ];
@@ -62,10 +63,13 @@ function BusinessCardFront() {
                 Name
               </p>
               <h2 className="font-serif text-2xl leading-none text-white">
-                Your Name
+                Fredrick Makori
               </h2>
               <p className="mt-1 text-xs uppercase tracking-[0.28em] text-teal-300 font-semibold">
-                Your Role
+                CEO, Eagle Tech Solutions
+              </p>
+              <p className="mt-1 text-[10px] uppercase tracking-[0.28em] text-slate-400 font-semibold">
+                Software Developer
               </p>
             </div>
             <p className="text-[11px] leading-relaxed text-slate-300 max-w-[18ch]">
@@ -140,8 +144,9 @@ function BusinessCardBack() {
               Reach us
             </div>
             <div className="space-y-1 text-slate-200">
-              <div>+254 700 000 000</div>
-              <div>info@eagletechhmis.com</div>
+              <div>+254 702 423 889</div>
+              <div>+254 746 081 588</div>
+              <div>info@eagletechsolutions.tech</div>
               <div>eagletechhmis.com</div>
             </div>
           </div>

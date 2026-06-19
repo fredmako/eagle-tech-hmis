@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./context/AuthContext";
 import Login from "./components/Login";
@@ -18,6 +18,7 @@ import Radiology from "./components/clinical/Radiology";
 import Surgery from "./components/clinical/Surgery";
 import SaaSOnboarding from "./components/SaaSOnboarding";
 import LandingPage from "./components/LandingPage";
+import BusinessCards from "./components/BusinessCards";
 import Preferences from "./components/Preferences";
 import AuthCallback from "./components/AuthCallback";
 import translations from "./translations";
@@ -59,6 +60,8 @@ export default function App() {
       window.location.hash.includes("access_token")
     )
       return "callback";
+    if (typeof window !== "undefined" && window.location.hash === "#cards")
+      return "cards";
     return "landing";
   });
 
@@ -73,18 +76,25 @@ export default function App() {
   );
 
   useEffect(() => {
-    if (user && user.role === "super_admin") {
-      const params = new URLSearchParams(window.location.search);
-      const action = params.get("action");
-      const facId = params.get("facility_id");
-
-      if (action && facId) {
-        handleUrlAction(action, facId);
+    const syncPublicViewFromHash = () => {
+      if (window.location.hash.includes("access_token")) {
+        setPublicView("callback");
+        return;
       }
-    }
-  }, [user]);
+      if (window.location.hash === "#cards") {
+        setPublicView("cards");
+        return;
+      }
+      setPublicView("landing");
+    };
 
-  const handleUrlAction = async (action, facId) => {
+    syncPublicViewFromHash();
+    window.addEventListener("hashchange", syncPublicViewFromHash);
+
+    return () => window.removeEventListener("hashchange", syncPublicViewFromHash);
+  }, []);
+
+  const handleUrlAction = useCallback(async (action, facId) => {
     // Clear URL parameters immediately to avoid repeat execution on refresh
     window.history.replaceState({}, document.title, window.location.pathname);
 
@@ -134,7 +144,19 @@ export default function App() {
       console.error("[App URL Action] Failed:", err);
       alert(`Action failed: ${err.message}`);
     }
-  };
+  }, [checkSession, user]);
+
+  useEffect(() => {
+    if (user && user.role === "super_admin") {
+      const params = new URLSearchParams(window.location.search);
+      const action = params.get("action");
+      const facId = params.get("facility_id");
+
+      if (action && facId) {
+        handleUrlAction(action, facId);
+      }
+    }
+  }, [user, handleUrlAction]);
 
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme);
@@ -265,13 +287,21 @@ export default function App() {
             onNavigateToLanding={() => setPublicView("landing")}
           />
         );
+      if (publicView === "cards")
       return (
-        <LandingPage
+        <BusinessCards
+          onBackToLanding={() => setPublicView("landing")}
           onNavigateToLogin={() => setPublicView("login")}
-          onNavigateToSignup={() => setPublicView("signup")}
-          theme={theme}
-          onToggleTheme={toggleLightDark}
         />
+      );
+      return (
+      <LandingPage
+        onNavigateToLogin={() => setPublicView("login")}
+        onNavigateToSignup={() => setPublicView("signup")}
+        onNavigateToCards={() => setPublicView("cards")}
+        theme={theme}
+        onToggleTheme={toggleLightDark}
+      />
       );
     })();
     return (

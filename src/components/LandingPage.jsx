@@ -8,7 +8,13 @@ import { About } from './landing/sections/About';
 import { Footer } from './landing/sections/Footer';
 import { ThemeToggle } from './ui/ThemeToggle';
 
-export default function LandingPage({ onNavigateToLogin, onNavigateToSignup, theme, onToggleTheme }) {
+export default function LandingPage({
+  onNavigateToLogin,
+  onNavigateToSignup,
+  onNavigateToCards,
+  theme,
+  onToggleTheme,
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -34,6 +40,11 @@ export default function LandingPage({ onNavigateToLogin, onNavigateToSignup, the
             {onToggleTheme && <ThemeToggle theme={theme} onToggle={onToggleTheme} />}
             <button onClick={onNavigateToLogin} className="text-sm font-semibold text-fg-muted hover:text-fg-strong transition-colors px-3 py-1.5 cursor-pointer">Sign In</button>
             <button onClick={onNavigateToSignup} className="text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg transition-all duration-medium active:scale-[0.97] cursor-pointer">Register Hospital</button>
+            {onNavigateToCards && (
+              <button onClick={onNavigateToCards} className="text-sm font-semibold text-fg-muted hover:text-fg-strong transition-colors px-3 py-1.5 cursor-pointer">
+                Business Cards
+              </button>
+            )}
           </div>
           <div className="md:hidden flex items-center gap-2">
             {onToggleTheme && <ThemeToggle theme={theme} onToggle={onToggleTheme} />}
@@ -49,6 +60,11 @@ export default function LandingPage({ onNavigateToLogin, onNavigateToSignup, the
               <div className="pt-2 flex flex-col gap-2">
                 <button onClick={onNavigateToLogin} className="text-left text-fg-muted hover:text-fg-strong cursor-pointer">Sign In</button>
                 <button onClick={onNavigateToSignup} className="font-bold bg-primary text-primary-foreground px-4 py-2 rounded-lg text-center cursor-pointer">Register Hospital</button>
+                {onNavigateToCards && (
+                  <button onClick={onNavigateToCards} className="text-left text-fg-muted hover:text-fg-strong cursor-pointer">
+                    Business Cards
+                  </button>
+                )}
               </div>
             </div>
           </div>

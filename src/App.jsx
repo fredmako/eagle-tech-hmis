@@ -185,7 +185,7 @@ export default function App() {
     );
   }
 
-  if (user.role === 'super_admin' || (user.email && user.email.toLowerCase().trim() === 'fredrickmakori102@gmail.com')) {
+  if (user.role === 'super_admin') {
     return (
       <div className={`theme-${theme} font-${font} min-h-screen bg-slate-955 text-slate-100`}>
         <SuperAdminDashboard user={user} onSignOut={handleSignOut} />

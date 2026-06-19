@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { sendNotification, getSmtpConfig } from '../notificationService';
 import { Activity, ShieldAlert, CheckCircle, UserPlus, Clock, LogOut, UserCheck, ShieldCheck, Heart } from 'lucide-react';
 
-export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLanding }) {
+export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLanding, tenantFacility }) {
   const { login, signup, logout, submitRoleRequest, resolveTenant, acceptInvite, checkSession } = useAuth();
   const [facilities, setFacilities] = useState([]);
   const [selectedFacility, setSelectedFacility] = useState('');
@@ -892,8 +892,21 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
 
       {/* Header Banner */}
       <div className="flex flex-col items-center mb-6">
-        <img src="/logo.png" alt="Eagle Tech Logo" className="h-28 object-contain" />
-        <span className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-2">HMIS SOFTWARE SOLUTIONS</span>
+        {tenantFacility ? (
+          <>
+            {tenantFacility.logo_url ? (
+              <img src={tenantFacility.logo_url} alt={tenantFacility.name} className="h-28 object-contain" />
+            ) : (
+              <h1 className="text-4xl font-serif text-slate-100">{tenantFacility.name}</h1>
+            )}
+            <span className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-2">POWERED BY EAGLE TECH</span>
+          </>
+        ) : (
+          <>
+            <img src="/logo.png" alt="Eagle Tech Logo" className="h-28 object-contain" />
+            <span className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-2">HMIS SOFTWARE SOLUTIONS</span>
+          </>
+        )}
       </div>
 
       <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
@@ -1463,6 +1476,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
 
         {/* SaaS Hospital Registration Link */}
         <div className="mt-4 text-center">
+          {!tenantFacility && (
           <button
             type="button"
             onClick={onNavigateToSaaS}
@@ -1470,6 +1484,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
           >
             Need Eagle Tech Hospital Management Systems for your hospital? <span className="text-teal-400 font-bold hover:underline">Register here</span>
           </button>
+          )}
         </div>
 
 

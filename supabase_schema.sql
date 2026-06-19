@@ -9,6 +9,12 @@ CREATE TABLE IF NOT EXISTS public.facilities (
     code text NOT NULL,
     logo_url text,
     address text,
+    subdomain text UNIQUE,
+    custom_domain text UNIQUE,
+    theme_config jsonb,
+    landing_page_content jsonb,
+    contact_details jsonb,
+    favicon_url text,
     created_at timestamp with time zone DEFAULT now()
 );
 
@@ -177,3 +183,29 @@ VALUES
 ('u6', 'Cashier Mary', 'cashier', 'f1', 'cashier@egesa.com'),
 ('u7', 'Admin Grace', 'admin', 'f1', 'admin@egesa.com')
 ON CONFLICT (id) DO NOTHING;
+
+-- ====================================================
+-- ALTER EXISTING TABLES (for branding)
+-- ====================================================
+DO $$
+BEGIN
+    BEGIN
+        ALTER TABLE public.facilities ADD COLUMN subdomain text UNIQUE;
+    EXCEPTION WHEN duplicate_column THEN END;
+    BEGIN
+        ALTER TABLE public.facilities ADD COLUMN custom_domain text UNIQUE;
+    EXCEPTION WHEN duplicate_column THEN END;
+    BEGIN
+        ALTER TABLE public.facilities ADD COLUMN theme_config jsonb;
+    EXCEPTION WHEN duplicate_column THEN END;
+    BEGIN
+        ALTER TABLE public.facilities ADD COLUMN landing_page_content jsonb;
+    EXCEPTION WHEN duplicate_column THEN END;
+    BEGIN
+        ALTER TABLE public.facilities ADD COLUMN contact_details jsonb;
+    EXCEPTION WHEN duplicate_column THEN END;
+    BEGIN
+        ALTER TABLE public.facilities ADD COLUMN favicon_url text;
+    EXCEPTION WHEN duplicate_column THEN END;
+END $$;
+

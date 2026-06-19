@@ -18,6 +18,7 @@ import Radiology from "./components/clinical/Radiology";
 import Surgery from "./components/clinical/Surgery";
 import SaaSOnboarding from "./components/SaaSOnboarding";
 import LandingPage from "./components/LandingPage";
+import TenantLandingPage from "./components/TenantLandingPage";
 import BusinessCards from "./components/BusinessCards";
 import Preferences from "./components/Preferences";
 import AuthCallback from "./components/AuthCallback";
@@ -54,6 +55,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [preselectedPatient, setPreselectedPatient] = useState(null);
+  const [tenantFacility, setTenantFacility] = useState(null);
+  const [tenantLoading, setTenantLoading] = useState(true);
+
   const [publicView, setPublicView] = useState(() => {
     if (
       typeof window !== "undefined" &&
@@ -74,6 +78,36 @@ export default function App() {
   const [font, setFont] = useState(
     () => localStorage.getItem("egesa_font") || "sans",
   );
+
+  useEffect(() => {
+    const checkTenant = async () => {
+      try {
+        const hostname = window.location.hostname;
+        // Ignore localhost, 127.0.0.1, or main domain if we know it (e.g. eagle-hmis.com)
+        // For simplicity, we just query if hostname matches any custom_domain or subdomain
+        let subdomain = hostname.split('.')[0];
+        if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+          setTenantLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('facilities')
+          .select('*')
+          .or(`custom_domain.eq.${hostname},subdomain.eq.${subdomain}`)
+          .single();
+
+        if (data) {
+          setTenantFacility(data);
+        }
+      } catch (err) {
+        console.error("Error fetching tenant", err);
+      } finally {
+        setTenantLoading(false);
+      }
+    };
+    checkTenant();
+  }, []);
 
   useEffect(() => {
     const syncPublicViewFromHash = () => {
@@ -233,7 +267,7 @@ export default function App() {
   };
   const clearPreselected = () => setPreselectedPatient(null);
 
-  if (loading) {
+  if (loading || tenantLoading) {
     return (
       <div
         className={`theme-${theme} font-${font} min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 font-['DM_Sans',system-ui,sans-serif]`}
@@ -285,6 +319,7 @@ export default function App() {
             onLoginSuccess={handleLoginSuccess}
             onNavigateToSaaS={() => setPublicView("signup")}
             onNavigateToLanding={() => setPublicView("landing")}
+            tenantFacility={tenantFacility}
           />
         );
       if (publicView === "cards")
@@ -294,6 +329,14 @@ export default function App() {
           onNavigateToLogin={() => setPublicView("login")}
         />
       );
+      if (tenantFacility) {
+        return (
+          <TenantLandingPage
+            facility={tenantFacility}
+            onNavigateToLogin={() => setPublicView("login")}
+          />
+        );
+      }
       return (
       <LandingPage
         onNavigateToLogin={() => setPublicView("login")}

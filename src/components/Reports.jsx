@@ -272,8 +272,9 @@ export default function Reports({ user }) {
 
   const checkReportAccess = (reportId) => {
     if (!user || !user.role) return false;
-    if (user.role === 'admin') return true;
-    return reportPermissions[reportId]?.includes(user.role) || false;
+    const rolesList = user.role.split(',').map(r => r.trim().toLowerCase());
+    if (rolesList.includes('admin')) return true;
+    return reportPermissions[reportId]?.some(r => rolesList.includes(r)) || false;
   };
 
   const getFilteredData = () => {

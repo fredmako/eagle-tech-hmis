@@ -116,22 +116,43 @@ export default function RoleRequestForm({
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-              Requested Operational Role
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+              Requested Operational Roles (Select one or more)
             </label>
-            <select
-              value={requestRole}
-              onChange={(e) => setRequestRole(e.target.value)}
-              className="w-full bg-slate-955 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 text-xs focus:outline-none focus:border-teal-500 transition"
-            >
-              <option value="receptionist">Receptionist</option>
-              <option value="nurse">Triage Nurse</option>
-              <option value="clinician">Clinician (Doctor)</option>
-              <option value="lab_tech">Lab Technician</option>
-              <option value="pharmacist">Pharmacist</option>
-              <option value="cashier">Billing Cashier</option>
-              <option value="reporting_officer">Reporting Officer</option>
-            </select>
+            <div className="grid grid-cols-2 gap-3 bg-slate-950 border border-slate-850 p-4 rounded-lg">
+              {[
+                { id: 'receptionist', label: 'Receptionist' },
+                { id: 'nurse', label: 'Triage Nurse' },
+                { id: 'clinician', label: 'Clinician (Doctor)' },
+                { id: 'lab_tech', label: 'Lab Technician' },
+                { id: 'pharmacist', label: 'Pharmacist' },
+                { id: 'cashier', label: 'Billing Cashier' },
+                { id: 'reporting_officer', label: 'Reporting Officer' }
+              ].map(role => {
+                const isChecked = Array.isArray(requestRole) ? requestRole.includes(role.id) : requestRole === role.id;
+                return (
+                  <label key={role.id} className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        let newRoles = Array.isArray(requestRole) ? [...requestRole] : [requestRole];
+                        if (checked) {
+                          if (!newRoles.includes(role.id)) newRoles.push(role.id);
+                        } else {
+                          newRoles = newRoles.filter(r => r !== role.id);
+                        }
+                        if (newRoles.length === 0) newRoles = [role.id];
+                        setRequestRole(newRoles);
+                      }}
+                      className="rounded border-slate-800 bg-slate-955 text-teal-500 focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer"
+                    />
+                    <span>{role.label}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
 
           <button

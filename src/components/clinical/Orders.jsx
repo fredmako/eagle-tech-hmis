@@ -589,7 +589,8 @@ export default function Orders({ user, onComplete }) {
               <div className="space-y-4">
                 {pendingOrders.map((ord) => {
                   const meta = parseOrderMeta(ord.results);
-                  const isSeniorVerifier = user.role === 'admin' || user.role === 'clinician';
+                  const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
+                  const isSeniorVerifier = rolesList.includes('admin') || rolesList.includes('clinician');
                   
                   return (
                     <div key={ord.id} className="bg-slate-950 border border-slate-850 p-4 rounded-xl space-y-4">

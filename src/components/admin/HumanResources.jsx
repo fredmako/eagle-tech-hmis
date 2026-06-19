@@ -23,7 +23,8 @@ export default function HumanResources({
 }) {
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffEmail, setNewStaffEmail] = useState('');
-  const [newStaffRole, setNewStaffRole] = useState('nurse');
+  const [newStaffRole, setNewStaffRole] = useState(['nurse']);
+  const [editingRolesProfileId, setEditingRolesProfileId] = useState(null);
   const [newStaffDept, setNewStaffDept] = useState('general');
   const [actionLoading, setActionLoading] = useState(null); // stores user ID during action
   const [loading, setLoading] = useState(false);
@@ -42,10 +43,11 @@ export default function HumanResources({
       // 1. Create a mock user ID for direct registration in sandbox or Supabase profiles table
       const profileId = 'u_dir_' + Math.random().toString(36).substring(2, 12);
       
+      const rolesString = Array.isArray(newStaffRole) ? newStaffRole.join(',') : newStaffRole;
       const { error: profileErr } = await supabase.from('profiles').insert({
         id: profileId,
         full_name: newStaffName,
-        role: newStaffRole,
+        role: rolesString,
         facility_id: user.facility_id,
         email: newStaffEmail,
         department: newStaffDept
@@ -58,7 +60,7 @@ export default function HumanResources({
         facility_id: user.facility_id,
         user_id: user.id,
         action: 'Direct HR Registration',
-        details: `Directly registered staff profile ${newStaffName} (${newStaffRole}) under email ${newStaffEmail}.`
+        details: `Directly registered staff profile ${newStaffName} (${Array.isArray(newStaffRole) ? newStaffRole.join(', ') : newStaffRole}) under email ${newStaffEmail}.`
       });
 
       setMessage({ type: 'success', text: `Staff profile for ${newStaffName} has been successfully registered directly!` });
@@ -132,8 +134,12 @@ export default function HumanResources({
 
   // Stats calculation
   const totalStaff = profiles.length;
-  const adminStaff = profiles.filter(p => p.role === 'admin').length;
-  const clinicalStaff = profiles.filter(p => ['clinician', 'nurse', 'lab_tech', 'pharmacist'].includes(p.role)).length;
+  const adminStaff = profiles.filter(p => p.role && p.role.split(',').map(r => r.trim().toLowerCase()).includes('admin')).length;
+  const clinicalStaff = profiles.filter(p => {
+    if (!p.role) return false;
+    const rolesList = p.role.split(',').map(r => r.trim().toLowerCase());
+    return ['clinician', 'nurse', 'lab_tech', 'pharmacist'].some(r => rolesList.includes(r));
+  }).length;
 
   return (
     <div className="space-y-6">
@@ -273,21 +279,62 @@ export default function HumanResources({
                     <td className="py-3 px-3 text-slate-400 font-mono text-[10px] truncate max-w-[150px]" title={prof.email}>
                       {prof.email}
                     </td>
-                    <td className="py-3 px-3">
-                      <select
-                        value={prof.role}
-                        disabled={actionLoading === prof.id}
-                        onChange={(e) => handleChangeRole(prof.id, e.target.value)}
-                        className="bg-slate-900 border border-slate-800 hover:border-slate-750 text-[10px] text-slate-300 font-bold py-1 px-2 rounded cursor-pointer transition focus:border-teal-500"
-                      >
-                        <option value="admin">Administrator</option>
-                        <option value="clinician">Clinician (OPD)</option>
-                        <option value="nurse">Triage Nurse</option>
-                        <option value="lab_tech">Lab Technician</option>
-                        <option value="pharmacist">Pharmacist</option>
-                        <option value="cashier">Cashier</option>
-                        <option value="receptionist">Receptionist</option>
-                      </select>
+                    <td className="py-3 px-3 relative">
+                      <div className="flex items-center gap-1.5 justify-between">
+                        <div className="flex flex-wrap gap-1 max-w-[130px]">
+                          {(prof.role || '').split(',').map(r => r.trim()).filter(Boolean).map(r => (
+                            <span key={r} className="bg-teal-500/10 text-teal-400 border border-teal-500/15 px-1.5 py-0.5 rounded text-[8px] uppercase font-bold font-mono">
+                              {r === 'lab_tech' ? 'lab tech' : r === 'reporting_officer' ? 'reporting' : r}
+                            </span>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => setEditingRolesProfileId(editingRolesProfileId === prof.id ? null : prof.id)}
+                          className="text-slate-400 hover:text-slate-200 p-1 rounded bg-slate-900 border border-slate-800 transition cursor-pointer shrink-0"
+                          title="Manage staff roles"
+                        >
+                          <Sliders size={10} />
+                        </button>
+                      </div>
+                      
+                      {editingRolesProfileId === prof.id && (
+                        <div className="absolute z-30 left-0 mt-1 p-3 bg-slate-950 border border-slate-800 rounded-lg shadow-xl grid grid-cols-1 gap-2 min-w-[160px]">
+                          {[
+                            { id: 'receptionist', label: 'Receptionist' },
+                            { id: 'nurse', label: 'Triage Nurse' },
+                            { id: 'clinician', label: 'Clinician (Doctor)' },
+                            { id: 'lab_tech', label: 'Lab Technician' },
+                            { id: 'pharmacist', label: 'Pharmacist' },
+                            { id: 'cashier', label: 'Billing Cashier' },
+                            { id: 'admin', label: 'Administrator' }
+                          ].map(role => {
+                            const rolesList = (prof.role || '').split(',').map(r => r.trim());
+                            const isChecked = rolesList.includes(role.id);
+                            return (
+                              <label key={role.id} className="flex items-center gap-2 text-[10px] font-bold text-slate-300 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={async (e) => {
+                                    const checked = e.target.checked;
+                                    let newRoles = [...rolesList];
+                                    if (checked) {
+                                      if (!newRoles.includes(role.id)) newRoles.push(role.id);
+                                    } else {
+                                      newRoles = newRoles.filter(r => r !== role.id);
+                                    }
+                                    if (newRoles.length === 0) newRoles = [role.id];
+                                    const rolesString = newRoles.join(',');
+                                    await handleChangeRole(prof.id, rolesString);
+                                  }}
+                                  className="rounded border-slate-800 bg-slate-900 text-teal-500 focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer"
+                                />
+                                <span>{role.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 px-3 text-center">
                       <button
@@ -338,22 +385,43 @@ export default function HumanResources({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Portal Role</label>
-                <select
-                  value={newStaffRole}
-                  onChange={(e) => setNewStaffRole(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-300 font-bold focus:border-teal-500 transition cursor-pointer"
-                >
-                  <option value="clinician">Clinician</option>
-                  <option value="nurse">Nurse</option>
-                  <option value="lab_tech">Lab Tech</option>
-                  <option value="pharmacist">Pharmacist</option>
-                  <option value="cashier">Cashier</option>
-                  <option value="receptionist">Receptionist</option>
-                  <option value="admin">Admin</option>
-                </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="md:col-span-2">
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Portal Roles (Select one or more)</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-950 border border-slate-850 p-3 rounded-lg">
+                  {[
+                    { id: 'receptionist', label: 'Receptionist' },
+                    { id: 'nurse', label: 'Triage Nurse' },
+                    { id: 'clinician', label: 'Clinician (Doctor)' },
+                    { id: 'lab_tech', label: 'Lab Technician' },
+                    { id: 'pharmacist', label: 'Pharmacist' },
+                    { id: 'cashier', label: 'Billing Cashier' },
+                    { id: 'admin', label: 'Administrator' }
+                  ].map(role => {
+                    const isChecked = Array.isArray(newStaffRole) ? newStaffRole.includes(role.id) : newStaffRole === role.id;
+                    return (
+                      <label key={role.id} className="flex items-center gap-2 text-[10px] font-bold text-slate-300 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            let newRoles = Array.isArray(newStaffRole) ? [...newStaffRole] : [newStaffRole];
+                            if (checked) {
+                              if (!newRoles.includes(role.id)) newRoles.push(role.id);
+                            } else {
+                              newRoles = newRoles.filter(r => r !== role.id);
+                            }
+                            if (newRoles.length === 0) newRoles = [role.id];
+                            setNewStaffRole(newRoles);
+                          }}
+                          className="rounded border-slate-850 bg-slate-900 text-teal-500 focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer"
+                        />
+                        <span>{role.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               <div>

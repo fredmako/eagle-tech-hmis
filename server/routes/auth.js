@@ -1035,16 +1035,29 @@ router.post("/approve-request", authenticateToken, async (req, res) => {
       return res.status(403).json({ error: "Access denied. Request belongs to another facility." });
     }
 
-    // 1. Create Profile
+    // 1. Create or Update Profile
     const profileId =
       request.user_id ||
       "u_prof_" + Math.random().toString(36).substring(2, 10);
-    await db.createDocument("profiles", profileId, {
-      full_name: request.full_name,
-      role: request.requested_role,
-      facility_id: request.facility_id,
-      email: request.email,
-    });
+
+    const existingProfiles = await db.getDocuments("profiles", [
+      { type: "equal", column: "email", value: request.email.toLowerCase().trim() },
+    ]);
+
+    if (existingProfiles && existingProfiles.length > 0) {
+      await db.updateDocument("profiles", existingProfiles[0].id, {
+        full_name: request.full_name,
+        role: request.requested_role,
+        facility_id: request.facility_id,
+      });
+    } else {
+      await db.createDocument("profiles", profileId, {
+        full_name: request.full_name,
+        role: request.requested_role,
+        facility_id: request.facility_id,
+        email: request.email.toLowerCase().trim(),
+      });
+    }
 
     // 2. Update Request Status
     await db.updateDocument("role_requests", request_id, {

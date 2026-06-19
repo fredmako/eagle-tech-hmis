@@ -74,7 +74,7 @@ export default function Admin({ user }) {
   const [invitationsList, setInvitationsList] = useState([]);
   const [invitesLoading, setInvitesLoading] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('nurse');
+  const [inviteRole, setInviteRole] = useState(['nurse']);
   const [inviteDept, setInviteDept] = useState('triage');
   const [inviteMessage, setInviteMessage] = useState({ type: '', text: '' });
   
@@ -222,14 +222,15 @@ export default function Admin({ user }) {
     setInvitesLoading(true);
     setInviteMessage({ type: '', text: '' });
     try {
-      await inviteStaff(inviteEmail.trim(), inviteRole, inviteDept);
+      const rolesString = Array.isArray(inviteRole) ? inviteRole.join(',') : inviteRole;
+      await inviteStaff(inviteEmail.trim(), rolesString, inviteDept);
       setInviteMessage({ type: 'success', text: `Invitation successfully dispatched to ${inviteEmail}!` });
       setInviteEmail('');
       // Log config change in audit logs
       try {
         await supabase.from('audit_logs').insert({
           action: 'Staff Invitation Sent',
-          details: `Invited ${inviteEmail} as ${inviteRole} (${inviteDept} department).`
+          details: `Invited ${inviteEmail} as ${Array.isArray(inviteRole) ? inviteRole.join(', ') : inviteRole} (${inviteDept} department).`
         });
       } catch (logErr) {
         console.error('Failed to write audit log:', logErr);

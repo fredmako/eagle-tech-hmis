@@ -92,7 +92,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
   const [tempUser, setTempUser] = useState(null);
   const [pendingRequest, setPendingRequest] = useState(null);
   const [requestFacility, setRequestFacility] = useState('');
-  const [requestRole, setRequestRole] = useState('receptionist');
+  const [requestRole, setRequestRole] = useState(['receptionist']);
   const [requestName, setRequestName] = useState('');
   const [requestSuccess, setRequestSuccess] = useState('');
   const [facilitySearchQuery, setFacilitySearchQuery] = useState('');
@@ -559,7 +559,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         requestName.trim(),
         tempUser.email,
         requestFacility,
-        requestRole
+        Array.isArray(requestRole) ? requestRole.join(',') : requestRole
       );
 
       setPendingRequest(newRequest);

@@ -100,8 +100,9 @@ export default function Dashboard({ user, onNavigate }) {
   };
   const checkAccess = (tab) => {
     if (!user || !user.role) return false;
-    if (user.role === 'admin') return true;
-    return roleAccess[tab]?.includes(user.role) || false;
+    const rolesList = user.role.split(',').map(r => r.trim().toLowerCase());
+    if (rolesList.includes('admin')) return true;
+    return roleAccess[tab]?.some(r => rolesList.includes(r)) || false;
   };
 
   const cards = [

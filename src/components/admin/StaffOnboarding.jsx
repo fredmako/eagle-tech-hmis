@@ -51,21 +51,43 @@ export default function StaffOnboarding({
             />
           </div>
 
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Operational Role</label>
-            <select
-              value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-            >
-              <option value="receptionist">Receptionist</option>
-              <option value="nurse">Triage Nurse</option>
-              <option value="clinician">Clinician (Doctor)</option>
-              <option value="lab_tech">Lab Technician</option>
-              <option value="pharmacist">Pharmacist</option>
-              <option value="cashier">Billing Cashier</option>
-              <option value="admin">Administrator</option>
-            </select>
+          <div className="md:col-span-3">
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Operational Roles (Select one or more)</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-900 border border-slate-800 p-4 rounded-lg">
+              {[
+                { id: 'receptionist', label: 'Receptionist' },
+                { id: 'nurse', label: 'Triage Nurse' },
+                { id: 'clinician', label: 'Clinician (Doctor)' },
+                { id: 'lab_tech', label: 'Lab Technician' },
+                { id: 'pharmacist', label: 'Pharmacist' },
+                { id: 'cashier', label: 'Billing Cashier' },
+                { id: 'admin', label: 'Administrator' }
+              ].map(role => {
+                const isChecked = Array.isArray(inviteRole) ? inviteRole.includes(role.id) : inviteRole === role.id;
+                return (
+                  <label key={role.id} className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        let newRoles = Array.isArray(inviteRole) ? [...inviteRole] : [inviteRole];
+                        if (checked) {
+                          if (!newRoles.includes(role.id)) newRoles.push(role.id);
+                        } else {
+                          newRoles = newRoles.filter(r => r !== role.id);
+                        }
+                        // Guarantee at least one role is checked
+                        if (newRoles.length === 0) newRoles = [role.id];
+                        setInviteRole(newRoles);
+                      }}
+                      className="rounded border-slate-750 bg-slate-950 text-teal-500 focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer"
+                    />
+                    <span>{role.label}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
 
           <div>

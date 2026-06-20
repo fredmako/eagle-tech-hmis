@@ -370,6 +370,9 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
+    if (user && user.facility_id) {
+      headers['X-Facility-Id'] = user.facility_id;
+    }
     
     const res = await fetch(`${API_URL}${endpoint}`, {
       ...options,

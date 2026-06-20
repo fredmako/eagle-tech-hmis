@@ -452,7 +452,7 @@ router.post("/resolve-tenant", async (req, res) => {
 
 // Admin: Invite Department Staff
 router.post("/invite-staff", authenticateToken, async (req, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "super_admin") {
     return res
       .status(403)
       .json({ error: "Administrative privileges required" });
@@ -463,6 +463,14 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
     return res
       .status(400)
       .json({ error: "Email, role, and department are required" });
+  }
+
+  const facilityId = (req.user.role === "super_admin" && req.headers["x-facility-id"])
+    ? req.headers["x-facility-id"]
+    : req.user.facility_id;
+
+  if (!facilityId) {
+    return res.status(400).json({ error: "Facility ID is required context" });
   }
 
   try {
@@ -507,7 +515,7 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
       "doc_" + Math.random().toString(36).substring(2, 12),
       {
         email: targetEmail,
-        facility_id: req.user.facility_id,
+        facility_id: facilityId,
         role,
         department,
         invited_by: req.user.email,
@@ -519,7 +527,7 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
 
     // Resolve facility details for email template
     const facs = await db.getDocuments("facilities", [
-      { type: "equal", column: "id", value: req.user.facility_id },
+      { type: "equal", column: "id", value: facilityId },
     ]);
     const facility = facs && facs[0];
 
@@ -619,7 +627,7 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
       "audit_logs",
       "log_" + Math.random().toString(36).substring(2, 12),
       {
-        facility_id: req.user.facility_id,
+        facility_id: facilityId,
         user_id: req.user.id,
         action: "STAFF_INVITATION_SENT",
         details: `Admin ${req.user.full_name} invited ${targetEmail} for role ${role.toUpperCase()} in ${department}. Mail sent: ${mailSent}.${errMessage ? ` Error: ${errMessage}` : ""}`,
@@ -787,24 +795,29 @@ router.post("/accept-invite", async (req, res) => {
     });
   } catch (err) {
     console.error("Accept invite error:", err);
-    res
-      .status(500)
-      .json({
-        error: err.message || "Error occurred while accepting invitation",
-      });
+    res.status(500).json({ error: err.message || "Error occurred while accepting invitation" });
   }
 });
 
 // Admin: Get all Invitations for Facility
 router.get("/invitations", authenticateToken, async (req, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "super_admin") {
     return res
       .status(403)
       .json({ error: "Administrative privileges required" });
   }
+
+  const facilityId = (req.user.role === "super_admin" && req.headers["x-facility-id"])
+    ? req.headers["x-facility-id"]
+    : req.user.facility_id;
+
+  if (!facilityId) {
+    return res.status(400).json({ error: "Facility ID is required context" });
+  }
+
   try {
     const invites = await db.getDocuments("invitations", [
-      { type: "equal", column: "facility_id", value: req.user.facility_id },
+      { type: "equal", column: "facility_id", value: facilityId },
     ]);
     res.json({ success: true, invitations: invites });
   } catch (err) {
@@ -815,7 +828,7 @@ router.get("/invitations", authenticateToken, async (req, res) => {
 
 // Admin: Revoke Invitation
 router.post("/revoke-invite", authenticateToken, async (req, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "super_admin") {
     return res
       .status(403)
       .json({ error: "Administrative privileges required" });
@@ -823,6 +836,14 @@ router.post("/revoke-invite", authenticateToken, async (req, res) => {
   const { invite_id } = req.body;
   if (!invite_id) {
     return res.status(400).json({ error: "Invitation ID is required" });
+  }
+
+  const facilityId = (req.user.role === "super_admin" && req.headers["x-facility-id"])
+    ? req.headers["x-facility-id"]
+    : req.user.facility_id;
+
+  if (!facilityId) {
+    return res.status(400).json({ error: "Facility ID is required context" });
   }
 
   try {
@@ -834,7 +855,7 @@ router.post("/revoke-invite", authenticateToken, async (req, res) => {
     if (!invite) {
       return res.status(404).json({ error: "Invitation not found" });
     }
-    if (invite.facility_id !== req.user.facility_id) {
+    if (invite.facility_id !== facilityId) {
       return res.status(403).json({ error: "Unauthorized facility access" });
     }
 
@@ -845,7 +866,7 @@ router.post("/revoke-invite", authenticateToken, async (req, res) => {
       "audit_logs",
       "log_" + Math.random().toString(36).substring(2, 12),
       {
-        facility_id: req.user.facility_id,
+        facility_id: facilityId,
         user_id: req.user.id,
         action: "INVITATION_REVOKED",
         details: `Admin ${req.user.full_name} revoked invitation sent to ${invite.email}.`,
@@ -858,7 +879,6 @@ router.post("/revoke-invite", authenticateToken, async (req, res) => {
     res.status(500).json({ error: err.message || "Error revoking invitation" });
   }
 });
-
 // Get Current Logged-in User
 router.get("/me", authenticateToken, async (req, res) => {
   res.json({ user: req.user });

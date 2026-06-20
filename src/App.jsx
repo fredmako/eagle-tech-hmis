@@ -483,6 +483,16 @@ export default function App() {
     },
   ];
   const visibleMenuItems = menuItems.filter((item) => {
+    if (user.license_tier === "pharmacy") {
+      const allowedPharmacyTabs = [
+        "dashboard",
+        "pharmacy",
+        "billing",
+        "admin",
+        "settings",
+      ];
+      if (!allowedPharmacyTabs.includes(item.id)) return false;
+    }
     const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
     return item.roles.includes("*") || item.roles.some(r => rolesList.includes(r)) || rolesList.includes('admin');
   });

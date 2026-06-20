@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import {
   Users, Hourglass, Activity, ShieldAlert, CheckCircle, RefreshCw, ArrowRight,
+  Pill, DollarSign, Package, ShoppingBag, AlertTriangle, Calendar
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Reveal } from './ui/Reveal';
@@ -122,6 +123,10 @@ export default function Dashboard({ user, onNavigate }) {
     emerald: { border: 'border-emerald-500/25', bg: 'bg-emerald-500/5', text: 'text-emerald-400', hover: 'hover:border-emerald-500/50 hover:bg-emerald-500/10' },
     rose:    { border: 'border-rose-500/25',    bg: 'bg-rose-500/5',    text: 'text-rose-400',    hover: 'hover:border-rose-500/50 hover:bg-rose-500/10' },
   };
+
+  if (user.license_tier === "pharmacy") {
+    return <PharmacyDashboard user={user} onNavigate={onNavigate} />;
+  }
 
   return (
     <div className="space-y-6 font-['DM_Sans',system-ui,sans-serif]">
@@ -269,6 +274,278 @@ export default function Dashboard({ user, onNavigate }) {
               </div>
             )}
           </Stagger>
+        </Reveal>
+      </div>
+    </div>
+  );
+}
+
+function PharmacyDashboard({ user, onNavigate }) {
+  const [pharmStats, setPharmStats] = useState({
+    uniqueItems: 0,
+    totalQty: 0,
+    lowStockCount: 0,
+    expiringCount: 0,
+    todaySales: 0,
+    todaySalesCount: 0,
+    inventoryValue: 0
+  });
+  const [alerts, setAlerts] = useState([]);
+  const [recentSales, setRecentSales] = useState([]);
+
+  useEffect(() => {
+    loadPharmacyData();
+  }, []);
+
+  const loadPharmacyData = async () => {
+    try {
+      // 1. Load inventory from local storage
+      const savedBatchesStr = localStorage.getItem("egesa_pharmacy_batches");
+      let currentBatches = [];
+      if (savedBatchesStr) {
+        currentBatches = JSON.parse(savedBatchesStr);
+      } else {
+        currentBatches = [
+          { name: "Artemether-Lumefantrine (AL)", batch: "AL-B902", stock: 50, expiry: "2026-10-15", price: 120, unit: "doses" },
+          { name: "Paracetamol 500mg", batch: "PARA-L02", stock: 450, expiry: "2026-08-01", price: 5, unit: "tabs" },
+          { name: "Amoxicillin 500mg", batch: "AMOX-B12", stock: 240, expiry: "2026-12-05", price: 15, unit: "tabs" },
+          { name: "Metronidazole 400mg", batch: "MET-K90", stock: 410, expiry: "2027-03-30", price: 10, unit: "tabs" },
+          { name: "ORS + Zinc", batch: "ORS-Z01", stock: 95, expiry: "2026-09-10", price: 40, unit: "sachets" }
+        ];
+      }
+
+      // Group batches by drug name
+      const drugTotals = {};
+      currentBatches.forEach(b => {
+        drugTotals[b.name] = (drugTotals[b.name] || 0) + b.stock;
+      });
+
+      let lowStockCount = 0;
+      const lowStockAlerts = [];
+      Object.entries(drugTotals).forEach(([name, stock]) => {
+        const threshold = name.includes("Paracetamol") || name.includes("Amoxicillin") || name.includes("Metronidazole") ? 150 : 50;
+        if (stock < threshold) {
+          lowStockCount++;
+          lowStockAlerts.push({
+            id: `low_${name}`,
+            type: "warning",
+            message: `Low Stock: ${name} is at ${stock} units (threshold: ${threshold}).`
+          });
+        }
+      });
+
+      // Check expiring batches
+      let expiringCount = 0;
+      const expiryAlerts = [];
+      const today = new Date();
+      const ninetyDaysFromNow = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
+      currentBatches.forEach(b => {
+        const expDate = new Date(b.expiry);
+        if (expDate <= today) {
+          expiringCount++;
+          expiryAlerts.push({
+            id: `exp_past_${b.batch}`,
+            type: "error",
+            message: `EXPIRED: Batch ${b.batch} of ${b.name} expired on ${b.expiry}!`
+          });
+        } else if (expDate <= ninetyDaysFromNow) {
+          expiringCount++;
+          expiryAlerts.push({
+            id: `exp_soon_${b.batch}`,
+            type: "warning",
+            message: `Expiring Soon: Batch ${b.batch} of ${b.name} expires on ${b.expiry}.`
+          });
+        }
+      });
+
+      const uniqueItems = Object.keys(drugTotals).length;
+      const totalQty = currentBatches.reduce((acc, b) => acc + b.stock, 0);
+      
+      const inventoryValue = currentBatches.reduce((acc, b) => {
+        const price = b.price || (b.name.includes("Paracetamol") ? 5 : b.name.includes("Amoxicillin") ? 15 : 20);
+        return acc + (b.stock * price);
+      }, 0);
+
+      // Load today's invoices
+      const { data: invs } = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("facility_id", user.facility_id);
+
+      const todayStr = new Date().toISOString().split("T")[0];
+      const todayInvoices = invs ? invs.filter(i => i.created_at?.startsWith(todayStr)) : [];
+      const todaySales = todayInvoices.reduce((acc, i) => acc + parseFloat(i.total_amount || 0), 0);
+      const todaySalesCount = todayInvoices.length;
+
+      setPharmStats({
+        uniqueItems,
+        totalQty,
+        lowStockCount,
+        expiringCount,
+        todaySales,
+        todaySalesCount,
+        inventoryValue
+      });
+
+      setAlerts([...expiryAlerts, ...lowStockAlerts]);
+
+      const recent = todayInvoices.slice(0, 10).map(i => ({
+        id: i.id,
+        client: i.receipt_number ? `Receipt ${i.receipt_number}` : "Walk-in Customer",
+        amount: parseFloat(i.total_amount || 0),
+        status: i.status,
+        method: i.payment_method || "cash",
+        time: new Date(i.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      }));
+      setRecentSales(recent);
+
+    } catch (err) {
+      console.error("Error loading pharmacy dashboard data:", err);
+    }
+  };
+
+  const cards = [
+    { label: "Total Daily Sales", value: `KES ${pharmStats.todaySales.toLocaleString()}`, accent: "teal", icon: DollarSign, sub: `${pharmStats.todaySalesCount} transactions` },
+    { label: "Total Stock Quantity", value: `${pharmStats.totalQty.toLocaleString()} units`, accent: "emerald", icon: Package, sub: `${pharmStats.uniqueItems} unique drugs` },
+    { label: "Inventory Value", value: `KES ${pharmStats.inventoryValue.toLocaleString()}`, accent: "blue", icon: ShoppingBag, sub: "Based on unit prices" },
+    { label: "Low Stock Drugs", value: `${pharmStats.lowStockCount}`, accent: "orange", icon: AlertTriangle, sub: "Below reorder levels" },
+    { label: "Expiring Batches", value: `${pharmStats.expiringCount}`, accent: "rose", icon: Calendar, sub: "Within 90 days" }
+  ];
+
+  const accentMap = {
+    teal:    { border: 'border-teal-500/25',    bg: 'bg-teal-500/5',    text: 'text-teal-400',    hover: 'hover:border-teal-500/50 hover:bg-teal-500/10' },
+    emerald: { border: 'border-emerald-500/25', bg: 'bg-emerald-500/5', text: 'text-emerald-400', hover: 'hover:border-emerald-500/50 hover:bg-emerald-500/10' },
+    blue:    { border: 'border-blue-500/25',    bg: 'bg-blue-500/5',    text: 'text-blue-400',    hover: 'hover:border-blue-500/50 hover:bg-blue-500/10' },
+    orange:  { border: 'border-orange-500/25',  bg: 'bg-orange-500/5',  text: 'text-orange-400',  hover: 'hover:border-orange-500/50 hover:bg-orange-500/10' },
+    rose:    { border: 'border-rose-500/25',    bg: 'bg-rose-500/5',    text: 'text-rose-400',    hover: 'hover:border-rose-500/50 hover:bg-rose-500/10' },
+  };
+
+  return (
+    <div className="space-y-6 font-['DM_Sans',system-ui,sans-serif]">
+      {/* Welcome banner */}
+      <Reveal className="relative overflow-hidden rounded-2xl border border-teal-500/15 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-900/40">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_85%_50%,rgba(45,212,191,0.08),transparent_60%)]" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6">
+          <div className="space-y-1">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">
+              {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+            </div>
+            <h1 className="font-['Instrument_Serif',serif] text-2xl sm:text-3xl text-slate-100 leading-tight font-normal">
+              Welcome back, <span className="text-teal-400">{user.full_name}</span>
+            </h1>
+            <p className="text-[12px] text-slate-400">
+              <span className="text-slate-300 font-semibold">{user.facility_name}</span>
+              <span className="mx-2 text-slate-700">·</span>
+              <span className="bg-teal-500/10 border border-teal-500/20 text-teal-400 px-2 py-0.5 rounded text-[10px] font-bold uppercase font-sans">
+                Independent Pharmacy Mode
+              </span>
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={() => onNavigate('pharmacy')} className="flex items-center gap-2 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold text-[12px] px-4 py-2.5 rounded-lg shadow-[0_0_20px_rgba(45,212,191,0.2)] transition active:scale-[0.97] cursor-pointer">
+              <DollarSign size={13} /> Record Walk-in POS Sale
+            </button>
+          </div>
+        </div>
+      </Reveal>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        {cards.map((c) => {
+          const Icon = c.icon;
+          const a = accentMap[c.accent];
+          const base = `border ${a.border} ${a.bg} p-4 rounded-xl flex flex-col justify-between shadow-sm transition-all duration-300 text-left`;
+          return (
+            <div key={c.label} className={base}>
+              <div className="flex justify-between items-start w-full">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-tight">{c.label}</span>
+                <Icon size={14} className={`${a.text} opacity-90 shrink-0`} />
+              </div>
+              <div className="mt-3 space-y-1">
+                <span className="font-['JetBrains_Mono',monospace] text-xl sm:text-2xl font-black text-slate-100 block">
+                  {c.value}
+                </span>
+                <span className="text-[9px] text-slate-500 font-medium block">
+                  {c.sub}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Recent Sales + Alerts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Reveal className="lg:col-span-2 bg-slate-900 border border-teal-500/12 rounded-2xl p-5 shadow-sm">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">POS Sales Ledger</div>
+              <h2 className="font-['Instrument_Serif',serif] text-xl text-slate-100 font-normal mt-0.5">Today's Transactions</h2>
+              <p className="text-[11px] text-slate-500 mt-0.5">Summary of walk-in POS receipts generated today</p>
+            </div>
+            <button onClick={() => onNavigate('billing')} className="flex items-center gap-1 text-teal-400 hover:text-teal-300 text-xs font-semibold transition-colors cursor-pointer">
+              View Sales History <ArrowRight size={12} />
+            </button>
+          </div>
+
+          {recentSales.length === 0 ? (
+            <div className="border border-dashed border-teal-500/15 rounded-xl p-10 text-center text-slate-500 text-sm">
+              <ShoppingBag size={20} className="mx-auto mb-2 text-teal-400/50" />
+              No sales completed yet today.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-teal-500/10 text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+                    <th className="py-2.5">Transaction ID</th>
+                    <th className="py-2.5">Payment Method</th>
+                    <th className="py-2.5">Amount</th>
+                    <th className="py-2.5 text-right">Time</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-teal-500/8 text-xs">
+                  {recentSales.map((sale, idx) => (
+                    <tr key={sale.id} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="py-2.5 pr-2">
+                        <span className="font-semibold text-slate-200 block">{sale.client}</span>
+                        <span className="font-['JetBrains_Mono',monospace] text-[10px] text-slate-500">{sale.id}</span>
+                      </td>
+                      <td className="py-2.5">
+                        <span className="font-['JetBrains_Mono',monospace] bg-teal-500/5 border border-teal-500/15 text-teal-400 font-bold px-2 py-0.5 rounded text-[10px] uppercase">{sale.method}</span>
+                      </td>
+                      <td className="py-2.5">
+                        <span className="font-semibold text-slate-200">KES {sale.amount.toLocaleString()}</span>
+                      </td>
+                      <td className="py-2.5 text-right text-slate-400 font-['JetBrains_Mono',monospace]">{sale.time}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Reveal>
+
+        <Reveal className="bg-slate-900 border border-teal-500/12 rounded-2xl p-5 shadow-sm space-y-4" delay={0.1}>
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">Stock Center</div>
+            <h2 className="font-['Instrument_Serif',serif] text-xl text-slate-100 font-normal mt-0.5">Inventory alerts</h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">Expiries and low-level reorder flags</p>
+          </div>
+          <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+            {alerts.map((notif) => (
+              <div key={notif.id} className={`p-3 rounded-xl border text-xs flex gap-2.5 items-start ${notif.type === 'error' ? 'bg-red-500/5 border-red-500/25 text-red-400' : 'bg-yellow-500/5 border-yellow-500/25 text-yellow-400'}`}>
+                <ShieldAlert size={15} className="shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{notif.message}</span>
+              </div>
+            ))}
+            {alerts.length === 0 && (
+              <div className="bg-teal-500/5 border border-teal-500/25 text-teal-400 p-5 rounded-xl text-center text-xs flex flex-col items-center justify-center gap-2">
+                <CheckCircle size={22} />
+                <span>All stock levels healthy. No expiries in sight.</span>
+              </div>
+            )}
+          </div>
         </Reveal>
       </div>
     </div>

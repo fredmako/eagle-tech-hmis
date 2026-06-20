@@ -195,6 +195,21 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
   const plans = [
     {
+      id: "pharmacy",
+      name: "Independent Pharmacy",
+      price: "$29",
+      billing: "per month",
+      description:
+        "Designed exclusively for standalone pharmacies to manage stock, sales, and walk-in dispensing.",
+      features: [
+        "Up to 5 staff accounts",
+        "Direct Walk-in Dispensing (POS) Desk",
+        "FEFO Batch Stock & Inventory Control",
+        "Invoice & Payment Receipt generation",
+        "Sales, stock levels & low stock alerts",
+      ],
+    },
+    {
       id: "clinic",
       name: "Basic Clinic",
       price: "$49",
@@ -415,8 +430,13 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         : Math.random().toString(36).substring(2, 15);
       const logoUrl = getActiveLogoUrl();
 
-      // Map selectedPlan to license_tier: clinic -> basic, hospital/enterprise -> extensive
-      const licenseTier = selectedPlan === "clinic" ? "basic" : "extensive";
+      // Map selectedPlan to license_tier: pharmacy -> pharmacy, clinic -> basic, hospital/enterprise -> extensive
+      const licenseTier =
+        selectedPlan === "pharmacy"
+          ? "pharmacy"
+          : selectedPlan === "clinic"
+          ? "basic"
+          : "extensive";
 
       // 2. Upsert new facility document including logo_url & address
       const { error: facError } = await supabase.from("facilities").upsert({
@@ -432,33 +452,51 @@ export default function SaaSOnboarding({ onBackToLogin }) {
       if (facError) throw new Error(facError.message || facError);
 
       // 2b. Seed default departments for the new facility
-      const defaultDepts = [
-        {
-          name: "Triage (Vitals)",
-          code: "TRI",
-          type: "triage",
-          specialty: "general",
-        },
-        {
-          name: "OPD Consult",
-          code: "CON",
-          type: "consultation",
-          specialty: "general",
-        },
-        { name: "Laboratory", code: "LAB", type: "lab", specialty: "general" },
-        {
-          name: "Pharmacy",
-          code: "PHA",
-          type: "pharmacy",
-          specialty: "general",
-        },
-        {
-          name: "Billing Desk",
-          code: "BIL",
-          type: "billing",
-          specialty: "general",
-        },
-      ];
+      let defaultDepts = [];
+      if (licenseTier === "pharmacy") {
+        defaultDepts = [
+          {
+            name: "Pharmacy",
+            code: "PHA",
+            type: "pharmacy",
+            specialty: "general",
+          },
+          {
+            name: "Billing Desk",
+            code: "BIL",
+            type: "billing",
+            specialty: "general",
+          },
+        ];
+      } else {
+        defaultDepts = [
+          {
+            name: "Triage (Vitals)",
+            code: "TRI",
+            type: "triage",
+            specialty: "general",
+          },
+          {
+            name: "OPD Consult",
+            code: "CON",
+            type: "consultation",
+            specialty: "general",
+          },
+          { name: "Laboratory", code: "LAB", type: "lab", specialty: "general" },
+          {
+            name: "Pharmacy",
+            code: "PHA",
+            type: "pharmacy",
+            specialty: "general",
+          },
+          {
+            name: "Billing Desk",
+            code: "BIL",
+            type: "billing",
+            specialty: "general",
+          },
+        ];
+      }
 
       // If Extensive Plan (hospital/enterprise), add advanced departments
       if (licenseTier === "extensive") {

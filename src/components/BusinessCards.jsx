@@ -31,7 +31,7 @@ function CardLine({ icon: Icon, label, tone = "text-slate-200" }) {
 
 function BusinessCardFront() {
   return (
-    <div className="relative aspect-[3.5/2] overflow-hidden rounded-[22px] border border-teal-400/20 bg-[#07111e] shadow-2xl shadow-black/40">
+    <div className="business-card relative aspect-[3.5/2] overflow-hidden rounded-[22px] border border-teal-400/20 bg-[#07111e] shadow-2xl shadow-black/40">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(45,212,191,0.18),transparent_28%),radial-gradient(circle_at_80%_30%,rgba(56,189,248,0.16),transparent_24%),linear-gradient(135deg,#06101b_0%,#0b1626_50%,#06111d_100%)]" />
       <div className="absolute inset-0 opacity-70 bg-[linear-gradient(115deg,transparent_0%,transparent_42%,rgba(255,255,255,0.04)_43%,transparent_44%,transparent_100%)]" />
       <div className="relative h-full p-5 text-slate-100 flex flex-col justify-between">
@@ -107,7 +107,7 @@ function BusinessCardFront() {
 
 function BusinessCardBack() {
   return (
-    <div className="relative aspect-[3.5/2] overflow-hidden rounded-[22px] border border-cyan-400/15 bg-[#07111e] shadow-2xl shadow-black/40">
+    <div className="business-card relative aspect-[3.5/2] overflow-hidden rounded-[22px] border border-cyan-400/15 bg-[#07111e] shadow-2xl shadow-black/40">
       <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(45,212,191,0.16),transparent_35%),radial-gradient(circle_at_80%_15%,rgba(56,189,248,0.18),transparent_20%),linear-gradient(180deg,#07111e_0%,#081423_100%)]" />
       <div className="relative h-full p-5 text-slate-100 flex flex-col">
         <div className="flex items-start justify-between gap-3">
@@ -167,9 +167,9 @@ function BusinessCardBack() {
 
 export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="business-cards-page min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-7xl mx-auto px-6 py-8 md:py-10">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-8">
+        <div className="print-hidden flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-8">
           <div className="space-y-3 max-w-2xl">
             <button
               onClick={onBackToLanding}
@@ -213,10 +213,10 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]"
+          className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr] print:block"
         >
-          <div className="rounded-3xl border border-white/8 bg-slate-900/50 p-5 md:p-6 shadow-2xl shadow-black/20">
-            <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="rounded-3xl border border-white/8 bg-slate-900/50 p-5 md:p-6 shadow-2xl shadow-black/20 print:border-0 print:bg-transparent print:p-0 print:shadow-none">
+            <div className="print-hidden flex items-center justify-between gap-3 mb-4">
               <h2 className="text-sm uppercase tracking-[0.35em] text-slate-400 font-bold">
                 Front and back preview
               </h2>
@@ -224,13 +224,13 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
                 Standard business-card ratio
               </span>
             </div>
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="print-stack grid gap-5 md:grid-cols-2 print:grid print:grid-cols-1 print:gap-5">
               <BusinessCardFront />
               <BusinessCardBack />
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="print-hidden space-y-6">
             <div className="rounded-3xl border border-teal-400/15 bg-slate-900/60 p-6 shadow-xl">
               <h3 className="text-sm uppercase tracking-[0.35em] text-teal-300 font-bold">
                 Brand cues

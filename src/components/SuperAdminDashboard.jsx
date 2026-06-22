@@ -314,7 +314,10 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
 
         {/* Global Statistics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex items-center justify-between shadow-md">
+          <button 
+            onClick={() => setActiveTab('registry')}
+            className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex items-center justify-between shadow-md transition cursor-pointer hover:bg-slate-850 hover:border-slate-700/80 active:scale-[0.98] w-full text-left"
+          >
             <div>
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Registered Facilities</span>
               <h3 className="text-2xl font-black text-white mt-1.5 font-mono">{totalFacilities}</h3>
@@ -322,9 +325,12 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
             <div className="p-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl">
               <Building2 size={24} />
             </div>
-          </div>
+          </button>
 
-          <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex items-center justify-between shadow-md">
+          <button 
+            onClick={() => setActiveTab('registry')}
+            className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex items-center justify-between shadow-md transition cursor-pointer hover:bg-slate-850 hover:border-slate-700/80 active:scale-[0.98] w-full text-left"
+          >
             <div>
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active Verified Facilities</span>
               <h3 className="text-2xl font-black text-teal-400 mt-1.5 font-mono">{verifiedCount}</h3>
@@ -332,9 +338,12 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
             <div className="p-3 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-xl">
               <CheckCircle2 size={24} />
             </div>
-          </div>
+          </button>
 
-          <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex items-center justify-between shadow-md">
+          <button 
+            onClick={() => setActiveTab('registry')}
+            className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex items-center justify-between shadow-md transition cursor-pointer hover:bg-slate-850 hover:border-slate-700/80 active:scale-[0.98] w-full text-left"
+          >
             <div>
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Awaiting Verification Review</span>
               <h3 className={`text-2xl font-black mt-1.5 font-mono ${pendingCount > 0 ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`}>{pendingCount}</h3>
@@ -342,9 +351,12 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
             <div className={`p-3 rounded-xl border ${pendingCount > 0 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-slate-800/40 border-slate-800 text-slate-500'}`}>
               <Clock size={24} />
             </div>
-          </div>
+          </button>
 
-          <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex items-center justify-between shadow-md">
+          <button 
+            onClick={() => setActiveTab('support')}
+            className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex items-center justify-between shadow-md transition cursor-pointer hover:bg-slate-850 hover:border-slate-700/80 active:scale-[0.98] w-full text-left"
+          >
             <div>
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Unaddressed Support Queries</span>
               <h3 className={`text-2xl font-black mt-1.5 font-mono ${supportTickets.filter(t => t.status === 'pending').length > 0 ? 'text-rose-400 animate-pulse' : 'text-slate-400'}`}>{supportTickets.filter(t => t.status === 'pending').length}</h3>
@@ -352,7 +364,7 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
             <div className={`p-3 rounded-xl border ${supportTickets.filter(t => t.status === 'pending').length > 0 ? 'bg-rose-500/10 border-rose-500/20 text-rose-455' : 'bg-slate-800/40 border-slate-800 text-slate-500'}`}>
               <AlertCircle size={24} />
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Navigation Tabs */}

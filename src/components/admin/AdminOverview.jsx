@@ -1,0 +1,249 @@
+import React from 'react';
+import {
+  Shield,
+  Mail,
+  Server,
+  CreditCard,
+  Building,
+  UserPlus,
+  UserCheck,
+  PhoneCall,
+  Users,
+  ShoppingBag,
+  Activity,
+  Globe,
+  Bed,
+  LayoutGrid
+} from 'lucide-react';
+
+export default function AdminOverview({
+  setActiveSubTab,
+  user,
+  invitationsList = [],
+  roleRequests = [],
+  supportTicketsCount = 0,
+  afyalinkLogs = [],
+  emailLogs = []
+}) {
+  const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
+  const isWardAuthorized = rolesList.includes('admin') || rolesList.includes('facility_admin') || rolesList.includes('hr_manager');
+  const isPaymentAuthorized = rolesList.includes('admin') || rolesList.includes('facility_admin');
+
+  // Count pending items
+  const pendingInvitations = invitationsList.filter(i => i.status === 'pending').length;
+  const pendingRoles = roleRequests.filter(r => r.status === 'pending').length;
+  const pendingTickets = supportTicketsCount;
+  const failedAfyaLink = afyalinkLogs.filter(l => {
+    try {
+      return JSON.parse(l.details).status === 'failed';
+    } catch (e) { return false; }
+  }).length;
+
+  const sections = [
+    {
+      title: "Facility Configuration & Branding",
+      cards: [
+        {
+          id: 'facility_profile',
+          title: "Hospital Profile",
+          desc: "Manage clinic info, address, KMPDC number, and official identity logo.",
+          icon: Building,
+          color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/40",
+          show: true
+        },
+        {
+          id: 'domain',
+          title: "Domain & Branding",
+          desc: "Configure public-facing custom subdomains and clinic logo routing.",
+          icon: Globe,
+          color: "text-teal-400 bg-teal-500/10 border-teal-500/20 hover:border-teal-500/40",
+          show: true
+        },
+        {
+          id: 'payment_settings',
+          title: "Payment & Landing Config",
+          desc: "Configure Stripe, PayPal, M-Pesa merchant keys and medical service catalogs.",
+          icon: CreditCard,
+          color: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20 hover:border-yellow-500/40",
+          show: isPaymentAuthorized
+        },
+        {
+          id: 'ward_settings',
+          title: "Ward & Bed Settings",
+          desc: "Create inpatient wards, build custom room bed grids, and track bed states.",
+          icon: Bed,
+          color: "text-sky-400 bg-sky-500/10 border-sky-500/20 hover:border-sky-500/40",
+          show: isWardAuthorized
+        }
+      ]
+    },
+    {
+      title: "Staff & Role Management",
+      cards: [
+        {
+          id: 'staff_onboarding',
+          title: "Staff Onboarding",
+          desc: "Draft and dispatch email invitations to new healthcare clinicians.",
+          icon: UserPlus,
+          color: "text-amber-400 bg-amber-500/10 border-amber-500/20 hover:border-amber-500/40",
+          badge: pendingInvitations,
+          badgeColor: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+          show: true
+        },
+        {
+          id: 'role_requests',
+          title: "Role Requests",
+          desc: "Authorize, delegate or restrict employee clearance updates.",
+          icon: UserCheck,
+          color: "text-orange-400 bg-orange-500/10 border-orange-500/20 hover:border-orange-500/40",
+          badge: pendingRoles,
+          badgeColor: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+          show: true
+        },
+        {
+          id: 'hr',
+          title: "Human Resources",
+          desc: "Manage profiles, contacts, and active access parameters for staff.",
+          icon: Users,
+          color: "text-pink-400 bg-pink-500/10 border-pink-500/20 hover:border-pink-500/40",
+          show: true
+        }
+      ]
+    },
+    {
+      title: "Operations & Patient Support",
+      cards: [
+        {
+          id: 'procurement',
+          title: "Procurement Desk",
+          desc: "Track clinic purchases, inventory balances, and recurring utility invoices.",
+          icon: ShoppingBag,
+          color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20 hover:border-cyan-500/40",
+          show: true
+        },
+        {
+          id: 'help_desk',
+          title: "Help Desk Support",
+          desc: "Respond to patient inquiries and technical requests submitted online.",
+          icon: PhoneCall,
+          color: "text-rose-400 bg-rose-500/10 border-rose-500/20 hover:border-rose-500/40",
+          badge: pendingTickets,
+          badgeColor: "bg-rose-500/20 text-rose-400 border-rose-500/30",
+          show: true
+        }
+      ]
+    },
+    {
+      title: "Integrations & Logs",
+      cards: [
+        {
+          id: 'afyalink',
+          title: "AfyaLink Integration",
+          desc: "Monitor standard health insurance data logs and integration stats.",
+          icon: Activity,
+          color: "text-red-400 bg-red-500/10 border-red-500/20 hover:border-red-500/40",
+          badge: failedAfyaLink,
+          badgeColor: "bg-red-500/20 text-red-400 border-red-500/30",
+          show: true
+        },
+        {
+          id: 'smtp_settings',
+          title: "SMTP Server Settings",
+          desc: "Manage custom SMTP outbound email credentials and timeout limits.",
+          icon: Server,
+          color: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20 hover:border-indigo-500/40",
+          show: true
+        },
+        {
+          id: 'email_logs',
+          title: "Email Delivery Logs",
+          desc: "View transactional mail statuses, debug codes, and server responses.",
+          icon: Mail,
+          color: "text-blue-400 bg-blue-500/10 border-blue-500/20 hover:border-blue-500/40",
+          badge: emailLogs.length,
+          badgeColor: "bg-slate-955 text-slate-400 border-slate-800",
+          show: true
+        },
+        {
+          id: 'audit',
+          title: "Audit Trail logs",
+          desc: "Track secure clinic logs, provider check-ins, and critical change histories.",
+          icon: Shield,
+          color: "text-teal-400 bg-teal-500/10 border-teal-500/20 hover:border-teal-500/40",
+          show: true
+        },
+        {
+          id: 'licensing',
+          title: "Licensing & Billing",
+          desc: "Check clinic licensing status, usage limits, and SaaS package invoices.",
+          icon: CreditCard,
+          color: "text-purple-400 bg-purple-500/10 border-purple-500/20 hover:border-purple-500/40",
+          show: true
+        }
+      ]
+    }
+  ];
+
+  return (
+    <div className="space-y-6 pb-4 animate-fadeIn">
+      <div className="flex items-center gap-2.5 pb-1 border-b border-slate-800/60">
+        <div className="p-2 rounded-lg bg-teal-500/10 text-teal-400">
+          <LayoutGrid size={18} />
+        </div>
+        <div>
+          <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wider">Facility Control Overview</h2>
+          <p className="text-[10.5px] text-slate-500 font-medium">Quick access to administrative panels, active logs, and configurations</p>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {sections.map((section, sIdx) => {
+          const visibleCards = section.cards.filter(c => c.show);
+          if (visibleCards.length === 0) return null;
+
+          return (
+            <div key={sIdx} className="space-y-3">
+              <h3 className="text-[9.5px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <span>{section.title}</span>
+                <span className="flex-1 h-px bg-slate-850" />
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {visibleCards.map((card, cIdx) => {
+                  const Icon = card.icon;
+                  return (
+                    <button
+                      key={cIdx}
+                      onClick={() => setActiveSubTab(card.id)}
+                      className="group flex items-start gap-3.5 p-3.5 bg-slate-900/40 hover:bg-slate-850/30 border border-slate-850 hover:border-slate-700/80 rounded-xl transition-all duration-300 text-left hover:translate-y-[-1px] hover:shadow-lg hover:shadow-slate-950/20 w-full active:scale-[0.99] cursor-pointer"
+                    >
+                      <div className={`p-2.5 rounded-lg border transition-all duration-300 group-hover:scale-105 shrink-0 ${card.color}`}>
+                        <Icon size={16} />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                          <span className="text-[11.5px] font-bold text-slate-200 group-hover:text-slate-100 transition-colors uppercase tracking-wide">
+                            {card.title}
+                          </span>
+                          {card.badge > 0 && (
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${card.badgeColor}`}>
+                              {card.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10.5px] text-slate-400 group-hover:text-slate-350 transition-colors font-sans leading-normal">
+                          {card.desc}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

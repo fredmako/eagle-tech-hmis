@@ -454,9 +454,13 @@ function PharmacyDashboard({ user, onNavigate }) {
         {cards.map((c) => {
           const Icon = c.icon;
           const a = accentMap[c.accent];
-          const base = `border ${a.border} ${a.bg} p-4 rounded-xl flex flex-col justify-between shadow-sm transition-all duration-300 text-left`;
+          const base = `border ${a.border} ${a.bg} p-4 rounded-xl flex flex-col justify-between shadow-sm transition-all duration-300 text-left w-full active:scale-[0.98]`;
           return (
-            <div key={c.label} className={base}>
+            <button
+              key={c.label}
+              onClick={() => onNavigate('pharmacy')}
+              className={`${base} ${a.hover} cursor-pointer`}
+            >
               <div className="flex justify-between items-start w-full">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-tight">{c.label}</span>
                 <Icon size={14} className={`${a.text} opacity-90 shrink-0`} />
@@ -469,7 +473,7 @@ function PharmacyDashboard({ user, onNavigate }) {
                   {c.sub}
                 </span>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

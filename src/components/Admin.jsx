@@ -11,6 +11,7 @@ import OperationsDesk from './admin/OperationsDesk';
 import WardSettings from './admin/WardSettings';
 import PaymentSettings from './admin/PaymentSettings';
 import FacilityHelpDesk from './admin/FacilityHelpDesk';
+import AdminOverview from './admin/AdminOverview';
 
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
@@ -54,12 +55,13 @@ import {
   Columns,
   Maximize2,
   Tv,
-  Layout
+  Layout,
+  LayoutGrid
 } from 'lucide-react';
 
 export default function Admin({ user }) {
   const { authFetch, inviteStaff, getInvitations, revokeInvite, setUser } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState('audit'); // 'audit', 'smtp_settings', 'email_logs', 'licensing', 'staff_onboarding', 'role_requests', 'help_desk', 'facility_profile', 'hr', 'procurement', 'ward_settings', 'payment_settings'
+  const [activeSubTab, setActiveSubTab] = useState('overview'); // 'overview', 'audit', 'smtp_settings', 'email_logs', 'licensing', 'staff_onboarding', 'role_requests', 'help_desk', 'facility_profile', 'hr', 'procurement', 'ward_settings', 'payment_settings'
   const [auditLogs, setAuditLogs] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
@@ -729,8 +731,11 @@ export default function Admin({ user }) {
         {viewMode !== 'maximize' && (
           <div className="space-y-6 transition-all duration-300">
         {/* Facility Info Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-          <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 pb-2.5 border-b border-slate-800">
+        <div 
+          onClick={() => setActiveSubTab('facility_profile')}
+          className="bg-slate-900 border border-slate-800 hover:border-teal-500/30 rounded-xl p-5 shadow-sm space-y-4 cursor-pointer transition-all duration-300 hover:bg-slate-850/20 hover:shadow-lg group"
+        >
+          <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 pb-2.5 border-b border-slate-800 group-hover:text-teal-400 transition-colors">
             <Settings size={14} className="text-teal-400" /> Facility Configuration
           </h3>
 
@@ -864,10 +869,21 @@ export default function Admin({ user }) {
         {/* Sub-tab Navigation & View Mode Panel */}
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center border-b border-slate-800 pb-2 gap-3 shrink-0 w-full min-w-0">
           <div className="flex overflow-x-auto gap-2 pb-2 w-full xl:flex-1 min-w-0 pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
-          <button
-            onClick={() => setActiveSubTab('audit')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeSubTab === 'audit'
+            <button
+              onClick={() => setActiveSubTab('overview')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                activeSubTab === 'overview'
+                  ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                  : 'text-slate-450 hover:text-slate-200'
+              }`}
+            >
+              <LayoutGrid size={13} /> Overview
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('audit')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                activeSubTab === 'audit'
                 ? 'bg-slate-850 border border-slate-700 text-teal-400'
                 : 'text-slate-450 hover:text-slate-200'
             }`}
@@ -1121,6 +1137,18 @@ export default function Admin({ user }) {
         {/* Tab Contents */}
         <div className="flex-1 overflow-y-auto max-h-[500px] pr-1 space-y-4">
           
+          {/* TAB 0: OVERVIEW */}
+          {activeSubTab === 'overview' && (
+            <AdminOverview
+              setActiveSubTab={setActiveSubTab}
+              user={user}
+              invitationsList={invitationsList}
+              roleRequests={roleRequests}
+              supportTicketsCount={supportTicketsCount}
+              afyalinkLogs={afyalinkLogs}
+              emailLogs={emailLogs}
+            />
+          )}
           
           {/* TAB 1: AUDIT TRAIL */}
           {activeSubTab === 'audit' && (

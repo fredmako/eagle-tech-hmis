@@ -7,6 +7,9 @@ export default function Billing({ user, onComplete }) {
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [invoice, setInvoice] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [facilityServices, setFacilityServices] = useState([]);
+  const [selectedAdhocService, setSelectedAdhocService] = useState('');
+  const [addingAdhoc, setAddingAdhoc] = useState(false);
   
   // Payment recording states
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -25,6 +28,7 @@ export default function Billing({ user, onComplete }) {
 
   useEffect(() => {
     fetchBillingQueue();
+    fetchFacilityServices();
   }, []);
 
   const fetchBillingQueue = async () => {
@@ -52,6 +56,75 @@ export default function Billing({ user, onComplete }) {
     }
   };
 
+  const fetchFacilityServices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('facilities')
+        .select('services_list')
+        .eq('id', user.facility_id)
+        .single();
+      if (!error && data) {
+        setFacilityServices(data.services_list || []);
+      }
+    } catch (err) {
+      console.error('Error fetching facility services:', err);
+    }
+  };
+
+  const getConsultationFee = (visit) => {
+    if (!visit) return 0;
+    const directWalkins = ['LAB', 'PHA', 'RAD', 'IPD'];
+    if (directWalkins.includes(visit.service_type)) {
+      return 0;
+    }
+    return 350;
+  };
+
+  const handleAddAdhocCharge = async (e) => {
+    e.preventDefault();
+    if (!selectedAdhocService || !selectedVisit || !invoice) return;
+    setAddingAdhoc(true);
+    setMessage({ type: '', text: '' });
+    
+    try {
+      const service = facilityServices.find(s => s.name === selectedAdhocService);
+      const charge = service ? service.charge : 500;
+      
+      const newOrder = {
+        visit_id: selectedVisit.id,
+        type: 'service',
+        item_name: selectedAdhocService,
+        status: 'completed',
+        price: charge
+      };
+      const { error: orderErr } = await supabase.from('orders').insert(newOrder);
+      if (orderErr) throw orderErr;
+      
+      const newTotal = parseFloat(invoice.total_amount || 0) + charge;
+      const { error: invErr } = await supabase
+        .from('invoices')
+        .update({ total_amount: newTotal })
+        .eq('id', invoice.id);
+      if (invErr) throw invErr;
+
+      await supabase.from('audit_logs').insert({
+        facility_id: user.facility_id,
+        user_id: user.id,
+        action: 'Ad-hoc Billing Charge Added',
+        details: `Added ad-hoc service charge ${selectedAdhocService} (KES ${charge}) for patient ${selectedVisit?.patient?.name}.`
+      });
+
+      setMessage({ type: 'success', text: `Custom charge '${selectedAdhocService}' (KES ${charge}) added successfully!` });
+      setSelectedAdhocService('');
+      await handleSelectVisit(selectedVisit);
+    } catch (err) {
+      console.error('Error adding adhoc charge:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to add charge.' });
+    } finally {
+      setAddingAdhoc(false);
+    }
+  };
+
   const handleSelectVisit = async (visit) => {
     setSelectedVisit(visit);
     setMessage({ type: '', text: '' });
@@ -61,15 +134,38 @@ export default function Billing({ user, onComplete }) {
     try {
       // Fetch invoice
       const { data: invs } = await supabase.from('invoices').select('*').eq('visit_id', visit.id).eq('status', 'unpaid');
-      const activeInvoice = invs && invs[0];
-      setInvoice(activeInvoice);
+      let activeInvoice = invs && invs[0];
 
       // Fetch all lab & drug orders for this visit to list on receipt
       const { data: ords } = await supabase.from('orders').select('*').eq('visit_id', visit.id);
       setOrders(ords || []);
       
+      if (!activeInvoice) {
+        const ordersTotal = ords ? ords.reduce((sum, o) => sum + parseFloat(o.price || 0), 0) : 0;
+        
+        const newInvoice = {
+          visit_id: visit.id,
+          facility_id: user.facility_id,
+          total_amount: ordersTotal,
+          status: 'unpaid',
+          created_at: new Date().toISOString()
+        };
+        
+        const { data: inserted, error: insertErr } = await supabase
+          .from('invoices')
+          .insert(newInvoice)
+          .select();
+          
+        if (!insertErr && inserted) {
+          activeInvoice = inserted[0];
+        }
+      }
+      
+      setInvoice(activeInvoice);
+      
       if (activeInvoice) {
-        setAmountPaid((parseFloat(activeInvoice.total_amount) + 350).toString());
+        const consultFee = getConsultationFee(visit);
+        setAmountPaid((parseFloat(activeInvoice.total_amount) + consultFee).toString());
       }
     } catch (err) {
       console.error('Error loading billing records:', err);
@@ -80,7 +176,8 @@ export default function Billing({ user, onComplete }) {
     e.preventDefault();
     if (!selectedVisit || !invoice) return;
 
-    const paidVal = parseFloat(amountPaid || (parseFloat(invoice.total_amount) + 350));
+    const consultFee = getConsultationFee(selectedVisit);
+    const paidVal = parseFloat(amountPaid || (parseFloat(invoice.total_amount) + consultFee));
 
     setLoading(true);
     setMessage({ type: '', text: '' });
@@ -525,7 +622,7 @@ export default function Billing({ user, onComplete }) {
                 </div>
                 <div>
                   <h4 className="font-bold text-slate-200">Tuma Pay STK Prompt Sent</h4>
-                  <p className="text-xs text-slate-500 mt-1">Please approve the payment request on your phone to complete payment of <strong>KES {(parseFloat(invoice?.total_amount || 0) + 350).toFixed(2)}</strong>.</p>
+                  <p className="text-xs text-slate-500 mt-1">Please approve the payment request on your phone to complete payment of <strong>KES {(parseFloat(invoice?.total_amount || 0) + getConsultationFee(selectedVisit)).toFixed(2)}</strong>.</p>
                   <p className="text-[10px] text-slate-600 font-mono mt-1">Checkout ID: {checkoutId}</p>
                 </div>
                 <div className="flex flex-col gap-2 pt-2">
@@ -581,10 +678,12 @@ export default function Billing({ user, onComplete }) {
                     </div>
 
                     {/* Standard registration fee */}
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Outpatient Consultation & Vitals Fee</span>
-                      <span className="font-mono text-slate-300">350.00/-</span>
-                    </div>
+                    {getConsultationFee(selectedVisit) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Outpatient Consultation & Vitals Fee</span>
+                        <span className="font-mono text-slate-300">350.00/-</span>
+                      </div>
+                    )}
 
                     {/* Order items */}
                     {orders.map(o => (
@@ -599,13 +698,13 @@ export default function Billing({ user, onComplete }) {
                 {/* Paid Summary */}
                 <div className="border-t border-dashed border-slate-800 pt-3 flex flex-col items-end gap-1 font-mono">
                   <div className="text-xs text-slate-400">
-                    Subtotal: <span className="text-slate-200">{(parseFloat(invoice?.total_amount) + 350).toFixed(2)}/-</span>
+                    Subtotal: <span className="text-slate-200">{(parseFloat(invoice?.total_amount || 0) + getConsultationFee(selectedVisit)).toFixed(2)}/-</span>
                   </div>
                   <div className="text-xs text-slate-400">
                     Payment Method: <span className="text-teal-400 font-bold uppercase">{invoice?.payment_method || paymentMethod}</span>
                   </div>
                   <div className="text-sm font-bold text-teal-400 mt-1">
-                    Amount Paid: {(parseFloat(invoice?.total_amount) + 350).toFixed(2)}/-
+                    Amount Paid: {(parseFloat(invoice?.total_amount || 0) + getConsultationFee(selectedVisit)).toFixed(2)}/-
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">
                     Balance Outstanding: 0.00/-
@@ -632,14 +731,44 @@ export default function Billing({ user, onComplete }) {
               </div>
             ) : (
               /* Payment Processing Form */
-              <form onSubmit={handlePay} className="space-y-4">
+              <div className="space-y-4">
+                {/* Ad-hoc service charge builder */}
+                <div className="bg-slate-950 border border-slate-850 p-4 rounded-xl space-y-3">
+                  <h4 className="text-xs font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1">Add Ad-hoc / Custom Service Charge</h4>
+                  <div className="flex gap-2 font-sans">
+                    <select
+                      value={selectedAdhocService}
+                      onChange={(e) => setSelectedAdhocService(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                    >
+                      <option value="">-- Select Service to Add --</option>
+                      {facilityServices.map((svc, i) => (
+                        <option key={i} value={svc.name}>
+                          [{svc.category}] {svc.name} - KES {svc.charge}/-
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={addingAdhoc || !selectedAdhocService}
+                      onClick={handleAddAdhocCharge}
+                      className="bg-teal-400 hover:bg-teal-500 disabled:opacity-40 text-slate-950 font-bold text-xs py-1.5 px-4 rounded-lg shadow transition shrink-0 cursor-pointer"
+                    >
+                      {addingAdhoc ? 'Adding...' : 'Add Charge'}
+                    </button>
+                  </div>
+                </div>
+
+                <form onSubmit={handlePay} className="space-y-4">
                 <div className="bg-slate-950 border border-slate-850 p-4 rounded-xl space-y-3">
                   <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Fee Summary</h4>
                   <div className="space-y-2 text-xs">
-                    <div className="flex justify-between text-slate-400">
-                      <span>Outpatient Consultation Charge</span>
-                      <span className="font-mono">350.00/-</span>
-                    </div>
+                    {getConsultationFee(selectedVisit) > 0 && (
+                      <div className="flex justify-between text-slate-400">
+                        <span>Outpatient Consultation Charge</span>
+                        <span className="font-mono">350.00/-</span>
+                      </div>
+                    )}
                     {orders.map(o => (
                       <div key={o.id} className="flex justify-between text-slate-400">
                         <span className="capitalize">{o.type}: {o.item_name}</span>
@@ -648,7 +777,7 @@ export default function Billing({ user, onComplete }) {
                     ))}
                     <div className="flex justify-between text-sm font-bold border-t border-slate-800 pt-2 text-slate-200">
                       <span>Grand Total Due</span>
-                      <span className="font-mono text-teal-400">{(parseFloat(invoice?.total_amount || 0) + 350).toFixed(2)}/-</span>
+                      <span className="font-mono text-teal-400">{(parseFloat(invoice?.total_amount || 0) + getConsultationFee(selectedVisit)).toFixed(2)}/-</span>
                     </div>
                   </div>
                 </div>
@@ -705,6 +834,7 @@ export default function Billing({ user, onComplete }) {
                   </button>
                 </div>
               </form>
+            </div>
             )}
           </div>
         )}

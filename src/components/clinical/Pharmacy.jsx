@@ -30,6 +30,9 @@ export default function Pharmacy({ user, onComplete }) {
   const [pharmVisits, setPharmVisits] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [pendingPrescriptions, setPendingPrescriptions] = useState([]);
+  const [facilityServices, setFacilityServices] = useState([]);
+  const [selectedWalkinDrug, setSelectedWalkinDrug] = useState('');
+  const [addingWalkin, setAddingWalkin] = useState(false);
 
   // Sub-tabs & POS Workspace state
   const [activeSubTab, setActiveSubTab] = useState(
@@ -145,7 +148,62 @@ export default function Pharmacy({ user, onComplete }) {
     fetchPharmacyQueue();
     loadLocalInventory();
     fetchPosTransactions();
+    fetchFacilityServices();
   }, []);
+
+  const fetchFacilityServices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('facilities')
+        .select('services_list')
+        .eq('id', user.facility_id)
+        .single();
+      if (!error && data) {
+        setFacilityServices(data.services_list || []);
+      }
+    } catch (err) {
+      console.error('Error fetching facility services:', err);
+    }
+  };
+
+  const handleAddWalkinPrescription = async (e) => {
+    e.preventDefault();
+    if (!selectedWalkinDrug || !selectedVisit) return;
+    setAddingWalkin(true);
+    setMessage({ type: '', text: '' });
+    
+    try {
+      const service = facilityServices.find(s => s.name === selectedWalkinDrug);
+      const charge = service ? service.charge : 200;
+      
+      const newOrder = {
+        visit_id: selectedVisit.id,
+        type: 'prescription',
+        item_name: selectedWalkinDrug,
+        status: 'prescribed',
+        price: charge
+      };
+      
+      const { error } = await supabase.from('orders').insert(newOrder);
+      if (error) throw error;
+
+      await supabase.from('audit_logs').insert({
+        facility_id: user.facility_id,
+        user_id: user.id,
+        action: 'Walk-in Prescription Created',
+        details: `Created direct walk-in prescription for ${selectedWalkinDrug} for patient ${selectedVisit?.patient?.name}.`
+      });
+
+      setMessage({ type: 'success', text: `Walk-in drug '${selectedWalkinDrug}' added successfully!` });
+      setSelectedWalkinDrug('');
+      await handleSelectVisit(selectedVisit);
+    } catch (err) {
+      console.error('Error adding walkin prescription:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to add walk-in prescription.' });
+    } finally {
+      setAddingWalkin(false);
+    }
+  };
 
   const fetchPosTransactions = async () => {
     try {
@@ -1488,8 +1546,47 @@ export default function Pharmacy({ user, onComplete }) {
                     })}
 
                     {pendingPrescriptions.length === 0 && (
-                      <div className="text-xs text-yellow-500 bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-lg text-center">
-                        No active prescriptions found for this patient.
+                      <div className="space-y-4 w-full">
+                        <div className="text-xs text-yellow-500 bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-lg text-center font-semibold">
+                          No active prescriptions found for this patient.
+                        </div>
+                        
+                        <div className="bg-slate-950 border border-slate-850 p-5 rounded-xl space-y-3 shadow-md">
+                          <h4 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                            <Pill size={14} className="text-teal-400" /> Issue Direct/Walk-in Prescription
+                          </h4>
+                          <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+                            This patient checked in directly without going through a clinician consultation. Select a custom pharmacy service / drug from your facility's catalog.
+                          </p>
+                          
+                          <form onSubmit={handleAddWalkinPrescription} className="flex flex-col sm:flex-row gap-3 pt-1">
+                            <div className="flex-1">
+                              <select
+                                value={selectedWalkinDrug}
+                                onChange={(e) => setSelectedWalkinDrug(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                                required
+                              >
+                                <option value="">-- Select Pharmacy Service / Medicine --</option>
+                                {facilityServices
+                                  .filter(s => s.category === 'Pharmacy' || s.category === 'Other')
+                                  .map((svc, i) => (
+                                    <option key={i} value={svc.name}>
+                                      {svc.name} - KES {svc.charge}/-
+                                    </option>
+                                  ))
+                                }
+                              </select>
+                            </div>
+                            <button
+                              type="submit"
+                              disabled={addingWalkin || !selectedWalkinDrug}
+                              className="bg-teal-400 hover:bg-teal-500 disabled:opacity-40 text-slate-950 font-black text-xs py-2 px-6 rounded-lg shadow-lg active:scale-[0.98] transition cursor-pointer shrink-0"
+                            >
+                              {addingWalkin ? 'Adding...' : 'Add Medicine'}
+                            </button>
+                          </form>
+                        </div>
                       </div>
                     )}
                   </div>

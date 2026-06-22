@@ -25,6 +25,9 @@ export default function Radiology({ user, onComplete }) {
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [pendingOrders, setPendingOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [facilityServices, setFacilityServices] = useState([]);
+  const [selectedWalkinScan, setSelectedWalkinScan] = useState('');
+  const [addingWalkin, setAddingWalkin] = useState(false);
   
   // Workflow states
   const [modality, setModality] = useState('X-Ray');
@@ -52,7 +55,62 @@ export default function Radiology({ user, onComplete }) {
 
   useEffect(() => {
     fetchRadiologyQueue();
+    fetchFacilityServices();
   }, []);
+
+  const fetchFacilityServices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('facilities')
+        .select('services_list')
+        .eq('id', user.facility_id)
+        .single();
+      if (!error && data) {
+        setFacilityServices(data.services_list || []);
+      }
+    } catch (err) {
+      console.error('Error fetching facility services:', err);
+    }
+  };
+
+  const handleAddWalkinScan = async (e) => {
+    e.preventDefault();
+    if (!selectedWalkinScan || !selectedVisit) return;
+    setAddingWalkin(true);
+    setMessage({ type: '', text: '' });
+    
+    try {
+      const service = facilityServices.find(s => s.name === selectedWalkinScan);
+      const charge = service ? service.charge : 1500;
+      
+      const newOrder = {
+        visit_id: selectedVisit.id,
+        type: 'radiology',
+        item_name: selectedWalkinScan,
+        status: 'ordered',
+        price: charge
+      };
+      
+      const { error } = await supabase.from('orders').insert(newOrder);
+      if (error) throw error;
+
+      await supabase.from('audit_logs').insert({
+        facility_id: user.facility_id,
+        user_id: user.id,
+        action: 'Walk-in Radiology Order Created',
+        details: `Created direct walk-in radiology scan order for ${selectedWalkinScan} for patient ${selectedVisit?.patient?.name}.`
+      });
+
+      setMessage({ type: 'success', text: `Walk-in scan '${selectedWalkinScan}' added successfully!` });
+      setSelectedWalkinScan('');
+      await handleSelectVisit(selectedVisit);
+    } catch (err) {
+      console.error('Error adding walkin scan:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to add walk-in scan.' });
+    } finally {
+      setAddingWalkin(false);
+    }
+  };
 
   const fetchRadiologyQueue = async () => {
     try {
@@ -630,9 +688,48 @@ export default function Radiology({ user, onComplete }) {
               </div>
 
               {!selectedOrder && pendingOrders.length === 0 && (
-                <div className="flex-1 flex flex-col justify-center items-center py-20 text-slate-500 text-sm gap-2">
-                  <Tv size={36} className="text-slate-850 animate-pulse" />
-                  <span>No active radiology scan orders associated with this visit.</span>
+                <div className="flex-1 flex flex-col gap-6 justify-center items-center py-10 w-full">
+                  <div className="flex flex-col items-center gap-2 text-slate-500 text-sm">
+                    <Tv size={36} className="text-slate-850 animate-pulse" />
+                    <span>No active radiology scan orders associated with this visit.</span>
+                  </div>
+                  
+                  <div className="bg-slate-950 border border-slate-855 p-5 rounded-xl space-y-3 w-full max-w-lg shadow-md text-left">
+                    <h4 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                      <Camera size={14} className="text-teal-400" /> Issue Direct/Walk-in Radiology Scan
+                    </h4>
+                    <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+                      This patient checked in directly without going through a clinician consultation. Select a custom radiology service from your facility's catalog to create a scan order.
+                    </p>
+                    
+                    <form onSubmit={handleAddWalkinScan} className="flex flex-col sm:flex-row gap-3 pt-1">
+                      <div className="flex-1">
+                        <select
+                          value={selectedWalkinScan}
+                          onChange={(e) => setSelectedWalkinScan(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                          required
+                        >
+                          <option value="">-- Select Radiology Scan --</option>
+                          {facilityServices
+                            .filter(s => s.category === 'Radiology' || s.category === 'Other')
+                            .map((svc, i) => (
+                              <option key={i} value={svc.name}>
+                                {svc.name} - KES {svc.charge}/-
+                              </option>
+                            ))
+                          }
+                        </select>
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={addingWalkin || !selectedWalkinScan}
+                        className="bg-teal-400 hover:bg-teal-500 disabled:opacity-40 text-slate-950 font-black text-xs py-2 px-6 rounded-lg shadow-lg active:scale-[0.98] transition cursor-pointer shrink-0"
+                      >
+                        {addingWalkin ? 'Adding...' : 'Add Scan Order'}
+                      </button>
+                    </form>
+                  </div>
                 </div>
               )}
 

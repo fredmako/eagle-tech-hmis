@@ -22,6 +22,9 @@ export default function Orders({ user, onComplete }) {
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [pendingOrders, setPendingOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('active'); // 'active', 'completed', 'rejected'
+  const [facilityServices, setFacilityServices] = useState([]);
+  const [selectedWalkinTest, setSelectedWalkinTest] = useState('');
+  const [addingWalkin, setAddingWalkin] = useState(false);
   
   // Results inputs
   const [resultsInputs, setResultsInputs] = useState({});
@@ -48,12 +51,67 @@ export default function Orders({ user, onComplete }) {
 
   useEffect(() => {
     fetchLabQueue();
+    fetchFacilityServices();
     // Refresh turnaround timers every 30 seconds
     const interval = setInterval(() => {
       setTimeTicker(prev => prev + 1);
     }, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchFacilityServices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('facilities')
+        .select('services_list')
+        .eq('id', user.facility_id)
+        .single();
+      if (!error && data) {
+        setFacilityServices(data.services_list || []);
+      }
+    } catch (err) {
+      console.error('Error fetching facility services:', err);
+    }
+  };
+
+  const handleAddWalkinTest = async (e) => {
+    e.preventDefault();
+    if (!selectedWalkinTest || !selectedVisit) return;
+    setAddingWalkin(true);
+    setMessage({ type: '', text: '' });
+    
+    try {
+      const service = facilityServices.find(s => s.name === selectedWalkinTest);
+      const charge = service ? service.charge : 1000;
+      
+      const newOrder = {
+        visit_id: selectedVisit.id,
+        type: 'lab',
+        item_name: selectedWalkinTest,
+        status: 'ordered',
+        price: charge
+      };
+      
+      const { error } = await supabase.from('orders').insert(newOrder);
+      if (error) throw error;
+
+      await supabase.from('audit_logs').insert({
+        facility_id: user.facility_id,
+        user_id: user.id,
+        action: 'Walk-in Lab Order Created',
+        details: `Created direct walk-in lab order for ${selectedWalkinTest} for patient ${selectedVisit?.patient?.name}.`
+      });
+
+      setMessage({ type: 'success', text: `Walk-in test '${selectedWalkinTest}' added successfully!` });
+      setSelectedWalkinTest('');
+      await handleSelectVisit(selectedVisit);
+    } catch (err) {
+      console.error('Error adding walkin test:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to add walk-in test.' });
+    } finally {
+      setAddingWalkin(false);
+    }
+  };
 
   // Recalculate turnaround timers whenever tab changes or queue updates
   const fetchLabQueue = async () => {
@@ -994,8 +1052,47 @@ export default function Orders({ user, onComplete }) {
                 })}
 
                 {pendingOrders.length === 0 && (
-                  <div className="text-xs text-yellow-500 bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-lg text-center">
-                    No active laboratory orders found for this outpatient visit.
+                  <div className="space-y-4">
+                    <div className="text-xs text-yellow-500 bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-lg text-center font-semibold">
+                      No active laboratory orders found for this outpatient visit.
+                    </div>
+                    
+                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-3 shadow-md">
+                      <h4 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                        <FlaskConical size={14} className="text-teal-400" /> Issue Direct/Walk-in Laboratory Test
+                      </h4>
+                      <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+                        This patient checked in directly without going through a clinician consultation. Select a custom lab service from your facility's catalog to create a test order.
+                      </p>
+                      
+                      <form onSubmit={handleAddWalkinTest} className="flex flex-col sm:flex-row gap-3 pt-1">
+                        <div className="flex-1">
+                          <select
+                            value={selectedWalkinTest}
+                            onChange={(e) => setSelectedWalkinTest(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                            required
+                          >
+                            <option value="">-- Select Lab Service / Specialty --</option>
+                            {facilityServices
+                              .filter(s => s.category === 'Lab' || s.category === 'Laboratory' || s.category === 'Other')
+                              .map((svc, i) => (
+                                <option key={i} value={svc.name}>
+                                  {svc.name} - KES {svc.charge}/-
+                                </option>
+                              ))
+                            }
+                          </select>
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={addingWalkin || !selectedWalkinTest}
+                          className="bg-teal-400 hover:bg-teal-500 disabled:opacity-40 text-slate-950 font-black text-xs py-2 px-6 rounded-lg shadow-lg active:scale-[0.98] transition cursor-pointer shrink-0"
+                        >
+                          {addingWalkin ? 'Adding...' : 'Add Test Order'}
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 )}
               </div>

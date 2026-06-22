@@ -295,6 +295,7 @@ export default function PaymentSettings({ user }) {
                 <option value="Consultation">Consultation</option>
                 <option value="Lab">Laboratory / Test</option>
                 <option value="Pharmacy">Pharmacy / Meds</option>
+                <option value="Radiology">Radiology / Imaging</option>
                 <option value="ANC">Maternal ANC</option>
                 <option value="Ward">Inpatient Ward</option>
                 <option value="Other">Other Specialty</option>

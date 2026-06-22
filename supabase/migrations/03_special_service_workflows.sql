@@ -411,6 +411,7 @@ ALTER TABLE IF EXISTS public.pharmacy_only_registrations DISABLE ROW LEVEL SECUR
 ALTER TABLE IF EXISTS public.pharmacy_dispensings DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.inpatient_admissions DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.ward_care_records DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.wards DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.bed_allocations DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.emergency_registrations DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.triage_assessments DISABLE ROW LEVEL SECURITY;
@@ -453,6 +454,12 @@ INSERT INTO public.vaccines (id, vaccine_name, vaccine_code, schedule_age_weeks,
 ('v_rota_1', 'Rotavirus Vaccine - Dose 1', 'ROTA_1', 6, 1, ARRAY['History of intussusception', 'Severe immunodeficiency']),
 ('v_measles_1', 'Measles-Rubella Vaccine - Dose 1', 'MR_1', 39, 1, ARRAY['Pregnancy', 'Severe immunodeficiency'])
 ON CONFLICT (vaccine_code) DO NOTHING;
+
+-- Ensure dummy facilities exist for foreign key constraints in sandbox/test environments
+INSERT INTO public.facilities (id, name, code, is_verified) VALUES
+('f1', 'Eagle Tech Medical Clinic (Sandbox)', 'EMC-PT-001', true),
+('f2', 'Meso Referral Hospital (Sandbox)', 'MRH-002', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- Seed Default Medical Instruments
 INSERT INTO public.medical_instruments (id, facility_id, name, type, category, manufacturer, model, serial_number, installation_date, calibration_date, next_calibration_date, location_ward, status) VALUES

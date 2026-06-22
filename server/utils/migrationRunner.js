@@ -2,11 +2,11 @@ const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
-const host = process.env.SUPABASE_DB_HOST || 'db.rzavtfppueiskmqkouti.supabase.co';
-const user = process.env.SUPABASE_DB_USER || 'postgres';
+const host = process.env.SUPABASE_DB_HOST || 'aws-1-eu-north-1.pooler.supabase.com';
+const user = process.env.SUPABASE_DB_USER || 'postgres.rzavtfppueiskmqkouti';
 const password = process.env.SUPABASE_DB_PASSWORD || '_GiR4SKRhdTfcs_';
 const database = process.env.SUPABASE_DB_NAME || 'postgres';
-const port = parseInt(process.env.SUPABASE_DB_PORT || '5432', 10);
+const port = parseInt(process.env.SUPABASE_DB_PORT || '6543', 10);
 
 async function runMigrations() {
   // Only run if we are in real Supabase mode (SUPABASE_URL and key are present)

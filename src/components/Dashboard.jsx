@@ -30,10 +30,11 @@ export default function Dashboard({ user, onNavigate }) {
 
   const fetchDashboardData = async () => {
     try {
-      const [{ data: pts }, { data: vsts }, { data: invs }] = await Promise.all([
+      const [{ data: pts }, { data: vsts }, { data: invs }, { data: tickets }] = await Promise.all([
         supabase.from('patients').select('*'),
         supabase.from('visits').select('*'),
         supabase.from('invoices').select('*'),
+        supabase.from('support_tickets').select('*').eq('facility_id', user.facility_id).eq('status', 'pending')
       ]);
       const todayStr = new Date().toISOString().split('T')[0];
       const todayPts = pts ? pts.filter((p) => p.created_at?.startsWith(todayStr)).length : 0;
@@ -72,6 +73,18 @@ export default function Dashboard({ user, onNavigate }) {
       const alerts = [];
       if (pendingTriage > 2) alerts.push({ id: 'a1', type: 'warning', message: `High triage queue: ${pendingTriage} patients waiting.` });
       if (unpaidInvoices > 0) alerts.push({ id: 'a2', type: 'info', message: `${unpaidInvoices} pending billing payments require processing.` });
+      
+      const pendingTicketsCount = tickets ? tickets.length : 0;
+      if (pendingTicketsCount > 0) {
+        alerts.push({
+          id: 'ticket_alert',
+          type: 'warning',
+          message: `Help Desk: ${pendingTicketsCount} pending support inquiries require response.`,
+          tab: 'admin',
+          subtab: 'help_desk'
+        });
+      }
+
       alerts.push({ id: 'a3', type: 'error', message: 'MOH 717 monthly export: 1 unsynced record due to invalid ID validation.' });
       setNotifications(alerts);
     } catch (err) {
@@ -261,12 +274,41 @@ export default function Dashboard({ user, onNavigate }) {
             <p className="text-[11px] text-slate-500 mt-0.5">MOH reporting and record alerts</p>
           </div>
           <Stagger className="space-y-2.5" stagger={0.06}>
-            {notifications.map((notif) => (
-              <StaggerItem key={notif.id} className={`p-3 rounded-xl border text-xs flex gap-2.5 items-start ${notif.type === 'error' ? 'bg-red-500/5 border-red-500/25 text-red-400' : notif.type === 'warning' ? 'bg-yellow-500/5 border-yellow-500/25 text-yellow-400' : 'bg-blue-500/5 border-blue-500/25 text-blue-400'}`}>
-                <ShieldAlert size={15} className="shrink-0 mt-0.5" />
-                <span className="leading-relaxed">{notif.message}</span>
-              </StaggerItem>
-            ))}
+            {notifications.map((notif) => {
+              const baseClass = `p-3 rounded-xl border text-xs flex gap-2.5 items-start text-left w-full transition ${
+                notif.type === 'error' 
+                  ? 'bg-red-500/5 border-red-500/25 text-red-400 hover:bg-red-500/10' 
+                  : notif.type === 'warning' 
+                  ? 'bg-yellow-500/5 border-yellow-500/25 text-yellow-400 hover:bg-yellow-500/10' 
+                  : 'bg-blue-500/5 border-blue-500/25 text-blue-400 hover:bg-blue-500/10'
+              }`;
+
+              if (notif.tab) {
+                return (
+                  <StaggerItem key={notif.id}>
+                    <button
+                      onClick={() => {
+                        if (notif.subtab) {
+                          localStorage.setItem('egesa_active_admin_subtab', notif.subtab);
+                        }
+                        onNavigate(notif.tab);
+                      }}
+                      className={`${baseClass} cursor-pointer active:scale-[0.99]`}
+                    >
+                      <ShieldAlert size={15} className="shrink-0 mt-0.5" />
+                      <span className="leading-relaxed flex-1">{notif.message}</span>
+                    </button>
+                  </StaggerItem>
+                );
+              }
+
+              return (
+                <StaggerItem key={notif.id} className={baseClass}>
+                  <ShieldAlert size={15} className="shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{notif.message}</span>
+                </StaggerItem>
+              );
+            })}
             {notifications.length === 0 && (
               <div className="bg-teal-500/5 border border-teal-500/25 text-teal-400 p-5 rounded-xl text-center text-xs flex flex-col items-center justify-center gap-2">
                 <CheckCircle size={22} />

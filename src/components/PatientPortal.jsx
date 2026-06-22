@@ -30,6 +30,7 @@ export default function PatientPortal() {
 
   // WhatsApp welcome / contact details
   const [facilityWhatsApp, setFacilityWhatsApp] = useState('');
+  const [facilityEmail, setFacilityEmail] = useState('');
 
   // Support Ticket States
   const [supportSubject, setSupportSubject] = useState('Patient Portal Assistance');
@@ -72,6 +73,7 @@ export default function PatientPortal() {
       const { data: fac } = await supabase.from('facilities').select('*').eq('id', matchingPt.facility_id).single();
       if (fac) {
         setFacilityWhatsApp(fac.whatsapp_number || '');
+        setFacilityEmail(fac.contact_email || '');
       }
 
       // 2. Fetch Patient Visits
@@ -300,7 +302,7 @@ export default function PatientPortal() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: emailAddr,
+            email: facilityEmail ? `${emailAddr}, ${facilityEmail}` : emailAddr,
             subject: `Support Ticket Received: [#${ticketId.substring(7, 13)}] - ${supportSubject}`,
             html: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">

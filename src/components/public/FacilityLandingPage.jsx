@@ -198,7 +198,7 @@ export default function FacilityLandingPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: supportEmail.trim(),
+            email: facility.contact_email ? `${supportEmail.trim()}, ${facility.contact_email}` : supportEmail.trim(),
             subject: `Inquiry Received: [#${ticketId.substring(7, 13)}] - ${supportSubject}`,
             html: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">

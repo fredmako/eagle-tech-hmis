@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { 
   HelpCircle, 
@@ -17,6 +18,20 @@ export default function SupportPanel() {
   const [activeTab, setActiveTab] = useState("submit"); // "submit" or "history"
   const [subject, setSubject] = useState("Technical Issue");
   const [messageText, setMessageText] = useState("");
+  const [facilityEmail, setFacilityEmail] = useState("");
+
+  useEffect(() => {
+    if (user?.facility_id) {
+      supabase
+        .from('facilities')
+        .select('contact_email')
+        .eq('id', user.facility_id)
+        .single()
+        .then(({ data }) => {
+          if (data) setFacilityEmail(data.contact_email || '');
+        });
+    }
+  }, [user]);
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null); // { type: 'success' | 'error', text: '' }
   const [targetType, setTargetType] = useState('platform'); // 'platform' or 'facility'
@@ -121,7 +136,9 @@ export default function SupportPanel() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: user.email,
+            email: targetType === 'facility' 
+              ? `${user.email}, ${facilityEmail || 'admin@eagletechsolutions.tech'}` 
+              : `${user.email}, admin@eagletechsolutions.tech`,
             subject: `Support Ticket Logged: [#${ticketId.substring(7, 13)}] - ${subject}`,
             html: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">

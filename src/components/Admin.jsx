@@ -61,7 +61,7 @@ import {
 
 export default function Admin({ user }) {
   const { authFetch, inviteStaff, getInvitations, revokeInvite, setUser } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState('overview'); // 'overview', 'audit', 'smtp_settings', 'email_logs', 'licensing', 'staff_onboarding', 'role_requests', 'help_desk', 'facility_profile', 'hr', 'procurement', 'ward_settings', 'payment_settings'
+  const [activeSubTab, setActiveSubTab] = useState(() => localStorage.getItem('egesa_active_admin_subtab') || 'overview'); // 'overview', 'audit', 'smtp_settings', 'email_logs', 'licensing', 'staff_onboarding', 'role_requests', 'help_desk', 'facility_profile', 'hr', 'procurement', 'ward_settings', 'payment_settings'
   const [auditLogs, setAuditLogs] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
@@ -135,6 +135,10 @@ export default function Admin({ user }) {
   const [customDomain, setCustomDomain] = useState(localStorage.getItem(`egesa_custom_domain_${user.facility_id}`) || '');
   const [savingDomain, setSavingDomain] = useState(false);
   const [domainMessage, setDomainMessage] = useState({ type: '', text: '' });
+
+  useEffect(() => {
+    localStorage.setItem('egesa_active_admin_subtab', activeSubTab);
+  }, [activeSubTab]);
 
   useEffect(() => {
     fetchAdminData();

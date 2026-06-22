@@ -633,6 +633,10 @@ export const sendNotification = async (event, payload, facilityId = null) => {
         }
 
         const resData = await response.json();
+        if (resData.success === false) {
+          throw new Error(resData.error || 'SMTP dispatch failed');
+        }
+
         messageId = resData.messageId || null;
 
         // Update log to sent with real message ID

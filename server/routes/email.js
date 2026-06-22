@@ -84,8 +84,8 @@ router.post("/send-email", async (req, res) => {
     console.log("Email sent successfully:", info.messageId);
     res.json({ success: true, messageId: info.messageId });
   } catch (err) {
-    console.error("Email dispatch error:", err);
-    res.status(500).json({ error: err.message || "SMTP dispatch failed" });
+    console.error("Email dispatch error (handled gracefully):", err);
+    res.json({ success: false, error: err.message || "SMTP dispatch failed" });
   }
 });
 

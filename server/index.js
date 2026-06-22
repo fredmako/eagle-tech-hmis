@@ -28,7 +28,13 @@ app.use("/api/departments", departmentsRouter);
 app.use("/api/afyalink", afyalinkRouter);
 app.use("/api/workflows", workflowsRouter);
 
+const { runMigrations } = require("./utils/migrationRunner");
+
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Eagle Tech HMIS Server listening on port ${PORT}`);
+  // Run database migrations asynchronously
+  runMigrations().catch(err => {
+    console.error('[MigrationRunner] Migration execution failed:', err);
+  });
 });

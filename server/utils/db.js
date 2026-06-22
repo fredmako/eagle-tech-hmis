@@ -205,6 +205,11 @@ const getInitialSandboxData = () => {
       { id: "st_emr", name: "Emergency/Triage", code: "EMR", requires_anc_card: false, requires_fp_card: false }
     ],
     patient_registrations: [],
+    wards: [
+      { id: "ward_male", name: "Male Ward", wing: "A Wing", facility_id: "f1", created_at: new Date().toISOString() },
+      { id: "ward_female", name: "Female Ward", wing: "B Wing", facility_id: "f1", created_at: new Date().toISOString() },
+      { id: "ward_pediatric", name: "Pediatric Ward", wing: "C Wing", facility_id: "f1", created_at: new Date().toISOString() }
+    ],
     pregnancies: [],
     anc_visits: [],
     anc_diagnoses: [],
@@ -275,7 +280,16 @@ const loadSandboxDB = () => {
     return data;
   }
   try {
-    return JSON.parse(fs.readFileSync(SANDBOX_DB_PATH, "utf-8"));
+    const data = JSON.parse(fs.readFileSync(SANDBOX_DB_PATH, "utf-8"));
+    if (!data.wards) {
+      data.wards = [
+        { id: "ward_male", name: "Male Ward", wing: "A Wing", facility_id: "f1", created_at: new Date().toISOString() },
+        { id: "ward_female", name: "Female Ward", wing: "B Wing", facility_id: "f1", created_at: new Date().toISOString() },
+        { id: "ward_pediatric", name: "Pediatric Ward", wing: "C Wing", facility_id: "f1", created_at: new Date().toISOString() }
+      ];
+      fs.writeFileSync(SANDBOX_DB_PATH, JSON.stringify(data, null, 2));
+    }
+    return data;
   } catch (err) {
     console.error("Error loading sandbox database. Recreating.", err);
     const data = getInitialSandboxData();

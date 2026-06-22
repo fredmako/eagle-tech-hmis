@@ -326,6 +326,10 @@ export default function Consultation({ user, onComplete }) {
     }
   };
 
+  const handleSelectVisit = async (visit) => {
+    if (!visit) return;
+    setSelectedVisit(visit);
+
     // Clear specialized workflow states
     setActivePregnancy(null);
     setAncGaWeeks(0);

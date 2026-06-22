@@ -99,6 +99,65 @@ export default function Registration({ user, onNavigateToQueue }) {
     performSearch(searchQuery);
   };
 
+  const handleDirectCheckin = async (patientId, serviceTypeVal) => {
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+    try {
+      let targetDept = 'triage';
+      let targetPriority = 'routine';
+
+      if (serviceTypeVal === 'LAB') {
+        targetDept = 'lab';
+      } else if (serviceTypeVal === 'PHA') {
+        targetDept = 'pharmacy';
+      } else if (serviceTypeVal === 'IPD') {
+        targetDept = 'ward';
+      } else if (serviceTypeVal === 'EMR') {
+        targetDept = 'triage';
+        targetPriority = 'emergency';
+      } else if (serviceTypeVal === 'FP' || serviceTypeVal === 'IMM') {
+        targetDept = 'consultation';
+      } else if (serviceTypeVal === 'ANC') {
+        targetDept = 'triage';
+      }
+
+      // Check for active visit
+      const { data: vsts } = await supabase.from('visits').select('*').eq('patient_id', patientId);
+      const active = vsts?.find(v => v.status !== 'completed');
+      if (active) {
+        throw new Error(`Patient already has an active visit in ${active.department.toUpperCase()}.`);
+      }
+
+      const visitRecord = {
+        patient_id: patientId,
+        facility_id: user.facility_id,
+        department: targetDept,
+        priority: targetPriority,
+        status: 'waiting',
+        service_type: serviceTypeVal
+      };
+      const { error: visitErr } = await supabase.from('visits').insert(visitRecord);
+      if (visitErr) throw visitErr;
+
+      // Create MOH compliance record
+      const regRecord = {
+        patient_id: patientId,
+        facility_id: user.facility_id,
+        visit_type: 'walk-in',
+        service_type: serviceTypeVal,
+        status: 'active'
+      };
+      await supabase.from('patient_registrations').insert(regRecord);
+
+      setMessage({ type: 'success', text: `Patient checked in successfully for ${serviceTypeVal}!` });
+      performSearch(searchQuery);
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Check-in failed.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -165,6 +224,8 @@ export default function Registration({ user, onNavigateToQueue }) {
           targetPriority = 'emergency';
         } else if (regServiceType === 'FP' || regServiceType === 'IMM') {
           targetDept = 'consultation';
+        } else if (regServiceType === 'ANC') {
+          targetDept = 'triage';
         }
 
         const visitRecord = {
@@ -275,6 +336,33 @@ export default function Registration({ user, onNavigateToQueue }) {
                         Open Visit / Queue
                       </button>
                     </div>
+                    <div className="border-t border-slate-900 pt-2 flex flex-wrap items-center justify-between gap-2.5 w-full">
+                      <div className="flex items-center gap-1.5">
+                        <select
+                          id={`service-select-${pt.id}`}
+                          defaultValue="OPD"
+                          className="bg-slate-900 border border-slate-800 text-[10px] text-white py-1 px-2 rounded focus:outline-none focus:border-teal-500"
+                        >
+                          <option value="OPD">General OPD (OPD)</option>
+                          <option value="ANC">Antenatal Care (ANC)</option>
+                          <option value="FP">Family Planning (FP)</option>
+                          <option value="IMM">Immunization/Vaccine</option>
+                          <option value="LAB">Laboratory-Only</option>
+                          <option value="PHA">Pharmacy-Only</option>
+                          <option value="IPD">Inpatient Admission</option>
+                          <option value="EMR">Emergency/Triage</option>
+                        </select>
+                        <button
+                          onClick={async () => {
+                            const val = document.getElementById(`service-select-${pt.id}`).value;
+                            await handleDirectCheckin(pt.id, val);
+                          }}
+                          className="bg-teal-500/15 hover:bg-teal-500/20 border border-teal-500/30 text-teal-400 font-bold text-[9px] py-1 px-2.5 rounded transition active:scale-[0.97]"
+                        >
+                          Direct Check-in
+                        </button>
+                      </div>
+                    </div>
                     
                     {/* Clinical Journey Alerts */}
                     {pt.alerts && (
@@ -355,6 +443,41 @@ export default function Registration({ user, onNavigateToQueue }) {
         )}
 
         <form onSubmit={handleRegister} className="space-y-4">
+          {/* Service Classification */}
+          <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-xl space-y-3">
+            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider">Service Classification</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Service Type</label>
+                <select
+                  value={regServiceType}
+                  onChange={(e) => setRegServiceType(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-105 focus:outline-none focus:border-teal-500 transition"
+                >
+                  <option value="OPD">General OPD (Normal Consultation)</option>
+                  <option value="ANC">Antenatal Care (ANC)</option>
+                  <option value="FP">Family Planning (FP)</option>
+                  <option value="IMM">Immunization/Vaccination</option>
+                  <option value="LAB">Laboratory-Only</option>
+                  <option value="PHA">Pharmacy-Only</option>
+                  <option value="IPD">Inpatient Admission</option>
+                  <option value="EMR">Emergency/Triage</option>
+                </select>
+              </div>
+              <div className="flex items-center pt-6">
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 cursor-pointer select-none hover:text-white transition">
+                  <input
+                    type="checkbox"
+                    checked={autoCheckin}
+                    onChange={(e) => setAutoCheckin(e.target.checked)}
+                    className="accent-teal-500 h-4 w-4 bg-slate-900 border-slate-800 rounded text-teal-505"
+                  />
+                  Check-in patient to queue immediately
+                </label>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Full Name */}
             <div>
@@ -612,40 +735,6 @@ export default function Registration({ user, onNavigateToQueue }) {
             </div>
           </div>
 
-          {/* Service Classification Dropdown */}
-          <div className="border-t border-slate-800/80 pt-4 mt-2">
-            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-3">Service Classification</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Service Type</label>
-                <select
-                  value={regServiceType}
-                  onChange={(e) => setRegServiceType(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                >
-                  <option value="OPD">General OPD (Normal Consultation)</option>
-                  <option value="ANC">Antenatal Care (ANC)</option>
-                  <option value="FP">Family Planning (FP)</option>
-                  <option value="IMM">Immunization/Vaccination</option>
-                  <option value="LAB">Laboratory-Only</option>
-                  <option value="PHA">Pharmacy-Only</option>
-                  <option value="IPD">Inpatient Admission</option>
-                  <option value="EMR">Emergency/Triage</option>
-                </select>
-              </div>
-              <div className="flex items-center pt-6">
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 cursor-pointer select-none hover:text-white transition">
-                  <input
-                    type="checkbox"
-                    checked={autoCheckin}
-                    onChange={(e) => setAutoCheckin(e.target.checked)}
-                    className="accent-teal-500 h-4 w-4 bg-slate-950 border-slate-800 rounded text-teal-500"
-                  />
-                  Check-in patient to queue immediately
-                </label>
-              </div>
-            </div>
-          </div>
 
           {/* Consent Checkbox */}
           <div className="border-t border-slate-800/80 pt-4 flex items-start gap-2.5">

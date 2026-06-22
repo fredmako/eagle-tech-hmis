@@ -288,9 +288,17 @@ CREATE TABLE IF NOT EXISTS public.ward_care_records (
     created_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.wards (
+    id text PRIMARY KEY,
+    name text NOT NULL,
+    wing text,
+    facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
+    created_at timestamp with time zone DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS public.bed_allocations (
     id text PRIMARY KEY,
-    ward_id text NOT NULL,
+    ward_id text NOT NULL REFERENCES public.wards(id) ON DELETE CASCADE,
     bed_number text NOT NULL,
     current_patient_id text REFERENCES public.patients(id) ON DELETE SET NULL,
     facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
@@ -456,6 +464,13 @@ INSERT INTO public.medical_instruments (id, facility_id, name, type, category, m
 ('inst_defibrillator', 'f1', 'Emergency Defibrillator', 'defibrillator', 'emergency', 'ZOLL Medical', 'AED Plus', 'DEFIB-ZOLL-840291', '2025-04-12', '2026-04-12', '2026-10-12', 'ER Room', 'active'),
 ('inst_monitor', 'f1', 'Patient Monitor Vitals', 'monitor', 'triage', 'Mindray', 'ePM 10', 'MON-MIND-928318', '2025-03-15', '2026-03-01', '2026-09-01', 'ER Triage', 'active'),
 ('inst_pump', 'f1', 'IV Infusion Pump', 'pump', 'ward', 'Baxter', 'Flo-Gard', 'PUMP-BAX-493021', '2025-07-22', '2026-02-18', '2026-08-18', 'Ward A', 'active')
+ON CONFLICT (id) DO NOTHING;
+
+-- Seed Default Wards
+INSERT INTO public.wards (id, name, wing, facility_id) VALUES
+('ward_male', 'Male Ward', 'A Wing', 'f1'),
+('ward_female', 'Female Ward', 'B Wing', 'f1'),
+('ward_pediatric', 'Pediatric Ward', 'C Wing', 'f1')
 ON CONFLICT (id) DO NOTHING;
 
 -- Seed Default Ward Beds

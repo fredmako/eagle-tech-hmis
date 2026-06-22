@@ -7,6 +7,7 @@ import StaffOnboarding from './admin/StaffOnboarding';
 import HospitalProfile from './admin/HospitalProfile';
 import HumanResources from './admin/HumanResources';
 import ProcurementDesk from './admin/ProcurementDesk';
+import WardSettings from './admin/WardSettings';
 
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
@@ -44,12 +45,13 @@ import {
   ShieldCheck,
   Activity,
   Users,
-  ShoppingBag
+  ShoppingBag,
+  Bed
 } from 'lucide-react';
 
 export default function Admin({ user }) {
   const { authFetch, inviteStaff, getInvitations, revokeInvite, setUser } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState('audit'); // 'audit', 'smtp_settings', 'email_logs', 'licensing', 'role_requests', 'facility_profile', 'hr', 'procurement'
+  const [activeSubTab, setActiveSubTab] = useState('audit'); // 'audit', 'smtp_settings', 'email_logs', 'licensing', 'role_requests', 'facility_profile', 'hr', 'procurement', 'ward_settings'
   const [auditLogs, setAuditLogs] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
@@ -936,6 +938,24 @@ export default function Admin({ user }) {
           >
             <Globe size={13} /> Domain & Branding
           </button>
+
+          {(() => {
+            const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
+            const isAuthorized = rolesList.includes('admin') || rolesList.includes('facility_admin') || rolesList.includes('hr_manager');
+            if (!isAuthorized) return null;
+            return (
+              <button
+                onClick={() => setActiveSubTab('ward_settings')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'ward_settings'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Bed size={13} /> Ward & Bed Settings
+              </button>
+            );
+          })()}
         </div>
 
         {/* Tab Contents */}
@@ -1325,6 +1345,10 @@ export default function Admin({ user }) {
                 </ol>
               </div>
             </div>
+          )}
+
+          {activeSubTab === 'ward_settings' && (
+            <WardSettings user={user} />
           )}
         </div>
       </div>

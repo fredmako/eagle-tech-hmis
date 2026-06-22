@@ -608,8 +608,6 @@ export default function Orders({ user, onComplete }) {
               <div className="space-y-4">
                 {pendingOrders.map((ord) => {
                   const meta = parseOrderMeta(ord.results);
-                  const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
-                  const isSeniorVerifier = rolesList.includes('admin') || rolesList.includes('clinician');
                   
                   return (
                     <div key={ord.id} className="bg-slate-950 border border-slate-850 p-4 rounded-xl space-y-4">
@@ -952,34 +950,29 @@ export default function Orders({ user, onComplete }) {
                             }
                           })()}
 
-                          {/* Verify double-check (restricted to admins/clinicians or senior tech) */}
+                          {/* Verify double-check (no senior role required) */}
                           {ord.status === 'completed' && (() => {
                             const isCritical = isCriticalResult(ord, meta);
-                            const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
-                            const isSenior = rolesList.includes('admin') || rolesList.includes('clinician') || rolesList.includes('lab_director') || rolesList.includes('senior_tech');
                             
                             return (
                               <div className="flex flex-col gap-1.5 w-full bg-slate-950/65 p-3 rounded-lg border border-slate-900 mt-2">
                                 {isCritical && (
                                   <span className="text-[10px] text-red-400 font-bold bg-red-500/10 border border-red-500/20 px-2 py-1 rounded flex items-center gap-1">
-                                    <ShieldAlert size={12} className="shrink-0 animate-bounce" /> Warning: Critical Value Detected! Senior supervisor/clinician verification required.
+                                    <ShieldAlert size={12} className="shrink-0 animate-bounce" /> Warning: Critical Value Detected! Please double-check and verify findings.
                                   </span>
                                 )}
                                 <div className="flex justify-between items-center gap-2 mt-1 w-full">
                                   <span className="text-[9px] text-slate-500 italic">
-                                    {isCritical ? 'Verification: Required (Senior)' : 'Verification: Pending'}
+                                    {isCritical ? 'Verification: Required (Critical Value)' : 'Verification: Pending'}
                                   </span>
                                   <button
-                                    disabled={loading || (isCritical && !isSenior)}
+                                    disabled={loading}
                                     onClick={() => handleVerifyResults(ord.id)}
                                     className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold text-[10px] py-1.5 px-3 rounded shadow transition active:scale-[0.97] flex items-center gap-1 shrink-0"
                                   >
-                                    <UserCheck size={12} /> {isCritical && !isSenior ? 'Verification Restricted' : 'Verify Findings'}
+                                    <UserCheck size={12} /> Verify Findings
                                   </button>
                                 </div>
-                                {isCritical && !isSenior && (
-                                  <span className="text-[8px] text-red-450 block text-right mt-0.5">Your account role cannot verify critical test parameters.</span>
-                                )}
                               </div>
                             );
                           })()}

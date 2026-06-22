@@ -19,6 +19,7 @@ export default function SupportPanel() {
   const [messageText, setMessageText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null); // { type: 'success' | 'error', text: '' }
+  const [targetType, setTargetType] = useState('platform'); // 'platform' or 'facility'
   
   const [tickets, setTickets] = useState([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
@@ -89,7 +90,8 @@ export default function SupportPanel() {
         user_email: user.email,
         subject,
         message: messageText.trim(),
-        status: 'pending'
+        status: 'pending',
+        facility_id: targetType === 'facility' ? user.facility_id : null
       };
 
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -130,9 +132,9 @@ export default function SupportPanel() {
                   <strong>Subject:</strong> ${subject}<br/>
                   <strong>Message:</strong> "${messageText.trim()}"
                 </div>
-                <p>Our platform administrators are reviewing your query and will get back to you shortly.</p>
+                <p>${targetType === 'facility' ? 'Your local hospital administration is reviewing your help desk query and will reply shortly.' : 'Our platform administrators are reviewing your query and will get back to you shortly.'}</p>
                 <p>Thank you,</p>
-                <p><strong>Eagle Tech HMIS Support Team</strong></p>
+                <p><strong>${targetType === 'facility' ? user.facility_name || 'Hospital Help Desk' : 'Eagle Tech HMIS Support Team'}</strong></p>
               </div>
             `
           })
@@ -220,6 +222,34 @@ export default function SupportPanel() {
                     className="w-full bg-slate-950/60 border border-slate-800/80 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-400 cursor-not-allowed font-medium"
                   />
                 </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Support Destination</label>
+              <div className="flex flex-col sm:flex-row gap-4 bg-slate-955 p-3 rounded-lg border border-slate-800/80 mb-3">
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer select-none">
+                  <input
+                    type="radio"
+                    name="targetType"
+                    value="platform"
+                    checked={targetType === 'platform'}
+                    onChange={() => setTargetType('platform')}
+                    className="border-slate-800 bg-slate-950 text-teal-500 focus:ring-0 focus:outline-none cursor-pointer"
+                  />
+                  <span>Platform Operations (Super Admin)</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer select-none">
+                  <input
+                    type="radio"
+                    name="targetType"
+                    value="facility"
+                    checked={targetType === 'facility'}
+                    onChange={() => setTargetType('facility')}
+                    className="border-slate-800 bg-slate-950 text-teal-500 focus:ring-0 focus:outline-none cursor-pointer"
+                  />
+                  <span>Hospital Help Desk (Facility Admin)</span>
+                </label>
               </div>
             </div>
 

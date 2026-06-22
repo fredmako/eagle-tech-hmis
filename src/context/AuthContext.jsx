@@ -72,9 +72,28 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // If we don't have cached user data OR the cached user has facility_is_verified as false,
-      // fetch the enriched profile from the backend to check if verification status changed.
-      if ((!userData || userData.facility_is_verified === false) && !supabase.isSandbox) {
+      // Check if the backend session token is missing or expired
+      const backendToken = localStorage.getItem('egesa_health_token');
+      const tokenExpired = !backendToken || (() => {
+        try {
+          const base64Url = backendToken.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(window.atob(base64).split('').map((c) => {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          const payload = JSON.parse(jsonPayload);
+          if (payload.exp && Date.now() >= payload.exp * 1000) {
+            return true;
+          }
+          return false;
+        } catch (e) {
+          return true;
+        }
+      })();
+
+      // If we don't have cached user data OR the cached user has facility_is_verified as false OR the token is expired/missing,
+      // fetch the enriched profile from the backend to check if verification status changed or to get a fresh token.
+      if ((!userData || userData.facility_is_verified === false || tokenExpired) && !supabase.isSandbox) {
         try {
           console.log('[AuthContext:checkSession] Fetching enriched profile from backend...');
           const activeFacilityId = localStorage.getItem('egesa_active_facility_id');

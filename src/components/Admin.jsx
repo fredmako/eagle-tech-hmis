@@ -4,11 +4,13 @@ import EmailLogs from './admin/EmailLogs';
 import SmtpSettings from './admin/SmtpSettings';
 import LicensingBilling from './admin/LicensingBilling';
 import StaffOnboarding from './admin/StaffOnboarding';
+import RoleRequestsList from './admin/RoleRequestsList';
 import HospitalProfile from './admin/HospitalProfile';
 import HumanResources from './admin/HumanResources';
 import OperationsDesk from './admin/OperationsDesk';
 import WardSettings from './admin/WardSettings';
 import PaymentSettings from './admin/PaymentSettings';
+import FacilityHelpDesk from './admin/FacilityHelpDesk';
 
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
@@ -47,15 +49,17 @@ import {
   Activity,
   Users,
   ShoppingBag,
-  Bed
+  Bed,
+  PhoneCall
 } from 'lucide-react';
 
 export default function Admin({ user }) {
   const { authFetch, inviteStaff, getInvitations, revokeInvite, setUser } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState('audit'); // 'audit', 'smtp_settings', 'email_logs', 'licensing', 'role_requests', 'facility_profile', 'hr', 'procurement', 'ward_settings', 'payment_settings'
+  const [activeSubTab, setActiveSubTab] = useState('audit'); // 'audit', 'smtp_settings', 'email_logs', 'licensing', 'staff_onboarding', 'role_requests', 'help_desk', 'facility_profile', 'hr', 'procurement', 'ward_settings', 'payment_settings'
   const [auditLogs, setAuditLogs] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
+  const [supportTicketsCount, setSupportTicketsCount] = useState(0);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestsMessage, setRequestsMessage] = useState('');
   const [facilityDetails, setFacilityDetails] = useState({
@@ -199,6 +203,34 @@ export default function Admin({ user }) {
 
       // Refresh email logs
       setEmailLogs(getEmailLogs(user.facility_id));
+
+      // Fetch support tickets count
+      try {
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const token = localStorage.getItem('egesa_health_token');
+        if (user.facility_id) {
+          const res = await fetch(`${apiBase}/db/query`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              table: 'support_tickets',
+              queries: [
+                { type: 'equal', column: 'facility_id', value: user.facility_id },
+                { type: 'equal', column: 'status', value: 'pending' }
+              ]
+            })
+          });
+          if (res.ok) {
+            const resData = await res.json();
+            setSupportTicketsCount(resData.data?.length || 0);
+          }
+        }
+      } catch (ticketErr) {
+        console.error('Error fetching support tickets count:', ticketErr);
+      }
     } catch (err) {
       console.error('Error fetching admin details:', err);
     } finally {
@@ -868,6 +900,22 @@ export default function Admin({ user }) {
           </button>
 
           <button
+            onClick={() => setActiveSubTab('staff_onboarding')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+              activeSubTab === 'staff_onboarding'
+                ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                : 'text-slate-450 hover:text-slate-200'
+            }`}
+          >
+            <UserPlus size={13} /> Staff Onboarding
+            {invitationsList.filter(i => i.status === 'pending').length > 0 && (
+              <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
+                {invitationsList.filter(i => i.status === 'pending').length}
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('role_requests')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
               activeSubTab === 'role_requests'
@@ -875,10 +923,26 @@ export default function Admin({ user }) {
                 : 'text-slate-450 hover:text-slate-200'
             }`}
           >
-            <UserPlus size={13} /> Staff Onboarding & Invites
-            {invitationsList.filter(i => i.status === 'pending').length > 0 && (
+            <UserCheck size={13} /> Role Requests
+            {roleRequests.filter(r => r.status === 'pending').length > 0 && (
               <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
-                {invitationsList.filter(i => i.status === 'pending').length}
+                {roleRequests.filter(r => r.status === 'pending').length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('help_desk')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+              activeSubTab === 'help_desk'
+                ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                : 'text-slate-450 hover:text-slate-200'
+            }`}
+          >
+            <PhoneCall size={13} /> Help Desk
+            {supportTicketsCount > 0 && (
+              <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
+                {supportTicketsCount}
               </span>
             )}
           </button>
@@ -1030,7 +1094,7 @@ export default function Admin({ user }) {
           )}
 
           {/* TAB 5: STAFF ONBOARDING & INVITATIONS PORTAL */}
-          {activeSubTab === 'role_requests' && (
+          {activeSubTab === 'staff_onboarding' && (
             <StaffOnboarding
               inviteMessage={inviteMessage}
               handleSendInvite={handleSendInvite}
@@ -1043,12 +1107,24 @@ export default function Admin({ user }) {
               invitesLoading={invitesLoading}
               invitationsList={invitationsList}
               handleRevokeInvite={handleRevokeInvite}
+            />
+          )}
+
+          {/* TAB 5b: STAFF ROLE APPROVAL REQUESTS */}
+          {activeSubTab === 'role_requests' && (
+            <RoleRequestsList
               roleRequests={roleRequests}
               requestsLoading={requestsLoading}
               requestsMessage={requestsMessage}
               handleApproveRequest={handleApproveRequest}
               handleRejectRequest={handleRejectRequest}
+              fetchAdminData={fetchAdminData}
             />
+          )}
+
+          {/* TAB 5c: FACILITY HELP DESK & PATIENT INQUIRIES */}
+          {activeSubTab === 'help_desk' && (
+            <FacilityHelpDesk user={user} />
           )}
 
           {/* TAB 6: HOSPITAL PROFILE PARTICULARS */}

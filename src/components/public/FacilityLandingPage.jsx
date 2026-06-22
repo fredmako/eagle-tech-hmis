@@ -29,6 +29,15 @@ export default function FacilityLandingPage() {
   const [authSuccess, setAuthSuccess] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Support / Inquiry Form States
+  const [supportName, setSupportName] = useState('');
+  const [supportEmail, setSupportEmail] = useState('');
+  const [supportSubject, setSupportSubject] = useState('General Inquiry');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [supportLoading, setSupportLoading] = useState(false);
+  const [supportSuccess, setSupportSuccess] = useState('');
+  const [supportError, setSupportError] = useState('');
+
   useEffect(() => {
     fetchFacilityDetails();
   }, [subdomain]);
@@ -146,6 +155,85 @@ export default function FacilityLandingPage() {
     }
   };
 
+  const handleSupportSubmit = async (e) => {
+    e.preventDefault();
+    if (!supportName.trim() || !supportEmail.trim() || !supportMessage.trim()) return;
+
+    setSupportLoading(true);
+    setSupportError('');
+    setSupportSuccess('');
+
+    try {
+      const ticketId = 'ticket_' + Math.random().toString(36).substring(2, 12);
+      const newTicket = {
+        id: ticketId,
+        user_name: supportName.trim(),
+        user_email: supportEmail.trim(),
+        subject: supportSubject,
+        message: supportMessage.trim(),
+        status: 'pending',
+        facility_id: facility.id
+      };
+
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+      // 1. Save support ticket in DB proxy
+      const dbRes = await fetch(`${apiBase}/db/insert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: 'support_tickets',
+          rows: newTicket
+        })
+      });
+
+      if (!dbRes.ok) {
+        const errorData = await dbRes.json();
+        throw new Error(errorData.error || 'Failed to submit support ticket.');
+      }
+
+      // 2. Dispatch Automated Email Confirmation
+      try {
+        await fetch(`${apiBase}/email/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: supportEmail.trim(),
+            subject: `Inquiry Received: [#${ticketId.substring(7, 13)}] - ${supportSubject}`,
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <h2 style="color: #0d9488; margin-top: 0;">Help Desk Inquiry Received</h2>
+                <p>Hello <strong>${supportName}</strong>,</p>
+                <p>Thank you for contacting <strong>${facility.name}</strong>. We have received your inquiry and our hospital administration team is reviewing it.</p>
+                <div style="background-color: #f8fafc; padding: 15px; border-left: 4px solid #0d9488; margin: 20px 0; border-radius: 4px;">
+                  <strong>Ticket Reference:</strong> #${ticketId.substring(7, 13)}<br/>
+                  <strong>Subject:</strong> ${supportSubject}<br/>
+                  <strong>Message:</strong><br/>
+                  <p style="color: #475569; font-style: italic; margin-top: 5px;">"${supportMessage.trim()}"</p>
+                </div>
+                <p>We will get back to you as soon as possible.</p>
+                <p>Thank you,</p>
+                <p><strong>${facility.name} Team</strong></p>
+              </div>
+            `
+          })
+        });
+      } catch (emailErr) {
+        console.error('Email dispatch failed:', emailErr);
+      }
+
+      setSupportSuccess(`Inquiry submitted successfully! Reference: #${ticketId.substring(7, 13)}`);
+      setSupportName('');
+      setSupportEmail('');
+      setSupportSubject('General Inquiry');
+      setSupportMessage('');
+    } catch (err) {
+      setSupportError(err.message);
+    } finally {
+      setSupportLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
@@ -222,6 +310,101 @@ export default function FacilityLandingPage() {
                 <p className="text-xs text-slate-500 italic">No services registered for this facility.</p>
               )}
             </div>
+          </div>
+
+          {/* Contact / Inquiry Form */}
+          <div className="bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-6">
+            <div>
+              <h3 className="text-sm font-bold text-teal-400 uppercase tracking-widest flex items-center gap-2">
+                <PhoneCall size={16} /> Contact & Inquiry Help Desk
+              </h3>
+              <p className="text-2xs text-slate-400 mt-1 leading-relaxed">
+                Have a question or request for {facility.name}? Submit your query below and our team will get in touch.
+              </p>
+            </div>
+
+            {supportError && (
+              <div className="p-2.5 bg-red-500/5 border border-red-500/20 text-red-400 rounded text-xs">
+                {supportError}
+              </div>
+            )}
+            {supportSuccess && (
+              <div className="p-2.5 bg-teal-500/5 border border-teal-500/20 text-teal-400 rounded text-xs font-semibold">
+                {supportSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleSupportSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Your Full Name</label>
+                  <input
+                    type="text"
+                    value={supportName}
+                    onChange={(e) => setSupportName(e.target.value)}
+                    placeholder="Jane Doe"
+                    className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={supportEmail}
+                    onChange={(e) => setSupportEmail(e.target.value)}
+                    placeholder="jane.doe@example.com"
+                    className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Subject of Inquiry</label>
+                <select
+                  value={supportSubject}
+                  onChange={(e) => setSupportSubject(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                >
+                  <option value="General Inquiry">General Inquiry</option>
+                  <option value="Appointment Query">Appointment Query</option>
+                  <option value="Billing Question">Billing Question</option>
+                  <option value="Feedback">Feedback & Suggestions</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Message / Query Description</label>
+                <textarea
+                  value={supportMessage}
+                  onChange={(e) => setSupportMessage(e.target.value)}
+                  placeholder="How can we assist you today? Please provide as much detail as possible..."
+                  rows={4}
+                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 placeholder:text-slate-650 focus:outline-none focus:border-teal-500 transition resize-none leading-relaxed"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={supportLoading}
+                className="w-full bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-slate-950 font-black py-2 rounded-lg text-xs transition flex items-center justify-center gap-1.5"
+              >
+                {supportLoading ? (
+                  <>
+                    <div className="h-3.5 w-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                    <span>Submitting Inquiry...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Submit Inquiry</span>
+                    <ArrowRight size={14} />
+                  </>
+                )}
+              </button>
+            </form>
           </div>
         </div>
 

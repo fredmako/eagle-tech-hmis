@@ -327,15 +327,26 @@ router.post("/query", async (req, res) => {
     const globalTables = ["facilities", "profiles", "support_tickets"];
     const enrichedQueries = [...queries];
 
-    if (table === "support_tickets" && req.user && req.user.role !== "super_admin") {
-      const cleanQueries = enrichedQueries.filter((q) => q && q.column !== "user_email");
-      cleanQueries.push({
-        type: "equal",
-        column: "user_email",
-        value: req.user.email,
-      });
-      enrichedQueries.length = 0;
-      enrichedQueries.push(...cleanQueries);
+    if (table === "support_tickets" && req.user) {
+      if (req.user.role === "admin") {
+        const cleanQueries = enrichedQueries.filter((q) => q && q.column !== "facility_id");
+        cleanQueries.push({
+          type: "equal",
+          column: "facility_id",
+          value: req.user.facility_id,
+        });
+        enrichedQueries.length = 0;
+        enrichedQueries.push(...cleanQueries);
+      } else if (req.user.role !== "super_admin") {
+        const cleanQueries = enrichedQueries.filter((q) => q && q.column !== "user_email");
+        cleanQueries.push({
+          type: "equal",
+          column: "user_email",
+          value: req.user.email,
+        });
+        enrichedQueries.length = 0;
+        enrichedQueries.push(...cleanQueries);
+      }
     }
 
     if (!globalTables.includes(table) && req.user) {
@@ -455,8 +466,10 @@ router.post("/update", authenticateToken, async (req, res) => {
       });
   }
 
-  if (table === "support_tickets" && req.user.role !== "super_admin") {
-    return res.status(403).json({ error: "Only platform administrators can modify support tickets." });
+  if (table === "support_tickets") {
+    if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Only platform or facility administrators can modify support tickets." });
+    }
   }
 
   try {
@@ -464,6 +477,12 @@ router.post("/update", authenticateToken, async (req, res) => {
     const queries = [{ type: "equal", column, value }];
     const globalTables = ["facilities", "profiles", "support_tickets"];
     if (!globalTables.includes(table)) {
+      queries.push({
+        type: "equal",
+        column: "facility_id",
+        value: req.user.facility_id,
+      });
+    } else if (table === "support_tickets" && req.user.role === "admin") {
       queries.push({
         type: "equal",
         column: "facility_id",
@@ -520,8 +539,10 @@ router.post("/delete", authenticateToken, async (req, res) => {
       .json({ error: "Table, query column, and query value are required" });
   }
 
-  if (table === "support_tickets" && req.user.role !== "super_admin") {
-    return res.status(403).json({ error: "Only platform administrators can delete support tickets." });
+  if (table === "support_tickets") {
+    if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Only platform or facility administrators can delete support tickets." });
+    }
   }
 
   try {
@@ -529,6 +550,12 @@ router.post("/delete", authenticateToken, async (req, res) => {
     const queries = [{ type: "equal", column, value }];
     const globalTables = ["facilities", "profiles", "support_tickets"];
     if (!globalTables.includes(table)) {
+      queries.push({
+        type: "equal",
+        column: "facility_id",
+        value: req.user.facility_id,
+      });
+    } else if (table === "support_tickets" && req.user.role === "admin") {
       queries.push({
         type: "equal",
         column: "facility_id",

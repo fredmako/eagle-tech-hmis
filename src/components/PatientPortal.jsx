@@ -269,7 +269,8 @@ export default function PatientPortal() {
         user_email: emailAddr,
         subject: supportSubject,
         message: supportMessageText.trim(),
-        status: 'pending'
+        status: 'pending',
+        facility_id: patient?.facility_id || user?.facility_id
       };
 
       const token = localStorage.getItem('egesa_health_token');

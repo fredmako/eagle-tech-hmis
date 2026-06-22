@@ -24,10 +24,8 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
   const { setUser, authFetch } = useAuth();
   const [facilities, setFacilities] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
-  const [roleRequests, setRoleRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [requestsLoading, setRequestsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // stores facilityId or request ID during action
   const [message, setMessage] = useState({ type: '', text: '' });
   const [activeTab, setActiveTab] = useState('registry'); // 'registry' | 'audit' | 'requests' | 'support'
@@ -156,19 +154,7 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
       if (ticketErr) throw ticketErr;
       setSupportTickets(tickets || []);
 
-      // Fetch all role requests across facilities
-      try {
-        const res = await authFetch('/auth/role-requests');
-        const data = await res.json();
-        if (res.ok && data.requests) {
-          setRoleRequests(data.requests);
-        } else {
-          setRoleRequests([]);
-        }
-      } catch (reqErr) {
-        console.error('[SuperAdminDashboard] Error fetching role requests:', reqErr);
-        setRoleRequests([]);
-      }
+      // Role requests shifted to facility admins
     } catch (err) {
       console.error('[SuperAdminDashboard] Error loading data:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to load system control records.' });
@@ -245,63 +231,7 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
     sessionStorage.setItem('egesa_health_active_user', JSON.stringify(updatedUser));
   };
 
-  const handleApproveRequest = async (request) => {
-    setActionLoading(`req-${request.id}`);
-    setMessage({ type: '', text: '' });
-    try {
-      const res = await authFetch('/auth/approve-request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request_id: request.id })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to approve request.');
-
-      setRoleRequests(prev => prev.map(r => r.id === request.id ? { ...r, status: 'approved' } : r));
-      setMessage({ type: 'success', text: `Successfully approved role ${request.requested_role.toUpperCase()} for ${request.full_name}!` });
-      
-      const { data: logs } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(30);
-      if (logs) setAuditLogs(logs);
-    } catch (err) {
-      console.error('[SuperAdminDashboard] Approve request failed:', err);
-      setMessage({ type: 'error', text: err.message || 'Failed to approve role request.' });
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleRejectRequest = async (request) => {
-    setActionLoading(`req-${request.id}`);
-    setMessage({ type: '', text: '' });
-    try {
-      const res = await authFetch('/auth/reject-request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request_id: request.id })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to reject request.');
-
-      setRoleRequests(prev => prev.map(r => r.id === request.id ? { ...r, status: 'rejected' } : r));
-      setMessage({ type: 'success', text: `Successfully rejected role request for ${request.full_name}.` });
-
-      const { data: logs } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(30);
-      if (logs) setAuditLogs(logs);
-    } catch (err) {
-      console.error('[SuperAdminDashboard] Reject request failed:', err);
-      setMessage({ type: 'error', text: err.message || 'Failed to reject role request.' });
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  // Role requests approved/rejected directly by facility administrators
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -416,11 +346,11 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
 
           <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex items-center justify-between shadow-md">
             <div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pending Staff Access Requests</span>
-              <h3 className={`text-2xl font-black mt-1.5 font-mono ${roleRequests.filter(r => r.status === 'pending').length > 0 ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`}>{roleRequests.filter(r => r.status === 'pending').length}</h3>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Unaddressed Support Queries</span>
+              <h3 className={`text-2xl font-black mt-1.5 font-mono ${supportTickets.filter(t => t.status === 'pending').length > 0 ? 'text-rose-400 animate-pulse' : 'text-slate-400'}`}>{supportTickets.filter(t => t.status === 'pending').length}</h3>
             </div>
-            <div className={`p-3 rounded-xl border ${roleRequests.filter(r => r.status === 'pending').length > 0 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-slate-800/40 border-slate-800 text-slate-500'}`}>
-              <Clock size={24} />
+            <div className={`p-3 rounded-xl border ${supportTickets.filter(t => t.status === 'pending').length > 0 ? 'bg-rose-500/10 border-rose-500/20 text-rose-455' : 'bg-slate-800/40 border-slate-800 text-slate-500'}`}>
+              <AlertCircle size={24} />
             </div>
           </div>
         </div>
@@ -434,19 +364,6 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
             }`}
           >
             Facility Onboarding Registry
-          </button>
-          <button
-            onClick={() => setActiveTab('requests')}
-            className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${
-              activeTab === 'requests' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <span>Staff Authorization Requests</span>
-            {roleRequests.filter(r => r.status === 'pending').length > 0 && (
-              <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
-                {roleRequests.filter(r => r.status === 'pending').length}
-              </span>
-            )}
           </button>
           <button
             onClick={() => setActiveTab('audit')}
@@ -567,85 +484,6 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
                                 : fac.is_verified ? 'Suspend Portal' : 'Verify Facility'}
                             </span>
                           </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        ) : activeTab === 'requests' ? (
-          /* STAFF AUTHORIZATION REQUESTS PANEL */
-          <div className="bg-slate-900 border border-slate-850 rounded-2xl overflow-hidden shadow-lg animate-fadeIn">
-            <div className="p-5 border-b border-slate-850 bg-slate-900/60 flex justify-between items-center">
-              <div>
-                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Pending Staff Authorization Requests</h4>
-                <p className="text-[10px] text-slate-500 mt-1">Review applicant profiles and assign their requested operational credentials within their respective facility workspaces.</p>
-              </div>
-            </div>
-
-            {roleRequests.filter(r => r.status === 'pending').length === 0 ? (
-              <div className="p-10 text-center text-slate-500 text-xs">
-                <AlertCircle size={32} className="mx-auto mb-2 text-slate-600" />
-                <span>No pending role requests awaiting supervisor approval.</span>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-950/40 text-slate-400 font-bold border-b border-slate-855 text-[10px] uppercase">
-                      <th className="py-3 px-4">Staff Member</th>
-                      <th className="py-3 px-4">Email Address</th>
-                      <th className="py-3 px-4">Requested Role</th>
-                      <th className="py-3 px-4">Facility Workspace</th>
-                      <th className="py-3 px-4">Submitted At</th>
-                      <th className="py-3 px-4 text-center">Action Controls</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-850 font-semibold text-slate-300">
-                    {roleRequests.filter(r => r.status === 'pending').map((req) => (
-                      <tr key={req.id} className="hover:bg-slate-955/20 transition animate-fadeIn">
-                        <td className="py-4 px-4 font-bold text-slate-100 uppercase">{req.full_name}</td>
-                        <td className="py-4 px-4 font-mono text-[11px] text-slate-400">{req.email}</td>
-                        <td className="py-4 px-4">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-teal-500/10 border border-teal-500/20 text-teal-400">
-                            {req.requested_role}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-slate-350 text-[11px]">
-                          {facilities.find(f => f.id === req.facility_id)?.name || req.facility_id || 'Unknown Workspace'}
-                        </td>
-                        <td className="py-4 px-4 text-slate-450 font-mono text-[10px]">
-                          {new Date(req.created_at).toLocaleString()}
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleApproveRequest(req)}
-                              disabled={actionLoading === `req-${req.id}`}
-                              className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-black text-[10px] uppercase py-1.5 px-3 rounded-lg shadow transition active:scale-[0.98] cursor-pointer flex items-center gap-1 disabled:opacity-50"
-                            >
-                              {actionLoading === `req-${req.id}` ? (
-                                <RefreshCw size={10} className="animate-spin" />
-                              ) : (
-                                <CheckCircle2 size={10} />
-                              )}
-                              <span>Approve</span>
-                            </button>
-                            <button
-                              onClick={() => handleRejectRequest(req)}
-                              disabled={actionLoading === `req-${req.id}`}
-                              className="bg-slate-800 hover:bg-slate-750 text-red-400 border border-slate-700 hover:border-red-500/25 font-bold text-[10px] uppercase py-1.5 px-3 rounded-lg shadow transition active:scale-[0.98] cursor-pointer flex items-center gap-1 disabled:opacity-50"
-                            >
-                              {actionLoading === `req-${req.id}` ? (
-                                <RefreshCw size={10} className="animate-spin" />
-                              ) : (
-                                <XCircle size={10} />
-                              )}
-                              <span>Reject</span>
-                            </button>
-                          </div>
                         </td>
                       </tr>
                     ))}

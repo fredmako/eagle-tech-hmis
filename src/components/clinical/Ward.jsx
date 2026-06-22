@@ -190,14 +190,52 @@ export default function Ward({ user }) {
     e.preventDefault();
     if (!selectedAdmission) return;
 
+    // Validation of vitals in Ward observation
+    if (temp) {
+      const tempVal = parseFloat(temp);
+      if (tempVal < 25 || tempVal > 45) {
+        setMessage({ type: 'error', text: 'Temperature must be between 25.0°C and 45.0°C.' });
+        return;
+      }
+    }
+
+    let bpSystolic = null;
+    let bpDiastolic = null;
+    if (bp) {
+      const bpParts = bp.split('/');
+      if (bpParts.length !== 2) {
+        setMessage({ type: 'error', text: 'Blood pressure must be in the format Systolic/Diastolic (e.g. 120/80).' });
+        return;
+      }
+      bpSystolic = parseInt(bpParts[0], 10);
+      bpDiastolic = parseInt(bpParts[1], 10);
+
+      if (isNaN(bpSystolic) || bpSystolic < 50 || bpSystolic > 280) {
+        setMessage({ type: 'error', text: 'Systolic blood pressure must be between 50 mmHg and 280 mmHg.' });
+        return;
+      }
+      if (isNaN(bpDiastolic) || bpDiastolic < 30 || bpDiastolic > 180) {
+        setMessage({ type: 'error', text: 'Diastolic blood pressure must be between 30 mmHg and 180 mmHg.' });
+        return;
+      }
+      if (bpDiastolic >= bpSystolic) {
+        setMessage({ type: 'error', text: 'Diastolic blood pressure must be strictly lower than systolic blood pressure.' });
+        return;
+      }
+    }
+
+    if (pulse) {
+      const pulseVal = parseInt(pulse, 10);
+      if (pulseVal < 30 || pulseVal > 260) {
+        setMessage({ type: 'error', text: 'Pulse / Heart rate must be between 30 bpm and 260 bpm.' });
+        return;
+      }
+    }
+
     setLoading(true);
     setMessage({ type: '', text: '' });
 
     try {
-      const bpParts = bp.split('/');
-      const bpSystolic = parseInt(bpParts[0]) || null;
-      const bpDiastolic = parseInt(bpParts[1]) || null;
-
       const recordId = 'care_' + Math.random().toString(36).substring(2, 12);
       const { error: obsError } = await supabase.from('ward_care_records').insert({
         id: recordId,
@@ -586,6 +624,8 @@ export default function Ward({ user }) {
                         step="0.1"
                         value={temp}
                         onChange={(e) => setTemp(e.target.value)}
+                        min="25"
+                        max="45"
                         placeholder="37"
                         className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
                         required
@@ -608,6 +648,8 @@ export default function Ward({ user }) {
                         type="number"
                         value={pulse}
                         onChange={(e) => setPulse(e.target.value)}
+                        min="30"
+                        max="260"
                         placeholder="72"
                         className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
                         required

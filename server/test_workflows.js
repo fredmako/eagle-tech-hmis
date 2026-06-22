@@ -11,10 +11,12 @@ const axios = require('axios');
 const http = require('http');
 const { JWT_SECRET } = require('./middleware/auth');
 const workflowsRouter = require('./routes/workflows');
+const dbRouter = require('./routes/db');
 
 const app = express();
 app.use(express.json());
 app.use('/api/workflows', workflowsRouter);
+app.use('/api/db', dbRouter);
 
 const server = http.createServer(app);
 
@@ -105,6 +107,47 @@ const runTests = async () => {
     }
   } catch (err) {
     console.error("❌ Test 4 Failed with error:", err.message);
+    failed = true;
+  }
+
+  // Test 5: Input Validation Checks
+  try {
+    const dbUrl = `http://127.0.0.1:${port}/api/db`;
+    // Try to insert a patient with DOB 1000-01-01
+    try {
+      await axios.post(`${dbUrl}/insert`, {
+        table: 'patients',
+        rows: { dob: '1000-01-01', name: 'Old Man', gender: 'male' }
+      }, config);
+      console.error("❌ Test 5 Failed: Old DOB inserted without error");
+      failed = true;
+    } catch (err) {
+      if (err.response && err.response.status === 400 && err.response.data.error.includes("before 1900")) {
+        console.log("✅ Test 5a Passed: Backend successfully rejected unrealistic patient birthdate");
+      } else {
+        console.error("❌ Test 5a Failed: Unexpected error for old DOB insertion", err.message, err.response?.data);
+        failed = true;
+      }
+    }
+
+    // Try to insert a triage record with temperature 55°C
+    try {
+      await axios.post(`${dbUrl}/insert`, {
+        table: 'triages',
+        rows: { temperature: 55.0, systolic: 120, diastolic: 80, visit_id: 'some_visit_id' }
+      }, config);
+      console.error("❌ Test 5 Failed: Extreme temperature inserted without error");
+      failed = true;
+    } catch (err) {
+      if (err.response && err.response.status === 400 && err.response.data.error.includes("Temperature must be between")) {
+        console.log("✅ Test 5b Passed: Backend successfully rejected extreme physiological temperature");
+      } else {
+        console.error("❌ Test 5b Failed: Unexpected error for extreme temperature insertion", err.message, err.response?.data);
+        failed = true;
+      }
+    }
+  } catch (err) {
+    console.error("❌ Test 5 Failed with error:", err.message);
     failed = true;
   }
 

@@ -5,6 +5,131 @@ const jwt = require("jsonwebtoken");
 const { db } = require("../utils/db");
 const { authenticateToken, JWT_SECRET } = require("../middleware/auth");
 
+function validateRowData(table, row) {
+  if (!row) return;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // 1. Patients Table
+  if (table === 'patients') {
+    if (row.dob) {
+      if (row.dob > todayStr) {
+        throw new Error("Validation: Date of Birth cannot be in the future.");
+      }
+      if (row.dob < '1900-01-01') {
+        throw new Error("Validation: Date of Birth must not be before 1900.");
+      }
+    }
+    if (row.phone) {
+      const cleanPhone = String(row.phone).trim();
+      if (cleanPhone.length < 8 || cleanPhone.length > 15) {
+        throw new Error("Validation: Phone number must be between 8 and 15 characters long.");
+      }
+      const phoneRegex = /^[0-9+\-\(\)\s]+$/;
+      if (!phoneRegex.test(cleanPhone)) {
+        throw new Error("Validation: Phone number contains invalid characters.");
+      }
+    }
+    if (row.national_id || row.nationalId) {
+      const natId = String(row.national_id || row.nationalId).trim();
+      if (natId.length < 4 || natId.length > 20) {
+        throw new Error("Validation: National ID must be between 4 and 20 characters long.");
+      }
+    }
+  }
+
+  // 2. Pregnancies Table (LMP date)
+  if (table === 'pregnancies') {
+    if (row.lmp_date) {
+      if (row.lmp_date > todayStr) {
+        throw new Error("Validation: LMP date cannot be in the future.");
+      }
+      const lmpDate = new Date(row.lmp_date);
+      const diffTime = Math.abs(new Date() - lmpDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays > 315) { // 45 weeks
+        throw new Error("Validation: LMP date must not be more than 45 weeks in the past.");
+      }
+    }
+  }
+
+  // 3. Triage / Vital Signs validation
+  const checkVitals = (data) => {
+    // Temperature: 25 - 45
+    if (data.temperature !== undefined && data.temperature !== null) {
+      const tempVal = parseFloat(data.temperature);
+      if (tempVal < 25.0 || tempVal > 45.0) {
+        throw new Error("Validation: Temperature must be between 25.0°C and 45.0°C.");
+      }
+    }
+    // Systolic: 50 - 280
+    let sys = null;
+    if (data.systolic !== undefined && data.systolic !== null) sys = parseInt(data.systolic, 10);
+    if (data.bp_systolic !== undefined && data.bp_systolic !== null) sys = parseInt(data.bp_systolic, 10);
+    if (sys !== null && (sys < 50 || sys > 280)) {
+      throw new Error("Validation: Systolic blood pressure must be between 50 mmHg and 280 mmHg.");
+    }
+
+    // Diastolic: 30 - 180
+    let dia = null;
+    if (data.diastolic !== undefined && data.diastolic !== null) dia = parseInt(data.diastolic, 10);
+    if (data.bp_diastolic !== undefined && data.bp_diastolic !== null) dia = parseInt(data.bp_diastolic, 10);
+    if (dia !== null && (dia < 30 || dia > 180)) {
+      throw new Error("Validation: Diastolic blood pressure must be between 30 mmHg and 180 mmHg.");
+    }
+
+    // BP relation
+    if (sys !== null && dia !== null && dia >= sys) {
+      throw new Error("Validation: Diastolic blood pressure must be strictly lower than systolic blood pressure.");
+    }
+
+    // Pulse / Heart rate: 30 - 260
+    let hr = null;
+    if (data.heart_rate !== undefined && data.heart_rate !== null) hr = parseInt(data.heart_rate, 10);
+    if (data.pulse_rate !== undefined && data.pulse_rate !== null) hr = parseInt(data.pulse_rate, 10);
+    if (data.pulse !== undefined && data.pulse !== null) hr = parseInt(data.pulse, 10);
+    if (hr !== null && (hr < 30 || hr > 260)) {
+      throw new Error("Validation: Pulse / Heart rate must be between 30 bpm and 260 bpm.");
+    }
+
+    // Respiratory rate: 6 - 80
+    let rr = null;
+    if (data.resp_rate !== undefined && data.resp_rate !== null) rr = parseInt(data.resp_rate, 10);
+    if (data.respiratory_rate !== undefined && data.respiratory_rate !== null) rr = parseInt(data.respiratory_rate, 10);
+    if (rr !== null && (rr < 6 || rr > 80)) {
+      throw new Error("Validation: Respiratory rate must be between 6 and 80 breaths per minute.");
+    }
+
+    // Oxygen saturation (SPO2): 10 - 100
+    let spo2 = null;
+    if (data.spo2 !== undefined && data.spo2 !== null) spo2 = parseInt(data.spo2, 10);
+    if (data.oxygen_saturation !== undefined && data.oxygen_saturation !== null) spo2 = parseInt(data.oxygen_saturation, 10);
+    if (spo2 !== null && (spo2 < 10 || spo2 > 100)) {
+      throw new Error("Validation: Oxygen saturation (SPO2) must be between 10% and 100%.");
+    }
+
+    // Weight: 0.5 - 500
+    if (data.weight !== undefined && data.weight !== null) {
+      const wVal = parseFloat(data.weight);
+      if (wVal < 0.5 || wVal > 500.0) {
+        throw new Error("Validation: Body weight must be between 0.5 kg and 500 kg.");
+      }
+    }
+
+    // Height: 0.2 - 2.6
+    if (data.height !== undefined && data.height !== null) {
+      const hVal = parseFloat(data.height);
+      if (hVal < 0.2 || hVal > 2.6) {
+        throw new Error("Validation: Height must be between 0.2 m and 2.6 m.");
+      }
+    }
+  };
+
+  if (['triages', 'triage_assessments', 'ward_care_records', 'visits'].includes(table)) {
+    checkVitals(row);
+  }
+}
+
 // DB Proxy: Query documents
 router.post("/query", async (req, res) => {
   const {
@@ -104,6 +229,9 @@ router.post("/insert", async (req, res) => {
         cleanRow.facility_id = activeFacId;
       }
 
+      // Backend Input Buffer Validation
+      validateRowData(table, cleanRow);
+
       const docId = id || "doc_" + Math.random().toString(36).substring(2, 15);
       const newDoc = await db.createDocument(table, docId, cleanRow);
       results.push(newDoc);
@@ -132,6 +260,9 @@ router.post("/insert", async (req, res) => {
     });
   } catch (err) {
     console.error(`DB Insert Proxy failed for table ${table}:`, err);
+    if (err.message && err.message.startsWith("Validation:")) {
+      return res.status(400).json({ error: err.message.replace("Validation: ", "") });
+    }
     res.status(500).json({ error: err.message || "Database insertion failed" });
   }
 });
@@ -170,6 +301,9 @@ router.post("/update", authenticateToken, async (req, res) => {
     const results = [];
     const { id, created_at, ...cleanValues } = values;
 
+    // Backend Input Buffer Validation
+    validateRowData(table, cleanValues);
+
     for (const doc of docs) {
       await db.updateDocument(table, doc.id, cleanValues);
       results.push({ id: doc.id });
@@ -190,6 +324,9 @@ router.post("/update", authenticateToken, async (req, res) => {
     res.json({ success: true, data: results });
   } catch (err) {
     console.error(`DB Update Proxy failed for table ${table}:`, err);
+    if (err.message && err.message.startsWith("Validation:")) {
+      return res.status(400).json({ error: err.message.replace("Validation: ", "") });
+    }
     res.status(500).json({ error: err.message || "Database update failed" });
   }
 });

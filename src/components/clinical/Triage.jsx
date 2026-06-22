@@ -104,6 +104,70 @@ export default function Triage({ user, onComplete }) {
     e.preventDefault();
     if (!selectedVisit) return;
 
+    // Validation of vitals
+    if (temp) {
+      const tempVal = parseFloat(temp);
+      if (tempVal < 25 || tempVal > 45) {
+        setMessage({ type: 'error', text: 'Temperature must be between 25.0°C and 45.0°C.' });
+        return;
+      }
+    }
+    const sysVal = systolic ? parseInt(systolic, 10) : null;
+    const diaVal = diastolic ? parseInt(diastolic, 10) : null;
+
+    if (sysVal !== null && (sysVal < 50 || sysVal > 280)) {
+      setMessage({ type: 'error', text: 'Systolic blood pressure must be between 50 mmHg and 280 mmHg.' });
+      return;
+    }
+    if (diaVal !== null && (diaVal < 30 || diaVal > 180)) {
+      setMessage({ type: 'error', text: 'Diastolic blood pressure must be between 30 mmHg and 180 mmHg.' });
+      return;
+    }
+    if (sysVal !== null && diaVal !== null && diaVal >= sysVal) {
+      setMessage({ type: 'error', text: 'Diastolic blood pressure must be strictly lower than systolic blood pressure.' });
+      return;
+    }
+
+    if (heartRate) {
+      const hrVal = parseInt(heartRate, 10);
+      if (hrVal < 30 || hrVal > 260) {
+        setMessage({ type: 'error', text: 'Pulse / Heart rate must be between 30 bpm and 260 bpm.' });
+        return;
+      }
+    }
+
+    if (respRate) {
+      const rrVal = parseInt(respRate, 10);
+      if (rrVal < 6 || rrVal > 80) {
+        setMessage({ type: 'error', text: 'Respiratory rate must be between 6 and 80 breaths per minute.' });
+        return;
+      }
+    }
+
+    if (spo2) {
+      const spo2Val = parseInt(spo2, 10);
+      if (spo2Val < 10 || spo2Val > 100) {
+        setMessage({ type: 'error', text: 'Oxygen saturation (SPO2) must be between 10% and 100%.' });
+        return;
+      }
+    }
+
+    if (weight) {
+      const wVal = parseFloat(weight);
+      if (wVal < 0.5 || wVal > 500) {
+        setMessage({ type: 'error', text: 'Weight must be between 0.5 kg and 500 kg.' });
+        return;
+      }
+    }
+
+    if (height) {
+      const hVal = parseFloat(height);
+      if (hVal < 0.2 || hVal > 2.6) {
+        setMessage({ type: 'error', text: 'Height must be between 0.2 m and 2.6 m.' });
+        return;
+      }
+    }
+
     setLoading(true);
     setMessage({ type: '', text: '' });
 
@@ -382,6 +446,8 @@ export default function Triage({ user, onComplete }) {
                       type="number"
                       value={systolic}
                       onChange={(e) => setSystolic(e.target.value)}
+                      min="50"
+                      max="280"
                       placeholder="Sys"
                       className="w-1/2 bg-slate-950 border border-slate-800 rounded-lg py-2 px-2 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition text-center"
                     />
@@ -390,6 +456,8 @@ export default function Triage({ user, onComplete }) {
                       type="number"
                       value={diastolic}
                       onChange={(e) => setDiastolic(e.target.value)}
+                      min="30"
+                      max="180"
                       placeholder="Dia"
                       className="w-1/2 bg-slate-950 border border-slate-800 rounded-lg py-2 px-2 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition text-center"
                     />
@@ -403,6 +471,8 @@ export default function Triage({ user, onComplete }) {
                     type="number"
                     value={heartRate}
                     onChange={(e) => setHeartRate(e.target.value)}
+                    min="30"
+                    max="260"
                     placeholder="e.g. 72"
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                   />
@@ -428,6 +498,8 @@ export default function Triage({ user, onComplete }) {
                     step="0.1"
                     value={temp}
                     onChange={(e) => setTemp(e.target.value)}
+                    min="25"
+                    max="45"
                     placeholder="e.g. 36.8"
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                   />
@@ -452,6 +524,8 @@ export default function Triage({ user, onComplete }) {
                     type="number"
                     value={respRate}
                     onChange={(e) => setRespRate(e.target.value)}
+                    min="6"
+                    max="80"
                     placeholder="e.g. 16"
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                   />
@@ -476,6 +550,8 @@ export default function Triage({ user, onComplete }) {
                     type="number"
                     value={spo2}
                     onChange={(e) => setSpo2(e.target.value)}
+                    min="10"
+                    max="100"
                     placeholder="e.g. 98"
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                   />
@@ -501,6 +577,9 @@ export default function Triage({ user, onComplete }) {
                       type="number"
                       value={weight}
                       onChange={(e) => setWeight(e.target.value)}
+                      min="0.5"
+                      max="500"
+                      step="0.1"
                       placeholder="kg"
                       className="w-1/2 bg-slate-950 border border-slate-800 rounded-lg py-2 px-2 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition text-center"
                     />
@@ -509,6 +588,8 @@ export default function Triage({ user, onComplete }) {
                       step="0.01"
                       value={height}
                       onChange={(e) => setHeight(e.target.value)}
+                      min="0.2"
+                      max="2.6"
                       placeholder="m"
                       className="w-1/2 bg-slate-950 border border-slate-800 rounded-lg py-2 px-2 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition text-center"
                     />

@@ -526,41 +526,67 @@ export default function Consultation({ user, onComplete }) {
   };
 
   const saveMOHRecords = async () => {
-    try {
-      // Save village to patient phone meta
-      const contactInfo = selectedVisit.patient ? parsePatientContact(selectedVisit.patient.phone) : {};
-      if (mohVillage !== contactInfo.village) {
-        const updatedPhone = JSON.stringify({
-          ...contactInfo,
-          village: mohVillage
-        });
-        await supabase.from('patients').update({ phone: updatedPhone }).eq('id', selectedVisit.patient_id);
+    // Validation of vitals in Consultation MoH
+    if (mohTemp) {
+      const tempVal = parseFloat(mohTemp);
+      if (tempVal < 25 || tempVal > 45) {
+        throw new Error("Temperature must be between 25.0°C and 45.0°C.");
       }
+    }
+    const sysVal = mohSystolic ? parseInt(mohSystolic, 10) : null;
+    const diaVal = mohDiastolic ? parseInt(mohDiastolic, 10) : null;
 
-      // Save vitals
-      if (triageData) {
-        await supabase.from('triages').update({
-          temperature: parseFloat(mohTemp) || triageData.temperature,
-          weight: parseFloat(mohWeight) || triageData.weight,
-          systolic: parseInt(mohSystolic) || triageData.systolic,
-          diastolic: parseInt(mohDiastolic) || triageData.diastolic
-        }).eq('id', triageData.id);
-      } else {
-        const triageId = 'tr_' + Math.random().toString(36).substring(2, 11);
-        await supabase.from('triages').insert({
-          id: triageId,
-          facility_id: user.facility_id,
-          visit_id: selectedVisit.id,
-          temperature: parseFloat(mohTemp) || null,
-          weight: parseFloat(mohWeight) || null,
-          systolic: parseInt(mohSystolic) || null,
-          diastolic: parseInt(mohDiastolic) || null,
-          chief_complaint: history || "Outpatient Encounter",
-          priority_flag: "green"
-        });
+    if (sysVal !== null && (sysVal < 50 || sysVal > 280)) {
+      throw new Error("Systolic blood pressure must be between 50 mmHg and 280 mmHg.");
+    }
+    if (diaVal !== null && (diaVal < 30 || diaVal > 180)) {
+      throw new Error("Diastolic blood pressure must be between 30 mmHg and 180 mmHg.");
+    }
+    if (sysVal !== null && diaVal !== null && diaVal >= sysVal) {
+      throw new Error("Diastolic blood pressure must be strictly lower than systolic blood pressure.");
+    }
+
+    if (mohWeight) {
+      const wVal = parseFloat(mohWeight);
+      if (wVal < 0.5 || wVal > 500) {
+        throw new Error("Weight must be between 0.5 kg and 500 kg.");
       }
-    } catch (err) {
-      console.error('[MOH Record Save Error]', err);
+    }
+
+    // Save village to patient phone meta
+    const contactInfo = selectedVisit.patient ? parsePatientContact(selectedVisit.patient.phone) : {};
+    if (mohVillage !== contactInfo.village) {
+      const updatedPhone = JSON.stringify({
+        ...contactInfo,
+        village: mohVillage
+      });
+      const { error: patientErr } = await supabase.from('patients').update({ phone: updatedPhone }).eq('id', selectedVisit.patient_id);
+      if (patientErr) throw patientErr;
+    }
+
+    // Save vitals
+    if (triageData) {
+      const { error: triageErr } = await supabase.from('triages').update({
+        temperature: parseFloat(mohTemp) || triageData.temperature,
+        weight: parseFloat(mohWeight) || triageData.weight,
+        systolic: parseInt(mohSystolic) || triageData.systolic,
+        diastolic: parseInt(mohDiastolic) || triageData.diastolic
+      }).eq('id', triageData.id);
+      if (triageErr) throw triageErr;
+    } else {
+      const triageId = 'tr_' + Math.random().toString(36).substring(2, 11);
+      const { error: triageInsertErr } = await supabase.from('triages').insert({
+        id: triageId,
+        facility_id: user.facility_id,
+        visit_id: selectedVisit.id,
+        temperature: parseFloat(mohTemp) || null,
+        weight: parseFloat(mohWeight) || null,
+        systolic: parseInt(mohSystolic) || null,
+        diastolic: parseInt(mohDiastolic) || null,
+        chief_complaint: history || "Outpatient Encounter",
+        priority_flag: "green"
+      });
+      if (triageInsertErr) throw triageInsertErr;
     }
   };
 
@@ -1927,6 +1953,8 @@ export default function Consultation({ user, onComplete }) {
                         step="0.1"
                         value={mohTemp}
                         onChange={(e) => setMohTemp(e.target.value)}
+                        min="25"
+                        max="45"
                         placeholder="e.g. 37.0"
                         className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
                         required
@@ -1944,6 +1972,8 @@ export default function Consultation({ user, onComplete }) {
                         step="0.1"
                         value={mohWeight}
                         onChange={(e) => setMohWeight(e.target.value)}
+                        min="0.5"
+                        max="500"
                         placeholder="e.g. 70.0"
                         className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
                         required
@@ -1965,6 +1995,8 @@ export default function Consultation({ user, onComplete }) {
                           type="number"
                           value={mohSystolic}
                           onChange={(e) => setMohSystolic(e.target.value)}
+                          min="50"
+                          max="280"
                           placeholder="Systolic (e.g. 120)"
                           className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
                           required
@@ -1973,6 +2005,8 @@ export default function Consultation({ user, onComplete }) {
                           type="number"
                           value={mohDiastolic}
                           onChange={(e) => setMohDiastolic(e.target.value)}
+                          min="30"
+                          max="180"
                           placeholder="Diastolic (e.g. 80)"
                           className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
                           required

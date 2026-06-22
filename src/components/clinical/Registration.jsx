@@ -160,6 +160,54 @@ export default function Registration({ user, onNavigateToQueue }) {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+
+    // Input Buffers / Realistic Validation Checks
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    if (dob > todayStr) {
+      setMessage({ type: 'error', text: 'Date of Birth cannot be in the future.' });
+      return;
+    }
+    if (dob < '1900-01-01') {
+      setMessage({ type: 'error', text: 'Date of Birth must not be before 1900.' });
+      return;
+    }
+
+    if (phone) {
+      const cleanPhone = phone.trim();
+      if (cleanPhone.length < 8 || cleanPhone.length > 15) {
+        setMessage({ type: 'error', text: 'Phone number must be between 8 and 15 characters long.' });
+        return;
+      }
+      const phoneRegex = /^[0-9+\-\(\)\s]+$/;
+      if (!phoneRegex.test(cleanPhone)) {
+        setMessage({ type: 'error', text: 'Phone number contains invalid characters.' });
+        return;
+      }
+    }
+
+    if (nationalId) {
+      const cleanNatId = nationalId.trim();
+      if (cleanNatId.length < 4 || cleanNatId.length > 20) {
+        setMessage({ type: 'error', text: 'National ID must be between 4 and 20 characters long.' });
+        return;
+      }
+    }
+
+    if (isPregnant && lmp) {
+      if (lmp > todayStr) {
+        setMessage({ type: 'error', text: 'LMP date cannot be in the future.' });
+        return;
+      }
+      const lmpDate = new Date(lmp);
+      const diffTime = Math.abs(new Date() - lmpDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays > 315) {
+        setMessage({ type: 'error', text: 'LMP date must not be more than 45 weeks in the past.' });
+        return;
+      }
+    }
+
     setLoading(true);
     setMessage({ type: '', text: '' });
 
@@ -499,6 +547,8 @@ export default function Registration({ user, onNavigateToQueue }) {
                 type="date"
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
+                min="1900-01-01"
+                max={new Date().toISOString().split('T')[0]}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                 required
               />
@@ -643,6 +693,8 @@ export default function Registration({ user, onNavigateToQueue }) {
                       type="date"
                       value={lmp}
                       onChange={(e) => setLmp(e.target.value)}
+                      min={new Date(Date.now() - 315 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                      max={new Date().toISOString().split('T')[0]}
                       className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
                     />
                   </div>

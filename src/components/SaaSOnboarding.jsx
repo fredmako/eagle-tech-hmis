@@ -23,23 +23,35 @@ import {
 } from "lucide-react";
 
 export default function SaaSOnboarding({ onBackToLogin }) {
-  const [step, setStep] = useState(1);
-  const [selectedPlan, setSelectedPlan] = useState("hospital"); // 'clinic', 'hospital', 'enterprise'
+  const { signup, login } = useAuth();
 
-  // Registration & branding form state
+  // Form steps: 1 (Hospital Details & Admin Acc), 2 (Plan Selection), 3 (Payment & Verification), 4 (Complete)
+  const [step, setStep] = useState(1);
+  const [selectedPlan, setSelectedPlan] = useState("Growth");
+
+  // Hospital details
   const [hospitalName, setHospitalName] = useState("");
   const [hospitalAddress, setHospitalAddress] = useState("");
   const [hospitalCode, setHospitalCode] = useState("");
-  const [logoOption, setLogoOption] = useState("heart"); // 'heart', 'shield', 'cross', 'custom'
+  const [logoOption, setLogoOption] = useState("preset");
   const [customLogoUrl, setCustomLogoUrl] = useState("");
+
+  // Admin account details
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPhone, setAdminPhone] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
+
   const [googleUser, setGoogleUser] = useState(null);
 
+  const handleCancelAndBack = () => {
+    sessionStorage.removeItem("egesa_health_onboarding_saved_state");
+    sessionStorage.removeItem("egesa_health_onboarding_google_user");
+    sessionStorage.removeItem("egesa_health_onboarding_redirect");
+    onBackToLogin?.();
+  };
+
   useEffect(() => {
-    // 1. Restore form inputs if saved state exists (OAuth redirect flow)
     const savedStateStr = sessionStorage.getItem(
       "egesa_health_onboarding_saved_state",
     );
@@ -52,13 +64,14 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         if (saved.hospitalCode) setHospitalCode(saved.hospitalCode);
         if (saved.logoOption) setLogoOption(saved.logoOption);
         if (saved.customLogoUrl) setCustomLogoUrl(saved.customLogoUrl);
+        if (saved.adminName) setAdminName(saved.adminName);
+        if (saved.adminEmail) setAdminEmail(saved.adminEmail);
         if (saved.adminPhone) setAdminPhone(saved.adminPhone);
+        if (saved.adminPassword) setAdminPassword(saved.adminPassword);
         if (saved.step) setStep(saved.step);
       } catch (e) {
         console.error("Failed to restore onboarding state:", e);
       }
-      sessionStorage.removeItem("egesa_health_onboarding_saved_state");
-      sessionStorage.removeItem("egesa_health_onboarding_redirect");
     }
 
     // 2. Check if a Google user was stored on redirect callback
@@ -69,15 +82,48 @@ export default function SaaSOnboarding({ onBackToLogin }) {
       try {
         const gUser = JSON.parse(googleUserStr);
         setGoogleUser(gUser);
-        setAdminName(gUser.name || "");
-        setAdminEmail(gUser.email || "");
+        setAdminName((prev) => prev || gUser.name || "");
+        setAdminEmail((prev) => prev || gUser.email || "");
       } catch (e) {
         console.error("Failed to parse Google user details:", e);
       }
-      sessionStorage.removeItem("egesa_health_onboarding_google_user");
-      sessionStorage.removeItem("egesa_health_onboarding_redirect");
     }
   }, []);
+
+  // Save onboarding state changes in real-time to survive refreshes
+  useEffect(() => {
+    if (step < 5) {
+      const stateToSave = {
+        selectedPlan,
+        hospitalName,
+        hospitalAddress,
+        hospitalCode,
+        logoOption,
+        customLogoUrl,
+        adminName,
+        adminEmail,
+        adminPhone,
+        adminPassword,
+        step,
+      };
+      sessionStorage.setItem(
+        "egesa_health_onboarding_saved_state",
+        JSON.stringify(stateToSave),
+      );
+    }
+  }, [
+    selectedPlan,
+    hospitalName,
+    hospitalAddress,
+    hospitalCode,
+    logoOption,
+    customLogoUrl,
+    adminName,
+    adminEmail,
+    adminPhone,
+    adminPassword,
+    step,
+  ]);
 
   // Payment form state
   const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
@@ -816,7 +862,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
             <div className="flex justify-between items-center pt-4 border-t border-slate-800">
               <button
-                onClick={onBackToLogin}
+                onClick={handleCancelAndBack}
                 className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 transition"
               >
                 <ArrowLeft size={14} /> Back to Login
@@ -1346,7 +1392,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
             </div>
 
             <button
-              onClick={onBackToLogin}
+              onClick={handleCancelAndBack}
               className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2.5 px-6 rounded-lg shadow-lg active:scale-[0.98] transition w-full max-w-md cursor-pointer font-sans"
             >
               Go to Hospital Login Workspace

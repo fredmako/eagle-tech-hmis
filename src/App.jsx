@@ -53,18 +53,30 @@ import {
 
 export default function App() {
   const { user, setUser, logout, loading, checkSession } = useAuth();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem("egesa_active_tab") || "dashboard";
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [preselectedPatient, setPreselectedPatient] = useState(null);
   const [pathname, setPathname] = useState(() => window.location.pathname);
   const [publicView, setPublicView] = useState(() => {
-    if (
-      typeof window !== "undefined" &&
-      window.location.hash.includes("access_token")
-    )
-      return "callback";
-    if (typeof window !== "undefined" && window.location.hash === "#cards")
-      return "cards";
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname;
+      if (path === "/auth/callback" || path.startsWith("/auth/callback/")) {
+        return "callback";
+      }
+      if (window.location.hash.includes("access_token")) {
+        return "callback";
+      }
+      if (window.location.hash === "#cards") {
+        return "cards";
+      }
+      if (sessionStorage.getItem("egesa_health_onboarding_redirect") === "true") {
+        return "callback";
+      }
+      const persistedView = sessionStorage.getItem("egesa_public_view");
+      if (persistedView) return persistedView;
+    }
     return "landing";
   });
 
@@ -79,7 +91,22 @@ export default function App() {
   );
 
   useEffect(() => {
+    localStorage.setItem("egesa_active_tab", activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (publicView !== "callback") {
+      sessionStorage.setItem("egesa_public_view", publicView);
+    }
+  }, [publicView]);
+
+  useEffect(() => {
     const syncPublicViewFromHash = () => {
+      const path = window.location.pathname;
+      if (path === "/auth/callback" || path.startsWith("/auth/callback/")) {
+        setPublicView("callback");
+        return;
+      }
       if (window.location.hash.includes("access_token")) {
         setPublicView("callback");
         return;
@@ -88,7 +115,6 @@ export default function App() {
         setPublicView("cards");
         return;
       }
-      setPublicView("landing");
     };
 
     syncPublicViewFromHash();

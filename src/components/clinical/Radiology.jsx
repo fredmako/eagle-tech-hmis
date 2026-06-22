@@ -134,7 +134,13 @@ export default function Radiology({ user, onComplete }) {
       
       // Auto-select first visit if available
       if (enrichedVisits.length > 0) {
-        handleSelectVisit(enrichedVisits[0]);
+        const savedVisitId = sessionStorage.getItem('egesa_selected_visit_id_radiology');
+        const matchedVisit = enrichedVisits.find(v => v.id === savedVisitId);
+        if (matchedVisit) {
+          handleSelectVisit(matchedVisit);
+        } else {
+          handleSelectVisit(enrichedVisits[0]);
+        }
       } else {
         setSelectedVisit(null);
         setPendingOrders([]);
@@ -154,6 +160,11 @@ export default function Radiology({ user, onComplete }) {
     setCapturedImageData(null);
     setFindings('');
     setComparison('');
+    if (visit) {
+      sessionStorage.setItem('egesa_selected_visit_id_radiology', visit.id);
+    } else {
+      sessionStorage.removeItem('egesa_selected_visit_id_radiology');
+    }
     
     try {
       // Fetch radiology orders for this visit
@@ -576,6 +587,7 @@ export default function Radiology({ user, onComplete }) {
           .eq('id', selectedVisit.id);
 
         if (visitErr) throw visitErr;
+        sessionStorage.removeItem('egesa_selected_visit_id_radiology');
       }
 
       setMessage({ type: 'success', text: `Diagnostic report for ${selectedOrder.item_name} released and patient routed to ${nextRoutingDept.toUpperCase()}!` });

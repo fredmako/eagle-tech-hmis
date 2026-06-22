@@ -315,7 +315,11 @@ export default function Consultation({ user, onComplete }) {
         : [];
 
       setQueue(enrichedQueue);
-      if (enrichedQueue.length > 0) {
+      const savedVisitId = sessionStorage.getItem('egesa_selected_visit_id_consultation');
+      const matchedVisit = enrichedQueue.find(v => v.id === savedVisitId);
+      if (matchedVisit) {
+        handleSelectVisit(matchedVisit);
+      } else if (enrichedQueue.length > 0) {
         handleSelectVisit(enrichedQueue[0]);
       } else {
         setSelectedVisit(null);
@@ -327,8 +331,12 @@ export default function Consultation({ user, onComplete }) {
   };
 
   const handleSelectVisit = async (visit) => {
-    if (!visit) return;
+    if (!visit) {
+      sessionStorage.removeItem('egesa_selected_visit_id_consultation');
+      return;
+    }
     setSelectedVisit(visit);
+    sessionStorage.setItem('egesa_selected_visit_id_consultation', visit.id);
 
     // Clear specialized workflow states
     setActivePregnancy(null);
@@ -925,6 +933,7 @@ export default function Consultation({ user, onComplete }) {
       });
 
       setTimeout(() => {
+        sessionStorage.removeItem('egesa_selected_visit_id_consultation');
         fetchConsultationQueue();
         if (onComplete) onComplete();
       }, 1200);

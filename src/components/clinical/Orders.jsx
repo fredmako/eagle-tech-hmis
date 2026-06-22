@@ -130,8 +130,12 @@ export default function Orders({ user, onComplete }) {
       // Select the first active visit if none is selected
       if (enrichedVisits.length > 0) {
         // Find if selectedVisit is still in the queue
+        const savedVisitId = sessionStorage.getItem('egesa_selected_visit_id_orders');
+        const matchedVisit = enrichedVisits.find(v => v.id === savedVisitId);
         const stillExists = enrichedVisits.find(v => v.id === selectedVisit?.id);
-        if (!stillExists) {
+        if (matchedVisit) {
+          handleSelectVisit(matchedVisit);
+        } else if (!stillExists) {
           handleSelectVisit(enrichedVisits[0]);
         } else {
           // Refresh details
@@ -149,6 +153,11 @@ export default function Orders({ user, onComplete }) {
   const handleSelectVisit = async (visit) => {
     setSelectedVisit(visit);
     setMessage({ type: '', text: '' });
+    if (visit) {
+      sessionStorage.setItem('egesa_selected_visit_id_orders', visit.id);
+    } else {
+      sessionStorage.removeItem('egesa_selected_visit_id_orders');
+    }
     
     try {
       // Fetch all lab orders for this visit
@@ -491,6 +500,7 @@ export default function Orders({ user, onComplete }) {
 
         setMessage({ type: 'success', text: 'All results released! Patient redirected to Billing Desk.' });
         setTimeout(() => {
+          sessionStorage.removeItem('egesa_selected_visit_id_orders');
           fetchLabQueue();
           if (onComplete) onComplete();
         }, 1500);

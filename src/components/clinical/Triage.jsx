@@ -70,7 +70,11 @@ export default function Triage({ user, onComplete }) {
       }) : [];
       
       setQueue(enrichedQueue);
-      if (enrichedQueue.length > 0) {
+      const savedVisitId = sessionStorage.getItem('egesa_selected_visit_id_triage');
+      const matchedVisit = enrichedQueue.find(v => v.id === savedVisitId);
+      if (matchedVisit) {
+        handleSelectVisit(matchedVisit);
+      } else if (enrichedQueue.length > 0) {
         handleSelectVisit(enrichedQueue[0]);
       } else {
         setSelectedVisit(null);
@@ -83,7 +87,13 @@ export default function Triage({ user, onComplete }) {
 
   const handleSelectVisit = (visit) => {
     setSelectedVisit(visit);
-    setPatient(visit.patient);
+    if (visit) {
+      setPatient(visit.patient);
+      sessionStorage.setItem('egesa_selected_visit_id_triage', visit.id);
+    } else {
+      setPatient(null);
+      sessionStorage.removeItem('egesa_selected_visit_id_triage');
+    }
     
     // Clear vitals
     setSystolic('');
@@ -267,6 +277,7 @@ export default function Triage({ user, onComplete }) {
       
       // Clear selection and refresh queue
       setTimeout(() => {
+        sessionStorage.removeItem('egesa_selected_visit_id_triage');
         fetchTriageQueue();
         if (onComplete) onComplete();
       }, 1000);

@@ -45,7 +45,13 @@ export default function Billing({ user, onComplete }) {
       setBillingVisits(enrichedVisits);
       
       if (enrichedVisits.length > 0) {
-        handleSelectVisit(enrichedVisits[0]);
+        const savedVisitId = sessionStorage.getItem('egesa_selected_visit_id_billing');
+        const matchedVisit = enrichedVisits.find(v => v.id === savedVisitId);
+        if (matchedVisit) {
+          handleSelectVisit(matchedVisit);
+        } else {
+          handleSelectVisit(enrichedVisits[0]);
+        }
       } else {
         setSelectedVisit(null);
         setInvoice(null);
@@ -130,6 +136,11 @@ export default function Billing({ user, onComplete }) {
     setMessage({ type: '', text: '' });
     setShowReceipt(false);
     setAmountPaid('');
+    if (visit) {
+      sessionStorage.setItem('egesa_selected_visit_id_billing', visit.id);
+    } else {
+      sessionStorage.removeItem('egesa_selected_visit_id_billing');
+    }
     
     try {
       // Fetch invoice
@@ -714,6 +725,7 @@ export default function Billing({ user, onComplete }) {
                 <div className="flex justify-between pt-5 mt-4 border-t border-slate-800">
                   <button
                     onClick={() => {
+                      sessionStorage.removeItem('egesa_selected_visit_id_billing');
                       fetchBillingQueue();
                       setShowReceipt(false);
                     }}

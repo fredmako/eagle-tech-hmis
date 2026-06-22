@@ -432,10 +432,14 @@ export default function Pharmacy({ user, onComplete }) {
       setPharmVisits(enrichedVisits);
 
       if (enrichedVisits.length > 0) {
+        const savedVisitId = sessionStorage.getItem('egesa_selected_visit_id_pharmacy');
+        const matchedVisit = enrichedVisits.find(v => v.id === savedVisitId);
         const stillExists = enrichedVisits.find(
           (v) => v.id === selectedVisit?.id,
         );
-        if (!stillExists) {
+        if (matchedVisit) {
+          handleSelectVisit(matchedVisit);
+        } else if (!stillExists) {
           handleSelectVisit(enrichedVisits[0]);
         } else {
           handleSelectVisit(stillExists);
@@ -453,6 +457,11 @@ export default function Pharmacy({ user, onComplete }) {
     setSelectedVisit(visit);
     setMessage({ type: "", text: "" });
     setDoubleChecked({});
+    if (visit) {
+      sessionStorage.setItem('egesa_selected_visit_id_pharmacy', visit.id);
+    } else {
+      sessionStorage.removeItem('egesa_selected_visit_id_pharmacy');
+    }
 
     try {
       // Fetch pending and active prescriptions
@@ -654,6 +663,7 @@ export default function Pharmacy({ user, onComplete }) {
           text: "All prescriptions dispensed. Visit successfully completed!",
         });
         setTimeout(() => {
+          sessionStorage.removeItem('egesa_selected_visit_id_pharmacy');
           fetchPharmacyQueue();
           if (onComplete) onComplete();
         }, 1500);

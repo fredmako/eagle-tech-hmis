@@ -45,8 +45,10 @@ export default function Ward({ user }) {
   useEffect(() => {
     if (selectedAdmission) {
       fetchObservations(selectedAdmission.id);
+      sessionStorage.setItem('egesa_selected_admission_id_ward', selectedAdmission.id);
     } else {
       setObservations([]);
+      sessionStorage.removeItem('egesa_selected_admission_id_ward');
     }
   }, [selectedAdmission]);
 
@@ -96,6 +98,10 @@ export default function Ward({ user }) {
       
       if (enriched.length > 0) {
         setSelectedAdmission(prev => {
+          const savedId = sessionStorage.getItem('egesa_selected_admission_id_ward');
+          const matched = enriched.find(a => a.id === savedId);
+          if (matched) return matched;
+
           const stillAdmitted = enriched.find(a => a.id === prev?.id);
           return stillAdmitted || enriched[ enriched.length - 1 ];
         });

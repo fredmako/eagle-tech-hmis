@@ -724,11 +724,10 @@ export default function Admin({ user }) {
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={viewMode === 'maximize' ? 'w-full animate-fadeIn' : 'grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn'}>
         {/* Left Columns: Config & Users */}
-        <div className={`space-y-6 transition-all duration-300 ${
-          viewMode === 'maximize' ? 'hidden' : 'lg:col-span-1'
-        }`}>
+        {viewMode !== 'maximize' && (
+          <div className="space-y-6 transition-all duration-300">
         {/* Facility Info Card */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
           <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 pb-2.5 border-b border-slate-800">
@@ -850,11 +849,12 @@ export default function Admin({ user }) {
           </form>
         </div>
       </div>
+      )}
 
       {/* Right Columns: Tabbed Control Center */}
       <div className={`transition-all duration-300 flex flex-col justify-between ${
         viewMode === 'maximize' 
-          ? 'lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-5 min-h-[480px]'
+          ? 'w-full bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-5 min-h-[480px]'
           : viewMode === 'window'
           ? 'fixed inset-4 sm:inset-10 z-50 bg-slate-900 border border-slate-700 shadow-2xl rounded-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto'
           : viewMode === 'dock'

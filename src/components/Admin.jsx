@@ -50,7 +50,11 @@ import {
   Users,
   ShoppingBag,
   Bed,
-  PhoneCall
+  PhoneCall,
+  Columns,
+  Maximize2,
+  Tv,
+  Layout
 } from 'lucide-react';
 
 export default function Admin({ user }) {
@@ -60,6 +64,7 @@ export default function Admin({ user }) {
   const [usersList, setUsersList] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
   const [supportTicketsCount, setSupportTicketsCount] = useState(0);
+  const [viewMode, setViewMode] = useState('split'); // 'split' | 'maximize' | 'window' | 'dock'
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestsMessage, setRequestsMessage] = useState('');
   const [facilityDetails, setFacilityDetails] = useState({
@@ -710,9 +715,20 @@ export default function Admin({ user }) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left Columns: Config & Users */}
-      <div className="lg:col-span-1 space-y-6">
+    <div className="relative">
+      {/* View Mode Background Backdrop */}
+      {(viewMode === 'window' || viewMode === 'dock') && (
+        <div 
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 transition-opacity duration-300 animate-fadeIn"
+          onClick={() => setViewMode('split')}
+        />
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Columns: Config & Users */}
+        <div className={`space-y-6 transition-all duration-300 ${
+          viewMode === 'maximize' ? 'hidden' : 'lg:col-span-1'
+        }`}>
         {/* Facility Info Card */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
           <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 pb-2.5 border-b border-slate-800">
@@ -835,10 +851,19 @@ export default function Admin({ user }) {
         </div>
       </div>
 
-      {/* Right Columns: Tabbed Control Center (2/3 width) */}
-      <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-5 flex flex-col justify-between min-h-[480px]">
-        {/* Sub-tab Navigation */}
-        <div className="flex border-b border-slate-800 overflow-x-auto gap-2 pb-1 shrink-0">
+      {/* Right Columns: Tabbed Control Center */}
+      <div className={`transition-all duration-300 flex flex-col justify-between ${
+        viewMode === 'maximize' 
+          ? 'lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-5 min-h-[480px]'
+          : viewMode === 'window'
+          ? 'fixed inset-4 sm:inset-10 z-50 bg-slate-900 border border-slate-700 shadow-2xl rounded-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto'
+          : viewMode === 'dock'
+          ? 'fixed top-0 right-0 h-screen w-full sm:w-[500px] z-50 bg-slate-900 border-l border-slate-800 shadow-2xl p-5 space-y-5 overflow-y-auto'
+          : 'lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-5 min-h-[480px]'
+      }`}>
+        {/* Sub-tab Navigation & View Mode Panel */}
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center border-b border-slate-800 pb-2 gap-3 shrink-0">
+          <div className="flex overflow-x-auto gap-2 pb-1 w-full xl:w-auto shrink-0 pr-1">
           <button
             onClick={() => setActiveSubTab('audit')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
@@ -1039,6 +1064,58 @@ export default function Admin({ user }) {
               </button>
             );
           })()}
+          </div>
+
+          {/* Mini Settings Panel for View Modes */}
+          <div className="flex items-center gap-1 bg-slate-950 p-1 border border-slate-850 rounded-lg shrink-0 select-none self-end xl:self-auto shadow-inner">
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider px-1.5 border-r border-slate-850">
+              View
+            </span>
+            <button
+              onClick={() => setViewMode('split')}
+              className={`p-1 rounded transition ${
+                viewMode === 'split' 
+                  ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' 
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+              title="Split View"
+            >
+              <Columns size={11} />
+            </button>
+            <button
+              onClick={() => setViewMode('maximize')}
+              className={`p-1 rounded transition ${
+                viewMode === 'maximize' 
+                  ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' 
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+              title="Maximize"
+            >
+              <Maximize2 size={11} />
+            </button>
+            <button
+              onClick={() => setViewMode('window')}
+              className={`p-1 rounded transition ${
+                viewMode === 'window' 
+                  ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' 
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+              title="Window Mode"
+            >
+              <Tv size={11} />
+            </button>
+            <button
+              onClick={() => setViewMode('dock')}
+              className={`p-1 rounded transition ${
+                viewMode === 'dock' 
+                  ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' 
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+              title="Dock Right"
+            >
+              <Layout size={11} />
+            </button>
+          </div>
         </div>
 
         {/* Tab Contents */}
@@ -1551,5 +1628,6 @@ export default function Admin({ user }) {
         </div>
       )}
     </div>
-  );
+  </div>
+);
 }

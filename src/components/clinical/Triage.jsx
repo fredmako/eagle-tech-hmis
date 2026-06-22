@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
-import { Activity, ShieldAlert, CheckCircle, Heart, Thermometer } from 'lucide-react';
+import { Activity, ShieldAlert, CheckCircle, Heart, Thermometer, AlertOctagon, Zap } from 'lucide-react';
+import InstrumentTracker from './InstrumentTracker';
 
 export default function Triage({ user, onComplete }) {
   const [queue, setQueue] = useState([]);
@@ -23,6 +24,24 @@ export default function Triage({ user, onComplete }) {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  // ETAT+ Triage & ABC Checklist States
+  const [airwayStatus, setAirwayStatus] = useState('clear');
+  const [breathingStatus, setBreathingStatus] = useState('normal');
+  const [circulationStatus, setCirculationStatus] = useState('normal');
+  const [consciousnessLevel, setConsciousnessLevel] = useState('alert');
+  const [boundInstrumentId, setBoundInstrumentId] = useState('');
+
+  // Auto evaluate ETAT+ priority flag
+  useEffect(() => {
+    if (airwayStatus === 'obstructed' || breathingStatus === 'apnea' || circulationStatus === 'shock' || consciousnessLevel === 'unresponsive') {
+      setPriorityFlag('red');
+    } else if (breathingStatus === 'distress' || circulationStatus === 'weak' || consciousnessLevel === 'pain' || consciousnessLevel === 'voice') {
+      setPriorityFlag('yellow');
+    } else {
+      setPriorityFlag('green');
+    }
+  }, [airwayStatus, breathingStatus, circulationStatus, consciousnessLevel]);
 
   useEffect(() => {
     fetchTriageQueue();
@@ -109,15 +128,78 @@ export default function Triage({ user, onComplete }) {
       const { error: triageErr } = await supabase.from('triages').insert(triageRecord);
       if (triageErr) throw triageErr;
 
-      // 2. Move patient visit to Consultation queue
+      // 1b. Save specialized Triage Assessment
+      const assessmentId = 'trga_' + Math.random().toString(36).substring(2, 12);
+      await supabase.from('triage_assessments').insert({
+        id: assessmentId,
+        emergency_id: selectedVisit.id,
+        facility_id: user.facility_id,
+        assessment_datetime: new Date().toISOString(),
+        airway_status: airwayStatus,
+        breathing_status: breathingStatus,
+        circulation_status: circulationStatus,
+        pulse_rate: parseInt(heartRate) || null,
+        bp_systolic: parseInt(systolic) || null,
+        bp_diastolic: parseInt(diastolic) || null,
+        respiratory_rate: parseInt(respRate) || null,
+        temperature: parseFloat(temp) || null,
+        oxygen_saturation: parseInt(spo2) || null,
+        pain_score: 0,
+        consciousness_level: consciousnessLevel,
+        triage_nurse: user.id
+      });
+
+      // 1c. If Emergency Red or Yellow flag, create emergency registration record
+      if (priorityFlag === 'red' || priorityFlag === 'yellow') {
+        const emrRegId = 'emr_' + Math.random().toString(36).substring(2, 12);
+        await supabase.from('emergency_registrations').insert({
+          id: emrRegId,
+          patient_id: selectedVisit.patient_id,
+          facility_id: user.facility_id,
+          arrival_datetime: new Date().toISOString(),
+          arrival_mode: 'walking',
+          triage_datetime: new Date().toISOString(),
+          priority_level: priorityFlag,
+          abc_status: `Airway: ${airwayStatus}, Breathing: ${breathingStatus}, Circulation: ${circulationStatus}`,
+          chief_complaint: chiefComplaint || 'Emergency Triage',
+          assigned_doctor: null,
+          disposition: 'triage'
+        });
+      }
+
+      // Log instrument usage
+      if (boundInstrumentId) {
+        const token = localStorage.getItem('egesa_health_token');
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        await fetch(`${apiBase}/workflows/instruments/log-usage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            instrument_id: boundInstrumentId,
+            workflow_type: 'EMR',
+            patient_id: selectedVisit.patient_id,
+            encounter_id: selectedVisit.id,
+            measurement_type: 'vitals_monitoring',
+            result_value: parseFloat(temp) || null,
+            result_unit: 'C'
+          })
+        });
+      }
+
+      // 2. Move patient visit to next queue
+      // If priority is emergency (red), bypass consultation queue straight to ER, or route standard
       const { error: visitErr } = await supabase.from('visits').update({
-        department: 'consultation',
+        department: priorityFlag === 'red' ? 'surgery' : 'consultation', // Emergency goes straight to Theatre/ER
+        priority: priorityFlag === 'red' ? 'emergency' : priorityFlag === 'yellow' ? 'urgent' : 'routine',
         status: 'waiting'
       }).eq('id', selectedVisit.id);
 
       if (visitErr) throw visitErr;
 
-      setMessage({ type: 'success', text: `Triage completed! Patient moved to Clinician's Queue.` });
+      setMessage({ type: 'success', text: `Triage completed! Patient priority flagged as ${priorityFlag.toUpperCase()}.` });
       
       // Clear selection and refresh queue
       setTimeout(() => {
@@ -217,6 +299,79 @@ export default function Triage({ user, onComplete }) {
             )}
 
             <form onSubmit={handleSaveTriage} className="space-y-5">
+              {/* ETAT+ / ABC Checklist */}
+              <div className="bg-slate-950/50 border border-slate-850 p-4 rounded-xl space-y-3.5">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
+                  <AlertOctagon size={16} className="text-red-400 animate-pulse" />
+                  <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">ETAT+ Emergency Checklist (ABC / AVPU)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
+                  {/* Airway */}
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Airway</label>
+                    <select
+                      value={airwayStatus}
+                      onChange={(e) => setAirwayStatus(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-2.5 text-xs text-slate-105 focus:outline-none focus:border-teal-500 transition"
+                    >
+                      <option value="clear">Clear (Normal)</option>
+                      <option value="obstructed">Obstructed (⚠️ Emergency)</option>
+                    </select>
+                  </div>
+
+                  {/* Breathing */}
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Breathing</label>
+                    <select
+                      value={breathingStatus}
+                      onChange={(e) => setBreathingStatus(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-2.5 text-xs text-slate-105 focus:outline-none focus:border-teal-500 transition"
+                    >
+                      <option value="normal">Normal</option>
+                      <option value="distress">Distress (⚠️ Urgent)</option>
+                      <option value="apnea">Apnea (🚨 Emergency)</option>
+                    </select>
+                  </div>
+
+                  {/* Circulation */}
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Circulation</label>
+                    <select
+                      value={circulationStatus}
+                      onChange={(e) => setCirculationStatus(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-2.5 text-xs text-slate-105 focus:outline-none focus:border-teal-500 transition"
+                    >
+                      <option value="normal">Normal</option>
+                      <option value="weak">Weak Pulse (⚠️ Urgent)</option>
+                      <option value="shock">Shock/No Pulse (🚨 Emergency)</option>
+                    </select>
+                  </div>
+
+                  {/* Consciousness */}
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Consciousness (AVPU)</label>
+                    <select
+                      value={consciousnessLevel}
+                      onChange={(e) => setConsciousnessLevel(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-2.5 text-xs text-slate-105 focus:outline-none focus:border-teal-500 transition"
+                    >
+                      <option value="alert">Alert (Normal)</option>
+                      <option value="voice">Voice Responsive (⚠️ Urgent)</option>
+                      <option value="pain">Pain Responsive (⚠️ Urgent)</option>
+                      <option value="unresponsive">Unresponsive (🚨 Emergency)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Instrument Tracker */}
+              <InstrumentTracker
+                category="triage"
+                selectedId={boundInstrumentId}
+                onSelect={(id) => setBoundInstrumentId(id)}
+                measurementType="vitals_monitoring"
+              />
+
               {/* Form Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* BP */}
@@ -251,6 +406,18 @@ export default function Triage({ user, onComplete }) {
                     placeholder="e.g. 72"
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                   />
+                  <div className="flex gap-1 mt-1.5">
+                    {['60', '72', '80', '100'].map(val => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setHeartRate(val)}
+                        className="text-[9px] font-bold bg-slate-950 border border-slate-850 hover:border-teal-500/20 text-slate-400 hover:text-teal-400 px-1.5 py-0.5 rounded transition"
+                      >
+                        {val}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Temperature */}
@@ -264,6 +431,18 @@ export default function Triage({ user, onComplete }) {
                     placeholder="e.g. 36.8"
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                   />
+                  <div className="flex gap-1 mt-1.5">
+                    {['36.5', '37.0', '38.0', '39.0'].map(val => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setTemp(val)}
+                        className="text-[9px] font-bold bg-slate-950 border border-slate-850 hover:border-teal-500/20 text-slate-400 hover:text-teal-400 px-1.5 py-0.5 rounded transition"
+                      >
+                        {val}°C
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Respiratory Rate */}
@@ -276,11 +455,23 @@ export default function Triage({ user, onComplete }) {
                     placeholder="e.g. 16"
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                   />
+                  <div className="flex gap-1 mt-1.5">
+                    {['12', '16', '20', '28'].map(val => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setRespRate(val)}
+                        className="text-[9px] font-bold bg-slate-950 border border-slate-850 hover:border-teal-500/20 text-slate-400 hover:text-teal-400 px-1.5 py-0.5 rounded transition"
+                      >
+                        {val}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                {/* SpO2 */}
+                {/* Oxygen Saturation */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Oxygen Sat. SpO2 (%)</label>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">SPO2 Oxygen Saturation (%)</label>
                   <input
                     type="number"
                     value={spo2}
@@ -288,15 +479,26 @@ export default function Triage({ user, onComplete }) {
                     placeholder="e.g. 98"
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                   />
+                  <div className="flex gap-1 mt-1.5">
+                    {['92', '95', '98', '100'].map(val => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setSpo2(val)}
+                        className="text-[9px] font-bold bg-slate-950 border border-slate-850 hover:border-teal-500/20 text-slate-400 hover:text-teal-400 px-1.5 py-0.5 rounded transition"
+                      >
+                        {val}%
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Weight & Height */}
-                <div className="md:col-span-1">
+                <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Weight (kg) & Height (m)</label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
                     <input
                       type="number"
-                      step="0.1"
                       value={weight}
                       onChange={(e) => setWeight(e.target.value)}
                       placeholder="kg"

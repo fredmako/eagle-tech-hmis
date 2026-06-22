@@ -7,10 +7,17 @@ import {
   Search,
   FileText,
   ClipboardList,
+  Baby,
+  Compass,
+  AlertTriangle,
+  Clipboard,
+  ShieldAlert as WarnIcon
 } from "lucide-react";
 import { diseaseMaster, medicineMaster, labTestMaster, radiologyTestMaster, surgicalProcedureMaster } from "../../medicalMaster";
 import { parsePatientContact } from "../../notificationService";
 import { Heart, MapPin } from "lucide-react";
+import DiagnosisAutocomplete from "./DiagnosisAutocomplete";
+import InstrumentTracker from "./InstrumentTracker";
 
 const getPatientAge = (dobString) => {
   if (!dobString) return 0;
@@ -53,6 +60,221 @@ export default function Consultation({ user, onComplete }) {
   const [mohSystolic, setMohSystolic] = useState("");
   const [mohDiastolic, setMohDiastolic] = useState("");
   const [mohConfirmed, setMohConfirmed] = useState(false);
+
+  // Specialized Workflow States
+  const [activePregnancy, setActivePregnancy] = useState(null);
+  const [ancGaWeeks, setAncGaWeeks] = useState(0);
+  const [ancEdd, setAncEdd] = useState('');
+  const [ancLmp, setAncLmp] = useState('');
+  const [ancGravidity, setAncGravidity] = useState(1);
+  const [ancParity, setAncParity] = useState(0);
+  const [ancAbortions, setAncAbortions] = useState(0);
+  
+  // ANC Visit fields
+  const [ancVisitNumber, setAncVisitNumber] = useState(1);
+  const [ancFetalHeartRate, setAncFetalHeartRate] = useState('');
+  const [ancFundalHeight, setAncFundalHeight] = useState('');
+  const [ancEdema, setAncEdema] = useState(false);
+  const [ancTetanusDose, setAncTetanusDose] = useState('');
+  const [ancTetanusDate, setAncTetanusDate] = useState('');
+  const [ancIronFolateSupplied, setAncIronFolateSupplied] = useState(true);
+  const [ancSupplementsCount, setAncSupplementsCount] = useState(30);
+  const [ancRiskLevel, setAncRiskLevel] = useState('normal');
+  const [ancNextVisitDate, setAncNextVisitDate] = useState('');
+  const [ancEnrollLoading, setAncEnrollLoading] = useState(false);
+  
+  // FP fields
+  const [activeFPRecord, setActiveFPRecord] = useState(null);
+  const [fpGravidity, setFpGravidity] = useState(0);
+  const [fpParity, setFpParity] = useState(0);
+  const [fpEligibilityCategory, setFpEligibilityCategory] = useState(1);
+  const [fpCounselingProvided, setFpCounselingProvided] = useState(true);
+  const [fpMethodSelectedId, setFpMethodSelectedId] = useState('');
+  const [fpInsertionDate, setFpInsertionDate] = useState('');
+  const [fpSideEffects, setFpSideEffects] = useState('');
+  const [fpDiscontinued, setFpDiscontinued] = useState(false);
+  const [fpDiscontinuedReason, setFpDiscontinuedReason] = useState('');
+  const [contraceptiveMethodsList, setContraceptiveMethodsList] = useState([]);
+  
+  // FP WHO screening risk factors
+  const [fpRiskHypertension, setFpRiskHypertension] = useState(false);
+  const [fpRiskSmoking, setFpRiskSmoking] = useState(false);
+  const [fpRiskBreastfeeding, setFpRiskBreastfeeding] = useState(false);
+  const [fpRiskPid, setFpRiskPid] = useState(false);
+  const [fpRiskBleeding, setFpRiskBleeding] = useState(false);
+  const [fpWhoResult, setFpWhoResult] = useState(null);
+
+  // Medical instrument binding
+  const [boundInstrumentId, setBoundInstrumentId] = useState('');
+
+  useEffect(() => {
+    fetchContraceptiveMethods();
+  }, []);
+
+  const fetchContraceptiveMethods = async () => {
+    try {
+      const { data } = await supabase.from('contraceptive_methods').select('*');
+      if (data) setContraceptiveMethodsList(data);
+    } catch (err) {
+      console.error("Failed to load contraceptive methods:", err);
+    }
+  };
+
+  const handleEnrollPregnancy = async (e) => {
+    e.preventDefault();
+    if (!ancLmp || !selectedVisit) return;
+    setAncEnrollLoading(true);
+    try {
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiBase}/workflows/anc/calculate-gestational-age`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ lmp_date: ancLmp })
+      });
+      
+      if (!res.ok) throw new Error("Failed to calculate GA from LMP");
+      const calc = await res.json();
+
+      const pregId = 'prg_' + Math.random().toString(36).substring(2, 12);
+      const newPreg = {
+        id: pregId,
+        patient_id: selectedVisit.patient_id,
+        facility_id: user.facility_id,
+        lmp_date: ancLmp,
+        estimated_delivery_date: calc.estimated_delivery_date,
+        gravidity: parseInt(ancGravidity) || 1,
+        parity: parseInt(ancParity) || 0,
+        abortions: parseInt(ancAbortions) || 0,
+        current_gestational_age_weeks: calc.gestational_age_weeks,
+        conception_date: calc.conception_date,
+        is_active: true
+      };
+
+      const { error } = await supabase.from('pregnancies').insert(newPreg);
+      if (error) throw error;
+
+      setActivePregnancy(newPreg);
+      setAncGaWeeks(calc.gestational_age_weeks);
+      setAncEdd(calc.estimated_delivery_date);
+      setAncNextVisitDate(calc.suggested_next_visit_date);
+      setMessage({ type: "success", text: "Patient successfully enrolled in ANC pregnancy profile!" });
+    } catch (err) {
+      setMessage({ type: "error", text: err.message });
+    } finally {
+      setAncEnrollLoading(false);
+    }
+  };
+
+  const checkFpEligibility = async () => {
+    if (!fpMethodSelectedId || contraceptiveMethodsList.length === 0) return;
+    const methodObj = contraceptiveMethodsList.find(m => m.id === fpMethodSelectedId);
+    if (!methodObj) return;
+
+    try {
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiBase}/workflows/fp/who-criteria`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          method_code: methodObj.method_code,
+          medical_conditions: {
+            hypertension: fpRiskHypertension,
+            smoking: fpRiskSmoking,
+            breastfeeding: fpRiskBreastfeeding,
+            pid_active: fpRiskPid,
+            unexplained_bleeding: fpRiskBleeding,
+            age: patientAge
+          }
+        })
+      });
+      if (res.ok) {
+        const eligibilityData = await res.json();
+        setFpEligibilityCategory(eligibilityData.category);
+        setFpWhoResult(eligibilityData);
+      }
+    } catch (err) {
+      console.error("Error evaluating FP WHO eligibility:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (fpMethodSelectedId) {
+      checkFpEligibility();
+    }
+  }, [fpMethodSelectedId, fpRiskHypertension, fpRiskSmoking, fpRiskBreastfeeding, fpRiskPid, fpRiskBleeding]);
+
+  const renderPregnancyProgress = () => {
+    if (!ancGaWeeks) return null;
+    const progressPercent = Math.min(100, (ancGaWeeks / 40) * 100);
+    let trimester = "1st Trimester";
+    let trimesterColor = "from-emerald-500 to-teal-500";
+    if (ancGaWeeks > 12 && ancGaWeeks <= 26) {
+      trimester = "2nd Trimester";
+      trimesterColor = "from-teal-500 to-cyan-500";
+    } else if (ancGaWeeks > 26) {
+      trimester = "3rd Trimester";
+      trimesterColor = "from-cyan-500 to-indigo-500";
+    }
+    return (
+      <div className="space-y-2 bg-slate-950/70 border border-slate-900 rounded-xl p-4">
+        <div className="flex justify-between items-center text-xs font-bold">
+          <span className="text-slate-400">Pregnancy Progress Timeline ({ancGaWeeks} weeks)</span>
+          <span className="text-teal-400 font-extrabold uppercase tracking-wide">{trimester}</span>
+        </div>
+        <div className="w-full bg-slate-900 rounded-full h-3.5 border border-slate-800 overflow-hidden p-[2px]">
+          <div 
+            className={`h-full rounded-full bg-gradient-to-r ${trimesterColor} transition-all duration-500`}
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+        <div className="flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+          <span>LMP: {activePregnancy?.lmp_date}</span>
+          <span>EDD: {ancEdd || activePregnancy?.estimated_delivery_date}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderFpMethodsTable = () => {
+    return (
+      <div className="overflow-x-auto border border-slate-800/80 rounded-xl">
+        <table className="w-full border-collapse text-left text-xs">
+          <thead>
+            <tr className="bg-slate-950 text-slate-400 font-bold border-b border-slate-850">
+              <th className="p-3">Method Name</th>
+              <th className="p-3">Type</th>
+              <th className="p-3">Duration</th>
+              <th className="p-3">WHO Category</th>
+              <th className="p-3">Common Side Effects</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-850 bg-slate-950/20">
+            {contraceptiveMethodsList.map((m) => (
+              <tr key={m.id} className="hover:bg-slate-900/40 transition">
+                <td className="p-3 font-semibold text-slate-200">{m.method_name}</td>
+                <td className="p-3 uppercase font-mono text-[10px] text-teal-400">{m.method_code}</td>
+                <td className="p-3 text-slate-400">{m.duration_months === 0 ? 'Short term' : `${m.duration_months} Months`}</td>
+                <td className="p-3 text-slate-450 font-bold">
+                  {m.id === fpMethodSelectedId ? `Category ${fpEligibilityCategory}` : 'Category 1'}
+                </td>
+                <td className="p-3 text-[10px] text-slate-500 max-w-xs truncate" title={m.side_effects_list?.join(', ')}>
+                  {m.side_effects_list?.join(', ') || 'None reported'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   const patientAge = selectedVisit?.patient ? getPatientAge(selectedVisit.patient.dob) : 0;
   const patientGender = selectedVisit?.patient?.gender || "unknown";
@@ -104,23 +326,42 @@ export default function Consultation({ user, onComplete }) {
     }
   };
 
-  const handleSelectVisit = async (visit) => {
-    setSelectedVisit(visit);
+    // Clear specialized workflow states
+    setActivePregnancy(null);
+    setAncGaWeeks(0);
+    setAncEdd('');
+    setAncLmp('');
+    setAncGravidity(1);
+    setAncParity(0);
+    setAncAbortions(0);
+    setAncVisitNumber(1);
+    setAncFetalHeartRate('');
+    setAncFundalHeight('');
+    setAncEdema(false);
+    setAncTetanusDose('');
+    setAncTetanusDate('');
+    setAncIronFolateSupplied(true);
+    setAncSupplementsCount(30);
+    setAncRiskLevel('normal');
+    setAncNextVisitDate('');
 
-    // Clear clinical forms
-    setHistory("");
-    setExam("");
-    setDiagnosis("");
-    setTreatmentPlan("");
-    setOrderedLabs([]);
-    setOrderedRadiology([]);
-    setOrderedSurgeries([]);
-    setFollowUpDate("");
-    setPatientHistory(null);
-    setPrescriptions([
-      { name: "", dosage: "", frequency: "1x1", duration: "3 days", price: 0 },
-    ]);
-    setMessage({ type: "", text: "" });
+    setActiveFPRecord(null);
+    setFpGravidity(0);
+    setFpParity(0);
+    setFpEligibilityCategory(1);
+    setFpCounselingProvided(true);
+    setFpMethodSelectedId('');
+    setFpInsertionDate('');
+    setFpSideEffects('');
+    setFpDiscontinued(false);
+    setFpDiscontinuedReason('');
+    setFpRiskHypertension(false);
+    setFpRiskSmoking(false);
+    setFpRiskBreastfeeding(false);
+    setFpRiskPid(false);
+    setFpRiskBleeding(false);
+    setFpWhoResult(null);
+    setBoundInstrumentId('');
 
     // Fetch vital signs
     try {
@@ -136,6 +377,58 @@ export default function Consultation({ user, onComplete }) {
       }
     } catch (err) {
       console.error("Error fetching triage data:", err);
+    }
+
+    // Load active pregnancy if ANC service
+    if (visit.service_type === 'ANC') {
+      try {
+        const { data: preg } = await supabase
+          .from("pregnancies")
+          .select("*")
+          .eq("patient_id", visit.patient_id)
+          .eq("is_active", true);
+        if (preg && preg.length > 0) {
+          setActivePregnancy(preg[0]);
+          // Calculate GA via backend API
+          const token = localStorage.getItem('egesa_health_token');
+          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          const res = await fetch(`${apiBase}/workflows/anc/calculate-gestational-age`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ lmp_date: preg[0].lmp_date })
+          });
+          if (res.ok) {
+            const gaData = await res.json();
+            setAncGaWeeks(gaData.gestational_age_weeks);
+            setAncEdd(gaData.estimated_delivery_date);
+            setAncNextVisitDate(gaData.suggested_next_visit_date);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading pregnancy context:", err);
+      }
+    }
+
+    // Load active family planning record if FP
+    if (visit.service_type === 'FP') {
+      try {
+        const { data: fpRecs } = await supabase
+          .from("family_planning_records")
+          .select("*")
+          .eq("patient_id", visit.patient_id)
+          .order("created_at", { ascending: false });
+        if (fpRecs && fpRecs.length > 0) {
+          setActiveFPRecord(fpRecs[0]);
+          setFpGravidity(fpRecs[0].reproductive_history_gravidity || 0);
+          setFpParity(fpRecs[0].reproductive_history_parity || 0);
+          setFpMethodSelectedId(fpRecs[0].method_selected_id || '');
+        }
+      } catch (err) {
+        console.error("Error loading FP context:", err);
+      }
     }
 
     // Fetch patient history profile
@@ -281,7 +574,11 @@ export default function Consultation({ user, onComplete }) {
       // 1. Insert Consultation Notes
       const consultRecord = {
         visit_id: selectedVisit.id,
-        history,
+        history: selectedVisit.service_type === 'ANC' 
+          ? `ANC Visit Notes\nFundal Height: ${ancFundalHeight}cm\nFetal Heart Rate: ${ancFetalHeartRate}bpm\n${history}` 
+          : selectedVisit.service_type === 'FP' 
+            ? `FP Consultation Notes\nMethod Selected: ${fpMethodSelectedId}\nEligibility Category: ${fpEligibilityCategory}\n${history}` 
+            : history,
         examination: exam,
         diagnosis_icd10: diagnosis,
         treatment_plan: treatmentPlan,
@@ -291,6 +588,128 @@ export default function Consultation({ user, onComplete }) {
         .from("consultations")
         .insert(consultRecord);
       if (consultErr) throw consultErr;
+
+      // 1b. Save specialized ANC/FP data
+      if (selectedVisit.service_type === 'ANC' && activePregnancy) {
+        const ancVisitId = 'ancv_' + Math.random().toString(36).substring(2, 12);
+        const { error: ancErr } = await supabase.from('anc_visits').insert({
+          id: ancVisitId,
+          pregnancy_id: activePregnancy.id,
+          facility_id: user.facility_id,
+          visit_number: parseInt(ancVisitNumber) || 1,
+          visit_date: new Date().toISOString().split('T')[0],
+          gestational_age_at_visit: parseFloat(ancGaWeeks) || 0,
+          bp_systolic: triageData?.systolic || parseInt(mohSystolic) || null,
+          bp_diastolic: triageData?.diastolic || parseInt(mohDiastolic) || null,
+          weight_kg: triageData?.weight || parseFloat(mohWeight) || null,
+          fundal_height_cm: parseFloat(ancFundalHeight) || null,
+          fetal_heart_rate: parseInt(ancFetalHeartRate) || null,
+          maternal_temperature: triageData?.temperature || parseFloat(mohTemp) || null,
+          edema_present: ancEdema,
+          tetanus_toxoid_dose: parseInt(ancTetanusDose) || null,
+          tetanus_date: ancTetanusDate || null,
+          iron_folate_supplied: ancIronFolateSupplied,
+          supplements_count: parseInt(ancSupplementsCount) || 0,
+          complications_notes: treatmentPlan || null,
+          risk_level: ancRiskLevel,
+          next_visit_date: ancNextVisitDate || null,
+          placed_by: user.id
+        });
+        if (ancErr) throw ancErr;
+
+        // Insert anc diagnosis
+        if (diagnosis) {
+          const diagCode = diagnosis.split('(')[1]?.replace(')', '') || diagnosis;
+          await supabase.from('anc_diagnoses').insert({
+            id: 'ancd_' + Math.random().toString(36).substring(2, 12),
+            anc_visit_id: ancVisitId,
+            facility_id: user.facility_id,
+            diagnosis_id: diagCode,
+            is_pregnancy_specific: true,
+            severity_level: 'moderate',
+            principal_complication: true
+          });
+        }
+
+        // Log instrument usage
+        if (boundInstrumentId) {
+          const token = localStorage.getItem('egesa_health_token');
+          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          await fetch(`${apiBase}/workflows/instruments/log-usage`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              instrument_id: boundInstrumentId,
+              workflow_type: 'ANC',
+              patient_id: selectedVisit.patient_id,
+              encounter_id: selectedVisit.id,
+              measurement_type: 'fetal_heart_rate',
+              result_value: parseFloat(ancFetalHeartRate) || null,
+              result_unit: 'bpm'
+            })
+          });
+        }
+      } else if (selectedVisit.service_type === 'FP') {
+        let fpRecordId = activeFPRecord?.id;
+        if (!fpRecordId) {
+          fpRecordId = 'fpr_' + Math.random().toString(36).substring(2, 12);
+          const { error: fpRecErr } = await supabase.from('family_planning_records').insert({
+            id: fpRecordId,
+            patient_id: selectedVisit.patient_id,
+            facility_id: user.facility_id,
+            consultation_date: new Date().toISOString().split('T')[0],
+            reproductive_history_gravidity: parseInt(fpGravidity) || 0,
+            reproductive_history_parity: parseInt(fpParity) || 0,
+            medical_eligibility_category: parseInt(fpEligibilityCategory) || 1,
+            counseling_provided: fpCounselingProvided,
+            method_selected_id: fpMethodSelectedId || null,
+            insertion_date: fpInsertionDate || null,
+            next_followup_date: ancNextVisitDate || null,
+            side_effects_reported: fpSideEffects || null
+          });
+          if (fpRecErr) throw fpRecErr;
+        }
+
+        // Save FP Visit
+        const { error: fpVisErr } = await supabase.from('fp_visits').insert({
+          id: 'fpv_' + Math.random().toString(36).substring(2, 12),
+          fp_record_id: fpRecordId,
+          facility_id: user.facility_id,
+          visit_date: new Date().toISOString().split('T')[0],
+          visit_type: activeFPRecord ? 'followup' : 'initial',
+          method_status: fpMethodSelectedId ? 'active' : 'none',
+          side_effects: fpSideEffects || null,
+          discontinuation: fpDiscontinued,
+          new_method_selected_id: fpMethodSelectedId || null,
+          next_visit_date: ancNextVisitDate || null
+        });
+        if (fpVisErr) throw fpVisErr;
+
+        // Log instrument usage
+        if (boundInstrumentId) {
+          const token = localStorage.getItem('egesa_health_token');
+          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          await fetch(`${apiBase}/workflows/instruments/log-usage`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              instrument_id: boundInstrumentId,
+              workflow_type: 'FP',
+              patient_id: selectedVisit.patient_id,
+              encounter_id: selectedVisit.id,
+              measurement_type: 'contraceptive_insertion',
+              result_value: 1,
+              result_unit: 'procedure'
+            })
+          });
+        }
+      }
 
       // 2. Insert Lab, Radiology, Surgery, Follow-up Orders
       const orderPromises = [];
@@ -761,6 +1180,293 @@ export default function Consultation({ user, onComplete }) {
             </div>
 
             <form onSubmit={handleSubmitClick} className="space-y-6">
+              
+              {/* Specialized ANC Enrollment/Form */}
+              {selectedVisit.service_type === 'ANC' && !activePregnancy && (
+                <div className="bg-slate-950 border border-slate-850 p-6 rounded-xl space-y-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-teal-400">Pregnancy Registry Enrollment</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Please initialize this patient's pregnancy metrics to generate the gestational timeline.</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">LMP Date *</label>
+                      <input
+                        type="date"
+                        value={ancLmp}
+                        onChange={(e) => setAncLmp(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Gravidity *</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={ancGravidity}
+                        onChange={(e) => setAncGravidity(parseInt(e.target.value) || 1)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Parity *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={ancParity}
+                        onChange={(e) => setAncParity(parseInt(e.target.value) || 0)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Abortions *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={ancAbortions}
+                        onChange={(e) => setAncAbortions(parseInt(e.target.value) || 0)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleEnrollPregnancy}
+                    disabled={ancEnrollLoading || !ancLmp}
+                    className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg transition active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {ancEnrollLoading ? 'Initializing Profile...' : 'Initialize Pregnancy Profile'}
+                  </button>
+                </div>
+              )}
+
+              {selectedVisit.service_type === 'ANC' && activePregnancy && (
+                <div className="space-y-6">
+                  {renderPregnancyProgress()}
+
+                  <div className="bg-slate-950 border border-slate-900 p-4 rounded-xl space-y-4">
+                    <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">Maternal Vitals & Fetal Assessment</h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">ANC Visit Number</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={ancVisitNumber}
+                          onChange={(e) => setAncVisitNumber(parseInt(e.target.value) || 1)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Fundal Height (cm)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          placeholder="e.g. 24.5"
+                          value={ancFundalHeight}
+                          onChange={(e) => setAncFundalHeight(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Fetal Heart Rate (bpm)</label>
+                        <input
+                          type="number"
+                          placeholder="e.g. 140"
+                          value={ancFetalHeartRate}
+                          onChange={(e) => setAncFetalHeartRate(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Risk Category</label>
+                        <select
+                          value={ancRiskLevel}
+                          onChange={(e) => setAncRiskLevel(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                        >
+                          <option value="normal">Normal Risk</option>
+                          <option value="medium">Medium Risk</option>
+                          <option value="high">High Risk Pregnancy ⚠️</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex items-center gap-3 py-2">
+                        <label className="flex items-center gap-2 text-xs font-bold text-slate-450 cursor-pointer select-none hover:text-white transition">
+                          <input
+                            type="checkbox"
+                            checked={ancEdema}
+                            onChange={(e) => setAncEdema(e.target.checked)}
+                            className="accent-teal-500 h-4 w-4 bg-slate-900 border-slate-800 rounded text-teal-500"
+                          />
+                          Maternal Edema Present
+                        </label>
+                      </div>
+
+                      <div className="flex items-center gap-3 py-2">
+                        <label className="flex items-center gap-2 text-xs font-bold text-slate-455 cursor-pointer select-none hover:text-white transition">
+                          <input
+                            type="checkbox"
+                            checked={ancIronFolateSupplied}
+                            onChange={(e) => setAncIronFolateSupplied(e.target.checked)}
+                            className="accent-teal-500 h-4 w-4 bg-slate-900 border-slate-800 rounded text-teal-500"
+                          />
+                          Iron & Folate Supplements Issued (30 Days)
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Tetanus Toxoid Dose</label>
+                        <select
+                          value={ancTetanusDose}
+                          onChange={(e) => setAncTetanusDose(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                        >
+                          <option value="">-- No Vaccine Administered --</option>
+                          <option value="1">Tetanus Dose 1 (First visit)</option>
+                          <option value="2">Tetanus Dose 2 (4 weeks later)</option>
+                          <option value="3">Tetanus Dose 3 (6 months later)</option>
+                        </select>
+                      </div>
+                      {ancTetanusDose && (
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Tetanus Administration Date</label>
+                          <input
+                            type="date"
+                            value={ancTetanusDate}
+                            onChange={(e) => setAncTetanusDate(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bind instrument */}
+                    <InstrumentTracker 
+                      category="ANC" 
+                      selectedId={boundInstrumentId} 
+                      onSelect={setBoundInstrumentId} 
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Specialized Family Planning Form */}
+              {selectedVisit.service_type === 'FP' && (
+                <div className="space-y-6">
+                  <div className="bg-slate-950 border border-slate-900 p-4 rounded-xl space-y-4">
+                    <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">Reproductive Profile & counseling</h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Reproductive History Gravidity</label>
+                        <input
+                          type="number"
+                          value={fpGravidity}
+                          onChange={(e) => setFpGravidity(parseInt(e.target.value) || 0)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Reproductive History Parity</label>
+                        <input
+                          type="number"
+                          value={fpParity}
+                          onChange={(e) => setFpParity(parseInt(e.target.value) || 0)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-900 pt-3">
+                      <label className="block text-[10px] font-bold text-slate-405 uppercase tracking-wider mb-2">WHO Medical Eligibility Screening Risk Factors</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none hover:text-white transition">
+                          <input type="checkbox" checked={fpRiskHypertension} onChange={(e) => setFpRiskHypertension(e.target.checked)} className="accent-teal-500" />
+                          Hypertension (High BP)
+                        </label>
+                        <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none hover:text-white transition">
+                          <input type="checkbox" checked={fpRiskSmoking} onChange={(e) => setFpRiskSmoking(e.target.checked)} className="accent-teal-500" />
+                          Smoking & Age &gt; 35
+                        </label>
+                        <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none hover:text-white transition">
+                          <input type="checkbox" checked={fpRiskBreastfeeding} onChange={(e) => setFpRiskBreastfeeding(e.target.checked)} className="accent-teal-500" />
+                          Breastfeeding (&lt;6mo)
+                        </label>
+                        <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none hover:text-white transition">
+                          <input type="checkbox" checked={fpRiskPid} onChange={(e) => setFpRiskPid(e.target.checked)} className="accent-teal-500" />
+                          Active PID / STI
+                        </label>
+                        <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none hover:text-white transition">
+                          <input type="checkbox" checked={fpRiskBleeding} onChange={(e) => setFpRiskBleeding(e.target.checked)} className="accent-teal-500" />
+                          Unexplained Vaginal Bleeding
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-900 pt-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-405 uppercase tracking-wider mb-1.5">Select Contraceptive Method</label>
+                        <select
+                          value={fpMethodSelectedId}
+                          onChange={(e) => setFpMethodSelectedId(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                        >
+                          <option value="">-- Choose Method --</option>
+                          {contraceptiveMethodsList.map(m => (
+                            <option key={m.id} value={m.id}>{m.method_name} ({m.method_code})</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      {fpMethodSelectedId && (
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-405 uppercase tracking-wider mb-1.5">Insertion Date</label>
+                          <input
+                            type="date"
+                            value={fpInsertionDate}
+                            onChange={(e) => setFpInsertionDate(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {fpWhoResult && (
+                      <div className={`p-4 rounded-xl border flex flex-col gap-1.5 ${
+                        fpWhoResult.category === 1 ? 'bg-green-500/5 border-green-500/25 text-green-400' :
+                        fpWhoResult.category === 2 ? 'bg-emerald-500/5 border-emerald-500/25 text-emerald-400' :
+                        fpWhoResult.category === 3 ? 'bg-amber-500/5 border-amber-500/25 text-amber-400' :
+                        'bg-red-500/5 border-red-500/25 text-red-400'
+                      }`}>
+                        <span className="font-bold text-xs">WHO Category {fpWhoResult.category}: {fpWhoResult.recommendation}</span>
+                        {fpWhoResult.reasons.map((r, i) => (
+                          <span key={i} className="text-[10px] block">• {r}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Bind instrument */}
+                    <InstrumentTracker 
+                      category="general" 
+                      selectedId={boundInstrumentId} 
+                      onSelect={setBoundInstrumentId} 
+                    />
+                  </div>
+
+                  {renderFpMethodsTable()}
+                </div>
+              )}
+
               {/* SOAP Text Area Notes */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -798,19 +1504,12 @@ export default function Consultation({ user, onComplete }) {
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                     ICD-10 Diagnosis *
                   </label>
-                  <select
-                    value={diagnosis}
-                    onChange={(e) => setDiagnosis(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                    required
-                  >
-                    <option value="">-- Select Diagnosis --</option>
-                    {icd10Diagnoses.map((d, i) => (
-                      <option key={i} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
+                  <DiagnosisAutocomplete
+                    value={diagnosis.split(' (')[1]?.replace(')', '') || diagnosis}
+                    onSelect={(disease) => setDiagnosis(`${disease.name} (${disease.code})`)}
+                    workflowType={selectedVisit.service_type}
+                    placeholder="Search ICD-10 code or disease name..."
+                  />
                 </div>
 
                 <div>

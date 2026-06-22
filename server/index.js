@@ -17,6 +17,7 @@ const mpesaRouter = require("./routes/mpesa");
 const dbRouter = require("./routes/db");
 const departmentsRouter = require("./routes/departments");
 const afyalinkRouter = require("./routes/afyalink");
+const workflowsRouter = require("./routes/workflows");
 
 // Mount routes
 app.use("/api/auth", authRouter);
@@ -25,6 +26,7 @@ app.use("/api/mpesa", mpesaRouter);
 app.use("/api/db", dbRouter);
 app.use("/api/departments", departmentsRouter);
 app.use("/api/afyalink", afyalinkRouter);
+app.use("/api/workflows", workflowsRouter);
 
 // Start server
 app.listen(PORT, () => {

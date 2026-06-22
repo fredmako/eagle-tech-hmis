@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
+import { useAuth } from '../../context/AuthContext';
 import { sendNotification, parsePatientContact } from '../../notificationService';
 import { Bed, PlusCircle, CheckCircle, AlertCircle, ClipboardList, Thermometer, MapPin, Activity, Heart } from 'lucide-react';
 
 export default function Ward({ user }) {
+  const { authFetch } = useAuth();
   const [admissions, setAdmissions] = useState([]);
   const [patients, setPatients] = useState([]);
+  const [beds, setBeds] = useState([]);
+  const [observations, setObservations] = useState([]);
   const [selectedAdmission, setSelectedAdmission] = useState(null);
   
   // New Admission states
   const [selectedPatientId, setSelectedPatientId] = useState('');
-  const [targetBed, setTargetBed] = useState('Bed 01');
+  const [targetBedId, setTargetBedId] = useState('');
 
   // Observations states
   const [temp, setTemp] = useState('');
@@ -34,32 +38,67 @@ export default function Ward({ user }) {
   const [mohDiastolic, setMohDiastolic] = useState("");
   const [mohConfirmed, setMohConfirmed] = useState(false);
 
-  const bedsList = ['Bed 01', 'Bed 02', 'Bed 03', 'Bed 04', 'Bed 05', 'Bed 06', 'Bed 07', 'Bed 08'];
-
   useEffect(() => {
     fetchWardData();
   }, []);
 
+  useEffect(() => {
+    if (selectedAdmission) {
+      fetchObservations(selectedAdmission.id);
+    } else {
+      setObservations([]);
+    }
+  }, [selectedAdmission]);
+
+  const fetchObservations = async (admissionId) => {
+    try {
+      const { data, error } = await supabase
+        .from('ward_care_records')
+        .select('*')
+        .eq('admission_id', admissionId)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      setObservations(data || []);
+    } catch (err) {
+      console.error('Error fetching ward care records:', err);
+    }
+  };
+
   const fetchWardData = async () => {
     try {
-      // Admitted visits have department = 'ward' (let's assume 'ward' is a department)
-      const { data: vsts } = await supabase.from('visits').select('*').eq('department', 'ward').eq('status', 'waiting');
+      // 1. Fetch bed allocations
+      const { data: bedsData } = await supabase.from('bed_allocations').select('*');
+      setBeds(bedsData || []);
+      if (bedsData && bedsData.length > 0 && !targetBedId) {
+        // default to first vacant bed
+        const vacant = bedsData.find(b => b.bed_status === 'clean');
+        if (vacant) setTargetBedId(vacant.id);
+      }
+
+      // 2. Fetch inpatient admissions
+      const { data: admData } = await supabase.from('inpatient_admissions').select('*').eq('status', 'admitted');
       const { data: pts } = await supabase.from('patients').select('*');
 
       setPatients(pts || []);
       
-      const enriched = vsts ? vsts.map(v => {
-        const p = pts?.find(pt => pt.id === v.patient_id);
-        // Emulate assigning a bed index based on ID hash or session-stored bed allocations
-        const savedBeds = JSON.parse(localStorage.getItem('egesa_ward_bed_allocations') || '{}');
-        const bed = savedBeds[v.id] || 'Bed 01';
-        return { ...v, patient: p, bed };
+      const enriched = admData ? admData.map(a => {
+        const p = pts?.find(pt => pt.id === a.patient_id);
+        const b = bedsData?.find(bd => bd.id === a.bed_id);
+        return { 
+          ...a, 
+          patient: p, 
+          bed: b ? b.bed_number : 'Bed N/A',
+          bed_id: a.bed_id
+        };
       }) : [];
 
       setAdmissions(enriched);
       
       if (enriched.length > 0) {
-        setSelectedAdmission(enriched[0]);
+        setSelectedAdmission(prev => {
+          const stillAdmitted = enriched.find(a => a.id === prev?.id);
+          return stillAdmitted || enriched[ enriched.length - 1 ];
+        });
       } else {
         setSelectedAdmission(null);
       }
@@ -70,15 +109,16 @@ export default function Ward({ user }) {
 
   const handleAdmit = async (e) => {
     e.preventDefault();
-    if (!selectedPatientId) {
-      setMessage({ type: 'error', text: 'Please select a patient.' });
+    if (!selectedPatientId || !targetBedId) {
+      setMessage({ type: 'error', text: 'Please select a patient and a bed.' });
       return;
     }
 
-    // Check if bed is occupied
-    const isOccupied = admissions.some(a => a.bed === targetBed);
-    if (isOccupied) {
-      setMessage({ type: 'error', text: `${targetBed} is already occupied.` });
+    const selectedBed = beds.find(b => b.id === targetBedId);
+    if (!selectedBed) return;
+
+    if (selectedBed.bed_status === 'occupied') {
+      setMessage({ type: 'error', text: `${selectedBed.bed_number} is already occupied.` });
       return;
     }
 
@@ -86,27 +126,39 @@ export default function Ward({ user }) {
     setMessage({ type: '', text: '' });
 
     try {
-      // Create a new visit directed to 'ward'
-      const newAdmission = {
+      // Create admission record
+      const admissionId = 'adm_' + Math.random().toString(36).substring(2, 12);
+      const { error: admError } = await supabase.from('inpatient_admissions').insert({
+        id: admissionId,
         patient_id: selectedPatientId,
         facility_id: user.facility_id,
-        department: 'ward',
-        priority: 'routine',
-        status: 'waiting'
-      };
+        admission_datetime: new Date().toISOString(),
+        admitting_clinician: user.id,
+        ward_id: selectedBed.ward_id,
+        bed_id: selectedBed.id,
+        admission_type: 'routine',
+        status: 'admitted'
+      });
+      if (admError) throw admError;
 
-      const { data, error } = await supabase.from('visits').insert(newAdmission).select();
-      if (error) throw error;
+      // Update bed status via Express endpoints to sync local database
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const bedRes = await fetch(`${apiBase}/workflows/inpatient/bed-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          bed_id: selectedBed.id,
+          status: 'occupied',
+          patient_id: selectedPatientId
+        })
+      });
+      if (!bedRes.ok) throw new Error('Failed to update bed occupancy status.');
 
-      if (data) {
-        const visit = Array.isArray(data) ? data[0] : data;
-        // Save bed allocation in local storage to keep it persistent
-        const savedBeds = JSON.parse(localStorage.getItem('egesa_ward_bed_allocations') || '{}');
-        savedBeds[visit.id] = targetBed;
-        localStorage.setItem('egesa_ward_bed_allocations', JSON.stringify(savedBeds));
-      }
-
-      setMessage({ type: 'success', text: `Patient successfully admitted to ${targetBed}.` });
+      setMessage({ type: 'success', text: `Patient successfully admitted to ${selectedBed.bed_number}.` });
       
       // Trigger Notification
       try {
@@ -116,7 +168,7 @@ export default function Ward({ user }) {
           await sendNotification('INPATIENT_ADMITTED', {
             patientName: patient.name,
             patientCode: patient.facility_id_code,
-            bedName: targetBed,
+            bedName: selectedBed.bed_number,
             admittedBy: user.full_name,
             recipientEmail: contactInfo.email
           }, user.facility_id);
@@ -142,12 +194,34 @@ export default function Ward({ user }) {
     setMessage({ type: '', text: '' });
 
     try {
-      // Simulate adding a ward observation record
-      const details = `Temp: ${temp}°C | BP: ${bp} | Pulse: ${pulse} bpm. Notes: ${progressNotes}`;
-      
+      const bpParts = bp.split('/');
+      const bpSystolic = parseInt(bpParts[0]) || null;
+      const bpDiastolic = parseInt(bpParts[1]) || null;
+
+      const recordId = 'care_' + Math.random().toString(36).substring(2, 12);
+      const { error: obsError } = await supabase.from('ward_care_records').insert({
+        id: recordId,
+        admission_id: selectedAdmission.id,
+        facility_id: user.facility_id,
+        care_date: new Date().toISOString().split('T')[0],
+        round_number: observations.length + 1,
+        bp_systolic: bpSystolic,
+        bp_diastolic: bpDiastolic,
+        temperature: parseFloat(temp) || null,
+        pulse_rate: parseInt(pulse) || null,
+        respiratory_rate: 16,
+        oxygen_saturation: 98,
+        medications_given: '',
+        fluids_administered: '',
+        observations_notes: progressNotes,
+        recorded_by: user.id
+      });
+      if (obsError) throw obsError;
+
+      // Add audit log
       await supabase.from('audit_logs').insert({
         action: 'Ward Observation Logged',
-        details: `Logged observation for inpatient ${selectedAdmission.patient?.name} on ${selectedAdmission.bed}: ${details}`
+        details: `Logged observation for inpatient ${selectedAdmission.patient?.name} on ${selectedAdmission.bed}: Temp: ${temp}, BP: ${bp}, Pulse: ${pulse}. Notes: ${progressNotes}`
       });
 
       setMessage({ type: 'success', text: 'Clinical observations charted successfully.' });
@@ -156,8 +230,8 @@ export default function Ward({ user }) {
       setPulse('');
       setProgressNotes('');
       
-      // Refresh
-      fetchWardData();
+      // Refresh observations
+      fetchObservations(selectedAdmission.id);
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Failed to chart observations.' });
     } finally {
@@ -254,17 +328,29 @@ export default function Ward({ user }) {
       // 0. Save validated MOH details
       await saveMOHRecords();
 
-      // 1. Complete the visit ticket
-      const { error } = await supabase.from('visits').update({
-        status: 'completed'
+      // 1. Update inpatient_admissions status
+      const { error: admError } = await supabase.from('inpatient_admissions').update({
+        status: 'discharged',
+        discharge_datetime: new Date().toISOString(),
+        discharge_mode: 'routine'
       }).eq('id', selectedAdmission.id);
+      if (admError) throw admError;
 
-      if (error) throw error;
-
-      // 2. Remove bed allocation
-      const savedBeds = JSON.parse(localStorage.getItem('egesa_ward_bed_allocations') || '{}');
-      delete savedBeds[selectedAdmission.id];
-      localStorage.setItem('egesa_ward_bed_allocations', JSON.stringify(savedBeds));
+      // 2. Free bed status via Express API
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const bedRes = await fetch(`${apiBase}/workflows/inpatient/bed-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          bed_id: selectedAdmission.bed_id,
+          status: 'clean'
+        })
+      });
+      if (!bedRes.ok) throw new Error('Failed to update bed status to clean.');
 
       // 3. Log Audit trail
       await supabase.from('audit_logs').insert({
@@ -309,8 +395,8 @@ export default function Ward({ user }) {
             vitals: {
               temperature: mohTemp || triageRecord?.temperature,
               weight: mohWeight || triageRecord?.weight,
-              systolic: mohSystolic || triageRecord?.systolic,
-              diastolic: mohDiastolic || triageRecord?.diastolic
+              sys: mohSystolic || triageRecord?.systolic,
+              dia: mohDiastolic || triageRecord?.diastolic
             }
           })
         });
@@ -320,6 +406,7 @@ export default function Ward({ user }) {
 
       setMessage({ type: 'success', text: 'Patient successfully discharged. Bed freed.' });
       setDischargeNotes('');
+      setShowMOHModal(false);
       fetchWardData();
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Discharge failed.' });
@@ -328,8 +415,25 @@ export default function Ward({ user }) {
     }
   };
 
-  const getBedOccupant = (bedName) => {
-    return admissions.find(a => a.bed === bedName);
+  const updateBedStatus = async (bedId, status) => {
+    try {
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiBase}/workflows/inpatient/bed-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ bed_id: bedId, status })
+      });
+      if (res.ok) {
+        setMessage({ type: 'success', text: `Bed status updated to ${status}.` });
+        fetchWardData();
+      }
+    } catch (err) {
+      console.error('Failed to update bed status:', err);
+    }
   };
 
   return (
@@ -341,33 +445,51 @@ export default function Ward({ user }) {
         </h3>
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-          {bedsList.map((bedName) => {
-            const occupant = getBedOccupant(bedName);
+          {beds.map((bed) => {
+            const occupant = admissions.find(a => a.bed_id === bed.id);
             return (
               <button
-                key={bedName}
+                key={bed.id}
                 onClick={() => {
                   if (occupant) {
                     setSelectedAdmission(occupant);
                     setMessage({ type: '', text: '' });
                   }
                 }}
-                className={`border rounded-xl p-4 flex flex-col justify-between text-center min-h-[110px] transition ${
+                className={`border rounded-xl p-4 flex flex-col justify-between text-center min-h-[120px] transition ${
                   occupant
                     ? selectedAdmission?.id === occupant.id
                       ? 'border-teal-500 bg-teal-500/10 text-white shadow shadow-teal-500/10'
                       : 'border-slate-800 bg-slate-950 hover:border-slate-700'
-                    : 'border-slate-850/60 bg-slate-950/40 border-dashed text-slate-600 cursor-default'
+                    : bed.bed_status === 'maintenance'
+                      ? 'border-red-900/50 bg-red-950/10 text-red-400'
+                      : 'border-slate-850/65 bg-slate-950/20 border-dashed text-slate-600 hover:border-slate-700'
                 }`}
               >
-                <Bed size={24} className={occupant ? 'text-teal-400 mx-auto' : 'text-slate-700 mx-auto'} />
-                <span className="text-xs font-bold font-mono mt-2">{bedName}</span>
-                <span className="text-[10px] truncate max-w-full font-semibold block mt-1">
-                  {occupant ? occupant.patient?.name.split(' ')[0] : 'Vacant'}
+                <Bed size={22} className={occupant ? 'text-teal-400 mx-auto animate-pulse' : bed.bed_status === 'maintenance' ? 'text-red-500 mx-auto' : 'text-slate-700 mx-auto'} />
+                <span className="text-xs font-bold font-mono mt-2">{bed.bed_number}</span>
+                <span className="text-[10px] truncate max-w-full font-semibold block mt-0.5 text-slate-400">
+                  {occupant ? occupant.patient?.name.split(' ')[0] : bed.bed_status === 'maintenance' ? 'Maint' : 'Vacant'}
                 </span>
+                {!occupant && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateBedStatus(bed.id, bed.bed_status === 'clean' ? 'maintenance' : 'clean');
+                    }}
+                    className="text-[9px] text-teal-500/80 hover:text-teal-400 underline cursor-pointer mt-1.5 block font-medium"
+                  >
+                    {bed.bed_status === 'clean' ? 'Maint' : 'Clean'}
+                  </span>
+                )}
               </button>
             );
           })}
+          {beds.length === 0 && (
+            <div className="col-span-full py-6 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-lg">
+              No beds configured.
+            </div>
+          )}
         </div>
       </div>
 
@@ -379,7 +501,7 @@ export default function Ward({ user }) {
           </h3>
 
           {message.text && message.type === 'error' && (
-            <div className="bg-red-500/5 border border-red-500/20 text-red-400 p-2.5 rounded text-xs flex gap-2">
+            <div className="bg-red-500/5 border border-red-500/20 text-red-400 p-2.5 rounded text-xs flex gap-2 animate-pulse">
               <AlertCircle size={14} className="shrink-0 mt-0.5" />
               <span>{message.text}</span>
             </div>
@@ -408,19 +530,19 @@ export default function Ward({ user }) {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Assign Bed</label>
-                <select
-                  value={targetBed}
-                  onChange={(e) => setTargetBed(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                >
-                  {bedsList.map(bed => (
-                    <option key={bed} value={bed}>{bed}</option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Assign Bed</label>
+              <select
+                value={targetBedId}
+                onChange={(e) => setTargetBedId(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                required
+              >
+                <option value="">-- Choose Vacant Bed --</option>
+                {beds.filter(b => b.bed_status === 'clean').map(bed => (
+                  <option key={bed.id} value={bed.id}>{bed.bed_number} ({bed.ward_id.replace('ward_', '')})</option>
+                ))}
+              </select>
             </div>
 
             <button
@@ -451,7 +573,7 @@ export default function Ward({ user }) {
               </div>
 
               {/* Action tabs: Observations and Discharge */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Observations Logger */}
                 <form onSubmit={handleLogObservation} className="space-y-3.5">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block flex items-center gap-1.5"><Thermometer size={12} className="text-teal-400" /> Observation Vitals Chart</span>
@@ -507,7 +629,7 @@ export default function Ward({ user }) {
 
                   <button
                     type="submit"
-                    className="w-full bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-350 text-xs py-1.5 rounded transition"
+                    className="w-full bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-350 text-xs py-1.5 rounded transition font-bold"
                   >
                     Log Observation
                   </button>
@@ -537,9 +659,75 @@ export default function Ward({ user }) {
                   </button>
                 </form>
               </div>
+
+              {/* Rounds History & Trend Visualizer */}
+              <div className="border-t border-slate-850 pt-4 space-y-3">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block flex items-center gap-1.5">
+                  <Activity size={12} className="text-teal-400" /> Vitals History & Trends ({observations.length} rounds logged)
+                </span>
+                {observations.length > 0 ? (
+                  <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1">
+                    {observations.map((obs, idx) => (
+                      <div key={obs.id} className="bg-slate-950/60 border border-slate-850 rounded-lg p-2.5 text-xs flex justify-between items-center gap-4">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] text-slate-550 block font-semibold">ROUND #{idx + 1} - {new Date(obs.created_at).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
+                          <p className="text-slate-300 italic text-[11px] font-medium">"{obs.observations_notes || 'No notes entered.'}"</p>
+                        </div>
+                        <div className="flex gap-3 text-right shrink-0">
+                          <div>
+                            <span className="text-[9px] text-slate-500 block">TEMP</span>
+                            <span className={`font-bold font-mono ${obs.temperature >= 38 ? 'text-red-400' : 'text-teal-400'}`}>{obs.temperature}°C</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-slate-500 block">PULSE</span>
+                            <span className="font-bold font-mono text-slate-205">{obs.pulse_rate} bpm</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-slate-500 block">BP</span>
+                            <span className="font-bold font-mono text-slate-205">{obs.bp_systolic}/{obs.bp_diastolic}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-slate-500 italic p-4 text-center border border-dashed border-slate-850 rounded-lg">
+                    No clinical observations logged yet for this admission.
+                  </div>
+                )}
+              </div>
+
+              {/* Automatic Discharge Summary Live Preview */}
+              {dischargeNotes.trim() && (
+                <div className="border-t border-slate-850 pt-4 space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Automated Discharge Summary (Draft Preview)</span>
+                  <div className="bg-slate-950/80 border border-teal-500/20 rounded-xl p-4 text-xs font-sans text-slate-300 space-y-2.5">
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-850">
+                      <span className="font-bold text-slate-200">EGOTECH GENERAL HOSPITAL</span>
+                      <span className="font-mono text-[10px] text-slate-400 font-bold">CASE SUMMARY: {selectedAdmission.id.toUpperCase()}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <p><span className="text-slate-500">Patient:</span> <span className="font-bold text-slate-200">{selectedAdmission.patient?.name}</span> ({selectedAdmission.patient?.gender}, Age {getPatientAge(selectedAdmission.patient?.dob)})</p>
+                      <p><span className="text-slate-500">Admission Date:</span> {new Date(selectedAdmission.admission_datetime).toLocaleDateString()}</p>
+                      <p><span className="text-slate-500">Discharge Date:</span> {new Date().toLocaleDateString()} (Today)</p>
+                      <p><span className="text-slate-500">Length of Stay:</span> {Math.max(1, Math.ceil((new Date() - new Date(selectedAdmission.admission_datetime)) / (1000 * 60 * 60 * 24)))} Day(s)</p>
+                      <p><span className="text-slate-500">Logged Rounds:</span> {observations.length} rounds of clinical observations charted.</p>
+                      {observations.length > 0 && (
+                        <p><span className="text-slate-500">Last Vitals recorded:</span> Temp: {observations[observations.length - 1].temperature}°C, BP: {observations[observations.length - 1].bp_systolic}/{observations[observations.length - 1].bp_diastolic} mmHg, Pulse: {observations[observations.length - 1].pulse_rate} bpm</p>
+                      )}
+                      <p className="pt-1.5 border-t border-slate-850"><span className="text-slate-200 font-bold block uppercase text-[10px]">Discharge Notes & Instructions:</span> "{dischargeNotes}"</p>
+                    </div>
+                    <div className="flex justify-between items-center text-[10px] text-slate-400 pt-2 border-t border-slate-850">
+                      <span>Sync Target: Ministry of Health (HIE)</span>
+                      <span>Authorized by: Dr. {user.full_name}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
+      </div>
       {/* MOH DISCHARGE COMPLETION VERIFICATION MODAL */}
       {showMOHModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -572,7 +760,7 @@ export default function Ward({ user }) {
               </div>
 
               <div className="space-y-3">
-                <span className="font-bold text-slate-350 block uppercase text-[9px] tracking-wider">Required MOH Compliance Fields</span>
+                <span className="font-bold text-slate-355 block uppercase text-[9px] tracking-wider">Required MOH Compliance Fields</span>
 
                 {/* Village field */}
                 <div className="bg-slate-950/20 border border-slate-850/80 p-3 rounded-lg flex flex-col gap-2">
@@ -666,16 +854,6 @@ export default function Ward({ user }) {
                 </div>
               </div>
 
-
-
-
-
-
-
-
-
-
-
               {/* Confirmation checkbox */}
               <div className="flex items-start gap-2 pt-2">
                 <input
@@ -711,7 +889,6 @@ export default function Ward({ user }) {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }

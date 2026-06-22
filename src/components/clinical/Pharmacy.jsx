@@ -115,6 +115,7 @@ export default function Pharmacy({ user, onComplete }) {
   const [prescriptionStates, setPrescriptionStates] = useState({}); // orderId -> 'prescribed'/'approved'/'cancelled'
   const [doubleChecked, setDoubleChecked] = useState({}); // orderId -> bool
   const [searchQuery, setSearchQuery] = useState("");
+  const [customInstructions, setCustomInstructions] = useState({});
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -533,6 +534,7 @@ export default function Pharmacy({ user, onComplete }) {
         dispensed_qty: `${qtyNeeded} ${updatedBatches.find((b) => b.name === drugName)?.unit || "units"}`,
         dispensed_at: new Date().toISOString(),
         dispensed_by: user.full_name,
+        custom_instructions: customInstructions[orderId] || activeOrder.instructions
       };
 
       // 2. Mark order as completed/dispensed
@@ -1218,6 +1220,72 @@ export default function Pharmacy({ user, onComplete }) {
                               <p className="text-[10px] text-slate-500 font-medium">
                                 Sig: {presc.instructions}
                               </p>
+                              {/* Stock Warning Indicators */}
+                              {(() => {
+                                const itemInventory = aggregatedFormulary.find(i => i.name === drugName);
+                                const hasLowStock = itemInventory ? itemInventory.isLow : false;
+                                const hasNearExpiry = itemInventory ? itemInventory.nearExpiryBatches.length > 0 : false;
+                                return (
+                                  (hasLowStock || hasNearExpiry) && (
+                                    <div className="flex flex-col gap-1 mt-1.5 bg-slate-900/60 p-2 rounded-lg border border-red-500/10">
+                                      {hasLowStock && (
+                                        <span className="text-[9px] text-red-450 font-bold flex items-center gap-1">
+                                          ⚠️ LOW STOCK: Only {itemInventory.totalStock} units available in inventory.
+                                        </span>
+                                      )}
+                                      {hasNearExpiry && (
+                                        <span className="text-[9px] text-yellow-450 font-bold flex items-center gap-1">
+                                          ⚠️ EXPIRE WARNING: Batches ({itemInventory.nearExpiryBatches.join(', ')}) expire in &lt; 6 months.
+                                        </span>
+                                      )}
+                                    </div>
+                                  )
+                                );
+                              })()}
+
+                              {/* Dispensing Instructions Input & Templates */}
+                              {!isDispensed && state === "approved" && (
+                                <div className="space-y-2 mt-3 p-2.5 bg-slate-900/60 rounded-lg border border-slate-850 w-full max-w-sm">
+                                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Custom Printed Directions Label</label>
+                                  <input
+                                    type="text"
+                                    value={customInstructions[presc.id] !== undefined ? customInstructions[presc.id] : presc.instructions}
+                                    onChange={(e) => setCustomInstructions({
+                                      ...customInstructions,
+                                      [presc.id]: e.target.value
+                                    })}
+                                    placeholder="Take 1 tablet..."
+                                    className="w-full bg-slate-950 border border-slate-805 rounded px-2 py-1 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
+                                  />
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {[
+                                      "1x3 (Take 1 tab 3 times a day for 5 days after food)",
+                                      "1x2 (Take 1 tab twice a day for 7 days after food)",
+                                      "1x1 (Take 1 tab once daily at bedtime)",
+                                      "3x1 (Take 1 cap 3 times a day for 5 days before food)",
+                                      "Sip 1 sachet ORS after every loose stool"
+                                    ].map((tpl) => (
+                                      <button
+                                        key={tpl}
+                                        type="button"
+                                        onClick={() => setCustomInstructions({
+                                          ...customInstructions,
+                                          [presc.id]: tpl
+                                        })}
+                                        className="text-[8px] font-bold bg-slate-950 hover:bg-slate-800 border border-slate-850 hover:border-teal-500/20 text-slate-400 hover:text-teal-400 px-1.5 py-0.5 rounded transition"
+                                      >
+                                        {tpl.split(' ')[0]}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {isDispensed && parseOrderMeta(presc.results).custom_instructions && (
+                                <p className="text-[10px] text-teal-400 font-semibold mt-1.5">
+                                  Printed label directions: "{parseOrderMeta(presc.results).custom_instructions}"
+                                </p>
+                              )}
                               {/* Safety Alerts */}
                               {(() => {
                                 const medDetails = medicineMaster.find(m => 

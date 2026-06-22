@@ -27,10 +27,24 @@ export default function Orders({ user, onComplete }) {
   const [resultsInputs, setResultsInputs] = useState({});
   const [rejectionReason, setRejectionReason] = useState({});
   const [showRejectForm, setShowRejectForm] = useState({});
+  const [collectionChecklist, setCollectionChecklist] = useState({});
   
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [timeTicker, setTimeTicker] = useState(0);
+
+  const isCriticalResult = (ord, meta) => {
+    if (!meta || !meta.parameters || typeof meta.parameters !== 'object') return false;
+    const testObj = labTestMaster.find(t => t.name === ord.item_name);
+    if (!testObj) return false;
+    return Object.keys(meta.parameters).some(pName => {
+      const val = meta.parameters[pName];
+      const pSchema = testObj.parameters.find(p => p.name === pName);
+      if (!pSchema) return false;
+      const status = checkRangeStatus(pSchema, val);
+      return status === 'low' || status === 'high';
+    });
+  };
 
   useEffect(() => {
     fetchLabQueue();
@@ -530,7 +544,12 @@ export default function Orders({ user, onComplete }) {
                 {renderTAT(item)}
               </div>
               <div className="flex justify-between items-center text-[10px] text-slate-500 w-full font-mono">
-                <span>{item.patient?.facility_id_code}</span>
+                <div className="flex items-center gap-1.5">
+                  <span>{item.patient?.facility_id_code}</span>
+                  {item.service_type === 'laboratory-only' && (
+                    <span className="text-[8px] bg-purple-500/10 text-purple-400 font-extrabold uppercase border border-purple-500/15 px-1 py-0.2 rounded">Lab-Only</span>
+                  )}
+                </div>
                 <span className={`px-1 rounded text-[8px] uppercase ${
                   item.priority === 'emergency' ? 'bg-red-500/10 text-red-400 border border-red-500/25' : 'bg-slate-800 text-slate-400'
                 }`}>{item.priority}</span>
@@ -695,13 +714,72 @@ export default function Orders({ user, onComplete }) {
                         <div className="flex flex-wrap gap-2 shrink-0 justify-end">
                           {/* Phlebotomy: Collect */}
                           {(!ord.status || ord.status === 'ordered' || ord.status === 'pending') && (
-                            <button
-                              disabled={loading}
-                              onClick={() => handleCollectSample(ord.id)}
-                              className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1.5 px-3 rounded shadow transition active:scale-[0.97] flex items-center gap-1"
-                            >
-                              <Barcode size={12} /> Collect Sample
-                            </button>
+                            <div className="flex flex-col gap-2 bg-slate-950/80 p-3.5 rounded-xl border border-slate-850 w-full max-w-sm">
+                              <span className="text-[10px] font-bold text-slate-350 uppercase tracking-wide block mb-1">Specimen Collection Checklist</span>
+                              <label className="flex items-center gap-2 text-[10px] text-slate-305 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={!!collectionChecklist[ord.id]?.volume}
+                                  onChange={(e) => setCollectionChecklist({
+                                    ...collectionChecklist,
+                                    [ord.id]: { ...(collectionChecklist[ord.id] || {}), volume: e.target.checked }
+                                  })}
+                                  className="accent-teal-500 rounded bg-slate-900 border-slate-800"
+                                />
+                                Volume Adequate (at least 3-5mL)
+                              </label>
+                              <label className="flex items-center gap-2 text-[10px] text-slate-305 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={!!collectionChecklist[ord.id]?.labeled}
+                                  onChange={(e) => setCollectionChecklist({
+                                    ...collectionChecklist,
+                                    [ord.id]: { ...(collectionChecklist[ord.id] || {}), labeled: e.target.checked }
+                                  })}
+                                  className="accent-teal-500 rounded bg-slate-900 border-slate-800"
+                                />
+                                Labeled correctly with patient ID / barcode
+                              </label>
+                              <div className="flex gap-2.5 mt-1">
+                                <div className="flex-1">
+                                  <span className="text-[8px] text-slate-500 uppercase block font-bold mb-1">Transport Temp</span>
+                                  <select
+                                    value={collectionChecklist[ord.id]?.temp || 'room_temp'}
+                                    onChange={(e) => setCollectionChecklist({
+                                      ...collectionChecklist,
+                                      [ord.id]: { ...(collectionChecklist[ord.id] || {}), temp: e.target.value }
+                                    })}
+                                    className="bg-slate-900 border border-slate-800 text-[10px] text-white py-1 px-2 rounded w-full focus:outline-none focus:border-teal-500"
+                                  >
+                                    <option value="room_temp">Room Temp (20-25°C)</option>
+                                    <option value="iced">Iced / Chilled (2-4°C)</option>
+                                    <option value="frozen">Frozen (&lt; 0°C)</option>
+                                  </select>
+                                </div>
+                                <div className="flex-1">
+                                  <span className="text-[8px] text-slate-500 uppercase block font-bold mb-1">Fasting State</span>
+                                  <select
+                                    value={collectionChecklist[ord.id]?.fasting || 'na'}
+                                    onChange={(e) => setCollectionChecklist({
+                                      ...collectionChecklist,
+                                      [ord.id]: { ...(collectionChecklist[ord.id] || {}), fasting: e.target.value }
+                                    })}
+                                    className="bg-slate-900 border border-slate-800 text-[10px] text-white py-1 px-2 rounded w-full focus:outline-none focus:border-teal-500"
+                                  >
+                                    <option value="na">N/A</option>
+                                    <option value="fasting">Fasting</option>
+                                    <option value="fed">Non-fasting</option>
+                                  </select>
+                                </div>
+                              </div>
+                              <button
+                                disabled={loading || !collectionChecklist[ord.id]?.volume || !collectionChecklist[ord.id]?.labeled}
+                                onClick={() => handleCollectSample(ord.id)}
+                                className="bg-teal-500 hover:bg-teal-600 disabled:opacity-40 text-slate-950 font-bold text-[10px] py-2 px-3 rounded shadow transition mt-2.5 w-full flex items-center justify-center gap-1 active:scale-[0.98]"
+                              >
+                                <Barcode size={12} /> Confirm & Generate Barcode
+                              </button>
+                            </div>
                           )}
 
                           {/* Accession: Receive */}
@@ -875,15 +953,36 @@ export default function Orders({ user, onComplete }) {
                           })()}
 
                           {/* Verify double-check (restricted to admins/clinicians or senior tech) */}
-                          {ord.status === 'completed' && (
-                            <button
-                              disabled={loading}
-                              onClick={() => handleVerifyResults(ord.id)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] py-1.5 px-3 rounded shadow transition active:scale-[0.97] flex items-center gap-1"
-                            >
-                              <UserCheck size={12} /> Verify Findings
-                            </button>
-                          )}
+                          {ord.status === 'completed' && (() => {
+                            const isCritical = isCriticalResult(ord, meta);
+                            const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
+                            const isSenior = rolesList.includes('admin') || rolesList.includes('clinician') || rolesList.includes('lab_director') || rolesList.includes('senior_tech');
+                            
+                            return (
+                              <div className="flex flex-col gap-1.5 w-full bg-slate-950/65 p-3 rounded-lg border border-slate-900 mt-2">
+                                {isCritical && (
+                                  <span className="text-[10px] text-red-400 font-bold bg-red-500/10 border border-red-500/20 px-2 py-1 rounded flex items-center gap-1">
+                                    <ShieldAlert size={12} className="shrink-0 animate-bounce" /> Warning: Critical Value Detected! Senior supervisor/clinician verification required.
+                                  </span>
+                                )}
+                                <div className="flex justify-between items-center gap-2 mt-1 w-full">
+                                  <span className="text-[9px] text-slate-500 italic">
+                                    {isCritical ? 'Verification: Required (Senior)' : 'Verification: Pending'}
+                                  </span>
+                                  <button
+                                    disabled={loading || (isCritical && !isSenior)}
+                                    onClick={() => handleVerifyResults(ord.id)}
+                                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold text-[10px] py-1.5 px-3 rounded shadow transition active:scale-[0.97] flex items-center gap-1 shrink-0"
+                                  >
+                                    <UserCheck size={12} /> {isCritical && !isSenior ? 'Verification Restricted' : 'Verify Findings'}
+                                  </button>
+                                </div>
+                                {isCritical && !isSenior && (
+                                  <span className="text-[8px] text-red-450 block text-right mt-0.5">Your account role cannot verify critical test parameters.</span>
+                                )}
+                              </div>
+                            );
+                          })()}
 
                           {/* Release to Patient Record */}
                           {ord.status === 'verified' && (

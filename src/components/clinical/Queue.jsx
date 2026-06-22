@@ -19,6 +19,17 @@ import {
   ArrowRightLeft 
 } from 'lucide-react';
 
+const SERVICE_TYPE_META = {
+  OPD: { label: 'General OPD', color: 'bg-slate-800/60 text-slate-400 border-slate-800' },
+  ANC: { label: 'Antenatal Care', color: 'bg-teal-500/10 text-teal-400 border-teal-500/20' },
+  FP: { label: 'Family Planning', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
+  IMM: { label: 'Immunization', color: 'bg-sky-500/10 text-sky-400 border-sky-500/20' },
+  LAB: { label: 'Lab-Only', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' },
+  PHA: { label: 'Pharmacy-Only', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+  IPD: { label: 'Inpatient', color: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20' },
+  EMR: { label: 'Emergency', color: 'bg-rose-500/10 text-rose-400 border-rose-500/20 font-extrabold animate-pulse' }
+};
+
 export default function Queue({ preselectedPatient, user, clearPreselected }) {
   const [activeVisits, setActiveVisits] = useState([]);
   const [patients, setPatients] = useState([]);
@@ -28,8 +39,35 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
 
   // Queue ticket form states
   const [selectedPatientId, setSelectedPatientId] = useState('');
+  const [serviceType, setServiceType] = useState('OPD');
   const [department, setDepartment] = useState('triage');
   const [priority, setPriority] = useState('routine');
+
+  // Auto-route based on service type
+  useEffect(() => {
+    if (serviceType === 'LAB') {
+      setDepartment('lab');
+      setPriority('routine');
+    } else if (serviceType === 'PHA') {
+      setDepartment('pharmacy');
+      setPriority('routine');
+    } else if (serviceType === 'IPD') {
+      setDepartment('ward');
+      setPriority('routine');
+    } else if (serviceType === 'EMR') {
+      setDepartment('triage');
+      setPriority('emergency');
+    } else if (serviceType === 'ANC') {
+      setDepartment('triage');
+      setPriority('routine');
+    } else if (serviceType === 'FP' || serviceType === 'IMM') {
+      setDepartment('consultation');
+      setPriority('routine');
+    } else {
+      setDepartment('triage');
+      setPriority('routine');
+    }
+  }, [serviceType]);
 
   useEffect(() => {
     fetchQueueData();
@@ -75,11 +113,23 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
         facility_id: user.facility_id,
         department,
         priority,
-        status: 'waiting'
+        status: 'waiting',
+        service_type: serviceType
       };
 
-      const { error } = await supabase.from('visits').insert(newVisit);
+      const { data: insertedVisits, error } = await supabase.from('visits').insert(newVisit).select();
       if (error) throw error;
+
+      // Create record in patient_registrations for MOH reporting compliance
+      const newReg = {
+        patient_id: selectedPatientId,
+        facility_id: user.facility_id,
+        visit_type: 'walk-in',
+        service_type: serviceType,
+        status: 'active',
+        assigned_clinic: department
+      };
+      await supabase.from('patient_registrations').insert(newReg);
 
       setMessage({ type: 'success', text: 'Visit ticket opened successfully!' });
       
@@ -177,7 +227,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
           </div>
         )}
 
-        <form onSubmit={handleOpenVisit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <form onSubmit={handleOpenVisit} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
           {/* Patient Selector */}
           <div className="md:col-span-2">
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Select Patient</label>
@@ -191,6 +241,25 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
               {patients.map(p => (
                 <option key={p.id} value={p.id}>{p.name} ({p.facility_id_code})</option>
               ))}
+            </select>
+          </div>
+
+          {/* Service Type Selection */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Service Type</label>
+            <select
+              value={serviceType}
+              onChange={(e) => setServiceType(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+            >
+              <option value="OPD">General OPD</option>
+              <option value="ANC">Antenatal Care (ANC)</option>
+              <option value="FP">Family Planning (FP)</option>
+              <option value="IMM">Immunization</option>
+              <option value="LAB">Lab-Only</option>
+              <option value="PHA">Pharmacy-Only</option>
+              <option value="IPD">Inpatient Admission</option>
+              <option value="EMR">Emergency/Triage</option>
             </select>
           </div>
 
@@ -228,7 +297,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
           </div>
 
           {/* Action */}
-          <div className="md:col-span-4 flex justify-end gap-2 pt-2">
+          <div className="md:col-span-5 flex justify-end gap-2 pt-2">
             {preselectedPatient && (
               <button
                 type="button"
@@ -306,6 +375,11 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                       <div>
                         <span className="font-bold text-slate-200 block truncate leading-snug tracking-wide text-sm">{getPatientName(v.patient_id)}</span>
                         <span className="text-[10px] text-slate-500 font-mono block mt-0.5">{getPatientCode(v.patient_id)}</span>
+                        {v.service_type && SERVICE_TYPE_META[v.service_type] && (
+                          <span className={`inline-block px-2 py-0.5 mt-2 rounded text-[8px] font-bold uppercase tracking-wider border ${SERVICE_TYPE_META[v.service_type].color}`}>
+                            {SERVICE_TYPE_META[v.service_type].label}
+                          </span>
+                        )}
                       </div>
                       
                       {/* Priority and Time */}

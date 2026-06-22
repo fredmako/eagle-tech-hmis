@@ -20,6 +20,10 @@ export default function Registration({ user, onNavigateToQueue }) {
   const [nokRelation, setNokRelation] = useState('spouse');
   const [consent, setConsent] = useState(true);
 
+  // Service Classification states
+  const [regServiceType, setRegServiceType] = useState('OPD');
+  const [autoCheckin, setAutoCheckin] = useState(true);
+
   // Email & notification settings
   const [email, setEmail] = useState('');
   const [optInLab, setOptInLab] = useState(true);
@@ -133,7 +137,48 @@ export default function Registration({ user, onNavigateToQueue }) {
       const { data, error } = await supabase.from('patients').insert(newPatient).select();
       if (error) throw error;
 
-      setMessage({ type: 'success', text: `Patient successfully registered! Facility ID: ${facilityCode}` });
+      const addedPt = Array.isArray(data) ? data[0] : data;
+
+      // Create MOH compliance record
+      const regRecord = {
+        patient_id: addedPt.id,
+        facility_id: user.facility_id,
+        visit_type: 'walk-in',
+        service_type: regServiceType,
+        status: 'active'
+      };
+      await supabase.from('patient_registrations').insert(regRecord);
+
+      // Auto-queuing / routing
+      if (autoCheckin) {
+        let targetDept = 'triage';
+        let targetPriority = 'routine';
+
+        if (regServiceType === 'LAB') {
+          targetDept = 'lab';
+        } else if (regServiceType === 'PHA') {
+          targetDept = 'pharmacy';
+        } else if (regServiceType === 'IPD') {
+          targetDept = 'ward';
+        } else if (regServiceType === 'EMR') {
+          targetDept = 'triage';
+          targetPriority = 'emergency';
+        } else if (regServiceType === 'FP' || regServiceType === 'IMM') {
+          targetDept = 'consultation';
+        }
+
+        const visitRecord = {
+          patient_id: addedPt.id,
+          facility_id: user.facility_id,
+          department: targetDept,
+          priority: targetPriority,
+          status: 'waiting',
+          service_type: regServiceType
+        };
+        await supabase.from('visits').insert(visitRecord);
+      }
+
+      setMessage({ type: 'success', text: `Patient successfully registered! Facility ID: ${facilityCode}${autoCheckin ? ' and checked in to queue.' : ''}` });
       
       // Clear form
       setName('');
@@ -563,6 +608,41 @@ export default function Registration({ user, onNavigateToQueue }) {
                   <option value="child">Child</option>
                   <option value="other">Other</option>
                 </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Service Classification Dropdown */}
+          <div className="border-t border-slate-800/80 pt-4 mt-2">
+            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-3">Service Classification</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Service Type</label>
+                <select
+                  value={regServiceType}
+                  onChange={(e) => setRegServiceType(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                >
+                  <option value="OPD">General OPD (Normal Consultation)</option>
+                  <option value="ANC">Antenatal Care (ANC)</option>
+                  <option value="FP">Family Planning (FP)</option>
+                  <option value="IMM">Immunization/Vaccination</option>
+                  <option value="LAB">Laboratory-Only</option>
+                  <option value="PHA">Pharmacy-Only</option>
+                  <option value="IPD">Inpatient Admission</option>
+                  <option value="EMR">Emergency/Triage</option>
+                </select>
+              </div>
+              <div className="flex items-center pt-6">
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 cursor-pointer select-none hover:text-white transition">
+                  <input
+                    type="checkbox"
+                    checked={autoCheckin}
+                    onChange={(e) => setAutoCheckin(e.target.checked)}
+                    className="accent-teal-500 h-4 w-4 bg-slate-950 border-slate-800 rounded text-teal-500"
+                  />
+                  Check-in patient to queue immediately
+                </label>
               </div>
             </div>
           </div>

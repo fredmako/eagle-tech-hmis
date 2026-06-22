@@ -193,7 +193,78 @@ const getInitialSandboxData = () => {
       { id: "d_ward", facility_id: "f1", name: "Inpatient Ward", code: "WAR", type: "ward", specialty: "general", is_active: true },
       { id: "d_pharm", facility_id: "f1", name: "Pharmacy", code: "PHA", type: "pharmacy", specialty: "general", is_active: true },
       { id: "d_bill", facility_id: "f1", name: "Billing Desk", code: "BIL", type: "billing", specialty: "general", is_active: true }
-    ]
+    ],
+    service_types: [
+      { id: "st_opd", name: "General OPD (Normal Consultation)", code: "OPD", requires_anc_card: false, requires_fp_card: false },
+      { id: "st_anc", name: "Antenatal Care (ANC)", code: "ANC", requires_anc_card: true, requires_fp_card: false },
+      { id: "st_fp", name: "Family Planning (FP)", code: "FP", requires_anc_card: false, requires_fp_card: true },
+      { id: "st_imm", name: "Immunization/Vaccination", code: "IMM", requires_anc_card: false, requires_fp_card: false },
+      { id: "st_lab", name: "Laboratory-Only", code: "LAB", requires_anc_card: false, requires_fp_card: false },
+      { id: "st_pha", name: "Pharmacy-Only", code: "PHA", requires_anc_card: false, requires_fp_card: false },
+      { id: "st_ipd", name: "Inpatient Admission", code: "IPD", requires_anc_card: false, requires_fp_card: false },
+      { id: "st_emr", name: "Emergency/Triage", code: "EMR", requires_anc_card: false, requires_fp_card: false }
+    ],
+    patient_registrations: [],
+    pregnancies: [],
+    anc_visits: [],
+    anc_diagnoses: [],
+    anc_tests: [],
+    contraceptive_methods: [
+      { id: "cm_pill", method_name: "Combined Oral Contraceptive Pill", method_code: "PILL", duration_months: 1, provider_skill_level: "basic", removal_required: false, side_effects_list: ["Nausea", "Headache", "Breast tenderness"] },
+      { id: "cm_inj", method_name: "Progestogen Injectable (Depo-Provera)", method_code: "INJECTABLE", duration_months: 3, provider_skill_level: "basic", removal_required: false, side_effects_list: ["Weight gain", "Irregular spotting", "Mood changes"] },
+      { id: "cm_imp", method_name: "Contraceptive Implant (Implanon/Jadelle)", method_code: "IMPLANT", duration_months: 36, provider_skill_level: "advanced", removal_required: true, side_effects_list: ["Irregular bleeding", "Headache", "Ovarian cysts"] },
+      { id: "cm_iud", method_name: "Copper Intrauterine Device (IUD)", method_code: "IUD", duration_months: 120, provider_skill_level: "advanced", removal_required: true, side_effects_list: ["Heavier periods", "Cramping", "Pelvic infection"] },
+      { id: "cm_cond", method_name: "Male/Female Condoms", method_code: "CONDOM", duration_months: 0, provider_skill_level: "none", removal_required: false, side_effects_list: ["Latex allergy"] }
+    ],
+    family_planning_records: [],
+    fp_visits: [],
+    vaccines: [
+      { id: "v_bcg", vaccine_name: "BCG (Bacillus Calmette-Guerin)", vaccine_code: "BCG", schedule_age_weeks: 0, total_doses_required: 1, contraindications_list: ["Symptomatic HIV", "Severe immunodeficiency"] },
+      { id: "v_opv_b", vaccine_name: "Oral Polio Vaccine (OPV) - Birth Dose", vaccine_code: "OPV_0", schedule_age_weeks: 0, total_doses_required: 1, contraindications_list: ["Severe immunodeficiency"] },
+      { id: "v_opv_1", vaccine_name: "Oral Polio Vaccine (OPV) - Dose 1", vaccine_code: "OPV_1", schedule_age_weeks: 6, total_doses_required: 1, contraindications_list: ["Severe immunodeficiency"] },
+      { id: "v_penta_1", vaccine_name: "Pentavalent Vaccine (DPT-HepB-Hib) - Dose 1", vaccine_code: "PENTA_1", schedule_age_weeks: 6, total_doses_required: 1, contraindications_list: ["Encephalopathy within 7 days of previous dose"] },
+      { id: "v_pcv_1", vaccine_name: "Pneumococcal Conjugate Vaccine (PCV) - Dose 1", vaccine_code: "PCV_1", schedule_age_weeks: 6, total_doses_required: 1, contraindications_list: ["Severe allergic reaction"] },
+      { id: "v_rota_1", vaccine_name: "Rotavirus Vaccine - Dose 1", vaccine_code: "ROTA_1", schedule_age_weeks: 6, total_doses_required: 1, contraindications_list: ["History of intussusception", "Severe immunodeficiency"] },
+      { id: "v_measles_1", vaccine_name: "Measles-Rubella Vaccine - Dose 1", vaccine_code: "MR_1", schedule_age_weeks: 39, total_doses_required: 1, contraindications_list: ["Pregnancy", "Severe immunodeficiency"] }
+    ],
+    immunization_records: [],
+    vaccine_doses: [],
+    lab_only_registrations: [],
+    lab_test_orders: [],
+    lab_results: [],
+    pharmacy_only_registrations: [],
+    pharmacy_dispensings: [],
+    inpatient_admissions: [],
+    ward_care_records: [],
+    bed_allocations: [
+      { id: "bed_m1", ward_id: "ward_male", bed_number: "Male Bed 01", facility_id: "f1", bed_status: "clean" },
+      { id: "bed_m2", ward_id: "ward_male", bed_number: "Male Bed 02", facility_id: "f1", bed_status: "clean" },
+      { id: "bed_m3", ward_id: "ward_male", bed_number: "Male Bed 03", facility_id: "f1", bed_status: "clean" },
+      { id: "bed_m4", ward_id: "ward_male", bed_number: "Male Bed 04", facility_id: "f1", bed_status: "clean" },
+      { id: "bed_m5", ward_id: "ward_male", bed_number: "Male Bed 05", facility_id: "f1", bed_status: "clean" },
+      { id: "bed_f1", ward_id: "ward_female", bed_number: "Female Bed 01", facility_id: "f1", bed_status: "clean" },
+      { id: "bed_f2", ward_id: "ward_female", bed_number: "Female Bed 02", facility_id: "f1", bed_status: "clean" },
+      { id: "bed_f3", ward_id: "ward_female", bed_number: "Female Bed 03", facility_id: "f1", bed_status: "clean" },
+      { id: "bed_f4", ward_id: "ward_female", bed_number: "Female Bed 04", facility_id: "f1", bed_status: "clean" },
+      { id: "bed_f5", ward_id: "ward_female", bed_number: "Female Bed 05", facility_id: "f1", bed_status: "clean" },
+      { id: "bed_p1", ward_id: "ward_pediatric", bed_number: "Pediatric Bed 01", facility_id: "f1", bed_status: "clean" },
+      { id: "bed_p2", ward_id: "ward_pediatric", bed_number: "Pediatric Bed 02", facility_id: "f1", bed_status: "clean" },
+      { id: "bed_p3", ward_id: "ward_pediatric", bed_number: "Pediatric Bed 03", facility_id: "f1", bed_status: "clean" }
+    ],
+    emergency_registrations: [],
+    triage_assessments: [],
+    emergency_interventions: [],
+    medical_instruments: [
+      { id: "inst_ultrasound", facility_id: "f1", name: "Obstetric Ultrasound Machine", type: "ultrasound", category: "ANC", manufacturer: "GE Healthcare", model: "Voluson E8", serial_number: "US-VOL-198273", installation_date: "2025-06-01", calibration_date: "2026-01-10", next_calibration_date: "2026-07-10", location_ward: "ANC Clinic", status: "active", usage_count: 0 },
+      { id: "inst_doppler", facility_id: "f1", name: "Fetal Doppler Monitor", type: "doppler", category: "ANC", manufacturer: "Sonoline", model: "Sonoline B", serial_number: "FD-SONO-238472", installation_date: "2025-08-15", calibration_date: "2026-03-15", next_calibration_date: "2026-09-15", location_ward: "ANC Clinic", status: "active", usage_count: 0 },
+      { id: "inst_autoclave", facility_id: "f1", name: "Autoclave Sterilizer", type: "autoclave", category: "general", manufacturer: "Tuttnauer", model: "2540M", serial_number: "AC-TUTT-493821", installation_date: "2025-05-10", calibration_date: "2026-02-20", next_calibration_date: "2026-08-20", location_ward: "Main Theatre", status: "active", usage_count: 0 },
+      { id: "inst_dispenser", facility_id: "f1", name: "Syringe Auto-Dispenser", type: "dispenser", category: "immunization", manufacturer: "Becton Dickinson", model: "BD AutoShield", serial_number: "DISP-BD-839218", installation_date: "2025-10-01", calibration_date: "2026-05-10", next_calibration_date: "2026-11-10", location_ward: "Immunization Room", status: "active", usage_count: 0 },
+      { id: "inst_thermometer", facility_id: "f1", name: "Cold Chain Logger Thermometer", type: "thermometer", category: "immunization", manufacturer: "LogTag", model: "UTRED30-16", serial_number: "THERM-LT-948302", installation_date: "2025-11-05", calibration_date: "2026-05-01", next_calibration_date: "2026-11-01", location_ward: "Cold Chain Fridge", status: "active", usage_count: 0 },
+      { id: "inst_defibrillator", facility_id: "f1", name: "Emergency Defibrillator", type: "defibrillator", category: "emergency", manufacturer: "ZOLL Medical", model: "AED Plus", serial_number: "DEFIB-ZOLL-840291", installation_date: "2025-04-12", calibration_date: "2026-04-12", next_calibration_date: "2026-10-12", location_ward: "ER Room", status: "active", usage_count: 0 },
+      { id: "inst_monitor", facility_id: "f1", name: "Patient Monitor Vitals", type: "monitor", category: "triage", manufacturer: "Mindray", model: "ePM 10", serial_number: "MON-MIND-928318", installation_date: "2025-03-15", calibration_date: "2026-03-01", next_calibration_date: "2026-09-01", location_ward: "ER Triage", status: "active", usage_count: 0 },
+      { id: "inst_pump", facility_id: "f1", name: "IV Infusion Pump", type: "pump", category: "ward", manufacturer: "Baxter", model: "Flo-Gard", serial_number: "PUMP-BAX-493021", installation_date: "2025-07-22", calibration_date: "2026-02-18", next_calibration_date: "2026-08-18", location_ward: "Ward A", status: "active", usage_count: 0 }
+    ],
+    instrument_usage_logs: []
   };
 };
 

@@ -23,6 +23,8 @@ import Preferences from "./components/Preferences";
 import AuthCallback from "./components/AuthCallback";
 import translations from "./translations";
 import SuperAdminDashboard from "./components/SuperAdminDashboard";
+import FacilityLandingPage from "./components/public/FacilityLandingPage";
+import PatientPortal from "./components/PatientPortal";
 import { ThemeToggle } from "./components/ui/ThemeToggle";
 import { motion } from "motion/react";
 
@@ -54,6 +56,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [preselectedPatient, setPreselectedPatient] = useState(null);
+  const [pathname, setPathname] = useState(() => window.location.pathname);
   const [publicView, setPublicView] = useState(() => {
     if (
       typeof window !== "undefined" &&
@@ -93,6 +96,21 @@ export default function App() {
 
     return () => window.removeEventListener("hashchange", syncPublicViewFromHash);
   }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setPathname(window.location.pathname);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (user && user.role === "patient" && pathname !== "/patient-portal") {
+      window.history.replaceState({}, "", "/patient-portal");
+      setPathname("/patient-portal");
+    }
+  }, [user, pathname]);
 
   const handleUrlAction = useCallback(async (action, facId) => {
     // Clear URL parameters immediately to avoid repeat execution on refresh
@@ -267,6 +285,12 @@ export default function App() {
 
   if (!user) {
     const publicContent = (() => {
+      if (pathname.startsWith("/hospital/")) {
+        return <FacilityLandingPage />;
+      }
+      if (pathname === "/patient-portal") {
+        return <FacilityLandingPage />;
+      }
       if (publicView === "callback")
         return (
           <AuthCallback
@@ -324,6 +348,7 @@ export default function App() {
   }
 
   if (
+    user.role !== "patient" &&
     user.facility_is_verified === false &&
     (!user.email ||
       user.email.toLowerCase().trim() !== "fredrickmakori102@gmail.com")
@@ -391,6 +416,16 @@ export default function App() {
             </button>
           </div>
         </motion.div>
+      </div>
+    );
+  }
+
+  if (user.role === "patient") {
+    return (
+      <div
+        className={`theme-${theme} font-${font} min-h-screen bg-slate-955 text-slate-100`}
+      >
+        <PatientPortal />
       </div>
     );
   }

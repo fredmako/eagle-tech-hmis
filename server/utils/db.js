@@ -39,6 +39,21 @@ const getInitialSandboxData = () => {
         logo_url: "preset:shield",
         address: "Nairobi, Kenya",
         is_verified: true,
+        stripe_publishable_key: "",
+        stripe_secret_key: "",
+        paypal_client_id: "",
+        paypal_client_secret: "",
+        whatsapp_number: "254712345678",
+        whatsapp_welcome_message: "Hello, welcome to Eagle Tech Medical Clinic!",
+        subdomain_prefix: "egesa-medical",
+        about_us: "Eagle Tech Medical Clinic is Nairobi's leading family medical center offering out-patient care, laboratory tests, immunization schedules, and minor theatre surgeries.",
+        services_list: [
+          { name: "General Outpatient Consultation", category: "Consultation", charge: 1000 },
+          { name: "Comprehensive Lab Panel", category: "Lab", charge: 3500 },
+          { name: "Pediatric Vaccination Package", category: "Immunization", charge: 1500 },
+          { name: "Standard ANC Antenatal Care Checkup", category: "ANC", charge: 2000 },
+          { name: "Inpatient Admission Ward Bed (Daily)", category: "Ward", charge: 4000 }
+        ]
       },
       {
         id: "f2",
@@ -47,6 +62,19 @@ const getInitialSandboxData = () => {
         logo_url: "preset:cross",
         address: "Mombasa, Kenya",
         is_verified: true,
+        stripe_publishable_key: "",
+        stripe_secret_key: "",
+        paypal_client_id: "",
+        paypal_client_secret: "",
+        whatsapp_number: "254722334455",
+        whatsapp_welcome_message: "Hello, welcome to Meso Referral Hospital!",
+        subdomain_prefix: "meso-hospital",
+        about_us: "Meso Referral Hospital is Mombasa's primary diagnostic referral center.",
+        services_list: [
+          { name: "Specialist Consultation", category: "Consultation", charge: 2500 },
+          { name: "CT Scan / MRI Panel", category: "Radiology", charge: 12000 },
+          { name: "ICU Admission Ward Bed (Daily)", category: "Ward", charge: 15000 }
+        ]
       },
     ],
     profiles: [
@@ -281,12 +309,25 @@ const loadSandboxDB = () => {
   }
   try {
     const data = JSON.parse(fs.readFileSync(SANDBOX_DB_PATH, "utf-8"));
+    let updated = false;
+    
+    // Inject missing payment and service list attributes to facilities in sandbox
+    if (!data.facilities || data.facilities.length === 0 || !data.facilities[0].services_list) {
+      const initial = getInitialSandboxData();
+      data.facilities = initial.facilities;
+      updated = true;
+    }
+
     if (!data.wards) {
       data.wards = [
         { id: "ward_male", name: "Male Ward", wing: "A Wing", facility_id: "f1", created_at: new Date().toISOString() },
         { id: "ward_female", name: "Female Ward", wing: "B Wing", facility_id: "f1", created_at: new Date().toISOString() },
         { id: "ward_pediatric", name: "Pediatric Ward", wing: "C Wing", facility_id: "f1", created_at: new Date().toISOString() }
       ];
+      updated = true;
+    }
+
+    if (updated) {
       fs.writeFileSync(SANDBOX_DB_PATH, JSON.stringify(data, null, 2));
     }
     return data;

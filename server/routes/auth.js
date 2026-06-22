@@ -158,17 +158,38 @@ router.post("/login", async (req, res) => {
         activeProfile.email = verifiedEmailClean;
       }
     } else if (!activeProfile) {
-      // Query if there is a pending/rejected role request
-      const requests = await db.getDocuments("role_requests", [
-        { type: "equal", column: "email", value: verifiedEmailClean },
-      ]);
-      const activeRequest = requests && requests[0];
-
-      return res.json({
-        status: "no_profile",
-        user: { id: verifiedUserId, email: verifiedEmailClean, name: verifiedName },
-        pendingRequest: activeRequest || null,
+      // Check if this email belongs to a patient
+      const allPatients = await db.getDocuments("patients", []);
+      const matchingPatient = allPatients.find(pt => {
+        try {
+          const contact = JSON.parse(pt.phone);
+          return contact.email && contact.email.toLowerCase().trim() === verifiedEmailClean;
+        } catch (e) {
+          return false;
+        }
       });
+
+      if (matchingPatient) {
+        // Automatically create a profile for the patient!
+        activeProfile = await db.createDocument("profiles", verifiedUserId, {
+          full_name: matchingPatient.name,
+          role: "patient",
+          facility_id: matchingPatient.facility_id,
+          email: verifiedEmailClean
+        });
+      } else {
+        // Query if there is a pending/rejected role request
+        const requests = await db.getDocuments("role_requests", [
+          { type: "equal", column: "email", value: verifiedEmailClean },
+        ]);
+        const activeRequest = requests && requests[0];
+
+        return res.json({
+          status: "no_profile",
+          user: { id: verifiedUserId, email: verifiedEmailClean, name: verifiedName },
+          pendingRequest: activeRequest || null,
+        });
+      }
     }
 
     // Fetch facilities to attach logo & details
@@ -1156,6 +1177,73 @@ router.post("/reject-request", authenticateToken, async (req, res) => {
   }
 });
 
+// Patient Self Signup Route
+router.post("/patient/signup", async (req, res) => {
+  const { email, password, name, dob, gender, facilityId, phone } = req.body;
+  if (!email || !password || !name || !dob || !gender || !facilityId) {
+    return res.status(400).json({ error: "Required details missing" });
+  }
+
+  try {
+    let userId;
+    const emailClean = email.toLowerCase().trim();
+    
+    if (isRealSupabase) {
+      const { data: { user }, error } = await supabaseClient.auth.admin.createUser({
+        email: emailClean,
+        password,
+        user_metadata: { full_name: name }
+      });
+      if (error) throw error;
+      userId = user.id;
+    } else {
+      const data = loadSandboxDB();
+      const existing = data.users.find(u => u.email.toLowerCase() === emailClean);
+      if (existing) return res.status(400).json({ error: "An account with this email already exists" });
+
+      userId = "pt_user_" + Math.random().toString(36).substring(2, 10);
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(password, salt);
+      data.users.push({ id: userId, email: emailClean, passwordHash, name });
+      saveSandboxDB(data);
+    }
+
+    // Create Patient Record
+    const randNum = Math.floor(1000 + Math.random() * 9000);
+    const facilityCode = `EMC-PT-${randNum}`;
+    const patientId = "pt_" + Math.random().toString(36).substring(2, 12);
+    
+    const newPt = {
+      facility_id: facilityId,
+      name,
+      dob,
+      gender,
+      facility_id_code: facilityCode,
+      phone: JSON.stringify({
+        phone: phone || "",
+        email: emailClean,
+        preferences: { lab: true, pharmacy: true, billing: true },
+        village: "Nairobi",
+        landmark: ""
+      })
+    };
+
+    await db.createDocument("patients", patientId, newPt);
+
+    // Create Profile record
+    await db.createDocument("profiles", userId, {
+      full_name: name,
+      role: "patient",
+      facility_id: facilityId,
+      email: emailClean
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Patient signup failure:", err);
+    res.status(500).json({ error: err.message || "Failed to create patient account" });
+  }
+});
 
 module.exports = router;
 

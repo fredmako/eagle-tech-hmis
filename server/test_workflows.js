@@ -4,6 +4,8 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = "";
 process.env.SUPABASE_ANON_KEY = "";
 process.env.VITE_SUPABASE_URL = "";
 process.env.VITE_SUPABASE_ANON_KEY = "";
+process.env.TUMA_API_KEY = "";
+
 
 const express = require('express');
 const jwt = require('jsonwebtoken');
@@ -12,11 +14,15 @@ const http = require('http');
 const { JWT_SECRET } = require('./middleware/auth');
 const workflowsRouter = require('./routes/workflows');
 const dbRouter = require('./routes/db');
+const paymentsRouter = require('./routes/payments');
+const mpesaRouter = require('./routes/mpesa');
 
 const app = express();
 app.use(express.json());
 app.use('/api/workflows', workflowsRouter);
 app.use('/api/db', dbRouter);
+app.use('/api/payments', paymentsRouter);
+app.use('/api/mpesa', mpesaRouter);
 
 const server = http.createServer(app);
 
@@ -24,6 +30,7 @@ const runTests = async () => {
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const port = server.address().port;
   const baseUrl = `http://127.0.0.1:${port}/api/workflows`;
+  const dbUrl = `http://127.0.0.1:${port}/api/db`;
 
   // Generate test token
   const token = jwt.sign({ id: 'test_nurs_id', role: 'admin,clinician', facility_id: 'f1' }, JWT_SECRET);
@@ -112,7 +119,6 @@ const runTests = async () => {
 
   // Test 5: Input Validation Checks
   try {
-    const dbUrl = `http://127.0.0.1:${port}/api/db`;
     // Try to insert a patient with DOB 1000-01-01
     try {
       await axios.post(`${dbUrl}/insert`, {
@@ -148,6 +154,76 @@ const runTests = async () => {
     }
   } catch (err) {
     console.error("❌ Test 5 Failed with error:", err.message);
+    failed = true;
+  }
+
+  // Test 6: Payment Endpoints (Stripe, PayPal, M-Pesa)
+  try {
+    // 6.1 Seed test invoice
+    await axios.post(`${dbUrl}/insert`, {
+      table: 'invoices',
+      rows: { id: 'test_invoice_123', total_amount: 1000, status: 'pending', visit_id: 'v1' }
+    }, config);
+
+    // 6.2 Stripe Create Payment Intent
+    const stripeRes = await axios.post(`http://127.0.0.1:${port}/api/payments/stripe/create-payment-intent`, {
+      amount: 1000,
+      invoiceId: 'test_invoice_123',
+      facilityId: 'f1'
+    }, config);
+
+    if (stripeRes.data.success && stripeRes.data.clientSecret) {
+      console.log("✅ Test 6a Passed: Stripe create-payment-intent returned secret successfully");
+    } else {
+      console.error("❌ Test 6a Failed: Unexpected Stripe response", stripeRes.data);
+      failed = true;
+    }
+
+    // 6.3 PayPal Create Order
+    const paypalRes = await axios.post(`http://127.0.0.1:${port}/api/payments/paypal/create-order`, {
+      amount: 1000,
+      invoiceId: 'test_invoice_123',
+      facilityId: 'f1'
+    }, config);
+
+    if (paypalRes.data.success && paypalRes.data.orderID) {
+      console.log("✅ Test 6b Passed: PayPal create-order created order successfully");
+    } else {
+      console.error("❌ Test 6b Failed: Unexpected PayPal response", paypalRes.data);
+      failed = true;
+    }
+
+    // 6.4 PayPal Capture Order
+    const captureRes = await axios.post(`http://127.0.0.1:${port}/api/payments/paypal/capture-order`, {
+      orderID: paypalRes.data.orderID,
+      invoiceId: 'test_invoice_123',
+      facilityId: 'f1',
+      paymentMethod: 'paypal'
+    }, config);
+
+    if (captureRes.data.success) {
+      console.log("✅ Test 6c Passed: PayPal capture-order marked invoice paid successfully");
+    } else {
+      console.error("❌ Test 6c Failed: Unexpected PayPal capture response", captureRes.data);
+      failed = true;
+    }
+
+    // 6.5 M-Pesa STK Push
+    const mpesaRes = await axios.post(`http://127.0.0.1:${port}/api/mpesa/stkpush`, {
+      phone: '0712345678',
+      amount: 1000,
+      reference: 'test_invoice_123'
+    }, config);
+
+    if (mpesaRes.data.success && mpesaRes.data.CheckoutRequestID) {
+      console.log("✅ Test 6d Passed: M-Pesa STK Push mock request sent successfully");
+    } else {
+      console.error("❌ Test 6d Failed: Unexpected M-Pesa response", mpesaRes.data);
+      failed = true;
+    }
+
+  } catch (err) {
+    console.error("❌ Test 6 Failed with error:", err.message, err.response?.data || "");
     failed = true;
   }
 

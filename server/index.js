@@ -18,6 +18,7 @@ const dbRouter = require("./routes/db");
 const departmentsRouter = require("./routes/departments");
 const afyalinkRouter = require("./routes/afyalink");
 const workflowsRouter = require("./routes/workflows");
+const paymentsRouter = require("./routes/payments");
 
 // Mount routes
 app.use("/api/auth", authRouter);
@@ -27,6 +28,7 @@ app.use("/api/db", dbRouter);
 app.use("/api/departments", departmentsRouter);
 app.use("/api/afyalink", afyalinkRouter);
 app.use("/api/workflows", workflowsRouter);
+app.use("/api/payments", paymentsRouter);
 
 const { runMigrations } = require("./utils/migrationRunner");
 

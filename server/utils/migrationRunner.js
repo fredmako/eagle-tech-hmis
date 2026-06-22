@@ -20,13 +20,15 @@ async function runMigrations() {
 
   console.log('[MigrationRunner] Starting remote schema synchronization to Supabase...');
   
-  const migrationPath = path.join(__dirname, '../../supabase/migrations/03_special_service_workflows.sql');
-  if (!fs.existsSync(migrationPath)) {
-    console.error(`[MigrationRunner] Migration file not found at: ${migrationPath}`);
+  const migrationsDir = path.join(__dirname, '../../supabase/migrations');
+  if (!fs.existsSync(migrationsDir)) {
+    console.error(`[MigrationRunner] Migrations directory not found at: ${migrationsDir}`);
     return;
   }
 
-  const sqlContent = fs.readFileSync(migrationPath, 'utf8');
+  const migrationFiles = fs.readdirSync(migrationsDir)
+    .filter(f => f.endsWith('.sql'))
+    .sort();
 
   const client = new Client({
     host,
@@ -42,10 +44,14 @@ async function runMigrations() {
     await client.connect();
     console.log('[MigrationRunner] Connected to Supabase PostgreSQL database.');
     
-    // Execute the SQL migration script as a single batch
-    await client.query(sqlContent);
-    console.log('[MigrationRunner] Schema migrations and seed data synced successfully to Supabase!');
+    for (const file of migrationFiles) {
+      const filePath = path.join(migrationsDir, file);
+      console.log(`[MigrationRunner] Executing migration: ${file}`);
+      const sqlContent = fs.readFileSync(filePath, 'utf8');
+      await client.query(sqlContent);
+    }
     
+    console.log('[MigrationRunner] All schema migrations and seed data synced successfully to Supabase!');
     await client.end();
   } catch (err) {
     console.warn(

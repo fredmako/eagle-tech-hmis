@@ -8,6 +8,7 @@ import HospitalProfile from './admin/HospitalProfile';
 import HumanResources from './admin/HumanResources';
 import ProcurementDesk from './admin/ProcurementDesk';
 import WardSettings from './admin/WardSettings';
+import PaymentSettings from './admin/PaymentSettings';
 
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
@@ -51,7 +52,7 @@ import {
 
 export default function Admin({ user }) {
   const { authFetch, inviteStaff, getInvitations, revokeInvite, setUser } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState('audit'); // 'audit', 'smtp_settings', 'email_logs', 'licensing', 'role_requests', 'facility_profile', 'hr', 'procurement', 'ward_settings'
+  const [activeSubTab, setActiveSubTab] = useState('audit'); // 'audit', 'smtp_settings', 'email_logs', 'licensing', 'role_requests', 'facility_profile', 'hr', 'procurement', 'ward_settings', 'payment_settings'
   const [auditLogs, setAuditLogs] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
@@ -956,6 +957,24 @@ export default function Admin({ user }) {
               </button>
             );
           })()}
+
+          {(() => {
+            const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
+            const isAuthorized = rolesList.includes('admin') || rolesList.includes('facility_admin');
+            if (!isAuthorized) return null;
+            return (
+              <button
+                onClick={() => setActiveSubTab('payment_settings')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'payment_settings'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <CreditCard size={13} /> Payment & Landing Config
+              </button>
+            );
+          })()}
         </div>
 
         {/* Tab Contents */}
@@ -1349,6 +1368,10 @@ export default function Admin({ user }) {
 
           {activeSubTab === 'ward_settings' && (
             <WardSettings user={user} />
+          )}
+
+          {activeSubTab === 'payment_settings' && (
+            <PaymentSettings user={user} />
           )}
         </div>
       </div>

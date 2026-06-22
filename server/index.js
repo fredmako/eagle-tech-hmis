@@ -23,6 +23,7 @@ const paymentsRouter = require("./routes/payments");
 // Mount routes
 app.use("/api/auth", authRouter);
 app.use("/api", emailRouter);
+app.use("/api/email", emailRouter);
 app.use("/api/mpesa", mpesaRouter);
 app.use("/api/db", dbRouter);
 app.use("/api/departments", departmentsRouter);

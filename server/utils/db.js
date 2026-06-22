@@ -409,6 +409,28 @@ const getInitialSandboxData = () => {
         payment_status: "unpaid",
         created_at: new Date().toISOString()
       }
+    ],
+    support_tickets: [
+      {
+        id: "ticket_1",
+        user_name: "Jane Mwangi",
+        user_email: "jane.mwangi@outlook.com",
+        subject: "Hospital Onboarding Error",
+        message: "I am trying to register Nairobi West clinic, but I keep getting a validation error about the license code format. Can you help me?",
+        status: "pending",
+        response: null,
+        created_at: new Date(Date.now() - 3600000 * 24).toISOString()
+      },
+      {
+        id: "ticket_2",
+        user_name: "Dr. David Kiprop",
+        user_email: "david.kiprop@gmail.com",
+        subject: "Stripe Payment Setup",
+        message: "How can I configure our hospital's Stripe publishable key to start accepting patient portal payments?",
+        status: "addressed",
+        response: "Hello Dr. Kiprop, you can configure your payment gateway integrations by navigating to Admin Settings > Payment Settings panel. Enter your keys there.",
+        created_at: new Date(Date.now() - 3600000 * 48).toISOString()
+      }
     ]
   };
 };
@@ -454,6 +476,10 @@ const loadSandboxDB = () => {
     }
     if (!data.utility_records) {
       data.utility_records = initial.utility_records;
+      updated = true;
+    }
+    if (!data.support_tickets) {
+      data.support_tickets = initial.support_tickets;
       updated = true;
     }
 

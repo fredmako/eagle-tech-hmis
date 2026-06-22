@@ -26,6 +26,7 @@ import SuperAdminDashboard from "./components/SuperAdminDashboard";
 import FacilityLandingPage from "./components/public/FacilityLandingPage";
 import PatientPortal from "./components/PatientPortal";
 import { ThemeToggle } from "./components/ui/ThemeToggle";
+import SupportPanel from "./components/SupportPanel";
 import { motion } from "motion/react";
 
 import {
@@ -49,6 +50,7 @@ import {
   Menu,
   X,
   Clock,
+  HelpCircle,
 } from "lucide-react";
 
 export default function App() {
@@ -554,6 +556,12 @@ export default function App() {
       icon: Sliders,
       roles: ["*"],
     },
+    {
+      id: "support",
+      label: "Help & Support",
+      icon: HelpCircle,
+      roles: ["*"],
+    },
   ];
   const visibleMenuItems = menuItems.filter((item) => {
     if (user.license_tier === "pharmacy") {
@@ -765,6 +773,7 @@ export default function App() {
               onChangeFont={handleFontChange}
             />
           )}
+          {activeTab === "support" && <SupportPanel />}
         </div>
       </main>
     </div>

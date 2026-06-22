@@ -12,7 +12,12 @@ import {
   Clock, 
   Lock, 
   Unlock,
-  AlertCircle
+  AlertCircle,
+  MessageSquare,
+  Mail,
+  Send,
+  User,
+  Inbox
 } from 'lucide-react';
 
 export default function SuperAdminDashboard({ user, onSignOut }) {
@@ -25,7 +30,96 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // stores facilityId or request ID during action
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [activeTab, setActiveTab] = useState('registry'); // 'registry' | 'audit' | 'requests'
+  const [activeTab, setActiveTab] = useState('registry'); // 'registry' | 'audit' | 'requests' | 'support'
+  const [supportTickets, setSupportTickets] = useState([]);
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [responseText, setResponseText] = useState('');
+  const [replyLoading, setReplyLoading] = useState(false);
+  const [supportFilter, setSupportFilter] = useState('all');
+  const [supportSearch, setSupportSearch] = useState('');
+
+  const handleResolveSupportTicket = async (ticketId) => {
+    if (!responseText.trim()) return;
+    setReplyLoading(true);
+    setMessage({ type: '', text: '' });
+    try {
+      const ticket = supportTickets.find(t => t.id === ticketId);
+      if (!ticket) throw new Error('Ticket not found.');
+
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      
+      const res = await fetch(`${apiBase}/db/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          table: 'support_tickets',
+          column: 'id',
+          value: ticketId,
+          values: {
+            status: 'addressed',
+            response: responseText.trim()
+          }
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to resolve support ticket.');
+      }
+
+      // Send email notification of the reply
+      try {
+        await fetch(`${apiBase}/email/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: ticket.user_email,
+            subject: `Support Ticket Addressed: [#${ticket.id.substring(7, 13)}] - ${ticket.subject}`,
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <h2 style="color: #0d9488; margin-top: 0;">Support Ticket Reply</h2>
+                <p>Hello <strong>${ticket.user_name}</strong>,</p>
+                <p>Our platform administration team has addressed your support request (Reference: <strong>#${ticket.id.substring(7, 13)}</strong>).</p>
+                
+                <div style="background-color: #f8fafc; padding: 15px; border-left: 4px solid #475569; margin: 20px 0; border-radius: 4px;">
+                  <strong>Your Ticket Message:</strong><br/>
+                  <p style="color: #475569; font-style: italic; margin-top: 5px;">"${ticket.message}"</p>
+                </div>
+
+                <div style="background-color: #f0fdf4; padding: 15px; border-left: 4px solid #22c55e; margin: 20px 0; border-radius: 4px;">
+                  <strong>Administrator Response:</strong><br/>
+                  <p style="color: #166534; font-weight: bold; margin-top: 5px;">"${responseText.trim()}"</p>
+                </div>
+
+                <p>If you have any further questions, please do not hesitate to contact us again.</p>
+                <p>Thank you,</p>
+                <p><strong>Eagle Tech HMIS Systems</strong></p>
+                <p style="color: #64748b; font-size: 11px; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center;">
+                  This is an automated platform alert. Please do not reply directly to this notification.
+                </p>
+              </div>
+            `
+          })
+        });
+      } catch (mailErr) {
+        console.warn('[Support Reply Email] Notification skipped/failed:', mailErr);
+      }
+
+      setResponseText('');
+      setSelectedTicketId(null);
+      setMessage({ type: 'success', text: `Support ticket #${ticketId.substring(7, 13)} resolved and response sent successfully!` });
+      await fetchSuperAdminData();
+    } catch (err) {
+      console.error('Resolve ticket failed:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to resolve support ticket.' });
+    } finally {
+      setReplyLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchSuperAdminData();
@@ -52,6 +146,15 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
 
       if (logErr) throw logErr;
       setAuditLogs(logs || []);
+
+      // Fetch all support tickets
+      const { data: tickets, error: ticketErr } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (ticketErr) throw ticketErr;
+      setSupportTickets(tickets || []);
 
       // Fetch all role requests across facilities
       try {
@@ -353,6 +456,19 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
           >
             System Security Audit Trail
           </button>
+          <button
+            onClick={() => setActiveTab('support')}
+            className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${
+              activeTab === 'support' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span>Support Queries</span>
+            {supportTickets.filter(t => t.status === 'pending').length > 0 && (
+              <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25 animate-pulse">
+                {supportTickets.filter(t => t.status === 'pending').length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Console loading state */}
@@ -538,9 +654,9 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
               </div>
             )}
           </div>
-        ) : (
+        ) : activeTab === 'audit' ? (
           /* SYSTEM AUDIT PANEL */
-          <div className="bg-slate-900 border border-slate-850 rounded-2xl overflow-hidden shadow-lg space-y-4 p-5">
+          <div className="bg-slate-900 border border-slate-850 rounded-2xl overflow-hidden shadow-lg space-y-4 p-5 font-sans">
             <div>
               <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Platform System-Wide Audit Log Stream</h4>
               <p className="text-[10px] text-slate-500 mt-1">Observe real-time security events, administrator configurations, and data mutations logged across all clinics.</p>
@@ -577,6 +693,195 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
                 ))}
               </div>
             )}
+          </div>
+        ) : (
+          /* SUPPORT QUERIES PANEL */
+          <div className="space-y-4 animate-fadeIn font-sans">
+            {/* Filter and Search actions */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-900 border border-slate-850 p-4 rounded-2xl shadow">
+              <div className="flex gap-2">
+                {['all', 'pending', 'addressed'].map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setSupportFilter(f)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border transition cursor-pointer ${
+                      supportFilter === f
+                        ? 'bg-teal-500/10 border-teal-500/30 text-teal-400 font-extrabold'
+                        : 'border-slate-850 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {f} ({
+                      f === 'all' 
+                        ? supportTickets.length 
+                        : supportTickets.filter(t => t.status === f).length
+                    })
+                  </button>
+                ))}
+              </div>
+              <div className="w-full sm:w-72">
+                <input
+                  type="text"
+                  placeholder="Search user name, email, or subject..."
+                  value={supportSearch}
+                  onChange={(e) => setSupportSearch(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                />
+              </div>
+            </div>
+
+            {/* Tickets table */}
+            <div className="bg-slate-900 border border-slate-850 rounded-2xl overflow-hidden shadow-lg">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left text-slate-350">
+                  <thead className="bg-slate-955 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-850">
+                    <tr>
+                      <th className="px-5 py-3.5">Reference</th>
+                      <th className="px-5 py-3.5">User</th>
+                      <th className="px-5 py-3.5">Subject</th>
+                      <th className="px-5 py-3.5">Submitted</th>
+                      <th className="px-5 py-3.5">Status</th>
+                      <th className="px-5 py-3.5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-850 bg-slate-900/40">
+                    {supportTickets
+                      .filter(t => supportFilter === 'all' || t.status === supportFilter)
+                      .filter(t => {
+                        const s = supportSearch.toLowerCase();
+                        return (
+                          t.user_name.toLowerCase().includes(s) ||
+                          t.user_email.toLowerCase().includes(s) ||
+                          t.subject.toLowerCase().includes(s)
+                        );
+                      })
+                      .map((ticket) => (
+                        <tr key={ticket.id} className="hover:bg-slate-950/20 transition">
+                          <td className="px-5 py-4 font-mono font-bold text-teal-400">
+                            #{ticket.id.substring(7, 13)}
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className="font-bold text-white block">{ticket.user_name}</span>
+                            <span className="text-[10px] text-slate-500 block">{ticket.user_email}</span>
+                          </td>
+                          <td className="px-5 py-4 font-semibold text-slate-200 font-sans">
+                            {ticket.subject}
+                          </td>
+                          <td className="px-5 py-4 text-slate-400">
+                            {new Date(ticket.created_at).toLocaleString()}
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
+                              ticket.status === 'addressed'
+                                ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                : 'bg-amber-500/10 text-amber-450 border-amber-500/20 animate-pulse'
+                            }`}>
+                              {ticket.status}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            <button
+                              onClick={() => {
+                                setSelectedTicketId(ticket.id);
+                                setResponseText(ticket.response || '');
+                              }}
+                              className="bg-slate-800 hover:bg-slate-750 text-teal-400 border border-slate-700 hover:border-teal-500/20 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase transition cursor-pointer"
+                            >
+                              {ticket.status === 'addressed' ? 'View Details' : 'Address Query'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    {supportTickets.length === 0 && (
+                      <tr>
+                        <td colSpan="6" className="text-center py-8 text-slate-500 italic">
+                          No support tickets logged.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Selected ticket details modal drawer */}
+            {selectedTicketId && (() => {
+              const ticket = supportTickets.find(t => t.id === selectedTicketId);
+              if (!ticket) return null;
+
+              return (
+                <div className="fixed inset-0 bg-slate-955/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn font-sans">
+                  <div className="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-2xl p-6 shadow-2xl space-y-4">
+                    <div className="flex justify-between items-start pb-2 border-b border-slate-850">
+                      <div>
+                        <span className="text-[9px] font-mono text-teal-400 font-bold block">REF: #{ticket.id.substring(7, 13)}</span>
+                        <h3 className="text-sm font-black text-white">{ticket.subject}</h3>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedTicketId(null);
+                          setResponseText('');
+                        }}
+                        className="text-slate-500 hover:text-white transition text-xs font-bold border border-slate-800 px-2.5 py-1 rounded cursor-pointer"
+                      >
+                        Close
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-xs bg-slate-950/45 border border-slate-850 p-3 rounded-xl">
+                      <div>
+                        <span className="text-[9px] block font-bold text-slate-500 uppercase tracking-wider mb-1">Submitted By</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <User size={12} className="text-slate-400" />
+                          <span className="text-slate-200 font-bold">{ticket.user_name}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[9px] block font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <Mail size={12} className="text-slate-400" />
+                          <span className="text-slate-200 font-bold font-mono">{ticket.user_email}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-950/20 border border-slate-850 p-4 rounded-xl text-xs space-y-2">
+                      <span className="text-[9px] font-bold text-slate-500 block uppercase">Query Message</span>
+                      <p className="text-slate-350 leading-relaxed italic">"{ticket.message}"</p>
+                      <span className="text-[8px] text-slate-550 block font-mono text-right">{new Date(ticket.created_at).toLocaleString()}</span>
+                    </div>
+
+                    {ticket.status === 'addressed' ? (
+                      <div className="bg-green-500/5 border border-green-500/20 p-4 rounded-xl text-xs space-y-2 animate-fadeIn">
+                        <span className="text-[9px] font-bold text-green-400 block uppercase">Resolution Response</span>
+                        <p className="text-green-300 leading-relaxed">"{ticket.response}"</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 animate-fadeIn">
+                        <div>
+                          <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reply Message</label>
+                          <textarea
+                            rows={4}
+                            required
+                            value={responseText}
+                            onChange={(e) => setResponseText(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition resize-none"
+                            placeholder="Type support reply details here. An email will be dispatched to the user automatically..."
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleResolveSupportTicket(ticket.id)}
+                          disabled={replyLoading || !responseText.trim()}
+                          className="w-full bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-slate-950 font-black text-xs py-2.5 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer shadow-lg active:scale-[0.98]"
+                        >
+                          {replyLoading ? <RefreshCw size={13} className="animate-spin" /> : <Send size={13} />}
+                          Send Response & Resolve Ticket
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </main>

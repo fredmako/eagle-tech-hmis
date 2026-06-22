@@ -324,8 +324,19 @@ router.post("/query", async (req, res) => {
 
   try {
     // If table is not a global table, automatically enforce facility filtering
-    const globalTables = ["facilities", "profiles"];
+    const globalTables = ["facilities", "profiles", "support_tickets"];
     const enrichedQueries = [...queries];
+
+    if (table === "support_tickets" && req.user && req.user.role !== "super_admin") {
+      const cleanQueries = enrichedQueries.filter((q) => q && q.column !== "user_email");
+      cleanQueries.push({
+        type: "equal",
+        column: "user_email",
+        value: req.user.email,
+      });
+      enrichedQueries.length = 0;
+      enrichedQueries.push(...cleanQueries);
+    }
 
     if (!globalTables.includes(table) && req.user) {
       // Ensure facility_id filter is appended
@@ -361,7 +372,7 @@ router.post("/insert", async (req, res) => {
     return res.status(400).json({ error: "Table and rows are required" });
 
   // Security: only allow unauthenticated requests for 'facilities' and 'profiles' (needed during onboarding)
-  if (table !== "facilities" && table !== "profiles") {
+  if (table !== "facilities" && table !== "profiles" && table !== "support_tickets") {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
     if (!token) return res.status(401).json({ error: "Access token required" });
@@ -383,7 +394,7 @@ router.post("/insert", async (req, res) => {
 
     for (const row of dataRows) {
       const { id, created_at, ...cleanRow } = row;
-      const globalTables = ["facilities", "profiles"];
+      const globalTables = ["facilities", "profiles", "support_tickets"];
 
       // Enforce facility_id for tenant tables if authenticated
       if (
@@ -444,10 +455,14 @@ router.post("/update", authenticateToken, async (req, res) => {
       });
   }
 
+  if (table === "support_tickets" && req.user.role !== "super_admin") {
+    return res.status(403).json({ error: "Only platform administrators can modify support tickets." });
+  }
+
   try {
     // 1. Find matching documents
     const queries = [{ type: "equal", column, value }];
-    const globalTables = ["facilities", "profiles"];
+    const globalTables = ["facilities", "profiles", "support_tickets"];
     if (!globalTables.includes(table)) {
       queries.push({
         type: "equal",
@@ -505,10 +520,14 @@ router.post("/delete", authenticateToken, async (req, res) => {
       .json({ error: "Table, query column, and query value are required" });
   }
 
+  if (table === "support_tickets" && req.user.role !== "super_admin") {
+    return res.status(403).json({ error: "Only platform administrators can delete support tickets." });
+  }
+
   try {
     // 1. Find matching documents
     const queries = [{ type: "equal", column, value }];
-    const globalTables = ["facilities", "profiles"];
+    const globalTables = ["facilities", "profiles", "support_tickets"];
     if (!globalTables.includes(table)) {
       queries.push({
         type: "equal",

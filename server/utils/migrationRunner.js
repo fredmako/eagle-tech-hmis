@@ -44,14 +44,39 @@ async function runMigrations() {
     await client.connect();
     console.log('[MigrationRunner] Connected to Supabase PostgreSQL database.');
     
+    // Create schema_migrations table if it doesn't exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.schema_migrations (
+        version text PRIMARY KEY,
+        applied_at timestamp with time zone DEFAULT now()
+      );
+    `);
+
+    // Get list of already applied migrations
+    const { rows } = await client.query('SELECT version FROM public.schema_migrations');
+    const appliedVersions = new Set(rows.map(r => r.version));
+
     for (const file of migrationFiles) {
+      if (appliedVersions.has(file)) {
+        console.log(`[MigrationRunner] Migration already applied: ${file}`);
+        continue;
+      }
+
       const filePath = path.join(migrationsDir, file);
       console.log(`[MigrationRunner] Executing migration: ${file}`);
       const sqlContent = fs.readFileSync(filePath, 'utf8');
-      await client.query(sqlContent);
+      
+      try {
+        await client.query(sqlContent);
+        await client.query('INSERT INTO public.schema_migrations (version) VALUES ($1)', [file]);
+        console.log(`[MigrationRunner] Migration ${file} applied successfully.`);
+      } catch (err) {
+        console.error(`[MigrationRunner] Migration ${file} failed:`, err.message);
+        // We log the error but continue to run other migrations so that a blocker in one file doesn't stall everything else.
+      }
     }
     
-    console.log('[MigrationRunner] All schema migrations and seed data synced successfully to Supabase!');
+    console.log('[MigrationRunner] Remote schema synchronization completed.');
     await client.end();
   } catch (err) {
     console.warn(

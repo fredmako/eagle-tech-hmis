@@ -31,6 +31,12 @@ export default function PatientPortal() {
   // WhatsApp welcome / contact details
   const [facilityWhatsApp, setFacilityWhatsApp] = useState('');
 
+  // Support Ticket States
+  const [supportSubject, setSupportSubject] = useState('Patient Portal Assistance');
+  const [supportMessageText, setSupportMessageText] = useState('');
+  const [supportSubmitting, setSupportSubmitting] = useState(false);
+  const [supportStatus, setSupportStatus] = useState(null); // { type: 'success' | 'error', text: '' }
+
   useEffect(() => {
     if (user && user.email) {
       loadPatientDetails();
@@ -245,6 +251,92 @@ export default function PatientPortal() {
     }
   };
 
+  const handleSupportSubmit = async (e) => {
+    e.preventDefault();
+    if (!supportMessageText.trim()) return;
+
+    setSupportSubmitting(true);
+    setSupportStatus(null);
+
+    try {
+      const ticketId = 'ticket_' + Math.random().toString(36).substring(2, 12);
+      const emailAddr = user?.email || '';
+      const patientName = patient?.name || user?.full_name || 'Patient';
+
+      const newTicket = {
+        id: ticketId,
+        user_name: patientName,
+        user_email: emailAddr,
+        subject: supportSubject,
+        message: supportMessageText.trim(),
+        status: 'pending'
+      };
+
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+      // 1. Insert ticket into DB proxy
+      const dbRes = await fetch(`${apiBase}/db/insert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          table: 'support_tickets',
+          rows: newTicket
+        })
+      });
+
+      if (!dbRes.ok) {
+        const errData = await dbRes.json();
+        throw new Error(errData.error || 'Failed to submit support ticket.');
+      }
+
+      // 2. Dispatch Confirmation Email
+      try {
+        await fetch(`${apiBase}/email/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: emailAddr,
+            subject: `Support Ticket Received: [#${ticketId.substring(7, 13)}] - ${supportSubject}`,
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <h2 style="color: #0d9488; margin-top: 0;">Support Ticket Received</h2>
+                <p>Hello <strong>${patientName}</strong>,</p>
+                <p>We have successfully logged your support ticket (Reference: <strong>#${ticketId.substring(7, 13)}</strong>).</p>
+                <div style="background-color: #f8fafc; padding: 15px; border-left: 4px solid #0d9488; margin: 20px 0; border-radius: 4px;">
+                  <strong>Subject:</strong> ${supportSubject}<br/>
+                  <strong>Message:</strong> "${supportMessageText.trim()}"
+                </div>
+                <p>Our administration team will review your query and reply shortly.</p>
+                <p>Thank you,</p>
+                <p><strong>Eagle Tech HMIS Support Team</strong></p>
+              </div>
+            `
+          })
+        });
+      } catch (emailErr) {
+        console.error("Support confirmation email dispatch failed:", emailErr);
+      }
+
+      setSupportStatus({
+        type: 'success',
+        text: `Ticket #${ticketId.substring(7, 13)} submitted successfully! A confirmation email has been sent.`
+      });
+      setSupportMessageText('');
+    } catch (err) {
+      console.error("Support ticket submission failed:", err);
+      setSupportStatus({
+        type: 'error',
+        text: err.message || 'Failed to submit your support query.'
+      });
+    } finally {
+      setSupportSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
@@ -409,6 +501,67 @@ export default function PatientPortal() {
                 <p className="text-xs text-slate-500 italic text-center py-6">No billing statements available.</p>
               )}
             </div>
+          </div>
+
+          {/* Help & Support Widget */}
+          <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl space-y-4">
+            <h2 className="text-xs font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
+              <PhoneCall size={14} /> Contact Help & Support
+            </h2>
+            <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
+              Have a billing inquiry, medical record question, or need portal assistance? Log a support ticket directly.
+            </p>
+
+            {supportStatus && (
+              <div className={`p-3 rounded text-[10px] font-semibold leading-relaxed ${
+                supportStatus.type === 'success' ? 'bg-emerald-500/10 border border-emerald-550/20 text-emerald-400' : 'bg-rose-500/10 border border-rose-550/20 text-rose-400'
+              }`}>
+                {supportStatus.text}
+              </div>
+            )}
+
+            <form onSubmit={handleSupportSubmit} className="space-y-3.5 pt-1">
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Inquiry Type</label>
+                <select
+                  value={supportSubject}
+                  onChange={(e) => setSupportSubject(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition font-semibold"
+                >
+                  <option value="Patient Portal Assistance">Patient Portal Assistance</option>
+                  <option value="Billing & Billing Plans">Billing & Billing Plans</option>
+                  <option value="Medical Record Inquiry">Medical Record Inquiry</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Message Detail</label>
+                <textarea
+                  value={supportMessageText}
+                  onChange={(e) => setSupportMessageText(e.target.value)}
+                  rows={4}
+                  placeholder="Tell us what you need help with..."
+                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-250 placeholder:text-slate-700 focus:outline-none focus:border-teal-500 transition resize-none leading-relaxed font-medium"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={supportSubmitting || !supportMessageText.trim()}
+                className="w-full bg-teal-400 hover:bg-teal-350 disabled:opacity-40 text-slate-950 font-black rounded-lg text-xs py-2 transition flex items-center justify-center gap-1 cursor-pointer"
+              >
+                {supportSubmitting ? (
+                  <>
+                    <div className="h-3 w-3 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                    <span>Submitting ticket...</span>
+                  </>
+                ) : (
+                  'Submit Support Ticket'
+                )}
+              </button>
+            </form>
           </div>
         </div>
       </main>

@@ -270,19 +270,19 @@ const getInitialSandboxData = () => {
     inpatient_admissions: [],
     ward_care_records: [],
     bed_allocations: [
-      { id: "bed_m1", ward_id: "ward_male", bed_number: "Male Bed 01", facility_id: "f1", bed_status: "clean" },
-      { id: "bed_m2", ward_id: "ward_male", bed_number: "Male Bed 02", facility_id: "f1", bed_status: "clean" },
-      { id: "bed_m3", ward_id: "ward_male", bed_number: "Male Bed 03", facility_id: "f1", bed_status: "clean" },
-      { id: "bed_m4", ward_id: "ward_male", bed_number: "Male Bed 04", facility_id: "f1", bed_status: "clean" },
-      { id: "bed_m5", ward_id: "ward_male", bed_number: "Male Bed 05", facility_id: "f1", bed_status: "clean" },
-      { id: "bed_f1", ward_id: "ward_female", bed_number: "Female Bed 01", facility_id: "f1", bed_status: "clean" },
-      { id: "bed_f2", ward_id: "ward_female", bed_number: "Female Bed 02", facility_id: "f1", bed_status: "clean" },
-      { id: "bed_f3", ward_id: "ward_female", bed_number: "Female Bed 03", facility_id: "f1", bed_status: "clean" },
-      { id: "bed_f4", ward_id: "ward_female", bed_number: "Female Bed 04", facility_id: "f1", bed_status: "clean" },
-      { id: "bed_f5", ward_id: "ward_female", bed_number: "Female Bed 05", facility_id: "f1", bed_status: "clean" },
-      { id: "bed_p1", ward_id: "ward_pediatric", bed_number: "Pediatric Bed 01", facility_id: "f1", bed_status: "clean" },
-      { id: "bed_p2", ward_id: "ward_pediatric", bed_number: "Pediatric Bed 02", facility_id: "f1", bed_status: "clean" },
-      { id: "bed_p3", ward_id: "ward_pediatric", bed_number: "Pediatric Bed 03", facility_id: "f1", bed_status: "clean" }
+      { id: "bed_m1", ward_id: "ward_male", bed_number: "Male Bed 01", facility_id: "f1", bed_status: "clean", x_position: 40, y_position: 60, rotation: 0, room_name: "Room 1" },
+      { id: "bed_m2", ward_id: "ward_male", bed_number: "Male Bed 02", facility_id: "f1", bed_status: "clean", x_position: 180, y_position: 60, rotation: 0, room_name: "Room 1" },
+      { id: "bed_m3", ward_id: "ward_male", bed_number: "Male Bed 03", facility_id: "f1", bed_status: "clean", x_position: 320, y_position: 60, rotation: 0, room_name: "Room 1" },
+      { id: "bed_m4", ward_id: "ward_male", bed_number: "Male Bed 04", facility_id: "f1", bed_status: "clean", x_position: 40, y_position: 60, rotation: 90, room_name: "Room 2" },
+      { id: "bed_m5", ward_id: "ward_male", bed_number: "Male Bed 05", facility_id: "f1", bed_status: "clean", x_position: 180, y_position: 60, rotation: 90, room_name: "Room 2" },
+      { id: "bed_f1", ward_id: "ward_female", bed_number: "Female Bed 01", facility_id: "f1", bed_status: "clean", x_position: 40, y_position: 60, rotation: 0, room_name: "Room 1" },
+      { id: "bed_f2", ward_id: "ward_female", bed_number: "Female Bed 02", facility_id: "f1", bed_status: "clean", x_position: 180, y_position: 60, rotation: 0, room_name: "Room 1" },
+      { id: "bed_f3", ward_id: "ward_female", bed_number: "Female Bed 03", facility_id: "f1", bed_status: "clean", x_position: 320, y_position: 60, rotation: 0, room_name: "Room 1" },
+      { id: "bed_f4", ward_id: "ward_female", bed_number: "Female Bed 04", facility_id: "f1", bed_status: "clean", x_position: 40, y_position: 60, rotation: 90, room_name: "Room 2" },
+      { id: "bed_f5", ward_id: "ward_female", bed_number: "Female Bed 05", facility_id: "f1", bed_status: "clean", x_position: 180, y_position: 60, rotation: 90, room_name: "Room 2" },
+      { id: "bed_p1", ward_id: "ward_pediatric", bed_number: "Pediatric Bed 01", facility_id: "f1", bed_status: "clean", x_position: 40, y_position: 60, rotation: 0, room_name: "Room 1" },
+      { id: "bed_p2", ward_id: "ward_pediatric", bed_number: "Pediatric Bed 02", facility_id: "f1", bed_status: "clean", x_position: 180, y_position: 60, rotation: 0, room_name: "Room 1" },
+      { id: "bed_p3", ward_id: "ward_pediatric", bed_number: "Pediatric Bed 03", facility_id: "f1", bed_status: "clean", x_position: 320, y_position: 60, rotation: 0, room_name: "Room 1" }
     ],
     emergency_registrations: [],
     triage_assessments: [],
@@ -455,6 +455,26 @@ const loadSandboxDB = () => {
     if (!data.utility_records) {
       data.utility_records = initial.utility_records;
       updated = true;
+    }
+
+    if (data.bed_allocations && data.bed_allocations.length > 0) {
+      let bedUpdated = false;
+      data.bed_allocations = data.bed_allocations.map((bed, index) => {
+        const changes = {};
+        if (bed.x_position === undefined) { changes.x_position = 40 + (index % 3) * 140; }
+        if (bed.y_position === undefined) { changes.y_position = 60 + Math.floor((index % 5) / 3) * 140; }
+        if (bed.rotation === undefined) { changes.rotation = 0; }
+        if (bed.room_name === undefined) { changes.room_name = `Room ${Math.floor(index / 3) + 1}`; }
+        
+        if (Object.keys(changes).length > 0) {
+          bedUpdated = true;
+          return { ...bed, ...changes };
+        }
+        return bed;
+      });
+      if (bedUpdated) {
+        updated = true;
+      }
     }
 
     if (updated) {

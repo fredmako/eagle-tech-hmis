@@ -294,6 +294,14 @@ export default function Ward({ user }) {
 
   // Discharge states
   const [dischargeNotes, setDischargeNotes] = useState('');
+  const [activeRoomTab, setActiveRoomTab] = useState('Room 1');
+
+  useEffect(() => {
+    const rooms = Array.from(new Set(beds.map(b => b.room_name).filter(Boolean))).filter(r => r !== 'Unassigned');
+    if (rooms.length > 0 && !rooms.includes(activeRoomTab)) {
+      setActiveRoomTab(rooms[0]);
+    }
+  }, [beds, activeRoomTab]);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -776,60 +784,155 @@ export default function Ward({ user }) {
     }
   };  return (
     <div className="space-y-6">
-      {/* Bed Layout Grid Visualizer */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
-        <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-1.5">
-          <Bed size={14} className={getThemeColor('primary-text')} /> Inpatient Ward Map (Active Occupancy)
-        </h3>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-          {beds.map((bed) => {
-            const occupant = admissions.find(a => a.bed_id === bed.id);
-            const isSelected = occupant && selectedAdmission?.id === occupant.id;
-            return (
+      {/* Bed Layout Graphical Visualizer */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+            <Bed size={14} className={getThemeColor('primary-text')} /> Inpatient Ward Map (Active Occupancy)
+          </h3>
+          {/* Room Selector Tabs */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 max-w-full">
+            {Array.from(new Set([
+              'Room 1',
+              ...beds.map(b => b.room_name).filter(Boolean)
+            ])).filter(r => r !== 'Unassigned').sort().map((room) => (
               <button
-                key={bed.id}
-                onClick={() => {
-                  if (occupant) {
-                    setSelectedAdmission(occupant);
-                    setMessage({ type: '', text: '' });
-                  }
-                }}
-                className={`border rounded-xl p-4 flex flex-col justify-between text-center min-h-[120px] transition ${
-                  occupant
-                    ? isSelected
-                      ? `${getThemeColor('bed-selected')} shadow shadow-teal-500/10`
-                      : 'border-slate-800 bg-slate-950 hover:border-slate-700'
-                    : bed.bed_status === 'maintenance'
-                      ? 'border-red-900/50 bg-red-950/10 text-red-400'
-                      : 'border-slate-855/65 bg-slate-950/20 border-dashed text-slate-600 hover:border-slate-700'
+                key={room}
+                onClick={() => setActiveRoomTab(room)}
+                className={`px-3 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition cursor-pointer ${
+                  activeRoomTab === room
+                    ? 'bg-slate-800 border border-slate-700 text-teal-400'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Bed size={22} className={occupant ? `${getThemeColor('primary-text')} mx-auto animate-pulse` : bed.bed_status === 'maintenance' ? 'text-red-500 mx-auto' : 'text-slate-700 mx-auto'} />
-                <span className="text-xs font-bold font-mono mt-2">{bed.bed_number}</span>
-                <span className="text-[10px] truncate max-w-full font-semibold block mt-0.5 text-slate-400">
-                  {occupant ? occupant.patient?.name.split(' ')[0] : bed.bed_status === 'maintenance' ? 'Maint' : 'Vacant'}
-                </span>
-                {!occupant && (
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      updateBedStatus(bed.id, bed.bed_status === 'clean' ? 'maintenance' : 'clean');
-                    }}
-                    className={`text-[9px] ${getThemeColor('primary-text')} underline cursor-pointer mt-1.5 block font-medium`}
-                  >
-                    {bed.bed_status === 'clean' ? 'Maint' : 'Clean'}
-                  </span>
-                )}
+                {room}
               </button>
-            );
-          })}
-          {beds.length === 0 && (
-            <div className="col-span-full py-6 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-lg">
-              No beds configured.
-            </div>
-          )}
+            ))}
+          </div>
         </div>
+
+        {/* Graphical Room Canvas Area */}
+        <div className="overflow-x-auto flex justify-center py-2">
+          <div
+            className="bg-slate-950/20 border border-slate-850 rounded-xl relative overflow-hidden shadow-inner select-none"
+            style={{
+              width: '600px',
+              height: '380px',
+              backgroundImage: 'radial-gradient(circle, #27272a 1px, transparent 1px)',
+              backgroundSize: '20px 20px',
+            }}
+          >
+            {/* Visual grid indicators */}
+            <div className="absolute inset-2 border border-slate-850/40 rounded-lg pointer-events-none border-dashed flex items-end justify-between p-2 text-[9px] text-slate-650 font-mono">
+              <span>Room Layout: {activeRoomTab}</span>
+              <span>1m = 40px</span>
+            </div>
+
+            {/* Positioned Beds */}
+            {beds.filter(b => b.room_name === activeRoomTab).map((bed) => {
+              const occupant = admissions.find(a => a.bed_id === bed.id);
+              const isSelected = occupant && selectedAdmission?.id === occupant.id;
+              
+              let statusBorderColor = 'border-emerald-500/40 bg-emerald-955/20 text-emerald-400';
+              if (bed.bed_status === 'dirty') {
+                statusBorderColor = 'border-yellow-500/40 bg-yellow-955/20 text-yellow-400';
+              } else if (bed.bed_status === 'occupied') {
+                statusBorderColor = isSelected
+                  ? `${getThemeColor('bed-selected')} ring-2 ring-teal-400 border-transparent shadow shadow-teal-400/20`
+                  : 'border-blue-500/40 bg-blue-955/20 text-blue-400 hover:border-blue-400';
+              } else if (bed.bed_status === 'maintenance') {
+                statusBorderColor = 'border-red-900/40 bg-red-955/10 text-red-400';
+              }
+
+              return (
+                <button
+                  key={bed.id}
+                  onClick={() => {
+                    if (occupant) {
+                      setSelectedAdmission(occupant);
+                      setMessage({ type: '', text: '' });
+                    }
+                  }}
+                  className={`absolute rounded border flex flex-col justify-between p-1.5 transition-all text-left ${statusBorderColor}`}
+                  style={{
+                    left: `${bed.x_position || 0}px`,
+                    top: `${bed.y_position || 0}px`,
+                    width: '70px',
+                    height: '90px',
+                    transform: `rotate(${bed.rotation || 0}deg)`,
+                    transformOrigin: 'center center',
+                    cursor: occupant ? 'pointer' : 'default'
+                  }}
+                >
+                  {/* Headboard Pillow */}
+                  <div className={`w-[36px] h-[12px] bg-slate-800/80 border border-slate-700/40 rounded mx-auto mt-0.5 ${
+                    occupant ? 'animate-pulse' : ''
+                  }`} />
+                  
+                  {/* Bed Label */}
+                  <div className="text-center mt-1">
+                    <span className="text-[10px] font-bold block text-slate-100 font-mono truncate leading-none">{bed.bed_number}</span>
+                    <span className="text-[8px] truncate max-w-full font-semibold block mt-1 text-slate-400 leading-none">
+                      {occupant ? occupant.patient?.name.split(' ')[0] : bed.bed_status === 'maintenance' ? 'Maint' : 'Vacant'}
+                    </span>
+                  </div>
+
+                  {/* Bed Sheet fold */}
+                  <div className="w-full h-[28px] bg-slate-900/60 border-t border-slate-800/50 rounded-b mt-auto" />
+                </button>
+              );
+            })}
+
+            {beds.filter(b => b.room_name === activeRoomTab).length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center text-center p-6 text-xs text-slate-500 italic">
+                No beds configured in this room layout. Add coordinates in Admin Settings.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Unassigned / Palette beds */}
+        {beds.filter(b => b.room_name === 'Unassigned' || (!b.x_position && !b.y_position)).length > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-800 space-y-2">
+            <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Unassigned Beds (Palette)</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              {beds.filter(b => b.room_name === 'Unassigned' || (!b.x_position && !b.y_position)).map(bed => {
+                const occupant = admissions.find(a => a.bed_id === bed.id);
+                const isSelected = occupant && selectedAdmission?.id === occupant.id;
+                
+                let statusBg = 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400';
+                if (bed.bed_status === 'dirty') {
+                  statusBg = 'bg-yellow-500/10 border-yellow-500/25 text-yellow-400';
+                } else if (bed.bed_status === 'occupied') {
+                  statusBg = isSelected
+                    ? `${getThemeColor('bed-selected')} shadow shadow-teal-500/10`
+                    : 'border-slate-800 bg-slate-955 hover:border-slate-700 text-blue-400';
+                } else if (bed.bed_status === 'maintenance') {
+                  statusBg = 'border-red-900/50 bg-red-950/10 text-red-400';
+                }
+
+                return (
+                  <button
+                    key={bed.id}
+                    onClick={() => {
+                      if (occupant) {
+                        setSelectedAdmission(occupant);
+                        setMessage({ type: '', text: '' });
+                      }
+                    }}
+                    className={`border rounded-lg p-2 flex flex-col justify-between text-center min-h-[90px] transition cursor-pointer ${statusBg}`}
+                  >
+                    <Bed size={16} className="mx-auto opacity-85" />
+                    <span className="text-[10px] font-bold block text-slate-100 font-mono mt-1 leading-none">{bed.bed_number}</span>
+                    <span className="text-[8px] truncate block opacity-75 mt-0.5">
+                      {occupant ? occupant.patient?.name.split(' ')[0] : bed.bed_status === 'maintenance' ? 'Maint' : 'Vacant'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

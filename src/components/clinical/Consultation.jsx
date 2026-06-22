@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { diseaseMaster, medicineMaster, labTestMaster, radiologyTestMaster, surgicalProcedureMaster } from "../../medicalMaster";
 import { parsePatientContact } from "../../notificationService";
-import { Heart, MapPin } from "lucide-react";
+import { Heart, MapPin, Printer } from "lucide-react";
 import DiagnosisAutocomplete from "./DiagnosisAutocomplete";
 import InstrumentTracker from "./InstrumentTracker";
 
@@ -31,6 +31,7 @@ export default function Consultation({ user, onComplete }) {
   const [queue, setQueue] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [triageData, setTriageData] = useState(null);
+  const [facilityDetails, setFacilityDetails] = useState(null);
 
   // SOAP & Order States
   const [history, setHistory] = useState("");
@@ -296,7 +297,440 @@ export default function Consultation({ user, onComplete }) {
 
   useEffect(() => {
     fetchConsultationQueue();
+    fetchFacilityDetails();
   }, []);
+
+  const fetchFacilityDetails = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('facilities')
+        .select('*')
+        .eq('id', user.facility_id)
+        .single();
+      if (!error && data) {
+        setFacilityDetails(data);
+      }
+    } catch (err) {
+      console.error('Error fetching facility details:', err);
+    }
+  };
+
+  const handlePrintConsultationSummary = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker is active. Please allow popups to print reports.');
+      return;
+    }
+
+    const facility = facilityDetails || {
+      name: user.facility_name || 'Eagle Tech Medical Clinic',
+      code: 'N/A',
+      logo_url: user.facility_logo
+    };
+
+    const patient = selectedVisit?.patient || {};
+    const ageYrs = patient.dob ? Math.floor((new Date() - new Date(patient.dob)) / (365.25 * 24 * 60 * 60 * 1000)) : 'N/A';
+
+    // Logo resolution
+    let logoHtml = '';
+    const logoUrl = facility.logo_url;
+    if (logoUrl) {
+      if (logoUrl.startsWith('preset:')) {
+        const presetKey = logoUrl.split(':')[1];
+        let color = '#0d9488';
+        if (presetKey === 'shield') color = '#3b82f6';
+        if (presetKey === 'cross') color = '#ef4444';
+        logoHtml = `
+          <div style="width: 50px; height: 50px; border-radius: 8px; background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); display: flex; align-items: center; justify-content: center; float: left; margin-right: 15px;">
+            <span style="font-size: 24px; color: ${color}; font-weight: bold;">✚</span>
+          </div>
+        `;
+      } else {
+        logoHtml = `
+          <img src="${logoUrl}" style="width: 55px; height: 55px; border-radius: 8px; object-fit: cover; border: 1px solid #cbd5e1; float: left; margin-right: 15px;" onerror="this.style.display='none'" />
+        `;
+      }
+    } else {
+      logoHtml = `
+        <div style="width: 50px; height: 50px; border-radius: 8px; background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); display: flex; align-items: center; justify-content: center; float: left; margin-right: 15px; font-weight: bold; color: #0d9488; font-size: 20px;">
+          ${(facility.name || 'EM').substring(0, 2).toUpperCase()}
+        </div>
+      `;
+    }
+
+    // Vitals block
+    const bpStr = triageData 
+      ? `${triageData.systolic || '-'}/${triageData.diastolic || '-'}` 
+      : (mohSystolic || mohDiastolic ? `${mohSystolic || '-'}/${mohDiastolic || '-'}` : 'N/A');
+    const tempStr = triageData?.temperature ? `${triageData.temperature} °C` : (mohTemp ? `${mohTemp} °C` : 'N/A');
+    const weightStr = triageData?.weight ? `${triageData.weight} kg` : (mohWeight ? `${mohWeight} kg` : 'N/A');
+    const heightStr = triageData?.height ? `${triageData.height} cm` : 'N/A';
+    const hrStr = triageData?.pulse ? `${triageData.pulse} bpm` : 'N/A';
+    const rrStr = triageData?.resp_rate ? `${triageData.resp_rate} cpm` : 'N/A';
+    const spo2Str = triageData?.spo2 ? `${triageData.spo2} %` : 'N/A';
+
+    let bmiStr = 'N/A';
+    if (triageData?.weight && triageData?.height) {
+      const hMtrs = triageData.height / 100;
+      bmiStr = (triageData.weight / (hMtrs * hMtrs)).toFixed(1);
+    }
+
+    // Prescription list table rows
+    let prescriptionsHtml = '';
+    const activePrescriptions = prescriptions.filter(p => p.name.trim() !== '');
+    if (activePrescriptions.length > 0) {
+      prescriptionsHtml = `
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 11px; margin-bottom: 20px;">
+          <thead>
+            <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: bold; background-color: #f8fafc;">
+              <th style="padding: 8px 12px; border: 1px solid #e2e8f0;">Medication</th>
+              <th style="padding: 8px 12px; border: 1px solid #e2e8f0;">Dosage</th>
+              <th style="padding: 8px 12px; border: 1px solid #e2e8f0;">Frequency</th>
+              <th style="padding: 8px 12px; border: 1px solid #e2e8f0;">Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      activePrescriptions.forEach(p => {
+        prescriptionsHtml += `
+          <tr style="border-bottom: 1px solid #e2e8f0; color: #334155;">
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: bold;">${p.name}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">${p.dosage || '-'}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-family: monospace;">${p.frequency}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">${p.duration}</td>
+          </tr>
+        `;
+      });
+      prescriptionsHtml += `
+          </tbody>
+        </table>
+      `;
+    } else {
+      prescriptionsHtml = '<p style="font-size: 11px; color: #64748b; font-style: italic;">No medications prescribed.</p>';
+    }
+
+    // Ordered Investigations
+    let investigationsHtml = '';
+    const hasLabs = orderedLabs.length > 0;
+    const hasRad = orderedRadiology.length > 0;
+    const hasSurg = orderedSurgeries.length > 0;
+
+    if (hasLabs || hasRad || hasSurg) {
+      investigationsHtml = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">';
+      if (hasLabs) {
+        investigationsHtml += `
+          <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; background: #fafafa;">
+            <strong style="font-size: 10px; text-transform: uppercase; color: #0d9488; display: block; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px;">Laboratory Tests</strong>
+            <ul style="margin: 0; padding-left: 15px; font-size: 11px; color: #334155;">
+              ${orderedLabs.map(l => `<li style="margin-bottom: 3px;">${l}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+      if (hasRad) {
+        investigationsHtml += `
+          <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; background: #fafafa;">
+            <strong style="font-size: 10px; text-transform: uppercase; color: #3b82f6; display: block; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px;">Radiology Scans</strong>
+            <ul style="margin: 0; padding-left: 15px; font-size: 11px; color: #334155;">
+              ${orderedRadiology.map(r => `<li style="margin-bottom: 3px;">${r}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+      if (hasSurg) {
+        investigationsHtml += `
+          <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; background: #fafafa;">
+            <strong style="font-size: 10px; text-transform: uppercase; color: #ef4444; display: block; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px;">Surgical Procedures</strong>
+            <ul style="margin: 0; padding-left: 15px; font-size: 11px; color: #334155;">
+              ${orderedSurgeries.map(s => `<li style="margin-bottom: 3px;">${s}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+      investigationsHtml += '</div>';
+    } else {
+      investigationsHtml = '<p style="font-size: 11px; color: #64748b; font-style: italic;">No diagnostic investigations ordered.</p>';
+    }
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Outpatient Consultation Summary - ${patient.name || 'Patient'}</title>
+          <style>
+            body {
+              font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+              color: #1e293b;
+              margin: 0;
+              padding: 20px;
+              font-size: 12px;
+              line-height: 1.5;
+            }
+            .header-table {
+              width: 100%;
+              border-bottom: 3px double #0d9488;
+              padding-bottom: 12px;
+              margin-bottom: 20px;
+            }
+            .info-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 25px;
+            }
+            .info-table td {
+              padding: 5px 8px;
+              border: 1px solid #e2e8f0;
+            }
+            .info-label {
+              font-weight: bold;
+              color: #475569;
+              background-color: #f8fafc;
+              width: 20%;
+            }
+            .info-value {
+              width: 30%;
+            }
+            .vitals-grid {
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 10px;
+              margin-bottom: 25px;
+            }
+            .vital-card {
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+              padding: 8px 10px;
+              background-color: #f8fafc;
+            }
+            .vital-label {
+              font-size: 9px;
+              color: #64748b;
+              text-transform: uppercase;
+              font-weight: bold;
+            }
+            .vital-value {
+              font-size: 14px;
+              font-weight: bold;
+              color: #0f172a;
+              margin-top: 2px;
+            }
+            .soap-section {
+              margin-bottom: 20px;
+            }
+            .soap-title {
+              font-size: 11px;
+              font-weight: bold;
+              text-transform: uppercase;
+              color: #0f172a;
+              border-bottom: 1px solid #e2e8f0;
+              padding-bottom: 4px;
+              margin-bottom: 8px;
+              letter-spacing: 0.5px;
+            }
+            .soap-content {
+              font-size: 12px;
+              color: #334155;
+              white-space: pre-line;
+              line-height: 1.5;
+              padding: 4px 0 12px 0;
+            }
+            .footer-section {
+              margin-top: 40px;
+              border-top: 1px solid #cbd5e1;
+              padding-top: 15px;
+            }
+            .signature-block {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 40px;
+            }
+            .signature-line {
+              width: 250px;
+              border-top: 1px solid #000;
+              text-align: center;
+              padding-top: 5px;
+              font-size: 10px;
+              font-weight: bold;
+            }
+            @media print {
+              body { padding: 0; }
+              .print-hidden { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div style="max-width: 800px; margin: 0 auto;">
+            
+            <!-- Letterhead -->
+            <table class="header-table">
+              <tr>
+                <td style="width: 60px; vertical-align: top;">
+                  ${logoHtml}
+                </td>
+                <td style="vertical-align: top;">
+                  <h1 style="margin: 0; font-size: 18px; color: #0f172a; text-transform: uppercase; font-weight: 800; letter-spacing: -0.5px;">
+                    ${facility.name}
+                  </h1>
+                  <p style="margin: 3px 0 0 0; font-size: 10px; color: #64748b;">
+                    Lic No: ${facility.kmpdc_reg_number || 'KMPDC/PENDING'} | MFL Code: ${facility.mfl_code || 'N/A'} | Category: ${facility.regulatory_category || 'Medical Clinic'}
+                  </p>
+                  <p style="margin: 2px 0 0 0; font-size: 10px; color: #64748b;">
+                    Address: ${facility.address || 'Kenya'} | County: ${facility.county || 'Kenya'}
+                  </p>
+                </td>
+                <td style="text-align: right; vertical-align: top; font-size: 9px; color: #64748b; line-height: 1.3;">
+                  <div style="font-weight: bold; color: #0d9488; font-size: 11px;">OUTPATIENT CLINICAL SUMMARY</div>
+                  <div>Printed: ${new Date().toLocaleString()}</div>
+                  <div>Encounter ID: ${selectedVisit.id}</div>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Patient Identification -->
+            <h2 style="font-size: 12px; font-weight: bold; margin: 0 0 10px 0; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+              Patient & Encounter Information
+            </h2>
+            <table class="info-table">
+              <tr>
+                <td class="info-label">Patient Name</td>
+                <td class="info-value" style="font-weight: bold; color: #0f172a;">${patient.name || 'N/A'}</td>
+                <td class="info-label">Patient ID Code</td>
+                <td class="info-value" style="font-family: monospace; font-weight: bold; color: #0d9488;">${patient.facility_id_code || 'N/A'}</td>
+              </tr>
+              <tr>
+                <td class="info-label">Age / Gender</td>
+                <td class="info-value">${ageYrs} Years / <span style="text-transform: capitalize;">${patient.gender || 'N/A'}</span></td>
+                <td class="info-label">Encounter Date</td>
+                <td class="info-value">${selectedVisit.created_at ? new Date(selectedVisit.created_at).toLocaleString() : new Date().toLocaleString()}</td>
+              </tr>
+              <tr>
+                <td class="info-label">Service Type</td>
+                <td class="info-value" style="font-weight: bold;">${selectedVisit.service_type || 'General Outpatient'}</td>
+                <td class="info-label">Attending Clinician</td>
+                <td class="info-value">${user.full_name || 'Medical Practitioner'}</td>
+              </tr>
+            </table>
+
+            <!-- Vital Signs -->
+            <h2 style="font-size: 12px; font-weight: bold; margin: 0 0 10px 0; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+              Vitals & Measurements
+            </h2>
+            <div class="vitals-grid">
+              <div class="vital-card">
+                <div class="vital-label">Temperature</div>
+                <div class="vital-value">${tempStr}</div>
+              </div>
+              <div class="vital-card">
+                <div class="vital-label">Blood Pressure</div>
+                <div class="vital-value">${bpStr}</div>
+              </div>
+              <div class="vital-card">
+                <div class="vital-label">Heart Rate</div>
+                <div class="vital-value">${hrStr}</div>
+              </div>
+              <div class="vital-card">
+                <div class="vital-label">Respiratory Rate</div>
+                <div class="vital-value">${rrStr}</div>
+              </div>
+              <div class="vital-card">
+                <div class="vital-label">SpO2</div>
+                <div class="vital-value">${spo2Str}</div>
+              </div>
+              <div class="vital-card">
+                <div class="vital-label">Weight</div>
+                <div class="vital-value">${weightStr}</div>
+              </div>
+              <div class="vital-card">
+                <div class="vital-label">Height</div>
+                <div class="vital-value">${heightStr}</div>
+              </div>
+              <div class="vital-card">
+                <div class="vital-label">Calculated BMI</div>
+                <div class="vital-value">${bmiStr}</div>
+              </div>
+            </div>
+
+            <!-- SOAP Notes / Clinical Presentation -->
+            <h2 style="font-size: 12px; font-weight: bold; margin: 0 0 10px 0; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+              Clinical Examination Findings
+            </h2>
+            
+            <div class="soap-section">
+              <div class="soap-title">Chief Complaint & History of Present Illness</div>
+              <div class="soap-content">${history || 'No history recorded.'}</div>
+            </div>
+
+            <div class="soap-section">
+              <div class="soap-title">Physical Examination</div>
+              <div class="soap-content">${exam || 'No examination findings recorded.'}</div>
+            </div>
+
+            <div class="soap-section">
+              <div class="soap-title">Diagnosis & Assessment (ICD-10)</div>
+              <div class="soap-content" style="font-weight: bold; color: #0f172a;">${diagnosis || 'No primary diagnosis assigned.'}</div>
+            </div>
+
+            <div class="soap-section">
+              <div class="soap-title">Management & Treatment Plan</div>
+              <div class="soap-content">${treatmentPlan || 'No treatment plan recorded.'}</div>
+            </div>
+
+            <!-- Prescribed Medications -->
+            <h2 style="font-size: 12px; font-weight: bold; margin: 20px 0 10px 0; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+              Prescribed Medications
+            </h2>
+            ${prescriptionsHtml}
+
+            <!-- Diagnostics & Investigations Ordered -->
+            <h2 style="font-size: 12px; font-weight: bold; margin: 20px 0 10px 0; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+              Ordered Diagnostic Investigations
+            </h2>
+            ${investigationsHtml}
+
+            <!-- Footer & Attending Stamp -->
+            <div class="footer-section">
+              <div style="font-size: 9px; color: #64748b; font-style: italic; line-height: 1.4; text-align: justify; margin-bottom: 20px;">
+                <strong>Notice:</strong> This outpatient summary document is generated electronically from the active clinical database session. It serves as an official summary of the patient's presentation, examination, and immediate management plan. All prescriptions and ordered investigations should be verified by the respective dispensing or processing departments.
+              </div>
+
+              <div class="signature-block">
+                <div>
+                  <div style="height: 40px;"></div>
+                  <div class="signature-line">
+                    PATIENT SIGNATURE / THUMBPRINT
+                  </div>
+                </div>
+                <div>
+                  <div style="height: 40px; text-align: center; font-family: monospace; font-size: 9px; color: #0d9488; font-weight: bold; display: flex; align-items: center; justify-content: center;">
+                    CLINICALLY VALIDATED<br/>
+                    ${user.full_name?.toUpperCase() || 'ATTENDING CLINICIAN'}
+                  </div>
+                  <div class="signature-line">
+                    ATTENDING CLINICIAN SIGN-OFF
+                  </div>
+                  <div style="font-size: 8px; text-align: center; color: #64748b; margin-top: 2px;">
+                    Licensed Practitioner Stamp & Sign
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Print Controls -->
+            <div style="margin-top: 30px; text-align: center;" class="print-hidden">
+              <button onclick="window.print();" style="background-color: #0d9488; color: #fff; border: none; padding: 8px 20px; font-size: 12px; font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.2);">
+                Print Clinical Summary
+              </button>
+              <button onclick="window.close();" style="background-color: #64748b; color: #fff; border: none; padding: 8px 20px; font-size: 12px; font-weight: bold; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                Close Window
+              </button>
+            </div>
+
+          </div>
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+  };
 
   const fetchConsultationQueue = async () => {
     try {
@@ -606,7 +1040,42 @@ export default function Consultation({ user, onComplete }) {
     setMessage({ type: "", text: "" });
 
     try {
-      // 0. Save validated MOH details
+      // 0a. Frontend validation of specialized clinical records
+      if (selectedVisit.service_type === 'ANC') {
+        const fh = parseFloat(ancFundalHeight);
+        if (ancFundalHeight !== '' && (isNaN(fh) || fh < 10 || fh > 50)) {
+          throw new Error("Validation: Fundal height must be between 10 cm and 50 cm.");
+        }
+        const fhr = parseInt(ancFetalHeartRate, 10);
+        if (ancFetalHeartRate !== '' && (isNaN(fhr) || fhr < 60 || fhr > 220)) {
+          throw new Error("Validation: Fetal heart rate must be between 60 bpm and 220 bpm.");
+        }
+        const ttDose = parseInt(ancTetanusDose, 10);
+        if (ancTetanusDose !== '' && (isNaN(ttDose) || ttDose < 1 || ttDose > 5)) {
+          throw new Error("Validation: Tetanus toxoid dose must be between 1 and 5.");
+        }
+        const supplements = parseInt(ancSupplementsCount, 10);
+        if (ancSupplementsCount !== '' && (isNaN(supplements) || supplements < 0 || supplements > 365)) {
+          throw new Error("Validation: Supplements supplied count must be between 0 and 365.");
+        }
+        const vNum = parseInt(ancVisitNumber, 10);
+        if (isNaN(vNum) || vNum < 1 || vNum > 12) {
+          throw new Error("Validation: ANC visit number must be between 1 and 12.");
+        }
+      }
+
+      if (selectedVisit.service_type === 'FP') {
+        const grav = parseInt(fpGravidity, 10);
+        if (isNaN(grav) || grav < 0 || grav > 30) {
+          throw new Error("Validation: Family planning reproductive history gravidity must be between 0 and 30.");
+        }
+        const par = parseInt(fpParity, 10);
+        if (isNaN(par) || par < 0 || par > grav) {
+          throw new Error("Validation: Family planning reproductive history parity must be between 0 and gravidity.");
+        }
+      }
+
+      // 0b. Save validated MOH details
       await saveMOHRecords();
 
       // 1. Insert Consultation Notes
@@ -1027,21 +1496,30 @@ export default function Consultation({ user, onComplete }) {
                     {selectedVisit.patient?.facility_id_code}
                   </span>
                 </div>
-                <div className="text-left sm:text-right">
-                  <span className="text-[10px] text-slate-500 block">
-                    Triage Priority Badge
-                  </span>
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${
-                      triageData?.priority_flag === "red"
-                        ? "text-red-400 bg-red-950/20 border-red-500/20"
-                        : triageData?.priority_flag === "yellow"
-                          ? "text-yellow-400 bg-yellow-950/20 border-yellow-500/20"
-                          : "text-green-400 bg-green-950/20 border-green-500/20"
-                    }`}
+                <div className="flex flex-wrap items-center gap-3 text-left sm:text-right justify-start sm:justify-end">
+                  <button
+                    onClick={handlePrintConsultationSummary}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-teal-400 hover:text-teal-300 border border-slate-700 hover:border-teal-500/30 text-[10px] font-bold rounded-lg transition-all"
                   >
-                    {triageData?.priority_flag || "Green"} Flag
-                  </span>
+                    <Printer size={12} />
+                    Print Summary
+                  </button>
+                  <div>
+                    <span className="text-[10px] text-slate-500 block">
+                      Triage Priority Badge
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${
+                        triageData?.priority_flag === "red"
+                          ? "text-red-400 bg-red-950/20 border-red-500/20"
+                          : triageData?.priority_flag === "yellow"
+                            ? "text-yellow-400 bg-yellow-950/20 border-yellow-500/20"
+                            : "text-green-400 bg-green-950/20 border-green-500/20"
+                      }`}
+                    >
+                      {triageData?.priority_flag || "Green"} Flag
+                    </span>
+                  </div>
                 </div>
               </div>
 

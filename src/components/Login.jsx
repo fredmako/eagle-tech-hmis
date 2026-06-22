@@ -6,7 +6,7 @@ import RoleRequestForm from './login/RoleRequestForm';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { sendNotification, getSmtpConfig } from '../notificationService';
-import { Activity, ShieldAlert, CheckCircle, UserPlus, Clock, LogOut, UserCheck, ShieldCheck, Heart } from 'lucide-react';
+import { Activity, ShieldAlert, CheckCircle, UserPlus, Clock, LogOut, UserCheck, ShieldCheck, Heart, ChevronRight } from 'lucide-react';
 
 export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLanding }) {
   const { login, signup, logout, submitRoleRequest, resolveTenant, acceptInvite, checkSession } = useAuth();
@@ -22,6 +22,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
   const [loginStage, setLoginStage] = useState('email_check'); // 'email_check', 'password_entry', 'oauth_entry', 'accept_invite', 'manual_select'
   const [resolvedTenant, setResolvedTenant] = useState(null);
   const [resolvedInvite, setResolvedInvite] = useState(null);
+  const [selectableProfiles, setSelectableProfiles] = useState([]);
 
   const renderLogo = (logoUrl) => {
     if (!logoUrl) {
@@ -200,6 +201,44 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     }
   };
 
+  const handleSelectFacility = async (profile) => {
+    setLoading(true);
+    setError('');
+    try {
+      const sessionRes = await supabase.auth.getSession();
+      const clientJwt = sessionRes?.data?.session?.access_token;
+      if (!clientJwt) {
+        throw new Error('Supabase session not found. Please log in again.');
+      }
+
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${backendUrl}/auth/supabase-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: clientJwt,
+          facility_id: profile.facility_id
+        })
+      });
+
+      const resData = await res.json();
+      if (res.ok && resData.status === 'success') {
+        localStorage.setItem('egesa_active_facility_id', profile.facility_id);
+        localStorage.setItem('egesa_health_token', resData.token);
+        sessionStorage.setItem('egesa_health_active_user', JSON.stringify(resData.user));
+        if (checkSession) await checkSession();
+        onLoginSuccess(resData.user);
+      } else {
+        setError(resData.error || 'Failed to authenticate with selected facility.');
+      }
+    } catch (err) {
+      console.error('Error selecting facility:', err);
+      setError(err.message || 'An error occurred during workspace selection.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchFacilitiesAndCheckAutoLogin = async () => {
     console.log('[Login:fetchFacilities] ▶ Loading facilities and checking auth state...');
     try {
@@ -258,6 +297,11 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                   sessionStorage.setItem('egesa_health_active_user', JSON.stringify(resData.user));
                   if (checkSession) await checkSession();
                   onLoginSuccess(resData.user);
+                  return;
+                } else if (resData.status === 'select_facility') {
+                  console.log('[Login:fetchFacilities] Multiple facilities detected. Directing to selection screen.');
+                  setSelectableProfiles(resData.profiles);
+                  setLoginStage('select_facility');
                   return;
                 } else if (resData.status === 'no_profile') {
                   console.warn('[Login:fetchFacilities] ⚠️ JWT exchange: no profile found for this Google account.');
@@ -457,7 +501,11 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       // Reset failed attempts on success
       setFailedAttempts(0);
 
-      if (result.status === 'no_profile') {
+      if (result.status === 'select_facility') {
+        console.log('[Login:handleLogin] Multiple facilities detected. Directing to selection screen.');
+        setSelectableProfiles(result.profiles);
+        setLoginStage('select_facility');
+      } else if (result.status === 'no_profile') {
         if ((result.user?.role && result.user?.role !== 'staff') || email.toLowerCase().trim() === 'fredrickmakori102@gmail.com' || (result.user?.email && result.user.email.toLowerCase().trim() === 'fredrickmakori102@gmail.com')) {
           console.log('[Login:handleLogin] Bypass role request (user has assigned role). Redirecting to dashboard.');
           onLoginSuccess(result.user);
@@ -1334,8 +1382,60 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
               </form>
             )}
 
+            {loginStage === 'select_facility' && (
+              <div className="space-y-4 mt-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-100 mb-1">Select Hospital Workspace</h2>
+                  <p className="text-sm text-slate-400 mb-6 font-medium">Your account is associated with multiple workspaces. Please select one to log in.</p>
+                </div>
+
+                {error && (
+                  <div className="bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg p-3 text-sm flex items-start gap-2">
+                    <ShieldAlert size={18} className="shrink-0 mt-0.5" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                  {selectableProfiles.map((p, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSelectFacility(p)}
+                      disabled={loading}
+                      className="w-full text-left bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 p-4 rounded-xl transition duration-200 flex items-center justify-between group cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        {renderLogo(p.logo_url || 'preset:cross')}
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-200 group-hover:text-teal-400 transition">{p.facility_name}</h4>
+                          <span className="text-xs text-slate-500 font-medium">Role: {p.role} {p.department ? `(${p.department})` : ''}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-teal-400 font-bold bg-teal-500/10 border border-teal-500/25 px-2 py-0.5 rounded">
+                          {p.facility_code}
+                        </span>
+                        <ChevronRight size={16} className="text-slate-500 group-hover:text-teal-400 transition transform group-hover:translate-x-0.5" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError('');
+                    setLoginStage('email_check');
+                  }}
+                  className="w-full bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-300 font-semibold text-sm py-2.5 px-4 rounded-lg active:scale-[0.98] transition cursor-pointer"
+                >
+                  Back to Sign In
+                </button>
+              </div>
+            )}
+
             {/* Toggle to Sign Up */}
-            {loginStage !== 'accept_invite' && (
+            {loginStage !== 'accept_invite' && loginStage !== 'select_facility' && (
               <div className="mt-4 text-center">
                 <button
                   type="button"

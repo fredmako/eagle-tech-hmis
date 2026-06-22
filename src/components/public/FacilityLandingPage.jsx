@@ -3,9 +3,17 @@ import { supabase } from '../../supabaseClient';
 import { PhoneCall, DollarSign, Calendar, ShieldCheck, ArrowRight, UserPlus, LogIn, Award, MapPin } from 'lucide-react';
 
 export default function FacilityLandingPage() {
-  const pathParts = window.location.pathname.split('/');
-  const hospitalIndex = pathParts.indexOf('hospital');
-  const subdomain = hospitalIndex !== -1 && pathParts[hospitalIndex + 1] ? pathParts[hospitalIndex + 1] : null;
+  const hostnameParts = window.location.hostname.split('.');
+  const isSubdomain = hostnameParts.length > 2 && hostnameParts[0] !== 'www' && !window.location.hostname.includes('localhost') && !window.location.hostname.match(/^[0-9.]+$/);
+  
+  let subdomain = null;
+  if (isSubdomain) {
+    subdomain = hostnameParts[0];
+  } else {
+    const pathParts = window.location.pathname.split('/');
+    const hospitalIndex = pathParts.indexOf('hospital');
+    subdomain = hospitalIndex !== -1 && pathParts[hospitalIndex + 1] ? pathParts[hospitalIndex + 1] : null;
+  }
   const [facility, setFacility] = useState(null);
   const [loading, setLoading] = useState(true);
 

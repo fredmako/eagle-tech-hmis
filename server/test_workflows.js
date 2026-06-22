@@ -227,6 +227,116 @@ const runTests = async () => {
     failed = true;
   }
 
+  // Test 7: Operations & Calendar Input Validations
+  try {
+    // 7.1 Invalid inventory price
+    try {
+      await axios.post(`${dbUrl}/insert`, {
+        table: 'inventory_items',
+        rows: {
+          id: 'test_inv_fail',
+          name: 'Fail Drug',
+          category: 'pharmaceutical',
+          unit_of_measure: 'box',
+          unit_price: -10.00,
+          quantity_in_stock: 10,
+          min_reorder_level: 5
+        }
+      }, config);
+      console.error("❌ Test 7a Failed: Backend accepted negative unit price!");
+      failed = true;
+    } catch (err) {
+      if (err.response && err.response.status === 400 && err.response.data.error.includes("Unit price cannot be negative")) {
+        console.log("✅ Test 7a Passed: Backend successfully rejected negative unit price");
+      } else {
+        console.error("❌ Test 7a Failed: Unexpected error for negative unit price", err.response?.data || err.message);
+        failed = true;
+      }
+    }
+
+    // 7.2 Invalid purchase quantity
+    try {
+      await axios.post(`${dbUrl}/insert`, {
+        table: 'purchases',
+        rows: {
+          id: 'test_po_fail',
+          item_name: 'Surgical Gowns',
+          quantity: -5,
+          estimated_cost: 200.00,
+          supplier: 'Supplier Inc',
+          status: 'Pending Approval'
+        }
+      }, config);
+      console.error("❌ Test 7b Failed: Backend accepted negative purchase quantity!");
+      failed = true;
+    } catch (err) {
+      if (err.response && err.response.status === 400 && err.response.data.error.includes("Purchase quantity must be greater than zero")) {
+        console.log("✅ Test 7b Passed: Backend successfully rejected negative purchase quantity");
+      } else {
+        console.error("❌ Test 7b Failed: Unexpected error for negative purchase quantity", err.response?.data || err.message);
+        failed = true;
+      }
+    }
+
+    // 7.3 Invalid utility amount
+    try {
+      await axios.post(`${dbUrl}/insert`, {
+        table: 'utility_records',
+        rows: {
+          id: 'test_util_fail',
+          utility_name: 'Water Intake',
+          billing_period: 'June 2026',
+          amount: -500,
+          payment_status: 'unpaid'
+        }
+      }, config);
+      console.error("❌ Test 7c Failed: Backend accepted negative utility bill amount!");
+      failed = true;
+    } catch (err) {
+      if (err.response && err.response.status === 400 && err.response.data.error.includes("Utility bill amount cannot be negative")) {
+        console.log("✅ Test 7c Passed: Backend successfully rejected negative utility bill amount");
+      } else {
+        console.error("❌ Test 7c Failed: Unexpected error for negative utility bill amount", err.response?.data || err.message);
+        failed = true;
+      }
+    }
+
+    // 7.4 Future check-in date
+    try {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      await axios.post(`${dbUrl}/insert`, {
+        table: 'ward_care_records',
+        rows: {
+          id: 'test_ward_fail',
+          admission_id: 'test_adm_123',
+          care_date: tomorrowStr,
+          round_number: 1,
+          bp_systolic: 120,
+          bp_diastolic: 80,
+          temperature: 37.0,
+          pulse_rate: 72,
+          respiratory_rate: 16,
+          observations_notes: 'Future note'
+        }
+      }, config);
+      console.error("❌ Test 7d Failed: Backend accepted future care check-in date!");
+      failed = true;
+    } catch (err) {
+      if (err.response && err.response.status === 400 && err.response.data.error.includes("Care check-in date cannot be in the future")) {
+        console.log("✅ Test 7d Passed: Backend successfully rejected future care check-in date");
+      } else {
+        console.error("❌ Test 7d Failed: Unexpected error for future care check-in date", err.response?.data || err.message);
+        failed = true;
+      }
+    }
+  } catch (err) {
+    console.error("❌ Test 7 Failed with error:", err.message);
+    failed = true;
+  }
+
   server.close();
   if (failed) {
     process.exit(1);

@@ -297,7 +297,119 @@ const getInitialSandboxData = () => {
       { id: "inst_monitor", facility_id: "f1", name: "Patient Monitor Vitals", type: "monitor", category: "triage", manufacturer: "Mindray", model: "ePM 10", serial_number: "MON-MIND-928318", installation_date: "2025-03-15", calibration_date: "2026-03-01", next_calibration_date: "2026-09-01", location_ward: "ER Triage", status: "active", usage_count: 0 },
       { id: "inst_pump", facility_id: "f1", name: "IV Infusion Pump", type: "pump", category: "ward", manufacturer: "Baxter", model: "Flo-Gard", serial_number: "PUMP-BAX-493021", installation_date: "2025-07-22", calibration_date: "2026-02-18", next_calibration_date: "2026-08-18", location_ward: "Ward A", status: "active", usage_count: 0 }
     ],
-    instrument_usage_logs: []
+    instrument_usage_logs: [],
+    inventory_items: [
+      {
+        id: "inv_1",
+        facility_id: "f1",
+        name: "Paracetamol 500mg Tablets",
+        category: "pharmaceutical",
+        unit_of_measure: "Box of 100",
+        unit_price: 150.00,
+        quantity_in_stock: 45,
+        min_reorder_level: 10,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: "inv_2",
+        facility_id: "f1",
+        name: "Disposable Syringes 5ml",
+        category: "surgical",
+        unit_of_measure: "Box of 50",
+        unit_price: 250.00,
+        quantity_in_stock: 8,
+        min_reorder_level: 15,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: "inv_3",
+        facility_id: "f1",
+        name: "Medical Oxygen Cylinder 10L",
+        category: "consumable",
+        unit_of_measure: "Cylinder",
+        unit_price: 1500.00,
+        quantity_in_stock: 3,
+        min_reorder_level: 5,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: "inv_4",
+        facility_id: "f1",
+        name: "Patient Vital Signs Monitor",
+        category: "asset",
+        unit_of_measure: "Unit",
+        unit_price: 85000.00,
+        quantity_in_stock: 4,
+        min_reorder_level: 1,
+        created_at: new Date().toISOString()
+      }
+    ],
+    inventory_transactions: [
+      {
+        id: "tx_1",
+        facility_id: "f1",
+        item_id: "inv_1",
+        transaction_type: "stock_in",
+        quantity: 50,
+        reference_id: "po_initial",
+        notes: "Initial inventory setup",
+        recorded_by: "u7",
+        created_at: new Date().toISOString()
+      },
+      {
+        id: "tx_2",
+        facility_id: "f1",
+        item_id: "inv_1",
+        transaction_type: "sale",
+        quantity: 5,
+        reference_id: "inv_initial_sale",
+        notes: "Dispensed to outpatient",
+        recorded_by: "u7",
+        created_at: new Date().toISOString()
+      }
+    ],
+    purchases: [
+      {
+        id: "po_1",
+        facility_id: "f1",
+        item_name: "Disposable Syringes 5ml",
+        quantity: 20,
+        estimated_cost: 5000.00,
+        supplier: "Kenya Medical Supplies Authority (KEMSA)",
+        status: "Pending Approval",
+        created_at: new Date().toISOString()
+      },
+      {
+        id: "po_2",
+        facility_id: "f1",
+        item_name: "Paracetamol 500mg Tablets",
+        quantity: 10,
+        estimated_cost: 1500.00,
+        supplier: "Medisell Kenya Ltd",
+        status: "Delivered",
+        created_at: new Date().toISOString()
+      }
+    ],
+    utility_records: [
+      {
+        id: "ut_1",
+        facility_id: "f1",
+        utility_name: "Kenya Power (Electricity Bill)",
+        billing_period: "May 2026",
+        amount: 8500.00,
+        payment_status: "paid",
+        created_at: new Date().toISOString()
+      },
+      {
+        id: "ut_2",
+        facility_id: "f1",
+        utility_name: "Nairobi Water Company",
+        billing_period: "June 2026",
+        amount: 3200.00,
+        payment_status: "unpaid",
+        created_at: new Date().toISOString()
+      }
+    ]
   };
 };
 
@@ -324,6 +436,24 @@ const loadSandboxDB = () => {
         { id: "ward_female", name: "Female Ward", wing: "B Wing", facility_id: "f1", created_at: new Date().toISOString() },
         { id: "ward_pediatric", name: "Pediatric Ward", wing: "C Wing", facility_id: "f1", created_at: new Date().toISOString() }
       ];
+      updated = true;
+    }
+
+    const initial = getInitialSandboxData();
+    if (!data.inventory_items) {
+      data.inventory_items = initial.inventory_items;
+      updated = true;
+    }
+    if (!data.inventory_transactions) {
+      data.inventory_transactions = initial.inventory_transactions;
+      updated = true;
+    }
+    if (!data.purchases) {
+      data.purchases = initial.purchases;
+      updated = true;
+    }
+    if (!data.utility_records) {
+      data.utility_records = initial.utility_records;
       updated = true;
     }
 

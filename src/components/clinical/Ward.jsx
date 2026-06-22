@@ -21,6 +21,13 @@ export default function Ward({ user }) {
   const [bp, setBp] = useState('');
   const [pulse, setPulse] = useState('');
   const [progressNotes, setProgressNotes] = useState('');
+  const [respRate, setRespRate] = useState('');
+  const [painScore, setPainScore] = useState('');
+  const [spo2, setSpo2] = useState('');
+  const [medsGiven, setMedsGiven] = useState('');
+  const [fluidsAdmin, setFluidsAdmin] = useState('');
+  const [customCareDate, setCustomCareDate] = useState(null);
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState(null);
 
   // Discharge states
   const [dischargeNotes, setDischargeNotes] = useState('');
@@ -238,25 +245,54 @@ export default function Ward({ user }) {
       }
     }
 
+    if (respRate) {
+      const respVal = parseInt(respRate, 10);
+      if (isNaN(respVal) || respVal < 6 || respVal > 80) {
+        setMessage({ type: 'error', text: 'Respiratory rate must be between 6 and 80 breaths per minute.' });
+        return;
+      }
+    }
+
+    if (painScore) {
+      const painVal = parseInt(painScore, 10);
+      if (isNaN(painVal) || painVal < 0 || painVal > 10) {
+        setMessage({ type: 'error', text: 'Pain score must be between 0 and 10.' });
+        return;
+      }
+    }
+
+    if (spo2) {
+      const spo2Val = parseInt(spo2, 10);
+      if (isNaN(spo2Val) || spo2Val < 10 || spo2Val > 100) {
+        setMessage({ type: 'error', text: 'Oxygen saturation (SPO2) must be between 10% and 100%.' });
+        return;
+      }
+    }
+
     setLoading(true);
     setMessage({ type: '', text: '' });
 
     try {
+      const targetDate = customCareDate || new Date().toISOString().split('T')[0];
       const recordId = 'care_' + Math.random().toString(36).substring(2, 12);
       const { error: obsError } = await supabase.from('ward_care_records').insert({
         id: recordId,
         admission_id: selectedAdmission.id,
         facility_id: user.facility_id,
-        care_date: new Date().toISOString().split('T')[0],
-        round_number: observations.length + 1,
+        care_date: targetDate,
+        round_number: observations.filter(o => {
+          const careDateStr = o.care_date ? o.care_date.split('T')[0] : '';
+          return careDateStr === targetDate;
+        }).length + 1,
         bp_systolic: bpSystolic,
         bp_diastolic: bpDiastolic,
         temperature: parseFloat(temp) || null,
         pulse_rate: parseInt(pulse) || null,
-        respiratory_rate: 16,
-        oxygen_saturation: 98,
-        medications_given: '',
-        fluids_administered: '',
+        respiratory_rate: parseInt(respRate) || 16,
+        pain_score: parseInt(painScore) || 0,
+        oxygen_saturation: parseInt(spo2) || 98,
+        medications_given: medsGiven || '',
+        fluids_administered: fluidsAdmin || '',
         observations_notes: progressNotes,
         recorded_by: user.id
       });
@@ -272,6 +308,12 @@ export default function Ward({ user }) {
       setTemp('');
       setBp('');
       setPulse('');
+      setRespRate('');
+      setPainScore('');
+      setSpo2('');
+      setMedsGiven('');
+      setFluidsAdmin('');
+      setCustomCareDate(null);
       setProgressNotes('');
       
       // Refresh observations
@@ -289,6 +331,22 @@ export default function Ward({ user }) {
     const diffMs = Date.now() - dob.getTime();
     const ageDate = new Date(diffMs);
     return Math.abs(ageDate.getUTCFullYear() - 1970);
+  };
+
+  const getAdmittedDays = (admissionDatetime) => {
+    if (!admissionDatetime) return [];
+    const dates = [];
+    const start = new Date(new Date(admissionDatetime).toDateString());
+    const today = new Date(new Date().toDateString());
+    
+    let current = new Date(start);
+    let iterations = 0;
+    while (current <= today && iterations < 100) {
+      dates.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+      iterations++;
+    }
+    return dates;
   };
 
   const handleDischargeClick = async (e) => {
@@ -607,8 +665,7 @@ export default function Ward({ user }) {
               <span className="text-xs">No active inpatient selected. Click an occupied bed from the map.</span>
             </div>
           ) : (
-            <div className="space-y-5">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-850">
+            <div className="space-y-5">              <div className="flex justify-between items-center pb-2 border-b border-slate-850">
                 <div>
                   <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider">{selectedAdmission.bed} Inpatient File</span>
                   <h4 className="text-sm font-bold text-slate-100">{selectedAdmission.patient?.name}</h4>
@@ -616,13 +673,95 @@ export default function Ward({ user }) {
                 </div>
               </div>
 
+              {/* Clinical Progress Calendar */}
+              <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-3 font-sans">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                    Clinical Progress Calendar (Check-in Compliance)
+                  </span>
+                  {customCareDate && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomCareDate(null)}
+                      className="text-[9px] text-teal-400 border border-teal-500/20 bg-teal-500/5 px-2 py-0.5 rounded cursor-pointer font-sans"
+                    >
+                      Reset to Today
+                    </button>
+                  )}
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  {getAdmittedDays(selectedAdmission?.admission_datetime).map((day, idx) => {
+                    const formatted = day.toISOString().split('T')[0];
+                    const dayNumber = idx + 1;
+                    const hasCheck = observations.some(o => {
+                      const careDateStr = o.care_date ? o.care_date.split('T')[0] : '';
+                      return careDateStr === formatted;
+                    });
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const isToday = formatted === todayStr;
+                    const isPastDay = formatted < todayStr;
+                    
+                    let colorClass = "";
+                    let tooltipText = "";
+                    
+                    if (hasCheck) {
+                      colorClass = "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20";
+                      tooltipText = `Day ${dayNumber}: Check-in complete. Click to review.`;
+                    } else if (isToday) {
+                      colorClass = "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 animate-pulse";
+                      tooltipText = `Day ${dayNumber} (Today): Check-in pending. Click to log.`;
+                    } else if (isPastDay) {
+                      colorClass = "bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20";
+                      tooltipText = `Day ${dayNumber} (Missed): Unchecked. Click to log check-in.`;
+                    }
+                    
+                    return (
+                      <button
+                        key={formatted}
+                        type="button"
+                        onClick={() => {
+                          if (hasCheck) {
+                            const dayObs = observations.filter(o => {
+                              const careDateStr = o.care_date ? o.care_date.split('T')[0] : '';
+                              return careDateStr === formatted;
+                            });
+                            setSelectedCalendarDay({
+                              dayNumber,
+                              date: formatted,
+                              records: dayObs
+                            });
+                          } else {
+                            setCustomCareDate(formatted);
+                          }
+                        }}
+                        title={tooltipText}
+                        className={`w-11 h-11 rounded-lg flex flex-col justify-center items-center text-center border font-sans cursor-pointer transition ${colorClass}`}
+                      >
+                        <span className="text-[9px] font-black uppercase">Day {dayNumber}</span>
+                        <span className="text-[8px] opacity-70 font-mono mt-0.5">{day.toLocaleDateString([], {month:'short', day:'numeric'})}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Action tabs: Observations and Discharge */}
-              <div className="grid grid-grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-grid-cols-1 md:grid-cols-2 gap-6 font-sans">
                 {/* Observations Logger */}
                 <form onSubmit={handleLogObservation} className="space-y-3.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block flex items-center gap-1.5"><Thermometer size={12} className="text-teal-400" /> Observation Vitals Chart</span>
+                  <div className="flex justify-between items-center font-sans">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block flex items-center gap-1.5 font-sans">
+                      <Thermometer size={12} className="text-teal-400" /> Observation Vitals Chart
+                    </span>
+                    {customCareDate && (
+                      <span className="text-[9px] text-amber-400 bg-amber-500/10 border border-amber-500/25 px-1.5 py-0.5 rounded font-mono animate-pulse">
+                        Date: {customCareDate}
+                      </span>
+                    )}
+                  </div>
 
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-2 font-sans">
                     <div>
                       <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Temp (°C)</label>
                       <input
@@ -633,7 +772,7 @@ export default function Ward({ user }) {
                         min="25"
                         max="45"
                         placeholder="37"
-                        className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                        className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500 font-mono"
                         required
                       />
                     </div>
@@ -644,7 +783,7 @@ export default function Ward({ user }) {
                         value={bp}
                         onChange={(e) => setBp(e.target.value)}
                         placeholder="120/80"
-                        className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                        className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500 font-mono"
                         required
                       />
                     </div>
@@ -657,13 +796,75 @@ export default function Ward({ user }) {
                         min="30"
                         max="260"
                         placeholder="72"
-                        className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                        className="w-full bg-slate-950 border border-slate-855 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500 font-mono"
                         required
                       />
                     </div>
                   </div>
 
-                  <div>
+                  <div className="grid grid-cols-3 gap-2 font-sans">
+                    <div>
+                      <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Resp (bpm)</label>
+                      <input
+                        type="number"
+                        value={respRate}
+                        onChange={(e) => setRespRate(e.target.value)}
+                        min="6"
+                        max="80"
+                        placeholder="16"
+                        className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">SPO2 (%)</label>
+                      <input
+                        type="number"
+                        value={spo2}
+                        onChange={(e) => setSpo2(e.target.value)}
+                        min="10"
+                        max="100"
+                        placeholder="98"
+                        className="w-full bg-slate-950 border border-slate-855 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Pain (0-10)</label>
+                      <input
+                        type="number"
+                        value={painScore}
+                        onChange={(e) => setPainScore(e.target.value)}
+                        min="0"
+                        max="10"
+                        placeholder="0"
+                        className="w-full bg-slate-950 border border-slate-855 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 font-sans">
+                    <div>
+                      <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Medications Given</label>
+                      <input
+                        type="text"
+                        value={medsGiven}
+                        onChange={(e) => setMedsGiven(e.target.value)}
+                        placeholder="e.g. Paracetamol 500mg IV"
+                        className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-205 focus:outline-none focus:border-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Fluids Administered</label>
+                      <input
+                        type="text"
+                        value={fluidsAdmin}
+                        onChange={(e) => setFluidsAdmin(e.target.value)}
+                        placeholder="e.g. Normal Saline 500ml"
+                        className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-205 focus:outline-none focus:border-teal-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="font-sans">
                     <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Nursing / Progress Notes</label>
                     <textarea
                       rows="2"
@@ -677,9 +878,9 @@ export default function Ward({ user }) {
 
                   <button
                     type="submit"
-                    className="w-full bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-350 text-xs py-1.5 rounded transition font-bold"
+                    className="w-full bg-slate-955 border border-slate-805 hover:bg-slate-800 text-slate-350 text-xs py-1.5 rounded transition font-bold cursor-pointer font-sans"
                   >
-                    Log Observation
+                    {customCareDate ? `Backdate Observation (${customCareDate})` : 'Log Observation'}
                   </button>
                 </form>
 
@@ -934,6 +1135,105 @@ export default function Ward({ user }) {
                 Verify & Complete Discharge Lifecycle
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* CALENDAR OBSERVATIONS HISTORY DETAILS OVERLAY */}
+      {selectedCalendarDay && (
+        <div className="fixed inset-0 bg-slate-955/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in font-sans">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 max-w-md w-full space-y-4 shadow-xl">
+            <div className="flex justify-between items-start border-b border-slate-850 pb-2">
+              <div>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-sans">
+                  Day {selectedCalendarDay.dayNumber} Check-in Logs
+                </h4>
+                <span className="text-[10px] text-slate-500 font-mono">Target Date: {selectedCalendarDay.date}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCalendarDay(null)}
+                className="text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+              {selectedCalendarDay.records.map((obs, idx) => (
+                <div key={obs.id} className="bg-slate-955 border border-slate-850 rounded-lg p-3 space-y-2 text-xs">
+                  <div className="flex justify-between text-[9px] text-slate-550 font-mono">
+                    <span>ROUND #{obs.round_number || (idx + 1)}</span>
+                    <span>{new Date(obs.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2 text-center font-mono">
+                    <div className="bg-slate-900 p-1.5 rounded">
+                      <span className="text-[8px] text-slate-500 block">TEMP</span>
+                      <span className={`text-[10px] font-bold ${obs.temperature >= 38 ? 'text-red-400' : 'text-teal-400'}`}>
+                        {obs.temperature ? `${obs.temperature}°C` : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="bg-slate-900 p-1.5 rounded">
+                      <span className="text-[8px] text-slate-500 block">BP</span>
+                      <span className="text-[10px] font-bold text-slate-200">
+                        {obs.bp_systolic && obs.bp_diastolic ? `${obs.bp_systolic}/${obs.bp_diastolic}` : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="bg-slate-900 p-1.5 rounded">
+                      <span className="text-[8px] text-slate-500 block">PULSE</span>
+                      <span className="text-[10px] font-bold text-slate-200">
+                        {obs.pulse_rate ? `${obs.pulse_rate} bpm` : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-center font-mono text-[9px]">
+                    <div className="bg-slate-900 p-1 rounded">
+                      <span className="text-[8px] text-slate-500 block">RESP RATE</span>
+                      <span className="font-bold text-slate-300">{obs.respiratory_rate || '16'} bpm</span>
+                    </div>
+                    <div className="bg-slate-900 p-1 rounded">
+                      <span className="text-[8px] text-slate-500 block">SPO2</span>
+                      <span className="font-bold text-slate-350">{obs.oxygen_saturation || '98'}%</span>
+                    </div>
+                  </div>
+
+                  {(obs.medications_given || obs.fluids_administered) && (
+                    <div className="bg-slate-900/60 p-2 rounded text-[10px] space-y-1">
+                      {obs.medications_given && (
+                        <div>
+                          <strong className="text-slate-450">Meds:</strong> <span className="text-slate-300">{obs.medications_given}</span>
+                        </div>
+                      )}
+                      {obs.fluids_administered && (
+                        <div>
+                          <strong className="text-slate-455">Fluids:</strong> <span className="text-slate-300">{obs.fluids_administered}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {obs.observations_notes && (
+                    <div className="text-slate-300 italic bg-slate-900/20 p-2 rounded border border-slate-900">
+                      "{obs.observations_notes}"
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setCustomCareDate(selectedCalendarDay.date);
+                setSelectedCalendarDay(null);
+                setMessage({ type: 'success', text: `Logging additional observation round for ${selectedCalendarDay.date}` });
+              }}
+              className="w-full bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 text-xs py-2 rounded-lg font-bold transition cursor-pointer font-sans"
+            >
+              Log Another Round for this Day
+            </button>
           </div>
         </div>
       )}

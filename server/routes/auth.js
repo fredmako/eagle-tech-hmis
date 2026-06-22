@@ -232,7 +232,7 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/supabase-login", async (req, res) => {
-  const { access_token } = req.body;
+  const { access_token, facility_id } = req.body;
 
   try {
     if (!supabaseClient) {
@@ -257,9 +257,10 @@ router.post("/supabase-login", async (req, res) => {
       { type: "equal", column: "email", value: userEmailClean },
     ]);
 
-    let activeProfile = profiles && profiles[0];
+    let activeProfile = null;
 
     if (userEmailClean === "fredrickmakori102@gmail.com") {
+      activeProfile = profiles && profiles[0];
       if (!activeProfile) {
         activeProfile = await db.createDocument("profiles", user.id, {
           full_name: "Fredrick Makori (Super Admin)",
@@ -277,18 +278,44 @@ router.post("/supabase-login", async (req, res) => {
         activeProfile.facility_id = null;
         activeProfile.email = userEmailClean;
       }
-    } else if (!activeProfile) {
-      // Query if there is a pending/rejected role request
-      const requests = await db.getDocuments("role_requests", [
-        { type: "equal", column: "email", value: userEmailClean },
-      ]);
-      const activeRequest = requests && requests[0];
+    } else {
+      if (facility_id) {
+        activeProfile = profiles && profiles.find(p => p.facility_id === facility_id);
+      } else if (profiles && profiles.length === 1) {
+        activeProfile = profiles[0];
+      } else if (profiles && profiles.length > 1) {
+        // Return select_facility status
+        const enrichedProfiles = [];
+        for (const p of profiles) {
+          const facs = await db.getDocuments("facilities", [
+            { type: "equal", column: "id", value: p.facility_id },
+          ]);
+          enrichedProfiles.push({
+            ...p,
+            facility_name: facs && facs[0] ? facs[0].name : "Unknown Facility",
+            facility_code: facs && facs[0] ? facs[0].code : "",
+          });
+        }
+        return res.json({
+          status: "select_facility",
+          user: { id: user.id, email: userEmailClean, name: user.user_metadata?.full_name || user.email },
+          profiles: enrichedProfiles
+        });
+      }
 
-      return res.json({
-        status: "no_profile",
-        user: { id: user.id, email: userEmailClean, name: user.user_metadata?.full_name || user.email },
-        pendingRequest: activeRequest || null,
-      });
+      if (!activeProfile) {
+        // Query if there is a pending/rejected role request
+        const requests = await db.getDocuments("role_requests", [
+          { type: "equal", column: "email", value: userEmailClean },
+        ]);
+        const activeRequest = requests && requests[0];
+
+        return res.json({
+          status: "no_profile",
+          user: { id: user.id, email: userEmailClean, name: user.user_metadata?.full_name || user.email },
+          pendingRequest: activeRequest || null,
+        });
+      }
     }
 
     // Fetch facilities to attach logo & details

@@ -77,10 +77,14 @@ export const AuthProvider = ({ children }) => {
       if ((!userData || userData.facility_is_verified === false) && !supabase.isSandbox) {
         try {
           console.log('[AuthContext:checkSession] Fetching enriched profile from backend...');
+          const activeFacilityId = localStorage.getItem('egesa_active_facility_id');
           const res = await fetch(`${API_URL}/auth/supabase-login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ access_token: session.access_token })
+            body: JSON.stringify({
+              access_token: session.access_token,
+              facility_id: activeFacilityId || undefined
+            })
           });
           
           if (res.ok) {
@@ -156,10 +160,14 @@ export const AuthProvider = ({ children }) => {
       if (!supabase.isSandbox && session) {
         try {
           console.log('[AuthContext:login] Fetching enriched profile from backend...');
+          const activeFacilityId = localStorage.getItem('egesa_active_facility_id');
           const res = await fetch(`${API_URL}/auth/supabase-login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ access_token: session.access_token })
+            body: JSON.stringify({
+              access_token: session.access_token,
+              facility_id: activeFacilityId || undefined
+            })
           });
           
           if (res.ok) {
@@ -168,6 +176,14 @@ export const AuthProvider = ({ children }) => {
               userData = resData.user;
               localStorage.setItem('egesa_health_token', resData.token);
               console.log('[AuthContext:login] Enriched profile fetched successfully:', userData.email);
+            } else if (resData.status === 'select_facility') {
+              console.log('[AuthContext:login] Multiple facilities found, returning select_facility status');
+              setLoading(false);
+              return {
+                status: 'select_facility',
+                user: resData.user,
+                profiles: resData.profiles
+              };
             } else if (resData.status === 'no_profile') {
               if (isSuperAdmin) {
                 console.log('[AuthContext:login] Super admin profile bypass on no_profile status');
@@ -240,6 +256,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout error:', err.message);
     }
     sessionStorage.removeItem('egesa_health_active_user');
+    localStorage.removeItem('egesa_active_facility_id');
     setUser(null);
     setError('');
   };

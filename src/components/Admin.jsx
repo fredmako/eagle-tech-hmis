@@ -6,7 +6,7 @@ import LicensingBilling from './admin/LicensingBilling';
 import StaffOnboarding from './admin/StaffOnboarding';
 import HospitalProfile from './admin/HospitalProfile';
 import HumanResources from './admin/HumanResources';
-import ProcurementDesk from './admin/ProcurementDesk';
+import OperationsDesk from './admin/OperationsDesk';
 import WardSettings from './admin/WardSettings';
 import PaymentSettings from './admin/PaymentSettings';
 
@@ -1081,9 +1081,8 @@ export default function Admin({ user }) {
             />
           )}
 
-          {/* TAB 8: PROCUREMENT DESK */}
           {activeSubTab === 'procurement' && (
-            <ProcurementDesk
+            <OperationsDesk
               user={user}
             />
           )}

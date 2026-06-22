@@ -45,7 +45,8 @@
     --primary-color: #0d9488;
     --primary-hover: #0f766e;
   }
-  .light {
+  .light,
+  .theme-emerald {
     --background: #f8fafc;
     --foreground: #0f172a;
     --card: #ffffff;
@@ -66,6 +67,44 @@
     --input: #ffffff;
     --input-background: #ffffff;
     --ring: #0d9488;
+    --fg-strong: var(--foreground);
+    --fg-body: color-mix(in oklab, var(--foreground) 90%, var(--background));
+    --fg-muted: var(--muted-foreground);
+    --fg-subtle: color-mix(in oklab, var(--muted-foreground) 75%, var(--background));
+    --fg-faint: color-mix(in oklab, var(--muted-foreground) 50%, var(--background));
+    --border-subtle: color-mix(in oklab, var(--primary) 8%, transparent);
+    --border-strong: color-mix(in oklab, var(--primary) 25%, transparent);
+    --border-emphasis: color-mix(in oklab, var(--primary) 40%, transparent);
+  }
+  .theme-navy {
+    --background: #0a1128;
+    --foreground: #e2e8f0;
+    --card: #101f42;
+    --card-foreground: #e2e8f0;
+    --popover: #101f42;
+    --popover-foreground: #e2e8f0;
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --secondary: #1e293b;
+    --secondary-foreground: #cbd5e1;
+    --muted: #0f172a;
+    --muted-foreground: #64748b;
+    --accent: #3b82f6;
+    --accent-foreground: #ffffff;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: color-mix(in oklab, var(--primary) 15%, transparent);
+    --input: #1e293b;
+    --input-background: #1e293b;
+    --ring: #3b82f6;
+    --fg-strong: var(--foreground);
+    --fg-body: color-mix(in oklab, var(--foreground) 90%, var(--background));
+    --fg-muted: var(--muted-foreground);
+    --fg-subtle: color-mix(in oklab, var(--muted-foreground) 75%, var(--background));
+    --fg-faint: color-mix(in oklab, var(--muted-foreground) 50%, var(--background));
+    --border-subtle: color-mix(in oklab, var(--primary) 8%, transparent);
+    --border-strong: color-mix(in oklab, var(--primary) 25%, transparent);
+    --border-emphasis: color-mix(in oklab, var(--primary) 40%, transparent);
   }
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground font-sans;
@@ -225,4 +264,132 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+}
+
+/* ============================================================
+   GLOBAL THEME SELECTOR OVERRIDES FOR LIGHT THEME (theme-emerald)
+============================================================ */
+.theme-emerald {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.theme-emerald.bg-slate-950,
+.theme-emerald .bg-slate-955,
+.theme-emerald .bg-slate-950,
+.theme-emerald.bg-slate-955,
+.theme-emerald .bg-slate-900,
+.theme-emerald .bg-slate-950\/40,
+.theme-emerald .bg-slate-950\/20,
+.theme-emerald .bg-slate-950\/60,
+.theme-emerald .bg-slate-950\/80 {
+  background-color: var(--card) !important;
+}
+
+.theme-emerald .bg-slate-955,
+.theme-emerald .bg-slate-950 {
+  background-color: var(--background) !important;
+}
+
+.theme-emerald .bg-slate-950\/10 {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.theme-emerald .bg-slate-900\/50,
+.theme-emerald .bg-slate-950\/50 {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.theme-emerald .bg-slate-800,
+.theme-emerald .bg-slate-850,
+.theme-emerald .bg-slate-800\/40 {
+  background-color: var(--secondary) !important;
+}
+
+.theme-emerald .border-slate-800,
+.theme-emerald .border-slate-850,
+.theme-emerald .border-slate-700,
+.theme-emerald .border-slate-850\/60,
+.theme-emerald .border-slate-850\/80,
+.theme-emerald .border-slate-900 {
+  border-color: var(--border) !important;
+}
+
+.theme-emerald .text-slate-100,
+.theme-emerald .text-slate-200,
+.theme-emerald .text-slate-300 {
+  color: var(--foreground) !important;
+}
+
+.theme-emerald .text-slate-400,
+.theme-emerald .text-slate-500,
+.theme-emerald .text-slate-600 {
+  color: var(--muted-foreground) !important;
+}
+
+.theme-emerald .text-fg-strong {
+  color: var(--foreground) !important;
+}
+.theme-emerald .text-fg-muted {
+  color: var(--muted-foreground) !important;
+}
+.theme-emerald .text-fg-subtle {
+  color: var(--fg-subtle) !important;
+}
+
+.theme-emerald .bg-background {
+  background-color: var(--background) !important;
+}
+
+.theme-emerald .bg-card {
+  background-color: var(--card) !important;
+}
+
+/* inputs */
+.theme-emerald input,
+.theme-emerald select,
+.theme-emerald textarea {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+
+.theme-emerald ::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* ============================================================
+   GLOBAL THEME SELECTOR OVERRIDES FOR NAVY THEME (theme-navy)
+============================================================ */
+.theme-navy {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.theme-navy.bg-slate-955,
+.theme-navy .bg-slate-955,
+.theme-navy.bg-slate-950,
+.theme-navy .bg-slate-950 {
+  background-color: var(--background) !important;
+}
+
+.theme-navy .bg-slate-900,
+.theme-navy .bg-slate-950\/40,
+.theme-navy .bg-slate-950\/20 {
+  background-color: var(--card) !important;
+}
+
+.theme-navy .bg-slate-800,
+.theme-navy .bg-slate-850 {
+  background-color: var(--secondary) !important;
+}
+
+.theme-navy .border-slate-800,
+.theme-navy .border-slate-850,
+.theme-navy .border-slate-700 {
+  border-color: var(--border) !important;
+}
+
+.theme-navy .text-slate-100 {
+  color: var(--foreground) !important;
 }

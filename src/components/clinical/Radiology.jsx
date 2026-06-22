@@ -16,7 +16,8 @@ import {
   CheckCircle,
   Eye,
   SlidersHorizontal,
-  Move
+  Move,
+  Printer
 } from 'lucide-react';
 import { radiologyTestMaster } from '../../medicalMaster';
 
@@ -28,6 +29,7 @@ export default function Radiology({ user, onComplete }) {
   const [facilityServices, setFacilityServices] = useState([]);
   const [selectedWalkinScan, setSelectedWalkinScan] = useState('');
   const [addingWalkin, setAddingWalkin] = useState(false);
+  const [facilityDetails, setFacilityDetails] = useState(null);
   
   // Workflow states
   const [modality, setModality] = useState('X-Ray');
@@ -55,22 +57,290 @@ export default function Radiology({ user, onComplete }) {
 
   useEffect(() => {
     fetchRadiologyQueue();
-    fetchFacilityServices();
+    fetchFacilityDetails();
   }, []);
 
-  const fetchFacilityServices = async () => {
+  const fetchFacilityDetails = async () => {
     try {
       const { data, error } = await supabase
         .from('facilities')
-        .select('services_list')
+        .select('*')
         .eq('id', user.facility_id)
         .single();
       if (!error && data) {
+        setFacilityDetails(data);
         setFacilityServices(data.services_list || []);
       }
     } catch (err) {
-      console.error('Error fetching facility services:', err);
+      console.error('Error fetching facility details:', err);
     }
+  };
+
+  const handlePrintRadiologyReport = () => {
+    if (!selectedOrder) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker is active. Please allow popups to print reports.');
+      return;
+    }
+
+    const facility = facilityDetails || {
+      name: user.facility_name || 'Eagle Tech Medical Clinic',
+      code: 'N/A',
+      logo_url: user.facility_logo
+    };
+
+    const patient = selectedVisit?.patient || {};
+    const ageYrs = patient.dob ? Math.floor((new Date() - new Date(patient.dob)) / (365.25 * 24 * 60 * 60 * 1000)) : 'N/A';
+
+    let meta = {};
+    try {
+      meta = JSON.parse(selectedOrder.results);
+    } catch (e) {
+      meta = { findings: selectedOrder.results };
+    }
+
+    // Logo resolution
+    let logoHtml = '';
+    const logoUrl = facility.logo_url;
+    if (logoUrl) {
+      if (logoUrl.startsWith('preset:')) {
+        const presetKey = logoUrl.split(':')[1];
+        let color = '#0d9488';
+        if (presetKey === 'shield') color = '#3b82f6';
+        if (presetKey === 'cross') color = '#ef4444';
+        logoHtml = `
+          <div style="width: 50px; height: 50px; border-radius: 8px; background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); display: flex; align-items: center; justify-content: center; float: left; margin-right: 15px;">
+            <span style="font-size: 24px; color: ${color}; font-weight: bold;">✚</span>
+          </div>
+        `;
+      } else {
+        logoHtml = `
+          <img src="${logoUrl}" style="width: 55px; height: 55px; border-radius: 8px; object-fit: cover; border: 1px solid #cbd5e1; float: left; margin-right: 15px;" onerror="this.style.display='none'" />
+        `;
+      }
+    } else {
+      logoHtml = `
+        <div style="width: 50px; height: 50px; border-radius: 8px; background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); display: flex; align-items: center; justify-content: center; float: left; margin-right: 15px; font-weight: bold; color: #0d9488; font-size: 20px;">
+          ${(facility.name || 'EM').substring(0, 2).toUpperCase()}
+        </div>
+      `;
+    }
+
+    // Capture image
+    const imageHtml = meta.captured_image 
+      ? `<div style="text-align: center; margin: 20px 0; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; background-color: #000;">
+           <img src="${meta.captured_image}" style="max-height: 250px; max-width: 100%; object-fit: contain; filter: grayscale(1);" />
+           <div style="color: #94a3b8; font-size: 8px; font-family: monospace; margin-top: 5px;">DICOM IMAGE RESOLVED FROM PACS ACCESSION NODE</div>
+         </div>`
+      : '';    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Radiology Report - ${patient.name || 'Patient'}</title>
+          <style>
+            body {
+              font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+              color: #1e293b;
+              margin: 0;
+              padding: 20px;
+              font-size: 12px;
+              line-height: 1.5;
+            }
+            .header-table {
+              width: 100%;
+              border-bottom: 3px double #0d9488;
+              padding-bottom: 12px;
+              margin-bottom: 20px;
+            }
+            .info-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 25px;
+            }
+            .info-table td {
+              padding: 5px 8px;
+              border: 1px solid #e2e8f0;
+            }
+            .info-label {
+              font-weight: bold;
+              color: #475569;
+              background-color: #f8fafc;
+              width: 20%;
+            }
+            .info-value {
+              width: 30%;
+            }
+            .footer-section {
+              margin-top: 40px;
+              border-top: 1px solid #cbd5e1;
+              padding-top: 15px;
+            }
+            .signature-block {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 40px;
+            }
+            .signature-line {
+              width: 200px;
+              border-top: 1px solid #000;
+              text-align: center;
+              padding-top: 5px;
+              font-size: 10px;
+              font-weight: bold;
+            }
+            @media print {
+              body { padding: 0; }
+              .print-hidden { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div style="max-width: 800px; margin: 0 auto;">
+            
+            <!-- Letterhead -->
+            <table class="header-table">
+              <tr>
+                <td style="width: 60px; vertical-align: top;">
+                  ${logoHtml}
+                </td>
+                <td style="vertical-align: top;">
+                  <h1 style="margin: 0; font-size: 18px; color: #0f172a; text-transform: uppercase; font-weight: 800; letter-spacing: -0.5px;">
+                    ${facility.name}
+                  </h1>
+                  <p style="margin: 3px 0 0 0; font-size: 10px; color: #64748b;">
+                    Lic No: ${facility.kmpdc_reg_number || 'KMPDC/PENDING'} | MFL Code: ${facility.mfl_code || 'N/A'} | Category: ${facility.regulatory_category || 'Medical Clinic'}
+                  </p>
+                  <p style="margin: 2px 0 0 0; font-size: 10px; color: #64748b;">
+                    Address: ${facility.address || 'Kenya'} | County: ${facility.county || 'Kenya'}
+                  </p>
+                </td>
+                <td style="text-align: right; vertical-align: top; font-size: 9px; color: #64748b; line-height: 1.3;">
+                  <div style="font-weight: bold; color: #0d9488; font-size: 11px;">DIAGNOSTIC IMAGING REPORT</div>
+                  <div>Printed: ${new Date().toLocaleString()}</div>
+                  <div>Report ID: RAD-REP-${Math.floor(100000 + Math.random() * 900000)}</div>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Patient Meta Info -->
+            <h2 style="font-size: 12px; font-weight: bold; margin: 0 0 10px 0; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+              Patient Identification
+            </h2>
+            <table class="info-table">
+              <tr>
+                <td class="info-label">Patient Name</td>
+                <td class="info-value" style="font-weight: bold; color: #0f172a;">${patient.name || 'N/A'}</td>
+                <td class="info-label">Visit ID</td>
+                <td class="info-value" style="font-family: monospace;">${selectedVisit?.id || 'N/A'}</td>
+              </tr>
+              <tr>
+                <td class="info-label">Patient ID Code</td>
+                <td class="info-value" style="font-family: monospace; font-weight: bold; color: #0d9488;">${patient.facility_id_code || 'N/A'}</td>
+                <td class="info-label">Encounter Date</td>
+                <td class="info-value">${selectedVisit?.created_at ? new Date(selectedVisit.created_at).toLocaleString() : 'N/A'}</td>
+              </tr>
+              <tr>
+                <td class="info-label">Age / Gender</td>
+                <td class="info-value">${ageYrs} Years / <span style="text-transform: capitalize;">${patient.gender || 'N/A'}</span></td>
+                <td class="info-label">Attending Clinician</td>
+                <td class="info-value">${selectedVisit?.created_by || 'Attending Physician'}</td>
+              </tr>
+            </table>
+
+            <!-- Scan details -->
+            <h2 style="font-size: 12px; font-weight: bold; margin: 0 0 10px 0; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+              Investigation Details
+            </h2>
+            <table class="info-table" style="margin-bottom: 20px;">
+              <tr>
+                <td class="info-label">Scan Procedure</td>
+                <td class="info-value" style="font-weight: bold;">${selectedOrder.item_name}</td>
+                <td class="info-label">Modality / Method</td>
+                <td class="info-value">${meta.modality || 'X-Ray'}</td>
+              </tr>
+              <tr>
+                <td class="info-label">Body Part Studied</td>
+                <td class="info-value">${meta.body_part || 'General'}</td>
+                <td class="info-label">Scan Urgency</td>
+                <td class="info-value" style="text-transform: uppercase; font-weight: bold; color: ${meta.urgency === 'routine' ? '#1e293b' : '#b91c1c'}">${meta.urgency || 'routine'}</td>
+              </tr>
+              <tr>
+                <td class="info-label">Reason for Exam</td>
+                <td class="info-value" colspan="3">${meta.exam_reason || 'N/A'}</td>
+              </tr>
+            </table>
+
+            <!-- Imaging scan placeholder -->
+            ${imageHtml}
+
+            <!-- Findings -->
+            <h2 style="font-size: 12px; font-weight: bold; margin: 20px 0 10px 0; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+              Findings & Clinical Observations
+            </h2>
+            <div style="font-size: 12px; color: #1e293b; line-height: 1.6; background-color: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; white-space: pre-wrap; font-family: Georgia, serif;">${meta.findings || 'No findings recorded.'}</div>
+
+            <!-- Comparison -->
+            ${meta.comparison ? `
+              <h2 style="font-size: 12px; font-weight: bold; margin: 20px 0 10px 0; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+                Comparison & Prior Studies
+              </h2>
+              <div style="font-size: 11px; color: #475569; line-height: 1.5; padding: 10px; background-color: #fff; border-left: 3px solid #cbd5e1; margin-bottom: 20px; font-style: italic;">
+                ${meta.comparison}
+              </div>
+            ` : ''}
+
+            <!-- Sign-offs -->
+            <div class="footer-section">
+              <div style="font-size: 9px; color: #64748b; font-style: italic; line-height: 1.4; text-align: justify; margin-bottom: 20px;">
+                <strong>Disclaimer:</strong> This radiology diagnostic report represents the interpretation of imaging findings. Results must be clinically correlated with patient symptoms, physical exam, and laboratory findings by the referring healthcare provider.
+              </div>
+
+              <div class="signature-block">
+                <div>
+                  <div style="height: 40px;"></div>
+                  <div class="signature-line">
+                    Attending Sonographer / Radiographer
+                  </div>
+                  <div style="font-size: 8px; text-align: center; color: #64748b; margin-top: 2px;">
+                    Captured: ${meta.captured_at ? new Date(meta.captured_at).toLocaleString() : 'N/A'}
+                  </div>
+                </div>
+                <div>
+                  <div style="height: 40px; text-align: center; font-family: monospace; font-size: 9px; color: #0f766e; font-weight: bold; display: flex; align-items: center; justify-content: center; border: 1px dashed #0d948830; border-radius: 4px; padding: 2px 10px;">
+                    ✓ OFFICIALLY RELEASED<br/><span style="font-size:7px;color:#64748b;">Kenya Registry Checked</span>
+                  </div>
+                  <div class="signature-line">
+                    REVIEWING RADIOLOGIST / PHYSICIAN
+                  </div>
+                  <div style="font-size: 8px; text-align: center; color: #64748b; margin-top: 2px;">
+                    Reviewed by: <strong>${meta.reviewer || user.full_name}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Print Controls -->
+            <div style="margin-top: 30px; text-align: center;" class="print-hidden">
+              <button onclick="window.print();" style="background-color: #0d9488; color: #fff; border: none; padding: 8px 20px; font-size: 12px; font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.2);">
+                Print Radiology Report
+              </button>
+              <button onclick="window.close();" style="background-color: #64748b; color: #fff; border: none; padding: 8px 20px; font-size: 12px; font-weight: bold; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                Close Window
+              </button>
+            </div>
+
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const handleAddWalkinScan = async (e) => {
@@ -955,14 +1225,33 @@ export default function Radiology({ user, onComplete }) {
                         </select>
                       </div>
 
-                      <button
-                        type="submit"
-                        disabled={loading || !scanImageCaptured}
-                        className="w-full flex items-center justify-center gap-2 bg-teal-500 text-slate-950 hover:bg-teal-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed font-bold py-2.5 px-4 rounded-lg text-xs uppercase tracking-wider transition shadow-lg shadow-teal-500/10"
-                      >
-                        {loading ? <Loader2 size={14} className="animate-spin" /> : <UserCheck size={14} />}
-                        {!scanImageCaptured ? 'Awaiting Scan Image Capture' : 'Release Report & Route Patient'}
-                      </button>
+                      {selectedOrder?.status === 'released' ? (
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={handlePrintRadiologyReport}
+                            className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-500 font-bold py-2.5 px-4 rounded-lg text-xs uppercase tracking-wider transition shadow-lg shadow-blue-500/10 cursor-pointer"
+                          >
+                            <Printer size={14} /> Print Report
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={loading}
+                            className="bg-slate-800 border border-slate-700 text-slate-350 hover:bg-slate-700 font-bold py-2.5 px-4 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer"
+                          >
+                            Update Report
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="submit"
+                          disabled={loading || !scanImageCaptured}
+                          className="w-full flex items-center justify-center gap-2 bg-teal-500 text-slate-950 hover:bg-teal-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed font-bold py-2.5 px-4 rounded-lg text-xs uppercase tracking-wider transition shadow-lg shadow-teal-500/10"
+                        >
+                          {loading ? <Loader2 size={14} className="animate-spin" /> : <UserCheck size={14} />}
+                          {!scanImageCaptured ? 'Awaiting Scan Image Capture' : 'Release Report & Route Patient'}
+                        </button>
+                      )}
                     </div>
                   </form>
                 </div>

@@ -311,7 +311,9 @@ export default function App() {
 
   if (!user) {
     const publicContent = (() => {
-      if (pathname.startsWith("/hospital/")) {
+      const hostnameParts = window.location.hostname.split('.');
+      const isSubdomain = hostnameParts.length > 2 && hostnameParts[0] !== 'www' && !window.location.hostname.includes('localhost') && !window.location.hostname.match(/^[0-9.]+$/);
+      if (pathname.startsWith("/hospital/") || (isSubdomain && pathname === "/")) {
         return <FacilityLandingPage />;
       }
       if (pathname === "/patient-portal") {

@@ -128,7 +128,172 @@ function validateRowData(table, row) {
   if (['triages', 'triage_assessments', 'ward_care_records', 'visits'].includes(table)) {
     checkVitals(row);
   }
+
+  // 4. ANC Visits Table
+  if (table === 'anc_visits') {
+    // Check vitals if embedded
+    checkVitals({
+      temperature: row.maternal_temperature,
+      systolic: row.bp_systolic,
+      diastolic: row.bp_diastolic,
+      weight: row.weight_kg
+    });
+    if (row.visit_number !== undefined && row.visit_number !== null) {
+      const v = parseInt(row.visit_number, 10);
+      if (isNaN(v) || v < 1 || v > 12) {
+        throw new Error("Validation: ANC visit number must be between 1 and 12.");
+      }
+    }
+    if (row.gestational_age_at_visit !== undefined && row.gestational_age_at_visit !== null) {
+      const ga = parseFloat(row.gestational_age_at_visit);
+      if (isNaN(ga) || ga < 0 || ga > 45) {
+        throw new Error("Validation: Gestational age must be between 0 and 45 weeks.");
+      }
+    }
+    if (row.fundal_height_cm !== undefined && row.fundal_height_cm !== null) {
+      const fh = parseFloat(row.fundal_height_cm);
+      if (isNaN(fh) || fh < 10 || fh > 50) {
+        throw new Error("Validation: Fundal height must be between 10 cm and 50 cm.");
+      }
+    }
+    if (row.fetal_heart_rate !== undefined && row.fetal_heart_rate !== null) {
+      const fhr = parseInt(row.fetal_heart_rate, 10);
+      if (isNaN(fhr) || fhr < 60 || fhr > 220) {
+        throw new Error("Validation: Fetal heart rate must be between 60 bpm and 220 bpm.");
+      }
+    }
+    if (row.tetanus_toxoid_dose !== undefined && row.tetanus_toxoid_dose !== null) {
+      const tt = parseInt(row.tetanus_toxoid_dose, 10);
+      if (isNaN(tt) || tt < 1 || tt > 5) {
+        throw new Error("Validation: Tetanus toxoid dose must be between 1 and 5.");
+      }
+    }
+    if (row.supplements_count !== undefined && row.supplements_count !== null) {
+      const sup = parseInt(row.supplements_count, 10);
+      if (isNaN(sup) || sup < 0 || sup > 365) {
+        throw new Error("Validation: Supplements supplied count must be between 0 and 365.");
+      }
+    }
+  }
+
+  // 5. Family Planning Records Table
+  if (table === 'family_planning_records') {
+    if (row.reproductive_history_gravidity !== undefined && row.reproductive_history_gravidity !== null) {
+      const g = parseInt(row.reproductive_history_gravidity, 10);
+      if (isNaN(g) || g < 0 || g > 30) {
+        throw new Error("Validation: Gravidity must be between 0 and 30.");
+      }
+      if (row.reproductive_history_parity !== undefined && row.reproductive_history_parity !== null) {
+        const p = parseInt(row.reproductive_history_parity, 10);
+        if (isNaN(p) || p < 0 || p > g) {
+          throw new Error("Validation: Parity must be between 0 and gravidity.");
+        }
+      }
+    }
+  }
+
+  // 6. Orders Table (Laboratory & Radiology Results)
+  if (table === 'orders' && row.results) {
+    let meta = null;
+    try {
+      meta = JSON.parse(row.results);
+    } catch (e) {
+      // Non-JSON string results, no structured check needed
+    }
+    if (meta && meta.parameters && typeof meta.parameters === 'object') {
+      Object.keys(meta.parameters).forEach(pName => {
+        const valStr = String(meta.parameters[pName]).trim();
+        // If it looks like a number, validate reasonable bound
+        const num = parseFloat(valStr);
+        if (!isNaN(num)) {
+          if (num < 0 || num > 10000) {
+            throw new Error(`Validation: Lab parameter "${pName}" value (${num}) is out of realistic physiological limits (0 to 10000).`);
+          }
+        }
+      });
+    }
+  }
+
+  // 7. Inventory Items Table
+  if (table === 'inventory_items') {
+    if (row.unit_price !== undefined && row.unit_price !== null) {
+      const price = parseFloat(row.unit_price);
+      if (isNaN(price) || price < 0) {
+        throw new Error("Validation: Unit price cannot be negative.");
+      }
+    }
+    if (row.quantity_in_stock !== undefined && row.quantity_in_stock !== null) {
+      const qty = parseInt(row.quantity_in_stock, 10);
+      if (isNaN(qty) || qty < 0) {
+        throw new Error("Validation: Quantity in stock cannot be negative.");
+      }
+    }
+    if (row.min_reorder_level !== undefined && row.min_reorder_level !== null) {
+      const minLevel = parseInt(row.min_reorder_level, 10);
+      if (isNaN(minLevel) || minLevel < 0) {
+        throw new Error("Validation: Minimum reorder level cannot be negative.");
+      }
+    }
+    if (row.category && !['pharmaceutical', 'surgical', 'consumable', 'asset'].includes(row.category)) {
+      throw new Error("Validation: Invalid inventory category.");
+    }
+  }
+
+  // 8. Inventory Transactions Table
+  if (table === 'inventory_transactions') {
+    if (row.quantity !== undefined && row.quantity !== null) {
+      const qty = parseInt(row.quantity, 10);
+      if (isNaN(qty) || qty <= 0) {
+        throw new Error("Validation: Transaction quantity must be greater than zero.");
+      }
+    }
+    if (row.transaction_type && !['stock_in', 'stock_out', 'sale', 'adjustment'].includes(row.transaction_type)) {
+      throw new Error("Validation: Invalid transaction type.");
+    }
+  }
+
+  // 9. Purchases Table
+  if (table === 'purchases') {
+    if (row.quantity !== undefined && row.quantity !== null) {
+      const qty = parseInt(row.quantity, 10);
+      if (isNaN(qty) || qty <= 0) {
+        throw new Error("Validation: Purchase quantity must be greater than zero.");
+      }
+    }
+    if (row.estimated_cost !== undefined && row.estimated_cost !== null) {
+      const cost = parseFloat(row.estimated_cost);
+      if (isNaN(cost) || cost < 0) {
+        throw new Error("Validation: Estimated cost cannot be negative.");
+      }
+    }
+    if (row.status && !['Pending Approval', 'Approved', 'Delivered', 'Rejected'].includes(row.status)) {
+      throw new Error("Validation: Invalid purchase status.");
+    }
+  }
+
+  // 10. Utility Records Table
+  if (table === 'utility_records') {
+    if (row.amount !== undefined && row.amount !== null) {
+      const amt = parseFloat(row.amount);
+      if (isNaN(amt) || amt < 0) {
+        throw new Error("Validation: Utility bill amount cannot be negative.");
+      }
+    }
+    if (row.payment_status && !['unpaid', 'paid'].includes(row.payment_status)) {
+      throw new Error("Validation: Invalid payment status.");
+    }
+  }
+
+  // 11. Ward Care Records Table (Daily check-in data)
+  if (table === 'ward_care_records') {
+    if (row.care_date) {
+      if (row.care_date > todayStr) {
+        throw new Error("Validation: Care check-in date cannot be in the future.");
+      }
+    }
+  }
 }
+
 
 // DB Proxy: Query documents
 router.post("/query", async (req, res) => {

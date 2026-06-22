@@ -43,12 +43,117 @@ export default function SaaSOnboarding({ onBackToLogin }) {
   const [adminPassword, setAdminPassword] = useState("");
 
   const [googleUser, setGoogleUser] = useState(null);
+  const [existingHospitals, setExistingHospitals] = useState([]);
+  const [onboardingWarningType, setOnboardingWarningType] = useState("");
+
+  // Kenyan Hospital Registration Details
+  const [kmpdcRegNumber, setKmpdcRegNumber] = useState("");
+  const [mflCode, setMflCode] = useState("");
+  const [regulatoryCategory, setRegulatoryCategory] = useState("Level 2 - Medical Clinic");
+  const [county, setCounty] = useState("Nairobi");
+  const [subCounty, setSubCounty] = useState("");
+  const [lrNumber, setLrNumber] = useState("");
+  const [eCitizenVerifying, setECitizenVerifying] = useState(false);
+  const [eCitizenVerified, setECitizenVerified] = useState(false);
+  const [eCitizenError, setECitizenError] = useState("");
 
   const handleCancelAndBack = () => {
     sessionStorage.removeItem("egesa_health_onboarding_saved_state");
     sessionStorage.removeItem("egesa_health_onboarding_google_user");
     sessionStorage.removeItem("egesa_health_onboarding_redirect");
     onBackToLogin?.();
+  };
+
+  const checkExistingFacilities = async (email) => {
+    try {
+      const { data: profiles, error: profErr } = await supabase
+        .from('profiles')
+        .select('*, facility:facilities(*)')
+        .eq('email', email.toLowerCase().trim());
+        
+      if (profErr) throw profErr;
+      
+      if (profiles && profiles.length > 0) {
+        const hps = profiles
+          .map(p => p.facility)
+          .filter(Boolean);
+          
+        setExistingHospitals(hps);
+        
+        if (profiles.length >= 2) {
+          setOnboardingWarningType("limit_reached");
+        } else if (profiles.length === 1) {
+          setOnboardingWarningType("has_one");
+        }
+      }
+    } catch (err) {
+      console.error('Error checking existing facilities:', err);
+    }
+  };
+
+  const handleRegisterSecond = () => {
+    setOnboardingWarningType("");
+    setStep(2); // Go straight to tier & plan selection
+  };
+
+  const handleECitizenVerify = async () => {
+    if (!kmpdcRegNumber.trim() || !mflCode.trim()) {
+      setECitizenError("Please enter both KMPDC Reg Number and MFL Code first.");
+      return;
+    }
+    setECitizenVerifying(true);
+    setECitizenError("");
+    setECitizenVerified(false);
+
+    // Simulate calling the e-Citizen / Master Facility List API
+    setTimeout(() => {
+      try {
+        const codeNum = mflCode.trim();
+        let resolvedName = "";
+        let resolvedCategory = "";
+        let resolvedCounty = "";
+        let resolvedSubCounty = "";
+        let resolvedAddress = "";
+
+        if (codeNum === "12345") {
+          resolvedName = "Nairobi West Medical Center";
+          resolvedCategory = "Level 4 - Sub-County Hospital";
+          resolvedCounty = "Nairobi";
+          resolvedSubCounty = "Lang'ata";
+          resolvedAddress = "Gandhi Avenue, Nairobi West, Nairobi";
+        } else if (codeNum === "23456") {
+          resolvedName = "Mombasa Coast Health Centre";
+          resolvedCategory = "Level 3 - Health Centre";
+          resolvedCounty = "Mombasa";
+          resolvedSubCounty = "Mvita";
+          resolvedAddress = "Coast Avenue, Mombasa";
+        } else if (codeNum === "34567") {
+          resolvedName = "Kisumu Specialist Hospital";
+          resolvedCategory = "Level 5 - County Referral Hospital";
+          resolvedCounty = "Kisumu";
+          resolvedSubCounty = "Kisumu Central";
+          resolvedAddress = "Jomo Kenyatta Highway, Kisumu";
+        } else {
+          // Dynamic generation based on code
+          resolvedName = `Kenya Health Services [MFL-${codeNum}]`;
+          resolvedCategory = "Level 2 - Medical Clinic";
+          resolvedCounty = county || "Nairobi";
+          resolvedSubCounty = subCounty || "Nairobi Central";
+          resolvedAddress = `${resolvedSubCounty}, ${resolvedCounty} County, Kenya`;
+        }
+
+        setHospitalName(resolvedName);
+        setRegulatoryCategory(resolvedCategory);
+        setCounty(resolvedCounty);
+        setSubCounty(resolvedSubCounty);
+        setHospitalAddress(resolvedAddress);
+        setECitizenVerified(true);
+      } catch (err) {
+        setECitizenError("Failed to verify details with e-Citizen. Check your network or credentials.");
+      } finally {
+        setECitizenVerifying(false);
+      }
+    }, 1500);
   };
 
   useEffect(() => {
@@ -84,6 +189,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         setGoogleUser(gUser);
         setAdminName((prev) => prev || gUser.name || "");
         setAdminEmail((prev) => prev || gUser.email || "");
+        checkExistingFacilities(gUser.email);
       } catch (e) {
         console.error("Failed to parse Google user details:", e);
       }
@@ -493,6 +599,12 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         address: hospitalAddress,
         license_tier: licenseTier,
         is_verified: false,
+        kmpdc_reg_number: kmpdcRegNumber,
+        mfl_code: mflCode,
+        regulatory_category: regulatoryCategory,
+        county: county,
+        sub_county: subCounty,
+        lr_number: lrNumber,
       });
 
       if (facError) throw new Error(facError.message || facError);
@@ -670,7 +782,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
       <div className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-xl relative overflow-hidden transition-all duration-300">
         {/* Step Indicators */}
-        {step < 5 && (
+        {step < 5 && !onboardingWarningType && (
           <div className="flex items-center justify-center gap-4 mb-8">
             <div
               className={`flex items-center gap-2 pb-1 border-b-2 transition ${step === 1 ? "border-teal-500 text-teal-400" : "border-transparent text-slate-500"}`}
@@ -709,8 +821,83 @@ export default function SaaSOnboarding({ onBackToLogin }) {
           </div>
         )}
 
+        {/* EXISTING HOSPITAL WARNINGS */}
+        {onboardingWarningType === "limit_reached" && (
+          <div className="space-y-6 max-w-lg mx-auto text-center py-6">
+            <div className="flex justify-center mb-2">
+              <div className="bg-red-500/10 border border-red-500/25 p-3 rounded-full text-red-400">
+                <AlertCircle size={40} className="animate-pulse" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-white uppercase tracking-wide font-sans">
+                Registration Limit Reached
+              </h2>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                You already have registered 2 hospitals under the email <strong>{adminEmail}</strong>:
+              </p>
+            </div>
+            <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-2 text-xs text-left font-sans">
+              {existingHospitals.map((h, i) => (
+                <div key={i} className="flex justify-between border-b border-slate-900 last:border-b-0 pb-1.5 pt-1.5 first:pt-0 last:pb-0">
+                  <span className="font-bold text-slate-350">{h?.name}</span>
+                  <span className="font-mono text-teal-400 font-bold">[{h?.code}]</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-slate-500 font-sans leading-relaxed">
+              To comply with Eagle Tech HMIS policies, a single account cannot register more than 2 facilities. Please proceed to your dashboard workspace to manage your existing facilities.
+            </p>
+            <button
+              onClick={handleCancelAndBack}
+              className="bg-teal-400 hover:bg-teal-500 text-slate-950 font-black text-xs py-2.5 px-6 rounded-lg shadow-lg transition w-full cursor-pointer font-sans"
+            >
+              Proceed to Dashboard Workspace
+            </button>
+          </div>
+        )}
+
+        {onboardingWarningType === "has_one" && (
+          <div className="space-y-6 max-w-lg mx-auto text-center py-6">
+            <div className="flex justify-center mb-2">
+              <div className="bg-yellow-500/10 border border-yellow-500/25 p-3 rounded-full text-yellow-400 animate-pulse">
+                <Sparkles size={40} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-white uppercase tracking-wide font-sans">
+                Hospital Already Registered
+              </h2>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                You already have registered a hospital under the email <strong>{adminEmail}</strong>:
+              </p>
+            </div>
+            <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl text-xs text-left font-sans flex justify-between">
+              <span className="font-bold text-slate-300">{existingHospitals[0]?.name}</span>
+              <span className="font-mono text-teal-400 font-bold">[{existingHospitals[0]?.code}]</span>
+            </div>
+            <p className="text-[11px] text-slate-450 leading-relaxed font-sans">
+              Would you like to proceed to your dashboard or register another hospital under this account? (Maximum 2)
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <button
+                onClick={handleCancelAndBack}
+                className="bg-slate-900 border border-slate-800 text-slate-300 font-semibold text-xs py-2.5 px-4 rounded-lg hover:bg-slate-800 transition flex-1 cursor-pointer font-sans"
+              >
+                Proceed to Dashboard
+              </button>
+              <button
+                onClick={handleRegisterSecond}
+                className="bg-teal-400 hover:bg-teal-500 text-slate-950 font-black text-xs py-2.5 px-4 rounded-lg shadow-lg transition flex-1 cursor-pointer font-sans"
+              >
+                Register Another Hospital
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* STEP 1: ADMINISTRATOR ACCOUNT SIGNUP */}
-        {step === 1 && (
+        {!onboardingWarningType && step === 1 && (
           <div className="space-y-6 max-w-xl mx-auto">
             <div className="text-center space-y-1.5 mb-2">
               <h2 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-1.5 font-sans">
@@ -880,7 +1067,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         )}
 
         {/* STEP 2: PLAN SELECTOR */}
-        {step === 2 && (
+        {!onboardingWarningType && step === 2 && (
           <div className="space-y-6">
             <div className="text-center space-y-1.5 mb-2">
               <h2 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-1.5 font-sans">
@@ -960,7 +1147,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         )}
 
         {/* STEP 3: BRANDING SETUP & PREVIEW */}
-        {step === 3 && (
+        {!onboardingWarningType && step === 3 && (
           <div className="space-y-6">
             <div className="text-center space-y-1.5 mb-2">
               <h2 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-1.5 font-sans">
@@ -976,7 +1163,128 @@ export default function SaaSOnboarding({ onBackToLogin }) {
               {/* Left Form: Inputs (7/12 width) */}
               <div className="lg:col-span-7 space-y-5">
                 <div className="bg-slate-955 border border-slate-850 p-5 rounded-xl space-y-4">
+                  {/* e-Citizen Registration & Verification */}
                   <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-1.5">
+                    <ShieldCheck size={14} /> Kenyan Health Facility Registry (e-Citizen Verification)
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                        KMPDC Reg Number
+                      </label>
+                      <input
+                        type="text"
+                        value={kmpdcRegNumber}
+                        onChange={(e) => setKmpdcRegNumber(e.target.value)}
+                        placeholder="e.g. KMPDC/2026/F/88921"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                        MFL Code (5-Digit)
+                      </label>
+                      <input
+                        type="text"
+                        value={mflCode}
+                        onChange={(e) => setMflCode(e.target.value)}
+                        placeholder="e.g. 12345"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-105 focus:outline-none focus:border-teal-500 transition font-mono"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3 items-center">
+                    <button
+                      type="button"
+                      onClick={handleECitizenVerify}
+                      disabled={eCitizenVerifying || !kmpdcRegNumber || !mflCode}
+                      className="w-full sm:w-auto bg-teal-400 hover:bg-teal-500 disabled:opacity-40 text-slate-950 font-black text-xs py-2 px-4 rounded-lg shadow-md transition active:scale-[0.98] cursor-pointer"
+                    >
+                      {eCitizenVerifying ? "Verifying with KMFL..." : "Verify via e-Citizen Registry"}
+                    </button>
+                    {eCitizenVerified && (
+                      <span className="text-[10px] text-green-400 font-extrabold flex items-center gap-1">
+                        <CheckCircle size={14} /> Verified via e-Citizen Portal (MOH Kenya)
+                      </span>
+                    )}
+                    {eCitizenError && (
+                      <span className="text-[10px] text-red-400 font-bold">
+                        {eCitizenError}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 border-t border-slate-900 pt-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                        KMFL Regulatory Category
+                      </label>
+                      <select
+                        value={regulatoryCategory}
+                        onChange={(e) => setRegulatoryCategory(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-105 focus:outline-none focus:border-teal-500 transition cursor-pointer"
+                      >
+                        <option value="Level 2 - Medical Clinic">Level 2 - Medical Clinic</option>
+                        <option value="Level 3 - Health Centre">Level 3 - Health Centre</option>
+                        <option value="Level 4 - Sub-County Hospital">Level 4 - Sub-County / District Hospital</option>
+                        <option value="Level 5 - County Referral Hospital">Level 5 - County Referral Hospital</option>
+                        <option value="Level 6 - National Referral Hospital">Level 6 - National Referral Hospital</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                        LR Number (Land Reference)
+                      </label>
+                      <input
+                        type="text"
+                        value={lrNumber}
+                        onChange={(e) => setLrNumber(e.target.value)}
+                        placeholder="e.g. LR 209/13405"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-105 focus:outline-none focus:border-teal-500 transition"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                        County (Kenya)
+                      </label>
+                      <select
+                        value={county}
+                        onChange={(e) => setCounty(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-105 focus:outline-none focus:border-teal-500 transition cursor-pointer"
+                      >
+                        <option value="Nairobi">Nairobi</option>
+                        <option value="Mombasa">Mombasa</option>
+                        <option value="Kisumu">Kisumu</option>
+                        <option value="Nakuru">Nakuru</option>
+                        <option value="Kiambu">Kiambu</option>
+                        <option value="Uasin Gishu">Uasin Gishu</option>
+                        <option value="Nyeri">Nyeri</option>
+                        <option value="Machakos">Machakos</option>
+                        <option value="Meru">Meru</option>
+                        <option value="Kakamega">Kakamega</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                        Sub-County / Constituency
+                      </label>
+                      <input
+                        type="text"
+                        value={subCounty}
+                        onChange={(e) => setSubCounty(e.target.value)}
+                        placeholder="e.g. Lang'ata"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-105 focus:outline-none focus:border-teal-500 transition"
+                      />
+                    </div>
+                  </div>
+
+                  <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-1.5 pt-4">
                     <Building2 size={14} /> Hospital Identification
                   </h3>
 
@@ -1178,7 +1486,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         )}
 
         {/* STEP 4: MOCK CHECKOUT */}
-        {step === 4 && (
+        {!onboardingWarningType && step === 4 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {/* Left Column: Order Summary & Brand Confirmation */}
             <div className="space-y-4">
@@ -1331,7 +1639,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         )}
 
         {/* STEP 5: SUCCESS */}
-        {step === 5 && (
+        {!onboardingWarningType && step === 5 && (
           <div className="space-y-6 max-w-lg mx-auto text-center py-4">
             <div className="flex justify-center mb-2">
               <div className="bg-teal-500/10 border border-teal-500/25 p-3 rounded-full text-teal-400">

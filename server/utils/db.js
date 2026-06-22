@@ -431,7 +431,10 @@ const getInitialSandboxData = () => {
         response: "Hello Dr. Kiprop, you can configure your payment gateway integrations by navigating to Admin Settings > Payment Settings panel. Enter your keys there.",
         created_at: new Date(Date.now() - 3600000 * 48).toISOString()
       }
-    ]
+    ],
+    notifications: [],
+    duty_rosters: [],
+    attendance_logs: []
   };
 };
 
@@ -480,6 +483,18 @@ const loadSandboxDB = () => {
     }
     if (!data.support_tickets) {
       data.support_tickets = initial.support_tickets;
+      updated = true;
+    }
+    if (!data.notifications) {
+      data.notifications = [];
+      updated = true;
+    }
+    if (!data.duty_rosters) {
+      data.duty_rosters = [];
+      updated = true;
+    }
+    if (!data.attendance_logs) {
+      data.attendance_logs = [];
       updated = true;
     }
 

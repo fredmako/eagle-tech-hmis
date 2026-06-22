@@ -26,6 +26,7 @@ import SuperAdminDashboard from "./components/SuperAdminDashboard";
 import FacilityLandingPage from "./components/public/FacilityLandingPage";
 import PatientPortal from "./components/PatientPortal";
 import { ThemeToggle } from "./components/ui/ThemeToggle";
+import NotificationBell from "./components/NotificationBell";
 import SupportPanel from "./components/SupportPanel";
 import { motion } from "motion/react";
 
@@ -646,6 +647,7 @@ export default function App() {
                 {user.role}
               </span>
             </div>
+            <NotificationBell user={user} onNavigate={setActiveTab} />
             <ThemeToggle theme={theme} onToggle={toggleLightDark} />
           </div>
 
@@ -705,6 +707,7 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationBell user={user} onNavigate={setActiveTab} />
             <ThemeToggle theme={theme} onToggle={toggleLightDark} />
             <span className="font-['JetBrains_Mono',monospace] text-[10px] text-teal-400 font-semibold uppercase bg-teal-500/10 px-2 py-0.5 rounded">
               {user.role}

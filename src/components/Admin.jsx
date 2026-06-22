@@ -12,6 +12,8 @@ import WardSettings from './admin/WardSettings';
 import PaymentSettings from './admin/PaymentSettings';
 import FacilityHelpDesk from './admin/FacilityHelpDesk';
 import AdminOverview from './admin/AdminOverview';
+import StaffScheduler from './admin/StaffScheduler';
+import BroadcastPanel from './admin/BroadcastPanel';
 
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
@@ -56,7 +58,9 @@ import {
   Maximize2,
   Tv,
   Layout,
-  LayoutGrid
+  LayoutGrid,
+  Calendar,
+  Bell
 } from 'lucide-react';
 
 export default function Admin({ user }) {
@@ -1084,6 +1088,36 @@ export default function Admin({ user }) {
               </button>
             );
           })()}
+
+          {(() => {
+            const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
+            const isAuthorized = rolesList.includes('admin') || rolesList.includes('facility_admin') || rolesList.includes('hr_manager');
+            if (!isAuthorized) return null;
+            return (
+              <>
+                <button
+                  onClick={() => setActiveSubTab('roster')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                    activeSubTab === 'roster'
+                      ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                      : 'text-slate-450 hover:text-slate-200'
+                  }`}
+                >
+                  <Calendar size={13} /> Duty Roster & Attendance
+                </button>
+                <button
+                  onClick={() => setActiveSubTab('broadcasts')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                    activeSubTab === 'broadcasts'
+                      ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                      : 'text-slate-450 hover:text-slate-200'
+                  }`}
+                >
+                  <Bell size={13} /> Alerts & Broadcasts
+                </button>
+              </>
+            );
+          })()}
           </div>
 
           {/* Mini Settings Panel for View Modes */}
@@ -1556,6 +1590,14 @@ export default function Admin({ user }) {
 
           {activeSubTab === 'payment_settings' && (
             <PaymentSettings user={user} />
+          )}
+
+          {activeSubTab === 'roster' && (
+            <StaffScheduler user={user} profiles={usersList} fetchAdminData={fetchAdminData} />
+          )}
+
+          {activeSubTab === 'broadcasts' && (
+            <BroadcastPanel user={user} profiles={usersList} fetchAdminData={fetchAdminData} />
           )}
         </div>
       </div>

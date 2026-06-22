@@ -13,7 +13,9 @@ import {
   Activity,
   Globe,
   Bed,
-  LayoutGrid
+  LayoutGrid,
+  Calendar,
+  Bell
 } from 'lucide-react';
 
 export default function AdminOverview({
@@ -107,6 +109,22 @@ export default function AdminOverview({
           icon: Users,
           color: "text-pink-400 bg-pink-500/10 border-pink-500/20 hover:border-pink-500/40",
           show: true
+        },
+        {
+          id: 'roster',
+          title: "Duty Roster & Attendance",
+          desc: "Allocate weekly clinician shifts, and monitor real-time clock-in/out logs.",
+          icon: Calendar,
+          color: "text-teal-400 bg-teal-500/10 border-teal-500/20 hover:border-teal-500/40",
+          show: isWardAuthorized
+        },
+        {
+          id: 'broadcasts',
+          title: "Alerts & Broadcasts",
+          desc: "Broadcast notifications to staff, role groups, or platform support.",
+          icon: Bell,
+          color: "text-purple-400 bg-purple-500/10 border-purple-500/20 hover:border-purple-500/40",
+          show: isWardAuthorized
         }
       ]
     },

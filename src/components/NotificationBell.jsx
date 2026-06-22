@@ -8,6 +8,36 @@ export default function NotificationBell({ user, onNavigate }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
+  const buttonRef = useRef(null);
+  const [dropdownStyle, setDropdownStyle] = useState({});
+
+  const toggleDropdown = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const style = {};
+
+      // Vertical positioning
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 400 && rect.top > 400) {
+        style.bottom = '100%';
+        style.marginBottom = '10px';
+      } else {
+        style.top = '100%';
+        style.marginTop = '10px';
+      }
+
+      // Horizontal positioning
+      const spaceRight = window.innerWidth - rect.left;
+      if (spaceRight < 320) {
+        style.right = '0';
+      } else {
+        style.left = '0';
+      }
+
+      setDropdownStyle(style);
+    }
+    setIsOpen(!isOpen);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -166,7 +196,8 @@ export default function NotificationBell({ user, onNavigate }) {
     <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={toggleDropdown}
         className="relative p-1.5 rounded-lg text-slate-450 hover:text-slate-100 hover:bg-slate-800/60 transition active:scale-[0.97] cursor-pointer"
         aria-label="Toggle notifications"
       >
@@ -180,7 +211,10 @@ export default function NotificationBell({ user, onNavigate }) {
 
       {/* Floating Dropdown Drawer */}
       {isOpen && (
-        <div className="absolute right-0 mt-2.5 w-[320px] bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-[999] overflow-hidden animate-fadeIn">
+        <div 
+          style={dropdownStyle}
+          className="absolute w-[320px] bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-[999] overflow-hidden animate-fadeIn"
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-slate-850 bg-slate-950/60">
             <div className="flex items-center gap-1.5">

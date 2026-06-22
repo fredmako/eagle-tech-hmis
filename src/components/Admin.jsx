@@ -861,14 +861,14 @@ export default function Admin({ user }) {
       )}
 
       {/* Right Columns: Tabbed Control Center */}
-      <div className={`transition-all duration-300 flex flex-col justify-between min-w-0 ${
+      <div className={`transition-all duration-300 flex flex-col justify-start min-w-0 ${
         viewMode === 'maximize' 
-          ? 'w-full bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-5 min-h-[480px]'
+          ? 'w-full bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-3 min-h-[480px]'
           : viewMode === 'window'
-          ? 'fixed inset-4 sm:inset-10 z-50 bg-slate-900 border border-slate-700 shadow-2xl rounded-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto'
+          ? 'fixed inset-4 sm:inset-10 z-50 bg-slate-900 border border-slate-700 shadow-2xl rounded-2xl p-6 space-y-3 max-h-[90vh] overflow-y-auto'
           : viewMode === 'dock'
-          ? 'fixed top-0 right-0 h-screen w-full sm:w-[500px] z-50 bg-slate-900 border-l border-slate-800 shadow-2xl p-5 space-y-5 overflow-y-auto'
-          : 'lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-5 min-h-[480px]'
+          ? 'fixed top-0 right-0 h-screen w-full sm:w-[500px] z-50 bg-slate-900 border-l border-slate-800 shadow-2xl p-5 space-y-3 overflow-y-auto'
+          : 'lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-3 min-h-[480px]'
       }`}>
         {/* Sub-tab Navigation & View Mode Panel */}
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center border-b border-slate-800 pb-2 gap-3 shrink-0 w-full min-w-0">

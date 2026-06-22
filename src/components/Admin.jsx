@@ -852,7 +852,7 @@ export default function Admin({ user }) {
       )}
 
       {/* Right Columns: Tabbed Control Center */}
-      <div className={`transition-all duration-300 flex flex-col justify-between ${
+      <div className={`transition-all duration-300 flex flex-col justify-between min-w-0 ${
         viewMode === 'maximize' 
           ? 'w-full bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-5 min-h-[480px]'
           : viewMode === 'window'
@@ -862,8 +862,8 @@ export default function Admin({ user }) {
           : 'lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-5 min-h-[480px]'
       }`}>
         {/* Sub-tab Navigation & View Mode Panel */}
-        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center border-b border-slate-800 pb-2 gap-3 shrink-0">
-          <div className="flex overflow-x-auto gap-2 pb-1 w-full xl:w-auto shrink-0 pr-1">
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center border-b border-slate-800 pb-2 gap-3 shrink-0 w-full min-w-0">
+          <div className="flex overflow-x-auto gap-2 pb-2 w-full xl:flex-1 min-w-0 pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
           <button
             onClick={() => setActiveSubTab('audit')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${

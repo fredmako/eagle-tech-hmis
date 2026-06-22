@@ -349,7 +349,7 @@ router.post("/query", async (req, res) => {
       }
     }
 
-    if (!globalTables.includes(table) && req.user) {
+    if (!globalTables.includes(table) && req.user && req.user.role !== "super_admin") {
       // Ensure facility_id filter is appended
       const hasFacilityFilter = enrichedQueries.some(
         (q) => q && q.column === "facility_id"
@@ -476,7 +476,7 @@ router.post("/update", authenticateToken, async (req, res) => {
     // 1. Find matching documents
     const queries = [{ type: "equal", column, value }];
     const globalTables = ["facilities", "profiles", "support_tickets"];
-    if (!globalTables.includes(table)) {
+    if (!globalTables.includes(table) && req.user.role !== "super_admin") {
       queries.push({
         type: "equal",
         column: "facility_id",
@@ -549,7 +549,7 @@ router.post("/delete", authenticateToken, async (req, res) => {
     // 1. Find matching documents
     const queries = [{ type: "equal", column, value }];
     const globalTables = ["facilities", "profiles", "support_tickets"];
-    if (!globalTables.includes(table)) {
+    if (!globalTables.includes(table) && req.user.role !== "super_admin") {
       queries.push({
         type: "equal",
         column: "facility_id",

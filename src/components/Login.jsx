@@ -92,6 +92,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
   const [hasNoProfile, setHasNoProfile] = useState(false);
   const [tempUser, setTempUser] = useState(null);
   const [pendingRequest, setPendingRequest] = useState(null);
+  const [refreshLoading, setRefreshLoading] = useState(false);
   const [requestFacility, setRequestFacility] = useState('');
   const [requestRole, setRequestRole] = useState(['receptionist']);
   const [requestName, setRequestName] = useState('');
@@ -619,6 +620,40 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     }
   };
 
+  const handleRefreshRequestStatus = async () => {
+    if (!pendingRequest) return;
+    setRefreshLoading(true);
+    setError('');
+    try {
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${backendUrl}/auth/role-request-status?email=${encodeURIComponent(pendingRequest.email)}&id=${pendingRequest.id}`);
+      if (res.ok) {
+        const resData = await res.json();
+        if (resData.status === 'approved') {
+          setError('');
+          if (checkSession) {
+            await checkSession();
+          } else {
+            setError('Request approved! Please log in again to enter your workspace.');
+          }
+        } else if (resData.status === 'rejected') {
+          setError('Your request has been rejected by the administrator. Please log out and request again or contact support.');
+          setPendingRequest({ ...pendingRequest, status: 'rejected' });
+        } else {
+          setError('Approval still pending. Please wait for the hospital administrator to review.');
+        }
+      } else {
+        const errData = await res.json();
+        setError(errData.error || 'Failed to check status.');
+      }
+    } catch (err) {
+      console.error('Refresh status error:', err);
+      setError('Connection error checking approval status.');
+    } finally {
+      setRefreshLoading(false);
+    }
+  };
+
   const handleLogoutRequestScreen = async () => {
     setLoading(true);
     try {
@@ -899,6 +934,9 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
           facilities={facilities}
           handleLogoutRequestScreen={handleLogoutRequestScreen}
           loading={loading}
+          onRefresh={handleRefreshRequestStatus}
+          refreshLoading={refreshLoading}
+          error={error}
         />
       );
     } else {

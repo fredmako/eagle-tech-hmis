@@ -1,20 +1,30 @@
 import React from 'react';
-import { Clock, UserCheck, LogOut } from 'lucide-react';
+import { Clock, UserCheck, LogOut, RefreshCw, AlertCircle } from 'lucide-react';
 
 export default function RoleRequestPending({
   pendingRequest,
   facilities,
   handleLogoutRequestScreen,
-  loading
+  loading,
+  onRefresh,
+  refreshLoading = false,
+  error
 }) {
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 font-sans">
+    <div className="min-h-screen bg-slate-955 flex flex-col justify-center items-center p-4 font-sans">
       <div className="flex flex-col items-center mb-6">
         <img src="/logo.png" alt="Eagle Tech Logo" className="h-28 object-contain" />
         <span className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-2">HMIS SECURITY LAYER</span>
       </div>
 
       <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+        {error && (
+          <div className="bg-red-500/5 border border-red-500/20 text-red-400 p-2.5 rounded text-xs flex gap-2 animate-pulse mb-4">
+            <AlertCircle size={14} className="shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+
         <div className="flex flex-col items-center text-center my-4">
           <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 p-3 rounded-full mb-4">
             <Clock size={36} className="animate-pulse" />
@@ -59,13 +69,24 @@ export default function RoleRequestPending({
           </span>
         </div>
 
-        <button
-          onClick={handleLogoutRequestScreen}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-850 border border-slate-850 text-slate-300 font-bold text-xs py-2.5 rounded-lg transition active:scale-[0.98] cursor-pointer"
-        >
-          <LogOut size={14} /> Log Out / Cancel
-        </button>
+        <div className="flex flex-col gap-2.5">
+          <button
+            onClick={onRefresh}
+            disabled={loading || refreshLoading}
+            className="w-full flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-slate-950 font-bold text-xs py-2.5 rounded-lg transition active:scale-[0.98] cursor-pointer"
+          >
+            <RefreshCw size={14} className={refreshLoading ? "animate-spin" : ""} />
+            {refreshLoading ? "Checking Status..." : "Refresh Approval Status"}
+          </button>
+
+          <button
+            onClick={handleLogoutRequestScreen}
+            disabled={loading || refreshLoading}
+            className="w-full flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-850 border border-slate-850 text-slate-300 font-bold text-xs py-2.5 rounded-lg transition active:scale-[0.98] cursor-pointer"
+          >
+            <LogOut size={14} /> Log Out / Cancel
+          </button>
+        </div>
       </div>
     </div>
   );

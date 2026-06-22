@@ -1272,5 +1272,38 @@ router.post("/patient/signup", async (req, res) => {
   }
 });
 
+// Check Role Request Status
+router.get("/role-request-status", async (req, res) => {
+  const { email, id } = req.query;
+  if (!email || !id) {
+    return res.status(400).json({ error: "Email and Request ID are required" });
+  }
+
+  try {
+    const emailClean = email.toLowerCase().trim();
+    const requests = await db.getDocuments("role_requests", [
+      { type: "equal", column: "id", value: id },
+      { type: "equal", column: "email", value: emailClean },
+    ]);
+    const request = requests && requests[0];
+    if (!request) {
+      // Check if a profile already exists for this email
+      const profiles = await db.getDocuments("profiles", [
+        { type: "equal", column: "email", value: emailClean },
+      ]);
+      const profile = profiles && profiles[0];
+      if (profile) {
+        return res.json({ success: true, status: "approved" });
+      }
+      return res.status(404).json({ error: "Role request not found" });
+    }
+
+    res.json({ success: true, status: request.status });
+  } catch (err) {
+    console.error("Check request status error:", err);
+    res.status(500).json({ error: err.message || "Error checking request status" });
+  }
+});
+
 module.exports = router;
 

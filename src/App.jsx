@@ -101,6 +101,16 @@ export default function App() {
   }, [publicView]);
 
   useEffect(() => {
+    const root = document.documentElement;
+    const classesToRemove = Array.from(root.classList).filter(
+      (c) => c.startsWith("theme-") || c.startsWith("font-")
+    );
+    classesToRemove.forEach((c) => root.classList.remove(c));
+    root.classList.add(`theme-${theme}`);
+    root.classList.add(`font-${font}`);
+  }, [theme, font]);
+
+  useEffect(() => {
     const syncPublicViewFromHash = () => {
       const path = window.location.pathname;
       if (path === "/auth/callback" || path.startsWith("/auth/callback/")) {

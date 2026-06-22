@@ -4,13 +4,277 @@ import { useAuth } from '../../context/AuthContext';
 import { sendNotification, parsePatientContact } from '../../notificationService';
 import { Bed, PlusCircle, CheckCircle, AlertCircle, ClipboardList, Thermometer, MapPin, Activity, Heart } from 'lucide-react';
 
+// 1. Hook to ensure clinical check-ins and discharges meet MOH reporting validation criteria
+function useMOHReportingValidation() {
+  const [validationError, setValidationError] = useState(null);
+
+  const validateVitals = (vitals) => {
+    setValidationError(null);
+    const { temperature, systolic, diastolic, heart_rate, resp_rate, pain_score, spo2 } = vitals;
+
+    if (temperature) {
+      const tempVal = parseFloat(temperature);
+      if (isNaN(tempVal) || tempVal < 25.0 || tempVal > 45.0) {
+        const msg = "Temperature must be between 25.0°C and 45.0°C.";
+        setValidationError(msg);
+        return { isValid: false, error: msg };
+      }
+    }
+
+    let sys = null;
+    let dia = null;
+    if (systolic) sys = parseInt(systolic, 10);
+    if (diastolic) dia = parseInt(diastolic, 10);
+
+    if (sys !== null) {
+      if (isNaN(sys) || sys < 50 || sys > 280) {
+        const msg = "Systolic blood pressure must be between 50 mmHg and 280 mmHg.";
+        setValidationError(msg);
+        return { isValid: false, error: msg };
+      }
+    }
+
+    if (dia !== null) {
+      if (isNaN(dia) || dia < 30 || dia > 180) {
+        const msg = "Diastolic blood pressure must be between 30 mmHg and 180 mmHg.";
+        setValidationError(msg);
+        return { isValid: false, error: msg };
+      }
+    }
+
+    if (sys !== null && dia !== null && dia >= sys) {
+      const msg = "Diastolic blood pressure must be strictly lower than systolic blood pressure.";
+      setValidationError(msg);
+      return { isValid: false, error: msg };
+    }
+
+    if (heart_rate) {
+      const hrVal = parseInt(heart_rate, 10);
+      if (isNaN(hrVal) || hrVal < 30 || hrVal > 260) {
+        const msg = "Pulse / Heart rate must be between 30 bpm and 260 bpm.";
+        setValidationError(msg);
+        return { isValid: false, error: msg };
+      }
+    }
+
+    if (resp_rate) {
+      const rrVal = parseInt(resp_rate, 10);
+      if (isNaN(rrVal) || rrVal < 6 || rrVal > 80) {
+        const msg = "Respiratory rate must be between 6 and 80 breaths per minute.";
+        setValidationError(msg);
+        return { isValid: false, error: msg };
+      }
+    }
+
+    if (pain_score) {
+      const painVal = parseInt(pain_score, 10);
+      if (isNaN(painVal) || painVal < 0 || painVal > 10) {
+        const msg = "Pain score must be between 0 and 10.";
+        setValidationError(msg);
+        return { isValid: false, error: msg };
+      }
+    }
+
+    if (spo2) {
+      const spo2Val = parseInt(spo2, 10);
+      if (isNaN(spo2Val) || spo2Val < 10 || spo2Val > 100) {
+        const msg = "Oxygen saturation (SPO2) must be between 10% and 100%.";
+        setValidationError(msg);
+        return { isValid: false, error: msg };
+      }
+    }
+
+    return { isValid: true, error: null };
+  };
+
+  const validateDischarge = (dischargeData, patientAge) => {
+    setValidationError(null);
+    const { village, temp, weight, systolic, diastolic } = dischargeData;
+
+    if (!village || !village.trim()) {
+      const msg = "Patient Village / Residence is required for MOH reporting.";
+      setValidationError(msg);
+      return { isValid: false, error: msg };
+    }
+
+    if (!temp) {
+      const msg = "Temperature is required for discharge verification.";
+      setValidationError(msg);
+      return { isValid: false, error: msg };
+    } else {
+      const tempVal = parseFloat(temp);
+      if (isNaN(tempVal) || tempVal < 25.0 || tempVal > 45.0) {
+        const msg = "Discharge temperature must be between 25.0°C and 45.0°C.";
+        setValidationError(msg);
+        return { isValid: false, error: msg };
+      }
+    }
+
+    if (!weight) {
+      const msg = "Weight is required for discharge verification.";
+      setValidationError(msg);
+      return { isValid: false, error: msg };
+    } else {
+      const weightVal = parseFloat(weight);
+      if (isNaN(weightVal) || weightVal < 0.5 || weightVal > 500.0) {
+        const msg = "Discharge weight must be between 0.5 kg and 500 kg.";
+        setValidationError(msg);
+        return { isValid: false, error: msg };
+      }
+    }
+
+    if (patientAge >= 18) {
+      if (!systolic || !diastolic) {
+        const msg = "Blood pressure is required for adult discharges.";
+        setValidationError(msg);
+        return { isValid: false, error: msg };
+      }
+      const sysVal = parseInt(systolic, 10);
+      const diaVal = parseInt(diastolic, 10);
+
+      if (isNaN(sysVal) || sysVal < 50 || sysVal > 280) {
+        const msg = "Discharge systolic blood pressure must be between 50 mmHg and 280 mmHg.";
+        setValidationError(msg);
+        return { isValid: false, error: msg };
+      }
+      if (isNaN(diaVal) || diaVal < 30 || diaVal > 180) {
+        const msg = "Discharge diastolic blood pressure must be between 30 mmHg and 180 mmHg.";
+        setValidationError(msg);
+        return { isValid: false, error: msg };
+      }
+      if (diaVal >= sysVal) {
+        const msg = "Discharge diastolic blood pressure must be strictly lower than systolic blood pressure.";
+        setValidationError(msg);
+        return { isValid: false, error: msg };
+      }
+    }
+
+    return { isValid: true, error: null };
+  };
+
+  return { validationError, validateVitals, validateDischarge, setValidationError };
+}
+
+// 2. Hook to ensure state persistence and seamless callback redirection exactly to the same inpatient file view
+function useStateRedirection(initialAdmission = null) {
+  const [selectedAdmission, setSelectedAdmission] = useState(initialAdmission);
+  const [customCareDate, setCustomCareDate] = useState(null);
+
+  // Load saved active session state on mount
+  useEffect(() => {
+    const savedAdmissionId = sessionStorage.getItem('egesa_selected_admission_id_ward');
+    const savedCustomDate = sessionStorage.getItem('egesa_custom_care_date_ward');
+    if (savedCustomDate) {
+      setCustomCareDate(savedCustomDate);
+    }
+  }, []);
+
+  const changeSelectedAdmission = (admissionOrFunc) => {
+    setSelectedAdmission((prev) => {
+      const next = typeof admissionOrFunc === 'function' ? admissionOrFunc(prev) : admissionOrFunc;
+      if (next) {
+        sessionStorage.setItem('egesa_selected_admission_id_ward', next.id);
+      } else {
+        sessionStorage.removeItem('egesa_selected_admission_id_ward');
+        sessionStorage.removeItem('egesa_custom_care_date_ward');
+      }
+      return next;
+    });
+  };
+
+  const changeCustomCareDate = (date) => {
+    setCustomCareDate(date);
+    if (date) {
+      sessionStorage.setItem('egesa_custom_care_date_ward', date);
+    } else {
+      sessionStorage.removeItem('egesa_custom_care_date_ward');
+    }
+  };
+
+  return {
+    selectedAdmission,
+    setSelectedAdmission: changeSelectedAdmission,
+    customCareDate,
+    setCustomCareDate: changeCustomCareDate
+  };
+}
+
+// 3. Hook to ensure the right styling features and adaptive classes are used under the multi-theme structure
+function useThemeClasses() {
+  const [theme, setTheme] = useState(() => localStorage.getItem("egesa_theme") || "slate");
+
+  useEffect(() => {
+    const checkTheme = () => {
+      const activeTheme = localStorage.getItem("egesa_theme") || "slate";
+      if (activeTheme !== theme) {
+        setTheme(activeTheme);
+      }
+    };
+    const interval = setInterval(checkTheme, 500);
+    return () => clearInterval(interval);
+  }, [theme]);
+
+  const getThemeColor = (key) => {
+    const isEmerald = theme === 'emerald';
+    const isNavy = theme === 'navy';
+
+    switch (key) {
+      case 'primary-text':
+        return isEmerald ? 'text-emerald-400' : isNavy ? 'text-blue-400' : 'text-teal-400';
+      case 'primary-bg':
+        return isEmerald ? 'bg-emerald-500/10' : isNavy ? 'bg-blue-500/10' : 'bg-teal-500/10';
+      case 'primary-border':
+        return isEmerald ? 'border-emerald-500/20' : isNavy ? 'border-blue-500/20' : 'border-teal-500/20';
+      case 'accent-btn':
+        return isEmerald ? 'bg-emerald-500 hover:bg-emerald-600 text-slate-950' : isNavy ? 'bg-blue-500 hover:bg-blue-600 text-slate-950' : 'bg-teal-500 hover:bg-teal-600 text-slate-950';
+      case 'compliance-checked':
+        return isEmerald 
+          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20' 
+          : isNavy 
+          ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20'
+          : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20';
+      case 'compliance-today':
+        return isEmerald
+          ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 animate-pulse'
+          : isNavy
+          ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 animate-pulse'
+          : 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 animate-pulse';
+      case 'compliance-missed':
+        return isEmerald
+          ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20'
+          : isNavy
+          ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
+          : 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20';
+      case 'focus-border':
+        return isEmerald ? 'focus:border-emerald-500' : isNavy ? 'focus:border-blue-500' : 'focus:border-teal-500';
+      case 'bed-selected':
+        return isEmerald
+          ? 'border-emerald-500 bg-emerald-500/10 text-white'
+          : isNavy
+          ? 'border-blue-500 bg-blue-500/10 text-white'
+          : 'border-teal-500 bg-teal-500/10 text-white';
+      case 'accent-color':
+        return isEmerald ? 'accent-emerald-500' : isNavy ? 'accent-blue-500' : 'accent-teal-500';
+      default:
+        return '';
+    }
+  };
+
+  return { theme, getThemeColor };
+}
+
 export default function Ward({ user }) {
   const { authFetch } = useAuth();
+  
+  // Custom compliance hooks
+  const { validationError, validateVitals, validateDischarge, setValidationError } = useMOHReportingValidation();
+  const { selectedAdmission, setSelectedAdmission, customCareDate, setCustomCareDate } = useStateRedirection();
+  const { theme, getThemeColor } = useThemeClasses();
+
   const [admissions, setAdmissions] = useState([]);
   const [patients, setPatients] = useState([]);
   const [beds, setBeds] = useState([]);
   const [observations, setObservations] = useState([]);
-  const [selectedAdmission, setSelectedAdmission] = useState(null);
   
   // New Admission states
   const [selectedPatientId, setSelectedPatientId] = useState('');
@@ -26,7 +290,6 @@ export default function Ward({ user }) {
   const [spo2, setSpo2] = useState('');
   const [medsGiven, setMedsGiven] = useState('');
   const [fluidsAdmin, setFluidsAdmin] = useState('');
-  const [customCareDate, setCustomCareDate] = useState(null);
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(null);
 
   // Discharge states
@@ -203,15 +466,6 @@ export default function Ward({ user }) {
     e.preventDefault();
     if (!selectedAdmission) return;
 
-    // Validation of vitals in Ward observation
-    if (temp) {
-      const tempVal = parseFloat(temp);
-      if (tempVal < 25 || tempVal > 45) {
-        setMessage({ type: 'error', text: 'Temperature must be between 25.0°C and 45.0°C.' });
-        return;
-      }
-    }
-
     let bpSystolic = null;
     let bpDiastolic = null;
     if (bp) {
@@ -222,51 +476,21 @@ export default function Ward({ user }) {
       }
       bpSystolic = parseInt(bpParts[0], 10);
       bpDiastolic = parseInt(bpParts[1], 10);
-
-      if (isNaN(bpSystolic) || bpSystolic < 50 || bpSystolic > 280) {
-        setMessage({ type: 'error', text: 'Systolic blood pressure must be between 50 mmHg and 280 mmHg.' });
-        return;
-      }
-      if (isNaN(bpDiastolic) || bpDiastolic < 30 || bpDiastolic > 180) {
-        setMessage({ type: 'error', text: 'Diastolic blood pressure must be between 30 mmHg and 180 mmHg.' });
-        return;
-      }
-      if (bpDiastolic >= bpSystolic) {
-        setMessage({ type: 'error', text: 'Diastolic blood pressure must be strictly lower than systolic blood pressure.' });
-        return;
-      }
     }
 
-    if (pulse) {
-      const pulseVal = parseInt(pulse, 10);
-      if (pulseVal < 30 || pulseVal > 260) {
-        setMessage({ type: 'error', text: 'Pulse / Heart rate must be between 30 bpm and 260 bpm.' });
-        return;
-      }
-    }
+    const validation = validateVitals({
+      temperature: temp,
+      systolic: bpSystolic,
+      diastolic: bpDiastolic,
+      heart_rate: pulse,
+      resp_rate: respRate,
+      pain_score: painScore,
+      spo2: spo2
+    });
 
-    if (respRate) {
-      const respVal = parseInt(respRate, 10);
-      if (isNaN(respVal) || respVal < 6 || respVal > 80) {
-        setMessage({ type: 'error', text: 'Respiratory rate must be between 6 and 80 breaths per minute.' });
-        return;
-      }
-    }
-
-    if (painScore) {
-      const painVal = parseInt(painScore, 10);
-      if (isNaN(painVal) || painVal < 0 || painVal > 10) {
-        setMessage({ type: 'error', text: 'Pain score must be between 0 and 10.' });
-        return;
-      }
-    }
-
-    if (spo2) {
-      const spo2Val = parseInt(spo2, 10);
-      if (isNaN(spo2Val) || spo2Val < 10 || spo2Val > 100) {
-        setMessage({ type: 'error', text: 'Oxygen saturation (SPO2) must be between 10% and 100%.' });
-        return;
-      }
+    if (!validation.isValid) {
+      setMessage({ type: 'error', text: validation.error });
+      return;
     }
 
     setLoading(true);
@@ -358,6 +582,7 @@ export default function Ward({ user }) {
       return;
     }
 
+    setValidationError(null);
     setLoading(true);
     try {
       // Fetch existing triage data for this visit
@@ -422,6 +647,19 @@ export default function Ward({ user }) {
   const handleDischarge = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (!selectedAdmission) return;
+
+    const patientAge = getPatientAge(selectedAdmission.patient?.dob);
+    const validation = validateDischarge({
+      village: mohVillage,
+      temp: mohTemp,
+      weight: mohWeight,
+      systolic: mohSystolic,
+      diastolic: mohDiastolic
+    }, patientAge);
+
+    if (!validation.isValid) {
+      return;
+    }
 
     setLoading(true);
     setMessage({ type: '', text: '' });
@@ -536,19 +774,18 @@ export default function Ward({ user }) {
     } catch (err) {
       console.error('Failed to update bed status:', err);
     }
-  };
-
-  return (
+  };  return (
     <div className="space-y-6">
       {/* Bed Layout Grid Visualizer */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
         <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-1.5">
-          <Bed size={14} className="text-teal-400" /> Inpatient Ward Map (Active Occupancy)
+          <Bed size={14} className={getThemeColor('primary-text')} /> Inpatient Ward Map (Active Occupancy)
         </h3>
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
           {beds.map((bed) => {
             const occupant = admissions.find(a => a.bed_id === bed.id);
+            const isSelected = occupant && selectedAdmission?.id === occupant.id;
             return (
               <button
                 key={bed.id}
@@ -560,15 +797,15 @@ export default function Ward({ user }) {
                 }}
                 className={`border rounded-xl p-4 flex flex-col justify-between text-center min-h-[120px] transition ${
                   occupant
-                    ? selectedAdmission?.id === occupant.id
-                      ? 'border-teal-500 bg-teal-500/10 text-white shadow shadow-teal-500/10'
+                    ? isSelected
+                      ? `${getThemeColor('bed-selected')} shadow shadow-teal-500/10`
                       : 'border-slate-800 bg-slate-950 hover:border-slate-700'
                     : bed.bed_status === 'maintenance'
                       ? 'border-red-900/50 bg-red-950/10 text-red-400'
-                      : 'border-slate-850/65 bg-slate-950/20 border-dashed text-slate-600 hover:border-slate-700'
+                      : 'border-slate-855/65 bg-slate-950/20 border-dashed text-slate-600 hover:border-slate-700'
                 }`}
               >
-                <Bed size={22} className={occupant ? 'text-teal-400 mx-auto animate-pulse' : bed.bed_status === 'maintenance' ? 'text-red-500 mx-auto' : 'text-slate-700 mx-auto'} />
+                <Bed size={22} className={occupant ? `${getThemeColor('primary-text')} mx-auto animate-pulse` : bed.bed_status === 'maintenance' ? 'text-red-500 mx-auto' : 'text-slate-700 mx-auto'} />
                 <span className="text-xs font-bold font-mono mt-2">{bed.bed_number}</span>
                 <span className="text-[10px] truncate max-w-full font-semibold block mt-0.5 text-slate-400">
                   {occupant ? occupant.patient?.name.split(' ')[0] : bed.bed_status === 'maintenance' ? 'Maint' : 'Vacant'}
@@ -579,7 +816,7 @@ export default function Ward({ user }) {
                       e.stopPropagation();
                       updateBedStatus(bed.id, bed.bed_status === 'clean' ? 'maintenance' : 'clean');
                     }}
-                    className="text-[9px] text-teal-500/80 hover:text-teal-400 underline cursor-pointer mt-1.5 block font-medium"
+                    className={`text-[9px] ${getThemeColor('primary-text')} underline cursor-pointer mt-1.5 block font-medium`}
                   >
                     {bed.bed_status === 'clean' ? 'Maint' : 'Clean'}
                   </span>
@@ -599,7 +836,7 @@ export default function Ward({ user }) {
         {/* Admit Patient Form */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
           <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider border-b border-slate-800 pb-2 flex items-center gap-1.5">
-            <PlusCircle size={14} className="text-teal-400" /> Admit Patient to Ward
+            <PlusCircle size={14} className={getThemeColor('primary-text')} /> Admit Patient to Ward
           </h3>
 
           {message.text && message.type === 'error' && (
@@ -622,7 +859,7 @@ export default function Ward({ user }) {
               <select
                 value={selectedPatientId}
                 onChange={(e) => setSelectedPatientId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                className={`w-full bg-slate-955 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none ${getThemeColor('focus-border')} transition`}
                 required
               >
                 <option value="">-- Choose Patient --</option>
@@ -637,7 +874,7 @@ export default function Ward({ user }) {
               <select
                 value={targetBedId}
                 onChange={(e) => setTargetBedId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                className={`w-full bg-slate-955 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none ${getThemeColor('focus-border')} transition`}
                 required
               >
                 <option value="">-- Choose Vacant Bed --</option>
@@ -650,7 +887,7 @@ export default function Ward({ user }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 rounded-lg transition"
+              className={`w-full ${getThemeColor('accent-btn')} font-bold text-xs py-2 rounded-lg transition`}
             >
               Confirm Admission
             </button>
@@ -665,9 +902,10 @@ export default function Ward({ user }) {
               <span className="text-xs">No active inpatient selected. Click an occupied bed from the map.</span>
             </div>
           ) : (
-            <div className="space-y-5">              <div className="flex justify-between items-center pb-2 border-b border-slate-850">
+            <div className="space-y-5">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-850">
                 <div>
-                  <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider">{selectedAdmission.bed} Inpatient File</span>
+                  <span className={`text-[10px] ${getThemeColor('primary-text')} font-bold uppercase tracking-wider`}>{selectedAdmission.bed} Inpatient File</span>
                   <h4 className="text-sm font-bold text-slate-100">{selectedAdmission.patient?.name}</h4>
                   <span className="text-[10px] text-slate-500 font-mono">{selectedAdmission.patient?.facility_id_code}</span>
                 </div>
@@ -683,7 +921,7 @@ export default function Ward({ user }) {
                     <button
                       type="button"
                       onClick={() => setCustomCareDate(null)}
-                      className="text-[9px] text-teal-400 border border-teal-500/20 bg-teal-500/5 px-2 py-0.5 rounded cursor-pointer font-sans"
+                      className={`text-[9px] ${getThemeColor('primary-text')} border ${getThemeColor('primary-border')} ${getThemeColor('primary-bg')} px-2 py-0.5 rounded cursor-pointer font-sans`}
                     >
                       Reset to Today
                     </button>
@@ -706,13 +944,13 @@ export default function Ward({ user }) {
                     let tooltipText = "";
                     
                     if (hasCheck) {
-                      colorClass = "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20";
+                      colorClass = getThemeColor('compliance-checked');
                       tooltipText = `Day ${dayNumber}: Check-in complete. Click to review.`;
                     } else if (isToday) {
-                      colorClass = "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 animate-pulse";
+                      colorClass = getThemeColor('compliance-today');
                       tooltipText = `Day ${dayNumber} (Today): Check-in pending. Click to log.`;
                     } else if (isPastDay) {
-                      colorClass = "bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20";
+                      colorClass = getThemeColor('compliance-missed');
                       tooltipText = `Day ${dayNumber} (Missed): Unchecked. Click to log check-in.`;
                     }
                     
@@ -747,12 +985,12 @@ export default function Ward({ user }) {
               </div>
 
               {/* Action tabs: Observations and Discharge */}
-              <div className="grid grid-grid-cols-1 md:grid-cols-2 gap-6 font-sans">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-sans">
                 {/* Observations Logger */}
                 <form onSubmit={handleLogObservation} className="space-y-3.5">
                   <div className="flex justify-between items-center font-sans">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block flex items-center gap-1.5 font-sans">
-                      <Thermometer size={12} className="text-teal-400" /> Observation Vitals Chart
+                      <Thermometer size={12} className={getThemeColor('primary-text')} /> Observation Vitals Chart
                     </span>
                     {customCareDate && (
                       <span className="text-[9px] text-amber-400 bg-amber-500/10 border border-amber-500/25 px-1.5 py-0.5 rounded font-mono animate-pulse">
@@ -772,7 +1010,7 @@ export default function Ward({ user }) {
                         min="25"
                         max="45"
                         placeholder="37"
-                        className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500 font-mono"
+                        className={`w-full bg-slate-955 border border-slate-850 rounded py-1 px-2 text-xs text-slate-202 text-center focus:outline-none ${getThemeColor('focus-border')} font-mono`}
                         required
                       />
                     </div>
@@ -783,7 +1021,7 @@ export default function Ward({ user }) {
                         value={bp}
                         onChange={(e) => setBp(e.target.value)}
                         placeholder="120/80"
-                        className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500 font-mono"
+                        className={`w-full bg-slate-955 border border-slate-850 rounded py-1 px-2 text-xs text-slate-202 text-center focus:outline-none ${getThemeColor('focus-border')} font-mono`}
                         required
                       />
                     </div>
@@ -796,7 +1034,7 @@ export default function Ward({ user }) {
                         min="30"
                         max="260"
                         placeholder="72"
-                        className="w-full bg-slate-950 border border-slate-855 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500 font-mono"
+                        className={`w-full bg-slate-955 border border-slate-855 rounded py-1 px-2 text-xs text-slate-202 text-center focus:outline-none ${getThemeColor('focus-border')} font-mono`}
                         required
                       />
                     </div>
@@ -812,7 +1050,7 @@ export default function Ward({ user }) {
                         min="6"
                         max="80"
                         placeholder="16"
-                        className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500 font-mono"
+                        className={`w-full bg-slate-955 border border-slate-850 rounded py-1 px-2 text-xs text-slate-202 text-center focus:outline-none ${getThemeColor('focus-border')} font-mono`}
                       />
                     </div>
                     <div>
@@ -824,7 +1062,7 @@ export default function Ward({ user }) {
                         min="10"
                         max="100"
                         placeholder="98"
-                        className="w-full bg-slate-950 border border-slate-855 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500 font-mono"
+                        className={`w-full bg-slate-955 border border-slate-855 rounded py-1 px-2 text-xs text-slate-202 text-center focus:outline-none ${getThemeColor('focus-border')} font-mono`}
                       />
                     </div>
                     <div>
@@ -836,7 +1074,7 @@ export default function Ward({ user }) {
                         min="0"
                         max="10"
                         placeholder="0"
-                        className="w-full bg-slate-950 border border-slate-855 rounded py-1 px-2 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500 font-mono"
+                        className={`w-full bg-slate-955 border border-slate-855 rounded py-1 px-2 text-xs text-slate-202 text-center focus:outline-none ${getThemeColor('focus-border')} font-mono`}
                       />
                     </div>
                   </div>
@@ -849,7 +1087,7 @@ export default function Ward({ user }) {
                         value={medsGiven}
                         onChange={(e) => setMedsGiven(e.target.value)}
                         placeholder="e.g. Paracetamol 500mg IV"
-                        className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-205 focus:outline-none focus:border-teal-500"
+                        className={`w-full bg-slate-955 border border-slate-850 rounded py-1 px-2 text-xs text-slate-205 focus:outline-none ${getThemeColor('focus-border')}`}
                       />
                     </div>
                     <div>
@@ -859,7 +1097,7 @@ export default function Ward({ user }) {
                         value={fluidsAdmin}
                         onChange={(e) => setFluidsAdmin(e.target.value)}
                         placeholder="e.g. Normal Saline 500ml"
-                        className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-205 focus:outline-none focus:border-teal-500"
+                        className={`w-full bg-slate-955 border border-slate-850 rounded py-1 px-2 text-xs text-slate-205 focus:outline-none ${getThemeColor('focus-border')}`}
                       />
                     </div>
                   </div>
@@ -871,21 +1109,21 @@ export default function Ward({ user }) {
                       value={progressNotes}
                       onChange={(e) => setProgressNotes(e.target.value)}
                       placeholder="Enter patient observations, fluids admin, observations..."
-                      className="w-full bg-slate-950 border border-slate-850 rounded py-1.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                      className={`w-full bg-slate-955 border border-slate-850 rounded py-1.5 px-3 text-xs text-slate-200 focus:outline-none ${getThemeColor('focus-border')}`}
                       required
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-slate-955 border border-slate-805 hover:bg-slate-800 text-slate-350 text-xs py-1.5 rounded transition font-bold cursor-pointer font-sans"
+                    className={`w-full bg-slate-955 border border-slate-805 hover:bg-slate-800 ${getThemeColor('primary-text')} text-xs py-1.5 rounded transition font-bold cursor-pointer font-sans`}
                   >
                     {customCareDate ? `Backdate Observation (${customCareDate})` : 'Log Observation'}
                   </button>
                 </form>
 
                 {/* Discharge Panel */}
-                <form onSubmit={handleDischargeClick} className="space-y-3.5 border-t md:border-t-0 md:border-l border-slate-850/80 pt-4 md:pt-0 md:pl-6">
+                <form onSubmit={handleDischargeClick} className="space-y-3.5 border-t md:border-t-0 md:border-l border-slate-855/80 pt-4 md:pt-0 md:pl-6">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Discharge Patient Summary</span>
                   
                   <div>
@@ -895,14 +1133,14 @@ export default function Ward({ user }) {
                       value={dischargeNotes}
                       onChange={(e) => setDischargeNotes(e.target.value)}
                       placeholder="Type discharge notes, medication checkouts..."
-                      className="w-full bg-slate-950 border border-slate-850 rounded py-1.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                      className={`w-full bg-slate-955 border border-slate-850 rounded py-1.5 px-3 text-xs text-slate-200 focus:outline-none ${getThemeColor('focus-border')}`}
                       required
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 text-xs py-2 rounded-lg font-bold transition active:scale-[0.98]"
+                    className={`w-full ${getThemeColor('primary-bg')} hover:bg-opacity-20 ${getThemeColor('primary-text')} border ${getThemeColor('primary-border')} text-xs py-2 rounded-lg font-bold transition active:scale-[0.98]`}
                   >
                     Authorize Patient Discharge
                   </button>
@@ -912,12 +1150,12 @@ export default function Ward({ user }) {
               {/* Rounds History & Trend Visualizer */}
               <div className="border-t border-slate-850 pt-4 space-y-3">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block flex items-center gap-1.5">
-                  <Activity size={12} className="text-teal-400" /> Vitals History & Trends ({observations.length} rounds logged)
+                  <Activity size={12} className={getThemeColor('primary-text')} /> Vitals History & Trends ({observations.length} rounds logged)
                 </span>
                 {observations.length > 0 ? (
                   <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1">
                     {observations.map((obs, idx) => (
-                      <div key={obs.id} className="bg-slate-950/60 border border-slate-850 rounded-lg p-2.5 text-xs flex justify-between items-center gap-4">
+                      <div key={obs.id} className="bg-slate-955/60 border border-slate-850 rounded-lg p-2.5 text-xs flex justify-between items-center gap-4">
                         <div className="space-y-0.5">
                           <span className="text-[10px] text-slate-550 block font-semibold">ROUND #{idx + 1} - {new Date(obs.created_at).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
                           <p className="text-slate-300 italic text-[11px] font-medium">"{obs.observations_notes || 'No notes entered.'}"</p>
@@ -925,7 +1163,7 @@ export default function Ward({ user }) {
                         <div className="flex gap-3 text-right shrink-0">
                           <div>
                             <span className="text-[9px] text-slate-500 block">TEMP</span>
-                            <span className={`font-bold font-mono ${obs.temperature >= 38 ? 'text-red-400' : 'text-teal-400'}`}>{obs.temperature}°C</span>
+                            <span className={`font-bold font-mono ${obs.temperature >= 38 ? 'text-red-400' : getThemeColor('primary-text')}`}>{obs.temperature}°C</span>
                           </div>
                           <div>
                             <span className="text-[9px] text-slate-500 block">PULSE</span>
@@ -950,7 +1188,7 @@ export default function Ward({ user }) {
               {dischargeNotes.trim() && (
                 <div className="border-t border-slate-850 pt-4 space-y-2">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Automated Discharge Summary (Draft Preview)</span>
-                  <div className="bg-slate-950/80 border border-teal-500/20 rounded-xl p-4 text-xs font-sans text-slate-300 space-y-2.5">
+                  <div className={`bg-slate-955 border ${getThemeColor('primary-border')} rounded-xl p-4 text-xs font-sans text-slate-300 space-y-2.5`}>
                     <div className="flex justify-between items-center pb-2 border-b border-slate-850">
                       <span className="font-bold text-slate-200">EGOTECH GENERAL HOSPITAL</span>
                       <span className="font-mono text-[10px] text-slate-400 font-bold">CASE SUMMARY: {selectedAdmission.id.toUpperCase()}</span>
@@ -984,13 +1222,16 @@ export default function Ward({ user }) {
             <div className="flex justify-between items-center pb-3 border-b border-slate-80 shrink-0">
               <div>
                 <h3 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
-                  <Activity size={16} className="text-teal-400" /> Ministry of Health (MOH) Inpatient Sync
+                  <Activity size={16} className={getThemeColor('primary-text')} /> Ministry of Health (MOH) Inpatient Sync
                 </h3>
                 <p className="text-[10px] text-slate-500 mt-0.5">Kenya Health Information Exchange (HIE) Compliance check</p>
               </div>
               <button 
                 type="button" 
-                onClick={() => setShowMOHModal(false)}
+                onClick={() => {
+                  setShowMOHModal(false);
+                  setValidationError(null);
+                }}
                 className="text-slate-400 hover:text-slate-200 font-bold"
               >
                 ×
@@ -998,13 +1239,20 @@ export default function Ward({ user }) {
             </div>
 
             <div className="flex-1 overflow-y-auto pr-1 space-y-4 text-xs">
-              <div className="bg-slate-950/50 border border-slate-850 p-3.5 rounded-xl space-y-2">
+              {validationError && (
+                <div className="bg-red-500/5 border border-red-500/20 text-red-400 p-2.5 rounded text-xs flex gap-2 animate-pulse">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                  <span>{validationError}</span>
+                </div>
+              )}
+
+              <div className="bg-slate-955/50 border border-slate-850 p-3.5 rounded-xl space-y-2">
                 <span className="font-bold text-slate-350 block uppercase text-[9px] tracking-wider mb-1">Verify Inpatient Demographics</span>
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
                   <div><span className="text-slate-550">Name:</span> <span className="text-slate-300 font-bold">{selectedAdmission.patient?.name}</span></div>
                   <div><span className="text-slate-550">Gender:</span> <span className="text-slate-300 font-bold uppercase">{selectedAdmission.patient?.gender}</span></div>
                   <div><span className="text-slate-550">Age:</span> <span className="text-slate-300 font-bold">{getPatientAge(selectedAdmission.patient?.dob)} years</span></div>
-                  <div><span className="text-slate-550">Assigned Bed:</span> <span className="text-teal-450 font-bold">{selectedAdmission.bed}</span></div>
+                  <div><span className="text-slate-550">Assigned Bed:</span> <span className={`${getThemeColor('primary-text')} font-bold`}>{selectedAdmission.bed}</span></div>
                 </div>
               </div>
 
@@ -1028,13 +1276,13 @@ export default function Ward({ user }) {
                     value={mohVillage}
                     onChange={(e) => setMohVillage(e.target.value)}
                     placeholder="e.g. Kawangware / Riruta"
-                    className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                    className={`w-full bg-slate-955 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-202 focus:outline-none ${getThemeColor('focus-border')}`}
                     required
                   />
                 </div>
 
                 {/* Vital signs checks */}
-                <div className="bg-slate-950/20 border border-slate-850/80 p-3 rounded-lg space-y-3">
+                <div className="bg-slate-955/20 border border-slate-850/80 p-3 rounded-lg space-y-3">
                   <span className="font-bold text-slate-355 block uppercase text-[8px] tracking-wider">Triage & Vital Signs Parameters</span>
                   
                   <div className="grid grid-cols-2 gap-3">
@@ -1050,7 +1298,7 @@ export default function Ward({ user }) {
                         value={mohTemp}
                         onChange={(e) => setMohTemp(e.target.value)}
                         placeholder="e.g. 37.0"
-                        className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                        className={`w-full bg-slate-955 border border-slate-800 rounded px-2 py-1 text-xs text-slate-202 text-center focus:outline-none ${getThemeColor('focus-border')}`}
                         required
                       />
                     </div>
@@ -1067,7 +1315,7 @@ export default function Ward({ user }) {
                         value={mohWeight}
                         onChange={(e) => setMohWeight(e.target.value)}
                         placeholder="e.g. 70.0"
-                        className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                        className={`w-full bg-slate-955 border border-slate-800 rounded px-2 py-1 text-xs text-slate-202 text-center focus:outline-none ${getThemeColor('focus-border')}`}
                         required
                       />
                     </div>
@@ -1086,7 +1334,7 @@ export default function Ward({ user }) {
                           value={mohSystolic}
                           onChange={(e) => setMohSystolic(e.target.value)}
                           placeholder="Systolic (e.g. 120)"
-                          className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                          className={`w-full bg-slate-955 border border-slate-800 rounded px-2 py-1 text-xs text-slate-202 text-center focus:outline-none ${getThemeColor('focus-border')}`}
                           required
                         />
                         <input
@@ -1094,7 +1342,7 @@ export default function Ward({ user }) {
                           value={mohDiastolic}
                           onChange={(e) => setMohDiastolic(e.target.value)}
                           placeholder="Diastolic (e.g. 80)"
-                          className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center focus:outline-none focus:border-teal-500"
+                          className={`w-full bg-slate-955 border border-slate-800 rounded px-2 py-1 text-xs text-slate-202 text-center focus:outline-none ${getThemeColor('focus-border')}`}
                           required
                         />
                       </div>
@@ -1110,7 +1358,7 @@ export default function Ward({ user }) {
                   id="confirmMOH"
                   checked={mohConfirmed}
                   onChange={(e) => setMohConfirmed(e.target.checked)}
-                  className="accent-teal-500 h-4 w-4 bg-slate-950 border-slate-800 rounded text-teal-500 cursor-pointer mt-0.5"
+                  className={`${getThemeColor('accent-color')} h-4 w-4 bg-slate-950 border-slate-800 rounded cursor-pointer mt-0.5`}
                 />
                 <label htmlFor="confirmMOH" className="text-[11px] text-slate-400 leading-normal cursor-pointer select-none">
                   I confirm that all Ministry of Health (MOH) data fields are fully captured and verified for this inpatient discharge.
@@ -1121,7 +1369,10 @@ export default function Ward({ user }) {
             <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800 shrink-0">
               <button
                 type="button"
-                onClick={() => setShowMOHModal(false)}
+                onClick={() => {
+                  setShowMOHModal(false);
+                  setValidationError(null);
+                }}
                 className="px-4 py-2 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-350 rounded-lg text-xs font-bold transition"
               >
                 Cancel & Edit
@@ -1130,7 +1381,7 @@ export default function Ward({ user }) {
                 type="button"
                 disabled={!mohConfirmed || !mohVillage || !mohTemp || !mohWeight || (getPatientAge(selectedAdmission.patient?.dob) >= 18 && (!mohSystolic || !mohDiastolic))}
                 onClick={() => handleDischarge()}
-                className="px-5 py-2 bg-teal-500 hover:bg-teal-600 disabled:opacity-40 text-slate-950 font-black rounded-lg text-xs transition active:scale-[0.98]"
+                className={`px-5 py-2 ${getThemeColor('accent-btn')} disabled:opacity-40 font-black rounded-lg text-xs transition active:scale-[0.98]`}
               >
                 Verify & Complete Discharge Lifecycle
               </button>
@@ -1170,7 +1421,7 @@ export default function Ward({ user }) {
                   <div className="grid grid-cols-3 gap-2 text-center font-mono">
                     <div className="bg-slate-900 p-1.5 rounded">
                       <span className="text-[8px] text-slate-500 block">TEMP</span>
-                      <span className={`text-[10px] font-bold ${obs.temperature >= 38 ? 'text-red-400' : 'text-teal-400'}`}>
+                      <span className={`text-[10px] font-bold ${obs.temperature >= 38 ? 'text-red-400' : getThemeColor('primary-text')}`}>
                         {obs.temperature ? `${obs.temperature}°C` : 'N/A'}
                       </span>
                     </div>
@@ -1195,7 +1446,7 @@ export default function Ward({ user }) {
                     </div>
                     <div className="bg-slate-900 p-1 rounded">
                       <span className="text-[8px] text-slate-500 block">SPO2</span>
-                      <span className="font-bold text-slate-350">{obs.oxygen_saturation || '98'}%</span>
+                      <span className="font-bold text-slate-355">{obs.oxygen_saturation || '98'}%</span>
                     </div>
                   </div>
 
@@ -1230,7 +1481,7 @@ export default function Ward({ user }) {
                 setSelectedCalendarDay(null);
                 setMessage({ type: 'success', text: `Logging additional observation round for ${selectedCalendarDay.date}` });
               }}
-              className="w-full bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 text-xs py-2 rounded-lg font-bold transition cursor-pointer font-sans"
+              className={`w-full ${getThemeColor('primary-bg')} hover:bg-opacity-20 ${getThemeColor('primary-text')} border ${getThemeColor('primary-border')} text-xs py-2 rounded-lg font-bold transition cursor-pointer font-sans`}
             >
               Log Another Round for this Day
             </button>

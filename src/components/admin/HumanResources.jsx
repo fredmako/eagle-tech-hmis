@@ -8,7 +8,8 @@ import {
   CheckCircle, 
   AlertCircle,
   Briefcase,
-  XCircle
+  XCircle,
+  Sliders
 } from 'lucide-react';
 
 export default function HumanResources({ 

@@ -13,8 +13,8 @@ export function Pricing() {
           <div className="text-xs uppercase tracking-widest text-primary font-sans font-bold">Transparent Pricing</div>
           <h2 className="font-serif text-3xl md:text-4xl text-fg-strong leading-tight font-normal">No hidden costs.<br /><span className="text-fg-muted">Only what your facility actually needs.</span></h2>
         </Reveal>
-        <Reveal className="relative rounded-xl overflow-hidden border border-border aspect-[5/1] min-h-[140px]">
-          <SafeImage src={PHOTO_PRICING_BAND} alt="Hospital facility interior" className="absolute inset-0 w-full h-full object-cover clinical-photo" />
+        <Reveal className="relative rounded-xl overflow-hidden border border-border aspect-[5/1] min-h-[140px] group cursor-default">
+          <SafeImage src={PHOTO_PRICING_BAND} alt="Hospital facility interior" className="absolute inset-0 w-full h-full object-cover clinical-photo group-hover:scale-103 transition-transform duration-[2000ms] ease-out" />
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-background/40" />
           <div className="relative h-full flex items-center px-8 md:px-12">
             <div className="max-w-md space-y-2">
@@ -27,7 +27,17 @@ export function Pricing() {
           {budgetItems.map((b, idx) => {
             const Icon = b.icon;
             return (
-              <StaggerItem key={idx} className={['rounded-xl p-6 space-y-5 flex flex-col relative overflow-hidden', b.highlight ? 'bg-primary/5 border border-border-emphasis' : 'bg-card border border-border'].join(' ')}>
+              <StaggerItem 
+                key={idx} 
+                whileHover={{ 
+                  y: -8, 
+                  scale: 1.02,
+                  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
+                  borderColor: b.highlight ? 'var(--primary)' : 'rgba(45, 212, 191, 0.3)'
+                }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className={['rounded-xl p-6 space-y-5 flex flex-col relative overflow-hidden hover-shine cursor-default', b.highlight ? 'bg-primary/5 border border-border-emphasis' : 'bg-card border border-border'].join(' ')}
+              >
                 {b.highlight && (<motion.div initial={{ opacity: 0, scaleX: 0 }} whileInView={{ opacity: 1, scaleX: 1 }} viewport={{ once: true }} transition={{ duration: 0.9, delay: 0.3, ease: 'easeOut' }} className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent origin-center" />)}
                 <div className="flex items-start gap-3">
                   <div className="w-9 h-9 rounded-lg bg-primary/10 border border-border-strong flex items-center justify-center shrink-0"><Icon size={16} className="text-primary" /></div>
@@ -50,7 +60,13 @@ export function Pricing() {
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             {['Stripe', 'M-Pesa', 'PayPal', 'Mastercard'].map((p) => (
-              <motion.span key={p} whileHover={{ y: -2 }} className="text-xs uppercase tracking-wider px-3 py-1.5 rounded-lg bg-primary/5 border border-border-subtle text-fg-muted font-sans font-bold">{p}</motion.span>
+              <motion.span 
+                key={p} 
+                whileHover={{ y: -4, scale: 1.05, borderColor: 'var(--primary)', color: 'var(--primary)' }} 
+                className="text-xs uppercase tracking-wider px-3 py-1.5 rounded-lg bg-primary/5 border border-border-subtle text-fg-muted font-sans font-bold cursor-default transition-colors duration-fast"
+              >
+                {p}
+              </motion.span>
             ))}
           </div>
         </Reveal>

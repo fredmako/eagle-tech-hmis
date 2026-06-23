@@ -15,15 +15,24 @@ export function ModulesGrid() {
           <span className="text-fg-muted">fully integrated out of the box.</span>
         </h2>
       </Reveal>
-      <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border rounded-xl overflow-hidden" stagger={0.06}>
+      <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border rounded-xl" stagger={0.06}>
         {services.map((s, idx) => {
           const Icon = s.icon;
           return (
-            <StaggerItem key={idx} className="bg-background">
-              <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2, ease: 'easeOut' }} className="group h-full hover:bg-card p-6 space-y-4 transition-colors duration-medium cursor-default">
+            <StaggerItem key={idx} className="bg-background relative">
+              <motion.div 
+                whileHover={{ 
+                  y: -6, 
+                  scale: 1.015,
+                  boxShadow: '0 12px 30px rgba(0, 0, 0, 0.15)',
+                  zIndex: 10
+                }} 
+                transition={{ duration: 0.25, ease: 'easeOut' }} 
+                className="group h-full hover-shine hover:bg-card p-6 space-y-4 transition-colors duration-medium cursor-default border border-transparent hover:border-primary/20 rounded-lg relative"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 border border-border-strong flex items-center justify-center"><Icon size={18} className="text-primary" /></div>
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 border border-border-strong flex items-center justify-center group-hover:scale-108 group-hover:rotate-6 transition-transform duration-medium"><Icon size={18} className="text-primary" /></div>
                     <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-border-subtle">
                       <SafeImage src={s.photo} alt={s.title} className="w-full h-full object-cover clinical-photo group-hover:scale-110 transition-transform duration-slow" />
                       <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, color-mix(in oklab, var(--primary) 15%, transparent), color-mix(in oklab, var(--background) 40%, transparent))' }} />

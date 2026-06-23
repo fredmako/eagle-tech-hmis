@@ -11,9 +11,9 @@ export function Stagger({ children, className, as = 'div', stagger = 0.08, delay
   );
 }
 
-export function StaggerItem({ children, className, as = 'div', y = 20 }) {
+export function StaggerItem({ children, className, as = 'div', y = 20, ...rest }) {
   const reduced = useReducedMotion();
   const MotionTag = motion.create(as);
   const item = { hidden: { opacity: 0, y: reduced ? 0 : y }, visible: { opacity: 1, y: 0, transition: { duration: reduced ? 0 : 0.5, ease: [0.22, 1, 0.36, 1] } } };
-  return (<MotionTag className={className} variants={item}>{children}</MotionTag>);
+  return (<MotionTag className={className} variants={item} {...rest}>{children}</MotionTag>);
 }

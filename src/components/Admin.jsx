@@ -172,7 +172,6 @@ export default function Admin({ user }) {
         query = query.is('facility_id', null);
       }
       const { data: profs } = await query;
-      setUsersList(profs || []);
 
       // Fetch facilities
       const { data: facs } = await supabase.from('facilities').select('*');
@@ -200,11 +199,13 @@ export default function Admin({ user }) {
       }
 
       // Fetch role requests for this facility from backend
+      let reqs = [];
       try {
         const res = await authFetch('/auth/role-requests');
         const data = await res.json();
         if (res.ok && data.requests) {
-          setRoleRequests(data.requests);
+          reqs = data.requests;
+          setRoleRequests(reqs);
         } else {
           setRoleRequests([]);
         }
@@ -212,6 +213,93 @@ export default function Admin({ user }) {
         console.error('Error fetching role requests:', reqErr);
         setRoleRequests([]);
       }
+
+      // Fetch duty rosters & attendance logs to check for rostered/active employees
+      let rostersData = [];
+      let attendanceData = [];
+      if (user.facility_id) {
+        try {
+          const { data: rosterRes } = await supabase.from('duty_rosters').select('user_id').eq('facility_id', user.facility_id);
+          rostersData = rosterRes || [];
+        } catch (e) {
+          console.error('Error loading rosters for consolidation:', e);
+        }
+
+        try {
+          const { data: attRes } = await supabase.from('attendance_logs').select('user_id').eq('facility_id', user.facility_id);
+          attendanceData = attRes || [];
+        } catch (e) {
+          console.error('Error loading attendance for consolidation:', e);
+        }
+      }
+
+      const activeEmployeeIds = Array.from(new Set([
+        ...rostersData.map(r => r.user_id),
+        ...attendanceData.map(a => a.user_id)
+      ])).filter(Boolean);
+
+      // Fetch profiles for these active employees if they aren't already included in profs
+      let activeEmpProfiles = [];
+      if (activeEmployeeIds.length > 0) {
+        try {
+          const { data: empProfs } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('id', activeEmployeeIds);
+          activeEmpProfiles = empProfs || [];
+        } catch (e) {
+          console.error('Error fetching active employee profiles:', e);
+        }
+      }
+
+      // Consolidate profiles
+      const consolidated = profs ? [...profs] : [];
+
+      // Add active roster/attendance employee profiles
+      activeEmpProfiles.forEach(emp => {
+        const exists = consolidated.some(p => p.id === emp.id || (p.email && emp.email && p.email.toLowerCase().trim() === emp.email.toLowerCase().trim()));
+        if (!exists) {
+          consolidated.push(emp);
+        }
+      });
+
+      // Add approved role requests (which represent accepted employees)
+      if (reqs && reqs.length > 0) {
+        const approvedReqs = reqs.filter(r => r.status === 'approved' && (!user.facility_id || r.facility_id === user.facility_id));
+        approvedReqs.forEach(req => {
+          const exists = consolidated.some(p => 
+            (p.email && p.email.toLowerCase().trim() === req.email.toLowerCase().trim()) || 
+            p.id === req.user_id
+          );
+          if (!exists) {
+            consolidated.push({
+              id: req.user_id || `req_${req.id}`,
+              full_name: req.full_name,
+              email: req.email,
+              role: req.requested_role,
+              facility_id: req.facility_id,
+              created_at: req.created_at
+            });
+          }
+        });
+      }
+
+      // Add current administrator user context
+      if (user && user.email) {
+        const exists = consolidated.some(p => p.email && p.email.toLowerCase().trim() === user.email.toLowerCase().trim());
+        if (!exists) {
+          consolidated.push({
+            id: user.id,
+            full_name: user.full_name || user.name || 'Administrator',
+            email: user.email,
+            role: user.role || 'admin',
+            facility_id: user.facility_id || null,
+            created_at: new Date().toISOString()
+          });
+        }
+      }
+
+      setUsersList(consolidated);
 
       // Fetch staff invitations
       await fetchInvitations();

@@ -474,28 +474,51 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
                           </span>
                         </td>
                         <td className="py-4 px-4 text-center">
-                          <button
-                            onClick={() => handleToggleVerification(fac.id, fac.is_verified)}
-                            disabled={actionLoading === fac.id}
-                            className={`inline-flex items-center gap-1.5 font-bold text-[10px] uppercase py-1.5 px-3 rounded-lg shadow transition active:scale-[0.98] cursor-pointer ${
-                              fac.is_verified
-                                ? 'bg-slate-800 hover:bg-slate-750 text-red-400 border border-slate-700 hover:border-red-500/25'
-                                : 'bg-teal-500 hover:bg-teal-600 text-slate-950 font-black'
-                            }`}
-                          >
-                            {actionLoading === fac.id ? (
-                              <RefreshCw size={10} className="animate-spin" />
-                            ) : fac.is_verified ? (
-                              <Lock size={10} />
-                            ) : (
-                              <Unlock size={10} />
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleToggleVerification(fac.id, fac.is_verified)}
+                              disabled={actionLoading === fac.id}
+                              className={`inline-flex items-center gap-1.5 font-bold text-[10px] uppercase py-1.5 px-3 rounded-lg shadow transition active:scale-[0.98] cursor-pointer ${
+                                fac.is_verified
+                                  ? 'bg-slate-800 hover:bg-slate-750 text-red-400 border border-slate-700 hover:border-red-500/25'
+                                  : 'bg-teal-500 hover:bg-teal-600 text-slate-950 font-black'
+                              }`}
+                            >
+                              {actionLoading === fac.id ? (
+                                <RefreshCw size={10} className="animate-spin" />
+                              ) : fac.is_verified ? (
+                                <Lock size={10} />
+                              ) : (
+                                <Unlock size={10} />
+                              )}
+                              <span>
+                                {actionLoading === fac.id 
+                                  ? 'Processing...' 
+                                  : fac.is_verified ? 'Suspend Portal' : 'Verify Facility'}
+                              </span>
+                            </button>
+
+                            {fac.is_verified && (
+                              <button
+                                onClick={() => {
+                                  const updatedUser = {
+                                    ...user,
+                                    role: 'admin',
+                                    facility_id: fac.id,
+                                    facility_name: fac.name,
+                                    facility_logo: fac.logo_url,
+                                    facility_is_verified: true
+                                  };
+                                  setUser(updatedUser);
+                                  sessionStorage.setItem('egesa_health_active_user', JSON.stringify(updatedUser));
+                                }}
+                                className="inline-flex items-center gap-1.5 font-bold text-[10px] uppercase py-1.5 px-3 rounded-lg shadow bg-teal-500 hover:bg-teal-600 text-slate-950 transition active:scale-[0.98] cursor-pointer"
+                              >
+                                <Building2 size={10} />
+                                <span>Access Portal</span>
+                              </button>
                             )}
-                            <span>
-                              {actionLoading === fac.id 
-                                ? 'Processing...' 
-                                : fac.is_verified ? 'Suspend Portal' : 'Verify Facility'}
-                            </span>
-                          </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

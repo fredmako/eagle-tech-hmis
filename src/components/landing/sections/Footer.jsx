@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { Reveal } from '../../ui/Reveal';
 import { motion } from 'motion/react';
+import { X } from 'lucide-react';
 
 export function Footer() {
+  const [activeModal, setActiveModal] = useState(null); // 'privacy', 'service', or null
+
   const socials = [
     { 
       name: "Facebook", 
@@ -26,15 +30,22 @@ export function Footer() {
   ];
 
   return (
-    <footer className="border-t border-border bg-background">
+    <footer className="border-t border-border bg-background relative z-10">
       <Reveal as="div" className="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-2.5">
           <img src="/logo.png" alt="Eagle Tech Logo" className="w-6 h-6 rounded-md object-contain" />
           <span className="font-serif text-sm text-fg-strong font-semibold">Eagle Tech HMIS</span>
         </div>
-        <div className="text-xs text-fg-faint text-center font-sans font-medium">
-          © 2026 Eagle Tech Hospital Management Software Solutions. All rights reserved.
+        
+        <div className="text-xs text-fg-faint text-center font-sans font-medium flex flex-col items-center gap-2">
+          <div>© 2026 Eagle Tech Hospital Management Software Solutions. All rights reserved.</div>
+          <div className="flex items-center gap-3 text-2xs text-fg-muted font-bold font-sans">
+            <button onClick={() => setActiveModal('privacy')} className="hover:text-primary transition-colors cursor-pointer hover:underline">Privacy Policy</button>
+            <span className="text-slate-805 font-bold">•</span>
+            <button onClick={() => setActiveModal('service')} className="hover:text-primary transition-colors cursor-pointer hover:underline">Service Agreement</button>
+          </div>
         </div>
+
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-4">
             {socials.map((s, idx) => {
@@ -62,7 +73,112 @@ export function Footer() {
           </div>
         </div>
       </Reveal>
+
+      {/* Document Modal */}
+      {activeModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 font-sans animate-fadeIn">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-850 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-emerald-500 to-primary" />
+            
+            <div className="p-6 border-b border-slate-850 flex justify-between items-start gap-4">
+              <div>
+                <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">Legal & Compliance Documentation</span>
+                <h3 className="text-base font-bold text-slate-100 mt-1">
+                  {activeModal === 'privacy' ? 'Privacy Policy' : 'Service Agreement (SLA & ToS)'}
+                </h3>
+              </div>
+              <button 
+                onClick={() => setActiveModal(null)} 
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition focus:outline-none cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-4 text-xs text-slate-350 leading-relaxed scrollbar-thin scrollbar-thumb-slate-850 scrollbar-track-transparent">
+              {activeModal === 'privacy' ? (
+                <>
+                  <p className="font-bold text-slate-200">Last Updated: June 24, 2026</p>
+                  <p>
+                    Eagle Tech HMIS operates as a white-label, multitenant clinical portal provider. We are committed to safeguarding clinical data and maintaining absolute compliance with global healthcare privacy benchmarks.
+                  </p>
+                  
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">1. Scope of Compliance</h4>
+                  <p>
+                    Our databases are designed to conform strictly to the <strong>Kenyan Data Protection Act (2019)</strong>, the Health Insurance Portability and Accountability Act (HIPAA) standards, and the General Data Protection Regulation (GDPR).
+                  </p>
+                  
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">2. Data Processor vs. Data Controller</h4>
+                  <p>
+                    Under this agreement, the subscribing healthcare facility (Hospital or Clinic) is the <strong>Data Controller</strong> and retains full ownership of patient medical details. Eagle Tech acts as the <strong>Data Processor</strong>, maintaining cloud infrastructure, backup archives, and database synchronization.
+                  </p>
+                  
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">3. Medical Records Collection</h4>
+                  <p>
+                    To automate clinical workflows, our databases securely store:
+                  </p>
+                  <ul className="list-disc list-inside pl-2 space-y-1">
+                    <li>Demographics (Name, Date of Birth, Gender, National ID, Phone).</li>
+                    <li>Physiological vitals (Temperature, Heart Rate, BP, Blood Glucose, BMI).</li>
+                    <li>Clinical SOAP notes, ICD-10 diagnostic coding, and lab reports.</li>
+                    <li>Dispensing inventory logs and electronic invoice details.</li>
+                  </ul>
+                  
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">4. Technical Security Protocols</h4>
+                  <p>
+                    Data is protected via military-grade safeguards:
+                  </p>
+                  <ul className="list-disc list-inside pl-2 space-y-1">
+                    <li>Encryption-at-Rest using AES-256 algorithm.</li>
+                    <li>Encryption-in-Transit utilizing TLS 1.3 tunnels.</li>
+                    <li>Role-Based Access Control (RBAC) preventing unauthorized clinical logs.</li>
+                    <li>Automated hourly backup database snapshots.</li>
+                  </ul>
+                </>
+              ) : (
+                <>
+                  <p className="font-bold text-slate-200">Last Updated: June 24, 2026</p>
+                  <p>
+                    This Service Agreement defines the standard operating criteria, subscription fees, and liability limitations for the Eagle Tech Hospital Management Information System (HMIS).
+                  </p>
+                  
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">1. Service Level SLA (99.9% Uptime)</h4>
+                  <p>
+                    Eagle Tech guarantees a <strong>99.9% platform service availability SLA</strong>. Scheduled maintenance is executed during low-traffic slots (Sundays 02:00–04:00 EAT) with preceding alerts dispatched to administrators.
+                  </p>
+                  
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">2. Subscriptions & Billing Tiers</h4>
+                  <p>
+                    Subscriptions are billed in Kenyan Shillings (Ksh) or USD as per the chosen package (Basic, Standard, or Enterprise). Domain registration, backups, and payment gateways are locked to the active billing cycles. If payments fail, a 7-day grace period is provided prior to read-only database locks.
+                  </p>
+                  
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">3. White-Label & Domain Branding</h4>
+                  <p>
+                    Facilities receive custom DNS routing setups. You retain complete ownership of logos, branding designs, and user roles. Eagle Tech retains copyrights of the HMIS application logic and clinical algorithm frameworks.
+                  </p>
+                  
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">4. Medical Liability Disclaimer</h4>
+                  <p>
+                    Eagle Tech HMIS is a record-keeping and database management helper. It does not make diagnostic choices or define therapeutic paths. Clinical care choices remain the sole responsibility of the registered, licensed medical practitioners operating the workspace.
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div className="p-4 bg-slate-950 border-t border-slate-850 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <span className="text-[9px] text-slate-500 italic text-center sm:text-left">Eagle Tech Legal Compliance. Certified HIPAA & Data Protection Act 2019.</span>
+              <button
+                onClick={() => setActiveModal(null)}
+                className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[10px] py-1.5 px-5 rounded-lg transition cursor-pointer"
+              >
+                Accept & Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </footer>
   );
 }
+
 

@@ -846,9 +846,10 @@ export default function Orders({ user, onComplete }) {
   };
 
   const handleCollectSample = (orderId) => {
-    const randomBarcode = 'BAR-' + Math.floor(100000 + Math.random() * 900000);
+    const manualBarcode = collectionChecklist[orderId]?.barcode?.trim();
+    const finalBarcode = manualBarcode || ('BAR-' + Math.floor(100000 + Math.random() * 900000));
     updateOrderStatus(orderId, 'collected', { 
-      barcode: randomBarcode,
+      barcode: finalBarcode,
       collected_at: new Date().toISOString(),
       collected_by: user.full_name
     });
@@ -1797,12 +1798,25 @@ export default function Orders({ user, onComplete }) {
                                   </select>
                                 </div>
                               </div>
+                              <div className="space-y-1 mt-2.5">
+                                <span className="text-[8px] text-slate-500 uppercase block font-bold mb-1">Manual Barcode / Scan ID (Optional)</span>
+                                <input
+                                  type="text"
+                                  value={collectionChecklist[ord.id]?.barcode || ''}
+                                  onChange={(e) => setCollectionChecklist({
+                                    ...collectionChecklist,
+                                    [ord.id]: { ...(collectionChecklist[ord.id] || {}), barcode: e.target.value }
+                                  })}
+                                  className="bg-slate-900 border border-slate-800 text-[10px] text-white py-1 px-2 rounded w-full focus:outline-none focus:border-teal-500 font-mono"
+                                  placeholder="Scan or type barcode..."
+                                />
+                              </div>
                               <button
                                 disabled={loading || !collectionChecklist[ord.id]?.volume || !collectionChecklist[ord.id]?.labeled}
                                 onClick={() => handleCollectSample(ord.id)}
                                 className="bg-teal-500 hover:bg-teal-600 disabled:opacity-40 text-slate-950 font-bold text-[10px] py-2 px-3 rounded shadow transition mt-2.5 w-full flex items-center justify-center gap-1 active:scale-[0.98]"
                               >
-                                <Barcode size={12} /> Confirm & Generate Barcode
+                                <Barcode size={12} /> Confirm & Register Sample
                               </button>
                             </div>
                           )}

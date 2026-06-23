@@ -29,6 +29,11 @@ export default function Orders({ user, onComplete }) {
   const [selectedWalkinTest, setSelectedWalkinTest] = useState('');
   const [addingWalkin, setAddingWalkin] = useState(false);
   const [walkinPrice, setWalkinPrice] = useState(0);
+  const [customWalkinTestName, setCustomWalkinTestName] = useState('');
+  const [customWalkinTestKind, setCustomWalkinTestKind] = useState('General');
+  const [customWalkinSampleType, setCustomWalkinSampleType] = useState('Blood');
+  const [customWalkinPrecedingWorkflow, setCustomWalkinPrecedingWorkflow] = useState('Phlebotomy');
+  const [customWalkinDescription, setCustomWalkinDescription] = useState('');
   const [savingCatalog, setSavingCatalog] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
   const [editableCatalog, setEditableCatalog] = useState({});
@@ -619,8 +624,14 @@ export default function Orders({ user, onComplete }) {
     setMessage({ type: '', text: '' });
     
     try {
+      const isCustomManual = selectedWalkinTest === '__custom_manual__';
+      const testNameToAdd = isCustomManual ? customWalkinTestName.trim() : selectedWalkinTest;
+      if (!testNameToAdd) {
+        throw new Error('Please enter a custom test name.');
+      }
+
       // Check if price needs to be updated in the facility catalog
-      const matchedIdx = facilityServices.findIndex(s => s.name === selectedWalkinTest);
+      const matchedIdx = facilityServices.findIndex(s => s.name.toLowerCase() === testNameToAdd.toLowerCase());
       let updatedServices = [...facilityServices];
       let hasChanged = false;
       if (matchedIdx >= 0) {
@@ -630,9 +641,13 @@ export default function Orders({ user, onComplete }) {
         }
       } else {
         updatedServices.push({
-          name: selectedWalkinTest,
+          name: testNameToAdd,
           category: 'Lab',
-          charge: walkinPrice
+          charge: walkinPrice,
+          testKind: isCustomManual ? customWalkinTestKind : 'General',
+          sampleType: isCustomManual ? customWalkinSampleType : 'Not specified',
+          precedingWorkflow: isCustomManual ? customWalkinPrecedingWorkflow : 'Not specified',
+          description: isCustomManual ? customWalkinDescription : ''
         });
         hasChanged = true;
       }
@@ -642,14 +657,14 @@ export default function Orders({ user, onComplete }) {
           .from('facilities')
           .update({ services_list: updatedServices })
           .eq('id', user.facility_id);
-        if (updateErr) throw updateErr;
+         if (updateErr) throw updateErr;
         setFacilityServices(updatedServices);
       }
 
       const newOrder = {
         visit_id: selectedVisit.id,
         type: 'lab',
-        item_name: selectedWalkinTest,
+        item_name: testNameToAdd,
         status: 'ordered',
         price: walkinPrice
       };
@@ -661,11 +676,16 @@ export default function Orders({ user, onComplete }) {
         facility_id: user.facility_id,
         user_id: user.id,
         action: 'Walk-in Lab Order Created',
-        details: `Created direct walk-in lab order for ${selectedWalkinTest} for patient ${selectedVisit?.patient?.name} at KES ${walkinPrice}/-.`
+        details: `Created direct walk-in lab order for ${testNameToAdd} for patient ${selectedVisit?.patient?.name} at KES ${walkinPrice}/-.`
       });
 
-      setMessage({ type: 'success', text: `Walk-in test '${selectedWalkinTest}' added successfully!` });
+      setMessage({ type: 'success', text: `Walk-in test '${testNameToAdd}' added successfully!` });
       setSelectedWalkinTest('');
+      setCustomWalkinTestName('');
+      setCustomWalkinTestKind('General');
+      setCustomWalkinSampleType('Blood');
+      setCustomWalkinPrecedingWorkflow('Phlebotomy');
+      setCustomWalkinDescription('');
       setWalkinPrice(0);
       await handleSelectVisit(selectedVisit);
     } catch (err) {
@@ -2147,6 +2167,7 @@ export default function Orders({ user, onComplete }) {
                                   {svc.name} (KES {svc.price}/-)
                                 </option>
                               ))}
+                              <option value="__custom_manual__">✨ -- Enter Custom Test Manually --</option>
                             </select>
                           </div>
                           
@@ -2166,7 +2187,80 @@ export default function Orders({ user, onComplete }) {
                           </div>
                         </div>
 
-                        {selectedWalkinTest && (() => {
+                        {selectedWalkinTest === '__custom_manual__' && (
+                          <div className="bg-slate-950/65 border border-slate-800/80 rounded-lg p-4 space-y-3 text-xs font-sans">
+                            <h5 className="text-[11px] font-bold text-teal-400 uppercase tracking-wide flex items-center gap-1.5 border-b border-slate-900 pb-1.5">
+                              <FlaskConical size={12} /> Custom Test Specifications
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-semibold">
+                                  Custom Test Name
+                                </label>
+                                <input
+                                  type="text"
+                                  value={customWalkinTestName}
+                                  onChange={(e) => setCustomWalkinTestName(e.target.value)}
+                                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                                  placeholder="e.g. Semen Analysis, Specialized Culture"
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-semibold">
+                                  Test Classification (Kind)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={customWalkinTestKind}
+                                  onChange={(e) => setCustomWalkinTestKind(e.target.value)}
+                                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                                  placeholder="e.g. General, Serology, Microbiology"
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-semibold">
+                                  Sample Type Required
+                                </label>
+                                <input
+                                  type="text"
+                                  value={customWalkinSampleType}
+                                  onChange={(e) => setCustomWalkinSampleType(e.target.value)}
+                                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                                  placeholder="e.g. Blood, Urine, Stool, Swab"
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-semibold">
+                                  Preceding Workflow
+                                </label>
+                                <input
+                                  type="text"
+                                  value={customWalkinPrecedingWorkflow}
+                                  onChange={(e) => setCustomWalkinPrecedingWorkflow(e.target.value)}
+                                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                                  placeholder="e.g. Phlebotomy, Finger Prick, Self-Collected"
+                                  required
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-semibold">
+                                Test Description / Special Instructions
+                              </label>
+                              <textarea
+                                value={customWalkinDescription}
+                                onChange={(e) => setCustomWalkinDescription(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition h-14 resize-none"
+                                placeholder="Any special preparation instructions (e.g. fasting required)..."
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedWalkinTest && selectedWalkinTest !== '__custom_manual__' && (() => {
                           const meta = consolidatedLabServices.find(t => t.name === selectedWalkinTest);
                           if (!meta) return null;
                           return (
@@ -2200,7 +2294,7 @@ export default function Orders({ user, onComplete }) {
                         <div className="flex justify-end pt-1">
                           <button
                             type="submit"
-                            disabled={addingWalkin || !selectedWalkinTest}
+                            disabled={addingWalkin || !selectedWalkinTest || (selectedWalkinTest === '__custom_manual__' && !customWalkinTestName.trim())}
                             className="bg-teal-400 hover:bg-teal-500 disabled:opacity-40 text-slate-950 font-black text-xs py-2 px-6 rounded-lg shadow-lg active:scale-[0.98] transition cursor-pointer shrink-0 animate-pulse"
                           >
                             {addingWalkin ? 'Adding...' : 'Add Test Order'}

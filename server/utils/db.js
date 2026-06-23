@@ -660,10 +660,14 @@ const db = {
     if (isRealSupabase) {
       let query = supabaseClient.from(tableName).select("*");
 
-      // Apply equality filters
+      // Apply filters
       queries.forEach((q) => {
         if (q.type === "equal") {
           query = query.eq(q.column, q.value);
+        } else if (q.type === "is") {
+          query = query.is(q.column, q.value);
+        } else if (q.type === "in") {
+          query = query.in(q.column, q.value);
         }
       });
 
@@ -681,6 +685,10 @@ const db = {
       queries.forEach((q) => {
         if (q.type === "equal") {
           list = list.filter((item) => item[q.column] === q.value);
+        } else if (q.type === "is") {
+          list = list.filter((item) => item[q.column] === q.value);
+        } else if (q.type === "in") {
+          list = list.filter((item) => Array.isArray(q.value) ? q.value.includes(item[q.column]) : false);
         }
       });
       if (orderByField) {

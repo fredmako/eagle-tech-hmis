@@ -176,29 +176,88 @@ export default function Admin({ user }) {
   const fetchAdminData = async () => {
     setLoadingLogs(true);
     try {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('egesa_health_token');
+
       // Fetch audit logs filtered by active facility context
-      let logsQuery = supabase.from('audit_logs').select('*');
-      if (user.facility_id) {
-        logsQuery = logsQuery.eq('facility_id', user.facility_id);
+      let logs = [];
+      try {
+        const res = await fetch(`${apiBase}/db/query`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            table: 'audit_logs',
+            queries: user.facility_id ? [
+              { type: 'equal', column: 'facility_id', value: user.facility_id }
+            ] : [],
+            orderByField: 'created_at',
+            orderByAsc: false
+          })
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          logs = resData.data || [];
+        }
+      } catch (e) {
+        console.error('Error fetching audit logs:', e);
       }
-      const { data: logs } = await logsQuery.order('created_at', { ascending: false });
-      setAuditLogs(logs || []);
+      setAuditLogs(logs);
       
       // Filter out AfyaLink sync transactions
-      const afyaLogs = logs ? logs.filter(l => l.action === 'AfyaLink Sync') : [];
+      const afyaLogs = logs.filter(l => l.action === 'AfyaLink Sync');
       setAfyalinkLogs(afyaLogs);
 
       // Fetch profiles filtered by this facility context
-      let query = supabase.from('profiles').select('*');
-      if (user.facility_id) {
-        query = query.eq('facility_id', user.facility_id);
-      } else {
-        query = query.is('facility_id', null);
+      let profs = [];
+      try {
+        const res = await fetch(`${apiBase}/db/query`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            table: 'profiles',
+            queries: user.facility_id ? [
+              { type: 'equal', column: 'facility_id', value: user.facility_id }
+            ] : [
+              { type: 'is', column: 'facility_id', value: null }
+            ]
+          })
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          profs = resData.data || [];
+        }
+      } catch (e) {
+        console.error('Error fetching profiles:', e);
       }
-      const { data: profs } = await query;
 
       // Fetch facilities
-      const { data: facs } = await supabase.from('facilities').select('*');
+      let facs = [];
+      try {
+        const res = await fetch(`${apiBase}/db/query`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            table: 'facilities',
+            queries: []
+          })
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          facs = resData.data || [];
+        }
+      } catch (e) {
+        console.error('Error fetching facilities:', e);
+      }
+
       const activeFac = facs?.find(f => f.id === user.facility_id);
       if (activeFac) {
         setAdminDelegation(activeFac.admin_delegation || {});
@@ -250,15 +309,41 @@ export default function Admin({ user }) {
       let attendanceData = [];
       if (user.facility_id) {
         try {
-          const { data: rosterRes } = await supabase.from('duty_rosters').select('user_id').eq('facility_id', user.facility_id);
-          rostersData = rosterRes || [];
+          const res = await fetch(`${apiBase}/db/query`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              table: 'duty_rosters',
+              queries: [{ type: 'equal', column: 'facility_id', value: user.facility_id }]
+            })
+          });
+          if (res.ok) {
+            const resData = await res.json();
+            rostersData = resData.data || [];
+          }
         } catch (e) {
           console.error('Error loading rosters for consolidation:', e);
         }
 
         try {
-          const { data: attRes } = await supabase.from('attendance_logs').select('user_id').eq('facility_id', user.facility_id);
-          attendanceData = attRes || [];
+          const res = await fetch(`${apiBase}/db/query`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              table: 'attendance_logs',
+              queries: [{ type: 'equal', column: 'facility_id', value: user.facility_id }]
+            })
+          });
+          if (res.ok) {
+            const resData = await res.json();
+            attendanceData = resData.data || [];
+          }
         } catch (e) {
           console.error('Error loading attendance for consolidation:', e);
         }
@@ -273,11 +358,21 @@ export default function Admin({ user }) {
       let activeEmpProfiles = [];
       if (activeEmployeeIds.length > 0) {
         try {
-          const { data: empProfs } = await supabase
-            .from('profiles')
-            .select('*')
-            .in('id', activeEmployeeIds);
-          activeEmpProfiles = empProfs || [];
+          const res = await fetch(`${apiBase}/db/query`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              table: 'profiles',
+              queries: [{ type: 'in', column: 'id', value: activeEmployeeIds }]
+            })
+          });
+          if (res.ok) {
+            const resData = await res.json();
+            activeEmpProfiles = resData.data || [];
+          }
         } catch (e) {
           console.error('Error fetching active employee profiles:', e);
         }

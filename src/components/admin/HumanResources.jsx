@@ -398,6 +398,10 @@ export default function HumanResources({
                             { id: 'lab_tech', label: 'Lab Technician' },
                             { id: 'pharmacist', label: 'Pharmacist' },
                             { id: 'cashier', label: 'Billing Cashier' },
+                            { id: 'marketing_admin', label: 'Marketing Admin' },
+                            { id: 'hr_manager', label: 'HR Manager' },
+                            { id: 'operations_manager', label: 'Operations Manager' },
+                            { id: 'it_support', label: 'IT Support' },
                             { id: 'admin', label: 'Administrator' }
                           ].map(role => {
                             const rolesList = (prof.role || '').split(',').map(r => r.trim());
@@ -488,6 +492,10 @@ export default function HumanResources({
                     { id: 'lab_tech', label: 'Lab Technician' },
                     { id: 'pharmacist', label: 'Pharmacist' },
                     { id: 'cashier', label: 'Billing Cashier' },
+                    { id: 'marketing_admin', label: 'Marketing Admin' },
+                    { id: 'hr_manager', label: 'HR Manager' },
+                    { id: 'operations_manager', label: 'Operations Manager' },
+                    { id: 'it_support', label: 'IT Support' },
                     { id: 'admin', label: 'Administrator' }
                   ].map(role => {
                     const isChecked = Array.isArray(newStaffRole) ? newStaffRole.includes(role.id) : newStaffRole === role.id;

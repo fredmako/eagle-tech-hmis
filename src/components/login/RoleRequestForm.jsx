@@ -124,7 +124,7 @@ export default function RoleRequestForm({
             <div className="grid grid-cols-2 gap-2 mb-4">
               {[
                 { id: 'Clinical & Operational Workflows', label: 'Workflow Roles', desc: 'Doctors, nurses, lab techs, cashiers...' },
-                { id: 'Administrative & Management Settings', label: 'Admin Settings', desc: 'Facility admin & HR manager...' }
+                { id: 'Administrative & Management Settings', label: 'Admin Settings', desc: 'Facility admin, HR, IT, marketing...' }
               ].map(cat => (
                 <button
                   key={cat.id}
@@ -164,9 +164,12 @@ export default function RoleRequestForm({
                     Administrative & Management Settings
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {[
-                      { id: 'facility_admin', label: 'Facility Admin', desc: 'Hospital Profile & Wards settings' },
-                      { id: 'hr_manager', label: 'HR Manager', desc: 'Staff Scheduler & Onboarding' }
+                     {[
+                      { id: 'facility_admin', label: 'Facility Admin', desc: 'General administrative oversight' },
+                      { id: 'marketing_admin', label: 'Marketing Admin', desc: 'Facility configurations & branding' },
+                      { id: 'hr_manager', label: 'HR Manager', desc: 'Staff onboarding, roles, roster & HR' },
+                      { id: 'operations_manager', label: 'Operations Manager', desc: 'Procurement desk & help desk support' },
+                      { id: 'it_support', label: 'IT Support', desc: 'SMTP, audit logs, licensing & email logs' }
                     ].map(role => {
                       const isChecked = Array.isArray(requestRole) ? requestRole.includes(role.id) : requestRole === role.id;
                       return (

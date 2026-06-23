@@ -61,6 +61,10 @@ export default function StaffOnboarding({
                 { id: 'lab_tech', label: 'Lab Technician' },
                 { id: 'pharmacist', label: 'Pharmacist' },
                 { id: 'cashier', label: 'Billing Cashier' },
+                { id: 'marketing_admin', label: 'Marketing Admin' },
+                { id: 'hr_manager', label: 'HR Manager' },
+                { id: 'operations_manager', label: 'Operations Manager' },
+                { id: 'it_support', label: 'IT Support' },
                 { id: 'admin', label: 'Administrator' }
               ].map(role => {
                 const isChecked = Array.isArray(inviteRole) ? inviteRole.includes(role.id) : inviteRole === role.id;

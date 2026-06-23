@@ -24,7 +24,10 @@ const DELEGABLE_TABS = [
 
 const DELEGABLE_ROLES = [
   { id: 'facility_admin', name: 'Facility Admin' },
+  { id: 'marketing_admin', name: 'Marketing Admin' },
   { id: 'hr_manager', name: 'HR Manager' },
+  { id: 'operations_manager', name: 'Operations Manager' },
+  { id: 'it_support', name: 'IT Support' },
   { id: 'nurse', name: 'Nurse' },
   { id: 'lab_tech', name: 'Lab Tech' },
   { id: 'pharmacist', name: 'Pharmacist' },

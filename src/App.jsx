@@ -578,7 +578,7 @@ export default function App() {
       icon: Bed,
       roles: ["nurse", "clinician", "admin"],
     },
-    { id: "admin", label: "Admin Settings", icon: Settings, roles: ["admin", "facility_admin", "hr_manager"] },
+    { id: "admin", label: "Admin Settings", icon: Settings, roles: ["admin", "facility_admin", "hr_manager", "marketing_admin", "operations_manager", "it_support"] },
     {
       id: "settings",
       label: "System Preferences",

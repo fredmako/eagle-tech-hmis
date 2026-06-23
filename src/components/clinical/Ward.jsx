@@ -201,11 +201,18 @@ function useStateRedirection(initialAdmission = null) {
 
 // 3. Hook to ensure the right styling features and adaptive classes are used under the multi-theme structure
 function useThemeClasses() {
-  const [theme, setTheme] = useState(() => localStorage.getItem("egesa_theme") || "slate");
+  const [theme, setTheme] = useState(() => {
+    const activeTheme = localStorage.getItem("egesa_theme") || "teal";
+    if (activeTheme === "emerald") return "green";
+    if (activeTheme === "slate") return "teal";
+    return activeTheme;
+  });
 
   useEffect(() => {
     const checkTheme = () => {
-      const activeTheme = localStorage.getItem("egesa_theme") || "slate";
+      let activeTheme = localStorage.getItem("egesa_theme") || "teal";
+      if (activeTheme === "emerald") activeTheme = "green";
+      if (activeTheme === "slate") activeTheme = "teal";
       if (activeTheme !== theme) {
         setTheme(activeTheme);
       }
@@ -215,46 +222,73 @@ function useThemeClasses() {
   }, [theme]);
 
   const getThemeColor = (key) => {
-    const isEmerald = theme === 'emerald';
-    const isNavy = theme === 'navy';
+    const isGreen = theme === 'green';
+    const isBlue = theme === 'blue' || theme === 'navy';
+    const isPurple = theme === 'purple';
+    const isAmber = theme === 'amber';
+    const isTeal = theme === 'teal' || (!isGreen && !isBlue && !isPurple && !isAmber);
 
     switch (key) {
       case 'primary-text':
-        return isEmerald ? 'text-emerald-400' : isNavy ? 'text-blue-400' : 'text-teal-400';
+        if (isGreen) return 'text-emerald-400';
+        if (isBlue) return 'text-blue-400';
+        if (isPurple) return 'text-purple-400';
+        if (isAmber) return 'text-amber-400';
+        return 'text-teal-400';
       case 'primary-bg':
-        return isEmerald ? 'bg-emerald-500/10' : isNavy ? 'bg-blue-500/10' : 'bg-teal-500/10';
+        if (isGreen) return 'bg-emerald-500/10';
+        if (isBlue) return 'bg-blue-500/10';
+        if (isPurple) return 'bg-purple-500/10';
+        if (isAmber) return 'bg-amber-500/10';
+        return 'bg-teal-500/10';
       case 'primary-border':
-        return isEmerald ? 'border-emerald-500/20' : isNavy ? 'border-blue-500/20' : 'border-teal-500/20';
+        if (isGreen) return 'border-emerald-500/20';
+        if (isBlue) return 'border-blue-500/20';
+        if (isPurple) return 'border-purple-500/20';
+        if (isAmber) return 'border-amber-500/20';
+        return 'border-teal-500/20';
       case 'accent-btn':
-        return isEmerald ? 'bg-emerald-500 hover:bg-emerald-600 text-slate-950' : isNavy ? 'bg-blue-500 hover:bg-blue-600 text-slate-950' : 'bg-teal-500 hover:bg-teal-600 text-slate-950';
+        if (isGreen) return 'bg-emerald-500 hover:bg-emerald-600 text-slate-950';
+        if (isBlue) return 'bg-blue-500 hover:bg-blue-600 text-slate-950';
+        if (isPurple) return 'bg-purple-500 hover:bg-purple-600 text-slate-950';
+        if (isAmber) return 'bg-amber-500 hover:bg-amber-600 text-slate-950';
+        return 'bg-teal-500 hover:bg-teal-600 text-slate-950';
       case 'compliance-checked':
-        return isEmerald 
-          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20' 
-          : isNavy 
-          ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20'
-          : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20';
+        if (isGreen) return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20';
+        if (isBlue) return 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20';
+        if (isPurple) return 'bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20';
+        if (isAmber) return 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20';
+        return 'bg-teal-500/10 border-teal-500/30 text-teal-400 hover:bg-teal-500/20';
       case 'compliance-today':
-        return isEmerald
-          ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 animate-pulse'
-          : isNavy
-          ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 animate-pulse'
-          : 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 animate-pulse';
+        if (isGreen) return 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 animate-pulse';
+        if (isBlue) return 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 animate-pulse';
+        if (isPurple) return 'bg-pink-500/10 border-pink-500/30 text-pink-400 hover:bg-pink-500/20 animate-pulse';
+        if (isAmber) return 'bg-orange-500/10 border-orange-500/30 text-orange-400 hover:bg-orange-500/20 animate-pulse';
+        return 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 animate-pulse';
       case 'compliance-missed':
-        return isEmerald
-          ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20'
-          : isNavy
-          ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
-          : 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20';
+        if (isGreen) return 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20';
+        if (isBlue) return 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20';
+        if (isPurple) return 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20';
+        if (isAmber) return 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20';
+        return 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20';
       case 'focus-border':
-        return isEmerald ? 'focus:border-emerald-500' : isNavy ? 'focus:border-blue-500' : 'focus:border-teal-500';
+        if (isGreen) return 'focus:border-emerald-500';
+        if (isBlue) return 'focus:border-blue-500';
+        if (isPurple) return 'focus:border-purple-500';
+        if (isAmber) return 'focus:border-amber-500';
+        return 'focus:border-teal-500';
       case 'bed-selected':
-        return isEmerald
-          ? 'border-emerald-500 bg-emerald-500/10 text-white'
-          : isNavy
-          ? 'border-blue-500 bg-blue-500/10 text-white'
-          : 'border-teal-500 bg-teal-500/10 text-white';
+        if (isGreen) return 'border-emerald-500 bg-emerald-500/10 text-white';
+        if (isBlue) return 'border-blue-500 bg-blue-500/10 text-white';
+        if (isPurple) return 'border-purple-500 bg-purple-500/10 text-white';
+        if (isAmber) return 'border-amber-500 bg-amber-500/10 text-white';
+        return 'border-teal-500 bg-teal-500/10 text-white';
       case 'accent-color':
-        return isEmerald ? 'accent-emerald-500' : isNavy ? 'accent-blue-500' : 'accent-teal-500';
+        if (isGreen) return 'accent-emerald-500';
+        if (isBlue) return 'accent-blue-500';
+        if (isPurple) return 'accent-purple-500';
+        if (isAmber) return 'accent-amber-500';
+        return 'accent-teal-500';
       default:
         return '';
     }
@@ -263,7 +297,7 @@ function useThemeClasses() {
   return { theme, getThemeColor };
 }
 
-export default function Ward({ user }) {
+export default function Ward({ user, showNotification }) {
   const { authFetch } = useAuth();
   
   // Custom compliance hooks
@@ -442,29 +476,20 @@ export default function Ward({ user }) {
       });
       if (!bedRes.ok) throw new Error('Failed to update bed occupancy status.');
 
-      setMessage({ type: 'success', text: `Patient successfully admitted to ${selectedBed.bed_number}.` });
-      
-      // Trigger Notification
-      try {
-        const patient = patients.find(p => p.id === selectedPatientId);
-        const contactInfo = parsePatientContact(patient?.phone);
-        if (contactInfo.email) {
-          await sendNotification('INPATIENT_ADMITTED', {
-            patientName: patient.name,
-            patientCode: patient.facility_id_code,
-            bedName: selectedBed.bed_number,
-            admittedBy: user.full_name,
-            recipientEmail: contactInfo.email
-          }, user.facility_id);
-        }
-      } catch (e) {
-        console.error('Admission email trigger failed:', e);
+      if (showNotification) {
+        showNotification('success', 'Patient Admitted', `Patient successfully admitted to ${selectedBed.bed_number}.`);
+      } else {
+        setMessage({ type: 'success', text: `Patient successfully admitted to ${selectedBed.bed_number}.` });
       }
-
+ 
       setSelectedPatientId('');
       fetchWardData();
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Admission failed.' });
+      if (showNotification) {
+        showNotification('error', 'Admission Failed', err.message || 'Admission failed.');
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Admission failed.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -536,7 +561,11 @@ export default function Ward({ user }) {
         details: `Logged observation for inpatient ${selectedAdmission.patient?.name} on ${selectedAdmission.bed}: Temp: ${temp}, BP: ${bp}, Pulse: ${pulse}. Notes: ${progressNotes}`
       });
 
-      setMessage({ type: 'success', text: 'Clinical observations charted successfully.' });
+      if (showNotification) {
+        showNotification('success', 'Observations Saved', 'Clinical observations charted successfully.');
+      } else {
+        setMessage({ type: 'success', text: 'Clinical observations charted successfully.' });
+      }
       setTemp('');
       setBp('');
       setPulse('');
@@ -551,7 +580,11 @@ export default function Ward({ user }) {
       // Refresh observations
       fetchObservations(selectedAdmission.id);
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Failed to chart observations.' });
+      if (showNotification) {
+        showNotification('error', 'Observation Failed', err.message || 'Failed to chart observations.');
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Failed to chart observations.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -752,12 +785,20 @@ export default function Ward({ user }) {
         console.error('[AfyaLink Sync Trigger Failed - Inpatient]', afyaErr);
       }
 
-      setMessage({ type: 'success', text: 'Patient successfully discharged. Bed freed.' });
+      if (showNotification) {
+        showNotification('success', 'Patient Discharged', 'Patient successfully discharged. Bed freed.');
+      } else {
+        setMessage({ type: 'success', text: 'Patient successfully discharged. Bed freed.' });
+      }
       setDischargeNotes('');
       setShowMOHModal(false);
       fetchWardData();
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Discharge failed.' });
+      if (showNotification) {
+        showNotification('error', 'Discharge Failed', err.message || 'Discharge failed.');
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Discharge failed.' });
+      }
     } finally {
       setLoading(false);
     }

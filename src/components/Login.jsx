@@ -95,6 +95,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
   const [refreshLoading, setRefreshLoading] = useState(false);
   const [requestFacility, setRequestFacility] = useState('');
   const [requestRole, setRequestRole] = useState(['receptionist']);
+  const [requestCategory, setRequestCategory] = useState('Clinical & Operational Workflows');
   const [requestName, setRequestName] = useState('');
   const [requestSuccess, setRequestSuccess] = useState('');
   const [facilitySearchQuery, setFacilitySearchQuery] = useState('');
@@ -608,7 +609,8 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         requestName.trim(),
         tempUser.email,
         requestFacility,
-        Array.isArray(requestRole) ? requestRole.join(',') : requestRole
+        Array.isArray(requestRole) ? requestRole.join(',') : requestRole,
+        requestCategory
       );
 
       setPendingRequest(newRequest);
@@ -950,6 +952,8 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
           filteredFacilities={filteredFacilities}
           requestRole={requestRole}
           setRequestRole={setRequestRole}
+          requestCategory={requestCategory}
+          setRequestCategory={setRequestCategory}
           requestName={requestName}
           setRequestName={setRequestName}
           error={error}

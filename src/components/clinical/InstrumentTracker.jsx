@@ -49,7 +49,8 @@ export default function InstrumentTracker({
 
   const handleSelect = (e) => {
     const instId = e.target.value;
-    onSelect(instId);
+    const match = instruments.find(i => i.id === instId);
+    onSelect(instId, match || null);
   };
 
   const isCalibrationValid = (nextCalDate) => {

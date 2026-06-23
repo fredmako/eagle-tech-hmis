@@ -3,7 +3,7 @@ import { supabase } from '../../supabaseClient';
 import { parsePatientContact } from '../../notificationService';
 import { Search, UserPlus, CheckCircle2, AlertCircle } from 'lucide-react';
 
-export default function Registration({ user, onNavigateToQueue }) {
+export default function Registration({ user, onNavigateToQueue, showNotification }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searched, setSearched] = useState(false);
@@ -149,10 +149,18 @@ export default function Registration({ user, onNavigateToQueue }) {
       };
       await supabase.from('patient_registrations').insert(regRecord);
 
-      setMessage({ type: 'success', text: `Patient checked in successfully for ${serviceTypeVal}!` });
+      if (showNotification) {
+        showNotification('success', 'Check-in Successful', `Patient checked in successfully for ${serviceTypeVal}!`);
+      } else {
+        setMessage({ type: 'success', text: `Patient checked in successfully for ${serviceTypeVal}!` });
+      }
       performSearch(searchQuery);
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Check-in failed.' });
+      if (showNotification) {
+        showNotification('error', 'Check-in Failed', err.message || 'Check-in failed.');
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Check-in failed.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -287,7 +295,11 @@ export default function Registration({ user, onNavigateToQueue }) {
         await supabase.from('visits').insert(visitRecord);
       }
 
-      setMessage({ type: 'success', text: `Patient successfully registered! Facility ID: ${facilityCode}${autoCheckin ? ' and checked in to queue.' : ''}` });
+      if (showNotification) {
+        showNotification('success', 'Registration Successful', `Patient successfully registered! Facility ID: ${facilityCode}${autoCheckin ? ' and checked in to queue.' : ''}`);
+      } else {
+        setMessage({ type: 'success', text: `Patient successfully registered! Facility ID: ${facilityCode}${autoCheckin ? ' and checked in to queue.' : ''}` });
+      }
       
       // Clear form
       setName('');
@@ -319,7 +331,11 @@ export default function Registration({ user, onNavigateToQueue }) {
         setSearched(true);
       }
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Failed to register patient.' });
+      if (showNotification) {
+        showNotification('error', 'Registration Failed', err.message || 'Failed to register patient.');
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Failed to register patient.' });
+      }
     } finally {
       setLoading(false);
     }

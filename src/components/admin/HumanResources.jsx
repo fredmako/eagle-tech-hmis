@@ -178,7 +178,7 @@ export default function HumanResources({
                 <tr className="bg-slate-900 text-slate-400 border-b border-slate-900 text-[10px] uppercase font-bold">
                   <th className="py-2.5 px-3">Staff Member</th>
                   <th className="py-2.5 px-3">Email Address</th>
-                  <th className="py-2.5 px-3">Requested Role</th>
+                  <th className="py-2.5 px-3">Category & Requested Roles</th>
                   <th className="py-2.5 px-3 text-center">Action Controls</th>
                 </tr>
               </thead>
@@ -187,7 +187,20 @@ export default function HumanResources({
                   <tr key={req.id} className="hover:bg-slate-900/40 transition">
                     <td className="py-2.5 px-3 font-semibold text-slate-100">{req.full_name}</td>
                     <td className="py-2.5 px-3 font-mono text-[11px] text-slate-400">{req.email}</td>
-                    <td className="py-2.5 px-3 uppercase text-[10px] font-mono text-teal-400">{req.requested_role}</td>
+                    <td className="py-2.5 px-3">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] text-slate-500 font-mono tracking-wide uppercase">
+                          {req.request_category || 'Clinical & Operational Workflows'}
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {(req.requested_role || '').split(',').map(role => (
+                            <span key={role} className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-teal-500/10 border border-teal-500/20 text-teal-400 w-fit">
+                              {role}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </td>
                     <td className="py-2.5 px-3">
                       <div className="flex items-center justify-center gap-2">
                         <button

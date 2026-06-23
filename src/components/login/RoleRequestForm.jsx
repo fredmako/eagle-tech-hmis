@@ -10,6 +10,8 @@ export default function RoleRequestForm({
   filteredFacilities,
   requestRole,
   setRequestRole,
+  requestCategory,
+  setRequestCategory,
   requestName,
   setRequestName,
   error,
@@ -117,41 +119,126 @@ export default function RoleRequestForm({
 
           <div>
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-              Requested Operational Roles (Select one or more)
+              Select Access Category
             </label>
-            <div className="grid grid-cols-2 gap-3 bg-slate-950 border border-slate-850 p-4 rounded-lg">
+            <div className="grid grid-cols-2 gap-2 mb-4">
               {[
-                { id: 'receptionist', label: 'Receptionist' },
-                { id: 'nurse', label: 'Triage Nurse' },
-                { id: 'clinician', label: 'Clinician (Doctor)' },
-                { id: 'lab_tech', label: 'Lab Technician' },
-                { id: 'pharmacist', label: 'Pharmacist' },
-                { id: 'cashier', label: 'Billing Cashier' },
-                { id: 'reporting_officer', label: 'Reporting Officer' }
-              ].map(role => {
-                const isChecked = Array.isArray(requestRole) ? requestRole.includes(role.id) : requestRole === role.id;
-                return (
-                  <label key={role.id} className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        let newRoles = Array.isArray(requestRole) ? [...requestRole] : [requestRole];
-                        if (checked) {
-                          if (!newRoles.includes(role.id)) newRoles.push(role.id);
-                        } else {
-                          newRoles = newRoles.filter(r => r !== role.id);
-                        }
-                        if (newRoles.length === 0) newRoles = [role.id];
-                        setRequestRole(newRoles);
-                      }}
-                      className="rounded border-slate-800 bg-slate-955 text-teal-500 focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer"
-                    />
-                    <span>{role.label}</span>
-                  </label>
-                );
-              })}
+                { id: 'Clinical & Operational Workflows', label: 'Workflow Roles', desc: 'Doctors, nurses, lab techs, cashiers...' },
+                { id: 'Administrative & Management Settings', label: 'Admin Settings', desc: 'Facility admin & HR manager...' }
+              ].map(cat => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => {
+                    setRequestCategory(cat.id);
+                    // Reset role selections when changing category to avoid mixed selections
+                    if (cat.id === 'Administrative & Management Settings') {
+                      setRequestRole(['facility_admin']);
+                    } else {
+                      setRequestRole(['receptionist']);
+                    }
+                  }}
+                  className={`p-2.5 rounded-xl border text-left transition select-none cursor-pointer flex flex-col justify-between h-full ${
+                    requestCategory === cat.id
+                      ? 'bg-teal-950/20 border-teal-500 text-teal-400 shadow-md shadow-teal-500/5'
+                      : 'bg-slate-950 border-slate-850 text-slate-400 hover:bg-slate-900/50 hover:border-slate-800'
+                  }`}
+                >
+                  <span className="text-xs font-bold">{cat.label}</span>
+                  <span className="text-[8px] opacity-75 mt-1 leading-tight">{cat.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+              Requested Roles (Select one or more)
+            </label>
+            
+            <div className="space-y-3.5">
+              {requestCategory === 'Administrative & Management Settings' ? (
+                /* Category 1: Admin & Management */
+                <div className="bg-slate-950 border border-slate-850 p-3 rounded-lg space-y-2 animate-fadeIn">
+                  <span className="text-[9px] font-bold text-teal-400 uppercase tracking-wider block border-b border-slate-900 pb-1 font-mono">
+                    Administrative & Management Settings
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      { id: 'facility_admin', label: 'Facility Admin', desc: 'Hospital Profile & Wards settings' },
+                      { id: 'hr_manager', label: 'HR Manager', desc: 'Staff Scheduler & Onboarding' }
+                    ].map(role => {
+                      const isChecked = Array.isArray(requestRole) ? requestRole.includes(role.id) : requestRole === role.id;
+                      return (
+                        <label key={role.id} className="flex items-start gap-2 p-1.5 bg-slate-900/30 hover:bg-slate-900/60 border border-slate-900 rounded-md cursor-pointer select-none transition">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              let newRoles = Array.isArray(requestRole) ? [...requestRole] : [requestRole];
+                              if (checked) {
+                                if (!newRoles.includes(role.id)) newRoles.push(role.id);
+                              } else {
+                                newRoles = newRoles.filter(r => r !== role.id);
+                              }
+                              setRequestRole(newRoles);
+                            }}
+                            className="rounded border-slate-800 bg-slate-955 text-teal-500 focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer mt-0.5"
+                          />
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-semibold text-slate-300">{role.label}</span>
+                            <span className="text-[8px] text-slate-500 leading-tight">{role.desc}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                /* Category 2: Clinical & Operational Workflows */
+                <div className="bg-slate-955/20 border border-slate-850 p-3 rounded-lg space-y-2 animate-fadeIn">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block border-b border-slate-900 pb-1 font-mono">
+                    Clinical & Operational Workflows
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      { id: 'receptionist', label: 'Receptionist', desc: 'Patient Registration & Vitals' },
+                      { id: 'nurse', label: 'Triage Nurse', desc: 'Vitals & Queue priority' },
+                      { id: 'clinician', label: 'Clinician (Doctor)', desc: 'SOAP Consultations & Labs' },
+                      { id: 'lab_tech', label: 'Lab Technician', desc: 'Investigations & Releases' },
+                      { id: 'pharmacist', label: 'Pharmacist', desc: 'Prescription Dispensary' },
+                      { id: 'cashier', label: 'Billing Cashier', desc: 'Invoices & cash collections' },
+                      { id: 'reporting_officer', label: 'Reporting Officer', desc: 'MOH & Health Reports' }
+                    ].map(role => {
+                      const isChecked = Array.isArray(requestRole) ? requestRole.includes(role.id) : requestRole === role.id;
+                      return (
+                        <label key={role.id} className="flex items-start gap-2 p-1.5 bg-slate-900/30 hover:bg-slate-900/60 border border-slate-900 rounded-md cursor-pointer select-none transition">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              let newRoles = Array.isArray(requestRole) ? [...requestRole] : [requestRole];
+                              if (checked) {
+                                if (!newRoles.includes(role.id)) newRoles.push(role.id);
+                              } else {
+                                newRoles = newRoles.filter(r => r !== role.id);
+                              }
+                              setRequestRole(newRoles);
+                            }}
+                            className="rounded border-slate-800 bg-slate-955 text-teal-500 focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer mt-0.5"
+                          />
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-semibold text-slate-300">{role.label}</span>
+                            <span className="text-[8px] text-slate-500 leading-tight">{role.desc}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

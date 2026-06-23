@@ -51,6 +51,10 @@ export default function RoleRequestPending({
             </span>
           </div>
           <div className="flex justify-between border-b border-slate-900 pb-2">
+            <span className="text-slate-500 font-medium">Request Category:</span>
+            <span className="font-semibold text-slate-350">{pendingRequest.request_category || 'Clinical & Operational Workflows'}</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-900 pb-2">
             <span className="text-slate-500 font-medium">Requested Role:</span>
             <span className="font-semibold text-teal-400 uppercase font-mono">{pendingRequest.requested_role}</span>
           </div>

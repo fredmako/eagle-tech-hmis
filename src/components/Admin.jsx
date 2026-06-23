@@ -14,6 +14,8 @@ import FacilityHelpDesk from './admin/FacilityHelpDesk';
 import AdminOverview from './admin/AdminOverview';
 import StaffScheduler from './admin/StaffScheduler';
 import BroadcastPanel from './admin/BroadcastPanel';
+import AdminDelegation from './admin/AdminDelegation';
+import { hasAccess } from '../utils/permissions';
 
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
@@ -81,12 +83,14 @@ export default function Admin({ user }) {
     tax_id: '',
     contact_phone: '',
     contact_email: '',
-    logo_url: ''
+    logo_url: '',
+    facility_images: []
   });
   const [savingFacility, setSavingFacility] = useState(false);
   const [facilityMessage, setFacilityMessage] = useState({ type: '', text: '' });
   const [logoOption, setLogoOption] = useState('heart'); // 'heart', 'shield', 'cross', 'custom'
   const [customLogoUrl, setCustomLogoUrl] = useState('');
+  const [adminDelegation, setAdminDelegation] = useState({});
 
   // Staff Onboarding & Invites states
   const [invitationsList, setInvitationsList] = useState([]);
@@ -140,15 +144,34 @@ export default function Admin({ user }) {
   const [domainStatus, setDomainStatus] = useState('pending');
   const [savingDomain, setSavingDomain] = useState(false);
   const [domainMessage, setDomainMessage] = useState({ type: '', text: '' });
+  const [landingTemplate, setLandingTemplate] = useState('classic');
 
   useEffect(() => {
     localStorage.setItem('egesa_active_admin_subtab', activeSubTab);
   }, [activeSubTab]);
 
+  const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
+  const isAdminRole = rolesList.includes('admin');
+
+  useEffect(() => {
+    // If activeSubTab is not allowed, fallback to overview
+    if (activeSubTab !== 'overview' && activeSubTab !== 'delegation') {
+      if (!hasAccess(activeSubTab, user.role, adminDelegation)) {
+        setActiveSubTab('overview');
+      }
+    } else if (activeSubTab === 'delegation' && !isAdminRole) {
+      setActiveSubTab('overview');
+    }
+  }, [activeSubTab, adminDelegation, user.role, isAdminRole]);
+
   useEffect(() => {
     fetchAdminData();
     setTestRecipient(smtp.test_email_destination || 'admin@eagletechsolutions.tech');
   }, []);
+
+  const handleDelegationUpdate = (newDelegation) => {
+    setAdminDelegation(newDelegation);
+  };
 
   const fetchAdminData = async () => {
     setLoadingLogs(true);
@@ -178,6 +201,7 @@ export default function Admin({ user }) {
       const { data: facs } = await supabase.from('facilities').select('*');
       const activeFac = facs?.find(f => f.id === user.facility_id);
       if (activeFac) {
+        setAdminDelegation(activeFac.admin_delegation || {});
         setFacilityDetails({
           name: activeFac.name || '',
           code: activeFac.code || '',
@@ -186,7 +210,8 @@ export default function Admin({ user }) {
           tax_id: activeFac.tax_id || '',
           contact_phone: activeFac.contact_phone || '',
           contact_email: activeFac.contact_email || '',
-          logo_url: activeFac.logo_url || ''
+          logo_url: activeFac.logo_url || '',
+          facility_images: activeFac.facility_images || []
         });
 
         // Initialize logo options
@@ -201,6 +226,7 @@ export default function Admin({ user }) {
         setCustomSubdomain(activeFac.subdomain_prefix || '');
         setCustomDomain(activeFac.custom_domain || '');
         setDomainStatus(activeFac.domain_status || 'pending');
+        setLandingTemplate(activeFac.landing_template || 'classic');
       }
 
       // Fetch role requests for this facility from backend
@@ -614,7 +640,8 @@ export default function Admin({ user }) {
           tax_id: facilityDetails.tax_id,
           contact_phone: facilityDetails.contact_phone,
           contact_email: facilityDetails.contact_email,
-          logo_url: logoUrl
+          logo_url: logoUrl,
+          facility_images: facilityDetails.facility_images || []
         })
         .eq('id', user.facility_id);
       
@@ -815,7 +842,10 @@ export default function Admin({ user }) {
           table: 'facilities',
           column: 'id',
           value: user.facility_id,
-          values: { subdomain_prefix: cleanSubdomain }
+          values: { 
+            subdomain_prefix: cleanSubdomain,
+            landing_template: landingTemplate
+          }
         })
       });
 
@@ -1079,176 +1109,209 @@ export default function Admin({ user }) {
               <LayoutGrid size={13} /> Overview
             </button>
 
-            <button
-              onClick={() => setActiveSubTab('audit')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-                activeSubTab === 'audit'
-                ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <Shield size={13} /> Audit Trail
-          </button>
-          
-          <button
-            onClick={() => setActiveSubTab('email_logs')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeSubTab === 'email_logs'
-                ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <Mail size={13} /> Email Delivery Logs
-            {emailLogs.length > 0 && (
-              <span className="bg-slate-950 text-[10px] text-teal-400 font-bold px-1.5 py-0.5 rounded-full border border-teal-500/20">
-                {emailLogs.length}
-              </span>
+            {isAdminRole && (
+              <button
+                onClick={() => setActiveSubTab('delegation')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'delegation'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <ShieldCheck size={13} /> Role Delegation
+              </button>
             )}
-          </button>
 
-          <button
-            onClick={() => setActiveSubTab('smtp_settings')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeSubTab === 'smtp_settings'
-                ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <Server size={13} /> SMTP Server Settings
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('licensing')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeSubTab === 'licensing'
-                ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <CreditCard size={13} /> Licensing & Billing
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('facility_profile')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeSubTab === 'facility_profile'
-                ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <Building size={13} /> Hospital Profile
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('staff_onboarding')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeSubTab === 'staff_onboarding'
-                ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <UserPlus size={13} /> Staff Onboarding
-            {invitationsList.filter(i => i.status === 'pending').length > 0 && (
-              <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
-                {invitationsList.filter(i => i.status === 'pending').length}
-              </span>
+            {hasAccess('audit', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('audit')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'audit'
+                  ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                  : 'text-slate-450 hover:text-slate-200'
+              }`}
+            >
+              <Shield size={13} /> Audit Trail
+            </button>
             )}
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('role_requests')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeSubTab === 'role_requests'
-                ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <UserCheck size={13} /> Role Requests
-            {roleRequests.filter(r => r.status === 'pending').length > 0 && (
-              <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
-                {roleRequests.filter(r => r.status === 'pending').length}
-              </span>
+            
+            {hasAccess('email_logs', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('email_logs')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'email_logs'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Mail size={13} /> Email Delivery Logs
+                {emailLogs.length > 0 && (
+                  <span className="bg-slate-950 text-[10px] text-teal-400 font-bold px-1.5 py-0.5 rounded-full border border-teal-500/20">
+                    {emailLogs.length}
+                  </span>
+                )}
+              </button>
             )}
-          </button>
 
-          <button
-            onClick={() => setActiveSubTab('help_desk')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeSubTab === 'help_desk'
-                ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <PhoneCall size={13} /> Help Desk
-            {supportTicketsCount > 0 && (
-              <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
-                {supportTicketsCount}
-              </span>
+            {hasAccess('smtp_settings', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('smtp_settings')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'smtp_settings'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Server size={13} /> SMTP Server Settings
+              </button>
             )}
-          </button>
 
-          <button
-            onClick={() => setActiveSubTab('hr')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeSubTab === 'hr'
-                ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <Users size={13} /> Human Resources
-          </button>
+            {hasAccess('licensing', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('licensing')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'licensing'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <CreditCard size={13} /> Licensing & Billing
+              </button>
+            )}
 
-          <button
-            onClick={() => setActiveSubTab('procurement')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeSubTab === 'procurement'
-                ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <ShoppingBag size={13} /> Procurement Desk
-          </button>
+            {hasAccess('facility_profile', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('facility_profile')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'facility_profile'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Building size={13} /> Hospital Profile
+              </button>
+            )}
 
-          <button
-            onClick={() => setActiveSubTab('afyalink')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeSubTab === 'afyalink'
-                ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <Activity size={13} /> AfyaLink HIE Integration
-            {afyalinkLogs.filter(l => {
-              try {
-                return JSON.parse(l.details).status === 'failed';
-              } catch(e) { return false; }
-            }).length > 0 && (
-              <span className="bg-red-500/20 text-[10px] text-red-400 font-bold px-1.5 py-0.5 rounded-full border border-red-500/25 ml-1">
+            {hasAccess('staff_onboarding', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('staff_onboarding')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'staff_onboarding'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <UserPlus size={13} /> Staff Onboarding
+                {invitationsList.filter(i => i.status === 'pending').length > 0 && (
+                  <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
+                    {invitationsList.filter(i => i.status === 'pending').length}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {hasAccess('role_requests', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('role_requests')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'role_requests'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <UserCheck size={13} /> Role Requests
+                {roleRequests.filter(r => r.status === 'pending').length > 0 && (
+                  <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
+                    {roleRequests.filter(r => r.status === 'pending').length}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {hasAccess('help_desk', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('help_desk')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'help_desk'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <PhoneCall size={13} /> Help Desk
+                {supportTicketsCount > 0 && (
+                  <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
+                    {supportTicketsCount}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {hasAccess('hr', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('hr')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'hr'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Users size={13} /> Human Resources
+              </button>
+            )}
+
+            {hasAccess('procurement', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('procurement')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'procurement'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <ShoppingBag size={13} /> Procurement Desk
+              </button>
+            )}
+
+            {hasAccess('afyalink', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('afyalink')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'afyalink'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Activity size={13} /> AfyaLink HIE Integration
                 {afyalinkLogs.filter(l => {
                   try {
                     return JSON.parse(l.details).status === 'failed';
                   } catch(e) { return false; }
-                }).length}
-              </span>
+                }).length > 0 && (
+                  <span className="bg-red-500/20 text-[10px] text-red-400 font-bold px-1.5 py-0.5 rounded-full border border-red-500/25 ml-1">
+                    {afyalinkLogs.filter(l => {
+                      try {
+                        return JSON.parse(l.details).status === 'failed';
+                      } catch(e) { return false; }
+                    }).length}
+                  </span>
+                )}
+              </button>
             )}
-          </button>
 
-          <button
-            onClick={() => setActiveSubTab('domain')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeSubTab === 'domain'
-                ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <Globe size={13} /> Domain & Branding
-          </button>
+            {hasAccess('domain', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('domain')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'domain'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Globe size={13} /> Domain & Branding
+              </button>
+            )}
 
-          {(() => {
-            const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
-            const isAuthorized = rolesList.includes('admin') || rolesList.includes('facility_admin') || rolesList.includes('hr_manager');
-            if (!isAuthorized) return null;
-            return (
+            {hasAccess('ward_settings', user.role, adminDelegation) && (
               <button
                 onClick={() => setActiveSubTab('ward_settings')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
@@ -1259,14 +1322,9 @@ export default function Admin({ user }) {
               >
                 <Bed size={13} /> Ward & Bed Settings
               </button>
-            );
-          })()}
+            )}
 
-          {(() => {
-            const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
-            const isAuthorized = rolesList.includes('admin') || rolesList.includes('facility_admin');
-            if (!isAuthorized) return null;
-            return (
+            {hasAccess('payment_settings', user.role, adminDelegation) && (
               <button
                 onClick={() => setActiveSubTab('payment_settings')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
@@ -1277,38 +1335,33 @@ export default function Admin({ user }) {
               >
                 <CreditCard size={13} /> Payment & Landing Config
               </button>
-            );
-          })()}
+            )}
 
-          {(() => {
-            const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
-            const isAuthorized = rolesList.includes('admin') || rolesList.includes('facility_admin') || rolesList.includes('hr_manager');
-            if (!isAuthorized) return null;
-            return (
-              <>
-                <button
-                  onClick={() => setActiveSubTab('roster')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-                    activeSubTab === 'roster'
-                      ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                      : 'text-slate-450 hover:text-slate-200'
-                  }`}
-                >
-                  <Calendar size={13} /> Duty Roster & Attendance
-                </button>
-                <button
-                  onClick={() => setActiveSubTab('broadcasts')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-                    activeSubTab === 'broadcasts'
-                      ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                      : 'text-slate-450 hover:text-slate-200'
-                  }`}
-                >
-                  <Bell size={13} /> Alerts & Broadcasts
-                </button>
-              </>
-            );
-          })()}
+            {hasAccess('roster', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('roster')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'roster'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Calendar size={13} /> Duty Roster & Attendance
+              </button>
+            )}
+
+            {hasAccess('broadcasts', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('broadcasts')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'broadcasts'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Bell size={13} /> Alerts & Broadcasts
+              </button>
+            )}
           </div>
 
           {/* Mini Settings Panel for View Modes */}
@@ -1366,18 +1419,36 @@ export default function Admin({ user }) {
         {/* Tab Contents */}
         <div className="flex-1 overflow-y-auto max-h-[500px] pr-1 space-y-4">
           
-          {/* TAB 0: OVERVIEW */}
-          {activeSubTab === 'overview' && (
-            <AdminOverview
-              setActiveSubTab={setActiveSubTab}
-              user={user}
-              invitationsList={invitationsList}
-              roleRequests={roleRequests}
-              supportTicketsCount={supportTicketsCount}
-              afyalinkLogs={afyalinkLogs}
-              emailLogs={emailLogs}
-            />
-          )}
+          {activeSubTab !== 'overview' && activeSubTab !== 'delegation' && !hasAccess(activeSubTab, user.role, adminDelegation) ? (
+            <div className="p-8 text-center text-slate-500 font-medium bg-slate-950/20 border border-slate-850 rounded-xl space-y-2">
+              <Lock className="mx-auto text-slate-600 mb-2" size={24} />
+              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Access Denied</h4>
+              <p className="text-[10px] text-slate-500 max-w-xs mx-auto">You do not have administrative clearance to access this settings panel.</p>
+            </div>
+          ) : (
+            <>
+              {/* TAB 0: OVERVIEW */}
+              {activeSubTab === 'overview' && (
+                <AdminOverview
+                  setActiveSubTab={setActiveSubTab}
+                  user={user}
+                  invitationsList={invitationsList}
+                  roleRequests={roleRequests}
+                  supportTicketsCount={supportTicketsCount}
+                  afyalinkLogs={afyalinkLogs}
+                  emailLogs={emailLogs}
+                  adminDelegation={adminDelegation}
+                />
+              )}
+
+              {/* TAB: ROLE DELEGATION */}
+              {activeSubTab === 'delegation' && isAdminRole && (
+                <AdminDelegation
+                  user={user}
+                  currentDelegation={adminDelegation}
+                  onUpdate={handleDelegationUpdate}
+                />
+              )}
           
           {/* TAB 1: AUDIT TRAIL */}
           {activeSubTab === 'audit' && (
@@ -1714,7 +1785,85 @@ export default function Admin({ user }) {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-2">
+                {/* Landing Page Template Selector */}
+                <div className="border-t border-slate-800 pt-6">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 font-sans">
+                    Public Landing Page Design Template
+                  </label>
+                  <p className="text-[10px] text-slate-500 mb-4 font-sans leading-relaxed">
+                    Select a layout template for your subdomain landing page. Each template is fully responsive, optimized for conversions, and includes animated sections.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Card 1: Classic */}
+                    <div 
+                      onClick={() => setLandingTemplate('classic')}
+                      className={`p-4 rounded-xl border cursor-pointer transition flex flex-col gap-2 ${
+                        landingTemplate === 'classic' 
+                          ? 'bg-teal-950/20 border-teal-500 shadow-md shadow-teal-500/5' 
+                          : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-200">Classic Clinic Grid</span>
+                        <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${
+                          landingTemplate === 'classic' ? 'border-teal-500 bg-teal-500' : 'border-slate-600'
+                        }`}>
+                          {landingTemplate === 'classic' && <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />}
+                        </div>
+                      </div>
+                      <p className="text-[9px] text-slate-400 leading-relaxed">
+                        A structured, functional portal displaying your specialization departments, pricing catalog, direct inquiry desk, and patient authentication.
+                      </p>
+                    </div>
+
+                    {/* Card 2: Modern */}
+                    <div 
+                      onClick={() => setLandingTemplate('modern')}
+                      className={`p-4 rounded-xl border cursor-pointer transition flex flex-col gap-2 ${
+                        landingTemplate === 'modern' 
+                          ? 'bg-teal-950/20 border-teal-500 shadow-md shadow-teal-500/5' 
+                          : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-200">Modern Vibrant Wellness</span>
+                        <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${
+                          landingTemplate === 'modern' ? 'border-teal-500 bg-teal-500' : 'border-slate-600'
+                        }`}>
+                          {landingTemplate === 'modern' && <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />}
+                        </div>
+                      </div>
+                      <p className="text-[9px] text-slate-400 leading-relaxed">
+                        An impressive full-width hero header, dynamic key metrics/statistics, active services grid, and bold patient portal login widgets.
+                      </p>
+                    </div>
+
+                    {/* Card 3: Wellness */}
+                    <div 
+                      onClick={() => setLandingTemplate('wellness')}
+                      className={`p-4 rounded-xl border cursor-pointer transition flex flex-col gap-2 ${
+                        landingTemplate === 'wellness' 
+                          ? 'bg-teal-950/20 border-teal-500 shadow-md shadow-teal-500/5' 
+                          : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-200">Calming Wellness & Care</span>
+                        <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${
+                          landingTemplate === 'wellness' ? 'border-teal-500 bg-teal-500' : 'border-slate-600'
+                        }`}>
+                          {landingTemplate === 'wellness' && <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />}
+                        </div>
+                      </div>
+                      <p className="text-[9px] text-slate-450 leading-relaxed">
+                        A peaceful design with soft colors, emphasizing primary care services, active clinical certifications, and interactive appointment requests.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800/60">
                   {customDomain && (
                     <button
                       type="button"
@@ -1816,6 +1965,8 @@ export default function Admin({ user }) {
 
           {activeSubTab === 'broadcasts' && (
             <BroadcastPanel user={user} profiles={usersList} fetchAdminData={fetchAdminData} />
+          )}
+            </>
           )}
         </div>
       </div>

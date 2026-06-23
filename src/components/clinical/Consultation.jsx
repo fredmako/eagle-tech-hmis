@@ -28,7 +28,7 @@ const getPatientAge = (dobString) => {
   return Math.abs(ageDate.getUTCFullYear() - 1970);
 };
 
-export default function Consultation({ user, onComplete }) {
+export default function Consultation({ user, onComplete, showNotification }) {
   const [queue, setQueue] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [triageData, setTriageData] = useState(null);
@@ -1425,10 +1425,14 @@ export default function Consultation({ user, onComplete }) {
         console.error('[AfyaLink Sync Trigger Failed]', afyaErr);
       }
 
-      setMessage({
-        type: "success",
-        text: `Consultation notes saved. Patient redirected to ${nextDept.toUpperCase()}.`,
-      });
+      if (showNotification) {
+        showNotification('success', 'Consultation Saved', `Consultation notes saved. Patient redirected to ${nextDept.toUpperCase()}.`);
+      } else {
+        setMessage({
+          type: "success",
+          text: `Consultation notes saved. Patient redirected to ${nextDept.toUpperCase()}.`,
+        });
+      }
 
       setTimeout(() => {
         sessionStorage.removeItem('egesa_selected_visit_id_consultation');
@@ -1436,10 +1440,14 @@ export default function Consultation({ user, onComplete }) {
         if (onComplete) onComplete();
       }, 1200);
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: err.message || "Error saving consultation details.",
-      });
+      if (showNotification) {
+        showNotification('error', 'Consultation Save Failed', err.message || "Error saving consultation details.");
+      } else {
+        setMessage({
+          type: "error",
+          text: err.message || "Error saving consultation details.",
+        });
+      }
     } finally {
       setLoading(false);
     }

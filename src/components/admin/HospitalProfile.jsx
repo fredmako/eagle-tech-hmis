@@ -36,6 +36,70 @@ export default function HospitalProfile({
     }
   };
 
+  const handleGalleryUpload = (e) => {
+    const files = Array.from(e.target.files);
+    const currentImages = facilityDetails.facility_images || [];
+    
+    if (currentImages.length + files.length > 4) {
+      alert("You can upload a maximum of 4 facility images.");
+      return;
+    }
+
+    files.forEach(file => {
+      if (!file.type.startsWith('image/')) {
+        alert("Please select a valid image file.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const max_size = 500; // Keep it lightweight
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > max_size) {
+              height *= max_size / width;
+              width = max_size;
+            }
+          } else {
+            if (height > max_size) {
+              width *= max_size / height;
+              height = max_size;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          setFacilityDetails(prev => {
+            const list = prev.facility_images || [];
+            if (list.length >= 4) return prev;
+            return {
+              ...prev,
+              facility_images: [...list, compressedBase64]
+            };
+          });
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemoveGalleryImage = (idxToRemove) => {
+    setFacilityDetails(prev => ({
+      ...prev,
+      facility_images: (prev.facility_images || []).filter((_, idx) => idx !== idxToRemove)
+    }));
+  };
+
   return (
     <div className="space-y-4 animate-fadeIn">
       <div className="bg-slate-955 border border-slate-850 rounded-xl p-5 space-y-4">
@@ -75,7 +139,7 @@ export default function HospitalProfile({
                 type="text"
                 value={facilityDetails.code}
                 disabled
-                className="w-full bg-slate-900/40 border border-slate-855 rounded-lg py-2 px-3 text-xs text-slate-450 cursor-not-allowed font-mono"
+                className="w-full bg-slate-900/40 border border-slate-855 rounded-lg py-2 px-3 text-xs text-slate-455 cursor-not-allowed font-mono"
               />
             </div>
 
@@ -145,7 +209,7 @@ export default function HospitalProfile({
           </div>
 
           {/* Logo Config Block */}
-          <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-3">
+          <div className="bg-slate-955 border border-slate-855 p-4 rounded-xl space-y-3">
             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Update Hospital Logo / Icon</label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
               {Object.keys(logoPresets).map((presetKey) => {
@@ -190,7 +254,7 @@ export default function HospitalProfile({
                     <div className="flex flex-col items-center justify-center pt-4 pb-3">
                       <Upload size={24} className="mb-2 text-slate-400" />
                       <p className="text-[10px] text-slate-400 font-bold uppercase"><span className="text-teal-400">Click to upload</span> logo image</p>
-                      <p className="text-[8px] text-slate-500 mt-0.5">PNG, JPG or SVG (Auto-compressed)</p>
+                      <p className="text-[8px] text-slate-555 mt-0.5">PNG, JPG or SVG (Auto-compressed)</p>
                     </div>
                     <input 
                       type="file" 
@@ -220,6 +284,56 @@ export default function HospitalProfile({
                 )}
               </div>
             )}
+          </div>
+
+          {/* Facility Gallery Section */}
+          <div className="bg-slate-955 border border-slate-855 p-4 rounded-xl space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider mb-1 font-sans">
+                Facility Image Gallery (Public Landing Page Showcase)
+              </label>
+              <p className="text-[9px] text-slate-500 font-sans leading-relaxed">
+                Upload up to 4 images of your clinics, wards, diagnostic equipment, or facility premises to showcase on your public landing page.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {(facilityDetails.facility_images || []).map((imgUrl, idx) => (
+                <div key={idx} className="relative rounded-lg overflow-hidden border border-slate-800 bg-slate-900 group aspect-video">
+                  <img 
+                    src={imgUrl} 
+                    alt={`Facility ${idx + 1}`} 
+                    className="w-full h-full object-cover transition duration-300 group-hover:scale-105 animate-fadeIn" 
+                  />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition duration-200 flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveGalleryImage(idx)}
+                      className="bg-red-500 hover:bg-red-600 text-white font-bold text-[9px] uppercase tracking-wider py-1 px-2.5 rounded-md transition cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {(facilityDetails.facility_images || []).length < 4 && (
+                <label className="flex flex-col items-center justify-center aspect-video border-2 border-slate-800 border-dashed rounded-lg cursor-pointer bg-slate-900/40 hover:bg-slate-900/70 hover:border-teal-500/50 transition">
+                  <div className="flex flex-col items-center justify-center p-3 text-center">
+                    <Upload size={18} className="mb-1 text-slate-400" />
+                    <span className="text-[9px] text-slate-450 font-bold uppercase"><span className="text-teal-400">Upload Image</span></span>
+                    <span className="text-[7px] text-slate-555 mt-0.5">JPG / PNG (Max 4)</span>
+                  </div>
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    accept="image/*" 
+                    multiple
+                    onChange={handleGalleryUpload} 
+                  />
+                </label>
+              )}
+            </div>
           </div>
 
           <div className="flex justify-end pt-4 border-t border-slate-900">

@@ -77,6 +77,9 @@ const getInitialSandboxData = () => {
         about_us: "Eagle Tech Medical Clinic is Nairobi's leading family medical center offering out-patient care, laboratory tests, immunization schedules, and minor theatre surgeries.",
         custom_domain: "",
         domain_status: "pending",
+        admin_delegation: {},
+        landing_template: "classic",
+        facility_images: [],
         services_list: [
           { name: "General Outpatient Consultation", category: "Consultation", charge: 1000 },
           { name: "Comprehensive Lab Panel", category: "Lab", charge: 3500 },
@@ -103,6 +106,9 @@ const getInitialSandboxData = () => {
         about_us: "Meso Referral Hospital is Mombasa's primary diagnostic referral center.",
         custom_domain: "",
         domain_status: "pending",
+        admin_delegation: {},
+        landing_template: "classic",
+        facility_images: [],
         services_list: [
           { name: "Specialist Consultation", category: "Consultation", charge: 2500 },
           { name: "CT Scan / MRI Panel", category: "Radiology", charge: 12000 },
@@ -227,6 +233,7 @@ const getInitialSandboxData = () => {
         email: "steve@apple.com",
         facility_id: "f1",
         requested_role: "clinician",
+        request_category: "Clinical & Operational Workflows",
         status: "pending",
         created_at: new Date().toISOString(),
       },
@@ -237,6 +244,7 @@ const getInitialSandboxData = () => {
         email: "florence@nursing.org",
         facility_id: "f1",
         requested_role: "nurse",
+        request_category: "Clinical & Operational Workflows",
         status: "pending",
         created_at: new Date().toISOString(),
       },
@@ -505,6 +513,18 @@ const loadSandboxDB = () => {
             facilityUpdated = true;
           }
         });
+        if (!fac.admin_delegation) {
+          fac.admin_delegation = {};
+          facilityUpdated = true;
+        }
+        if (!fac.landing_template) {
+          fac.landing_template = 'classic';
+          facilityUpdated = true;
+        }
+        if (!fac.facility_images) {
+          fac.facility_images = [];
+          facilityUpdated = true;
+        }
         if (facilityUpdated) {
           updated = true;
         }
@@ -554,6 +574,23 @@ const loadSandboxDB = () => {
       updated = true;
     }
 
+    if (data.profiles) {
+      let profilesUpdated = false;
+      data.profiles.forEach(prof => {
+        if (prof.phone === undefined) {
+          prof.phone = "";
+          profilesUpdated = true;
+        }
+        if (prof.department === undefined) {
+          prof.department = "";
+          profilesUpdated = true;
+        }
+      });
+      if (profilesUpdated) {
+        updated = true;
+      }
+    }
+
     if (data.bed_allocations && data.bed_allocations.length > 0) {
       let bedUpdated = false;
       data.bed_allocations = data.bed_allocations.map((bed, index) => {
@@ -570,6 +607,28 @@ const loadSandboxDB = () => {
         return bed;
       });
       if (bedUpdated) {
+        updated = true;
+      }
+    }
+
+    if (data.role_requests) {
+      let roleRequestsUpdated = false;
+      data.role_requests.forEach(req => {
+        if (req.request_category === undefined) {
+          const roles = (req.requested_role || "").split(",");
+          const isAdminRole = roles.some(r => ["facility_admin", "hr_manager"].includes(r));
+          const isOperationalRole = roles.some(r => ["receptionist", "nurse", "clinician", "lab_tech", "pharmacist", "cashier", "reporting_officer"].includes(r));
+          if (isAdminRole && isOperationalRole) {
+            req.request_category = "Mixed Access";
+          } else if (isAdminRole) {
+            req.request_category = "Administrative & Management Settings";
+          } else {
+            req.request_category = "Clinical & Operational Workflows";
+          }
+          roleRequestsUpdated = true;
+        }
+      });
+      if (roleRequestsUpdated) {
         updated = true;
       }
     }

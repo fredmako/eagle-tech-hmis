@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS public.role_requests (
     full_name text NOT NULL,
     facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
     requested_role text NOT NULL,
+    request_category text DEFAULT 'Clinical & Operational Workflows',
     status text NOT NULL,
     created_at timestamp with time zone DEFAULT now()
 );

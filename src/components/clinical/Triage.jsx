@@ -3,7 +3,7 @@ import { supabase } from '../../supabaseClient';
 import { Activity, ShieldAlert, CheckCircle, Heart, Thermometer, AlertOctagon, Zap } from 'lucide-react';
 import InstrumentTracker from './InstrumentTracker';
 
-export default function Triage({ user, onComplete }) {
+export default function Triage({ user, onComplete, showNotification }) {
   const [queue, setQueue] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [patient, setPatient] = useState(null);
@@ -428,7 +428,11 @@ export default function Triage({ user, onComplete }) {
 
       if (visitErr) throw visitErr;
 
-      setMessage({ type: 'success', text: `Triage completed! Patient priority flagged as ${priorityFlag.toUpperCase()}.` });
+      if (showNotification) {
+        showNotification('success', 'Triage Saved', `Triage completed! Patient priority flagged as ${priorityFlag.toUpperCase()}.`);
+      } else {
+        setMessage({ type: 'success', text: `Triage completed! Patient priority flagged as ${priorityFlag.toUpperCase()}.` });
+      }
       
       // Clear selection and refresh queue
       setTimeout(() => {
@@ -438,7 +442,11 @@ export default function Triage({ user, onComplete }) {
       }, 1000);
 
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Failed to save triage details.' });
+      if (showNotification) {
+        showNotification('error', 'Triage Save Failed', err.message || 'Failed to save triage details.');
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Failed to save triage details.' });
+      }
     } finally {
       setLoading(false);
     }

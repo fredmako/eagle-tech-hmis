@@ -332,6 +332,78 @@ const runTests = async () => {
         failed = true;
       }
     }
+
+    // 7.5 Over-limit facility showcase images
+    try {
+      await axios.post(`${dbUrl}/update`, {
+        table: 'facilities',
+        column: 'id',
+        value: 'f1',
+        values: {
+          facility_images: [
+            'data:image/jpeg;base64,111',
+            'data:image/jpeg;base64,222',
+            'data:image/jpeg;base64,332',
+            'data:image/jpeg;base64,442',
+            'data:image/jpeg;base64,552'
+          ]
+        }
+      }, config);
+      console.error("❌ Test 7e Failed: Backend accepted more than 4 facility images!");
+      failed = true;
+    } catch (err) {
+      if (err.response && err.response.status === 400 && err.response.data.error.includes("A facility can have at most 4 showcase images")) {
+        console.log("✅ Test 7e Passed: Backend successfully rejected >4 facility showcase images");
+      } else {
+        console.error("❌ Test 7e Failed: Unexpected error for over-limit images", err.response?.data || err.message);
+        failed = true;
+      }
+    }
+
+    // 7.6 Invalid facility showcase image URI schema
+    try {
+      await axios.post(`${dbUrl}/update`, {
+        table: 'facilities',
+        column: 'id',
+        value: 'f1',
+        values: {
+          facility_images: [
+            'javascript:alert(1)'
+          ]
+        }
+      }, config);
+      console.error("❌ Test 7f Failed: Backend accepted invalid image schema!");
+      failed = true;
+    } catch (err) {
+      if (err.response && err.response.status === 400 && err.response.data.error.includes("Facility images must be valid image URLs or base64 data URIs")) {
+        console.log("✅ Test 7f Passed: Backend successfully rejected invalid image URI scheme");
+      } else {
+        console.error("❌ Test 7f Failed: Unexpected error for invalid image schema", err.response?.data || err.message);
+        failed = true;
+      }
+    }
+
+    // 7.7 Valid facility images update
+    try {
+      const validImages = [
+        'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+        '/images/facility_default.png',
+        'http://example.com/facility_clinical_view.jpg'
+      ];
+      await axios.post(`${dbUrl}/update`, {
+        table: 'facilities',
+        column: 'id',
+        value: 'f1',
+        values: {
+          facility_images: validImages
+        }
+      }, config);
+      console.log("✅ Test 7g Passed: Backend successfully accepted valid facility images array");
+    } catch (err) {
+      console.error("❌ Test 7g Failed: Backend rejected valid facility images update", err.response?.data || err.message);
+      failed = true;
+    }
+
   } catch (err) {
     console.error("❌ Test 7 Failed with error:", err.message);
     failed = true;

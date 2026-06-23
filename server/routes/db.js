@@ -292,6 +292,31 @@ function validateRowData(table, row) {
       }
     }
   }
+
+  // 12. Facilities Table
+  if (table === 'facilities') {
+    if (row.facility_images) {
+      let imgs = row.facility_images;
+      if (typeof imgs === 'string') {
+        try {
+          imgs = JSON.parse(imgs);
+        } catch (e) {
+          throw new Error("Validation: Facility images must be a valid JSON array.");
+        }
+      }
+      if (!Array.isArray(imgs)) {
+        throw new Error("Validation: Facility images must be an array.");
+      }
+      if (imgs.length > 4) {
+        throw new Error("Validation: A facility can have at most 4 showcase images.");
+      }
+      for (const img of imgs) {
+        if (typeof img !== 'string' || (!img.startsWith('data:image/') && !img.startsWith('http') && !img.startsWith('/'))) {
+          throw new Error("Validation: Facility images must be valid image URLs or base64 data URIs.");
+        }
+      }
+    }
+  }
 }
 
 

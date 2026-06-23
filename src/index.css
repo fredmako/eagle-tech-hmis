@@ -277,129 +277,154 @@
 }
 
 /* ============================================================
-   GLOBAL THEME SELECTOR OVERRIDES FOR LIGHT THEME (theme-emerald)
+   GLOBAL MODE SELECTOR OVERRIDES FOR LIGHT MODE (mode-light)
 ============================================================ */
-.theme-emerald {
+.mode-light {
   background-color: var(--background) !important;
   color: var(--foreground) !important;
 }
 
-.theme-emerald.bg-slate-950,
-.theme-emerald .bg-slate-955,
-.theme-emerald .bg-slate-950,
-.theme-emerald.bg-slate-955,
-.theme-emerald .bg-slate-900,
-.theme-emerald .bg-slate-950\/40,
-.theme-emerald .bg-slate-950\/20,
-.theme-emerald .bg-slate-950\/60,
-.theme-emerald .bg-slate-950\/80 {
+.mode-light.bg-slate-955,
+.mode-light .bg-slate-955,
+.mode-light.bg-slate-950,
+.mode-light .bg-slate-955,
+.mode-light .bg-slate-950,
+.mode-light .bg-slate-900,
+.mode-light .bg-slate-955\/20,
+.mode-light .bg-slate-955\/25,
+.mode-light .bg-slate-955\/50,
+.mode-light .bg-slate-950\/40,
+.mode-light .bg-slate-950\/20,
+.mode-light .bg-slate-955\/20,
+.mode-light .bg-slate-950\/60,
+.mode-light .bg-slate-950\/80 {
   background-color: var(--card) !important;
 }
 
-.theme-emerald .bg-slate-955,
-.theme-emerald .bg-slate-950 {
+.mode-light .bg-slate-955,
+.mode-light .bg-slate-950 {
   background-color: var(--background) !important;
 }
 
-.theme-emerald .bg-slate-950\/10 {
-  background-color: rgba(0, 0, 0, 0.05) !important;
+.mode-light .bg-slate-955\/20 {
+  background-color: var(--background) !important;
+  opacity: 0.8;
 }
 
-.theme-emerald .bg-slate-900\/50,
-.theme-emerald .bg-slate-950\/50 {
+.mode-light .bg-slate-955\/25 {
   background-color: rgba(255, 255, 255, 0.8) !important;
 }
 
-.theme-emerald .bg-slate-800,
-.theme-emerald .bg-slate-850,
-.theme-emerald .bg-slate-800\/40 {
+.mode-light .bg-slate-955\/50 {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.mode-light .bg-slate-950\/10 {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.mode-light .bg-slate-900\/50,
+.mode-light .bg-slate-955\/50,
+.mode-light .bg-slate-955\/25,
+.mode-light .bg-slate-955\/20,
+.mode-light .bg-slate-950\/50 {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.mode-light .bg-slate-800,
+.mode-light .bg-slate-850,
+.mode-light .bg-slate-800\/40 {
   background-color: var(--secondary) !important;
 }
 
-.theme-emerald .border-slate-800,
-.theme-emerald .border-slate-850,
-.theme-emerald .border-slate-700,
-.theme-emerald .border-slate-850\/60,
-.theme-emerald .border-slate-850\/80,
-.theme-emerald .border-slate-900 {
+.mode-light .border-slate-800,
+.mode-light .border-slate-850,
+.mode-light .border-slate-700,
+.mode-light .border-slate-850\/60,
+.mode-light .border-slate-850\/80,
+.mode-light .border-slate-900 {
   border-color: var(--border) !important;
 }
 
-.theme-emerald .text-slate-100,
-.theme-emerald .text-slate-200,
-.theme-emerald .text-slate-300 {
+.mode-light .text-slate-100,
+.mode-light .text-slate-200,
+.mode-light .text-slate-300 {
   color: var(--foreground) !important;
 }
 
-.theme-emerald .text-slate-400,
-.theme-emerald .text-slate-500,
-.theme-emerald .text-slate-600 {
+.mode-light .text-slate-400,
+.mode-light .text-slate-500,
+.mode-light .text-slate-600 {
   color: var(--muted-foreground) !important;
 }
 
-.theme-emerald .text-fg-strong {
+.mode-light .text-fg-strong {
   color: var(--foreground) !important;
 }
-.theme-emerald .text-fg-muted {
+.mode-light .text-fg-muted {
   color: var(--muted-foreground) !important;
 }
-.theme-emerald .text-fg-subtle {
+.mode-light .text-fg-subtle {
   color: var(--fg-subtle) !important;
 }
 
-.theme-emerald .bg-background {
+.mode-light .bg-background {
   background-color: var(--background) !important;
 }
 
-.theme-emerald .bg-card {
+.mode-light .bg-card {
   background-color: var(--card) !important;
 }
 
 /* inputs */
-.theme-emerald input,
-.theme-emerald select,
-.theme-emerald textarea {
+.mode-light input,
+.mode-light select,
+.mode-light textarea {
   background-color: var(--card) !important;
   color: var(--foreground) !important;
   border-color: var(--border) !important;
 }
 
-.theme-emerald ::placeholder {
+.mode-light ::placeholder {
   color: #94a3b8 !important;
 }
 
 /* ============================================================
-   GLOBAL THEME SELECTOR OVERRIDES FOR NAVY THEME (theme-navy)
+   GLOBAL MODE SELECTOR OVERRIDES FOR DARK MODE (mode-dark)
 ============================================================ */
-.theme-navy {
+.mode-dark {
   background-color: var(--background) !important;
   color: var(--foreground) !important;
 }
 
-.theme-navy.bg-slate-955,
-.theme-navy .bg-slate-955,
-.theme-navy.bg-slate-950,
-.theme-navy .bg-slate-950 {
+.mode-dark.bg-slate-955,
+.mode-dark .bg-slate-955,
+.mode-dark.bg-slate-955,
+.mode-dark.bg-slate-955,
+.mode-dark.bg-slate-955,
+.mode-dark.bg-slate-950,
+.mode-dark .bg-slate-950 {
   background-color: var(--background) !important;
 }
 
-.theme-navy .bg-slate-900,
-.theme-navy .bg-slate-950\/40,
-.theme-navy .bg-slate-950\/20 {
+.mode-dark .bg-slate-900,
+.mode-dark .bg-slate-955\/20,
+.mode-dark .bg-slate-950\/40,
+.mode-dark .bg-slate-950\/20 {
   background-color: var(--card) !important;
 }
 
-.theme-navy .bg-slate-800,
-.theme-navy .bg-slate-850 {
+.mode-dark .bg-slate-800,
+.mode-dark .bg-slate-850 {
   background-color: var(--secondary) !important;
 }
 
-.theme-navy .border-slate-800,
-.theme-navy .border-slate-850,
-.theme-navy .border-slate-700 {
+.mode-dark .border-slate-800,
+.mode-dark .border-slate-850,
+.mode-dark .border-slate-700 {
   border-color: var(--border) !important;
 }
 
-.theme-navy .text-slate-100 {
+.mode-dark .text-slate-100 {
   color: var(--foreground) !important;
 }

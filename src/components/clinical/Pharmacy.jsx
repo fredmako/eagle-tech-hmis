@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { medicineMaster } from "../../medicalMaster";
 
-export default function Pharmacy({ user, onComplete }) {
+export default function Pharmacy({ user, onComplete, showNotification }) {
   const [pharmVisits, setPharmVisits] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [pendingPrescriptions, setPendingPrescriptions] = useState([]);
@@ -658,24 +658,36 @@ export default function Pharmacy({ user, onComplete }) {
           .eq("id", selectedVisit.id);
         if (visitErr) throw visitErr;
 
-        setMessage({
-          type: "success",
-          text: "All prescriptions dispensed. Visit successfully completed!",
-        });
+        if (showNotification) {
+          showNotification('success', 'Prescriptions Dispensed', "All prescriptions dispensed. Visit successfully completed!");
+        } else {
+          setMessage({
+            type: "success",
+            text: "All prescriptions dispensed. Visit successfully completed!",
+          });
+        }
         setTimeout(() => {
           sessionStorage.removeItem('egesa_selected_visit_id_pharmacy');
           fetchPharmacyQueue();
           if (onComplete) onComplete();
         }, 1500);
       } else {
-        setMessage({
-          type: "success",
-          text: `Successfully dispensed ${drugName}.`,
-        });
+        if (showNotification) {
+          showNotification('success', 'Drug Dispensed', `Successfully dispensed ${drugName}.`);
+        } else {
+          setMessage({
+            type: "success",
+            text: `Successfully dispensed ${drugName}.`,
+          });
+        }
         await handleSelectVisit(selectedVisit);
       }
     } catch (err) {
-      setMessage({ type: "error", text: err.message || "Dispensing failed." });
+      if (showNotification) {
+        showNotification('error', 'Dispense Failed', err.message || "Dispensing failed.");
+      } else {
+        setMessage({ type: "error", text: err.message || "Dispensing failed." });
+      }
     } finally {
       setLoading(false);
     }
@@ -749,7 +761,11 @@ export default function Pharmacy({ user, onComplete }) {
       console.error("Error logging restock to audit logs:", err);
     }
 
-    setMessage({ type: "success", text: `Inventory updated successfully for ${finalDrugName}!` });
+    if (showNotification) {
+      showNotification('success', 'Stock Updated', `Inventory updated successfully for ${finalDrugName}!`);
+    } else {
+      setMessage({ type: "success", text: `Inventory updated successfully for ${finalDrugName}!` });
+    }
   };
 
   // Determine low stock (< 100 units total) and near expiry (< 6 months)

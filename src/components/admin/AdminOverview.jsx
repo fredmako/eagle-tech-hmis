@@ -17,6 +17,7 @@ import {
   Calendar,
   Bell
 } from 'lucide-react';
+import { hasAccess } from '../../utils/permissions';
 
 export default function AdminOverview({
   setActiveSubTab,
@@ -25,12 +26,9 @@ export default function AdminOverview({
   roleRequests = [],
   supportTicketsCount = 0,
   afyalinkLogs = [],
-  emailLogs = []
+  emailLogs = [],
+  adminDelegation = {}
 }) {
-  const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
-  const isWardAuthorized = rolesList.includes('admin') || rolesList.includes('facility_admin') || rolesList.includes('hr_manager');
-  const isPaymentAuthorized = rolesList.includes('admin') || rolesList.includes('facility_admin');
-
   // Count pending items
   const pendingInvitations = invitationsList.filter(i => i.status === 'pending').length;
   const pendingRoles = roleRequests.filter(r => r.status === 'pending').length;
@@ -51,7 +49,7 @@ export default function AdminOverview({
           desc: "Manage clinic info, address, KMPDC number, and official identity logo.",
           icon: Building,
           color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/40",
-          show: true
+          show: hasAccess('facility_profile', user.role, adminDelegation)
         },
         {
           id: 'domain',
@@ -59,7 +57,7 @@ export default function AdminOverview({
           desc: "Configure public-facing custom subdomains and clinic logo routing.",
           icon: Globe,
           color: "text-teal-400 bg-teal-500/10 border-teal-500/20 hover:border-teal-500/40",
-          show: true
+          show: hasAccess('domain', user.role, adminDelegation)
         },
         {
           id: 'payment_settings',
@@ -67,7 +65,7 @@ export default function AdminOverview({
           desc: "Configure Stripe, PayPal, M-Pesa merchant keys and medical service catalogs.",
           icon: CreditCard,
           color: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20 hover:border-yellow-500/40",
-          show: isPaymentAuthorized
+          show: hasAccess('payment_settings', user.role, adminDelegation)
         },
         {
           id: 'ward_settings',
@@ -75,7 +73,7 @@ export default function AdminOverview({
           desc: "Create inpatient wards, build custom room bed grids, and track bed states.",
           icon: Bed,
           color: "text-sky-400 bg-sky-500/10 border-sky-500/20 hover:border-sky-500/40",
-          show: isWardAuthorized
+          show: hasAccess('ward_settings', user.role, adminDelegation)
         }
       ]
     },
@@ -90,7 +88,7 @@ export default function AdminOverview({
           color: "text-amber-400 bg-amber-500/10 border-amber-500/20 hover:border-amber-500/40",
           badge: pendingInvitations,
           badgeColor: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-          show: true
+          show: hasAccess('staff_onboarding', user.role, adminDelegation)
         },
         {
           id: 'role_requests',
@@ -100,7 +98,7 @@ export default function AdminOverview({
           color: "text-orange-400 bg-orange-500/10 border-orange-500/20 hover:border-orange-500/40",
           badge: pendingRoles,
           badgeColor: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-          show: true
+          show: hasAccess('role_requests', user.role, adminDelegation)
         },
         {
           id: 'hr',
@@ -108,7 +106,7 @@ export default function AdminOverview({
           desc: "Manage profiles, contacts, and active access parameters for staff.",
           icon: Users,
           color: "text-pink-400 bg-pink-500/10 border-pink-500/20 hover:border-pink-500/40",
-          show: true
+          show: hasAccess('hr', user.role, adminDelegation)
         },
         {
           id: 'roster',
@@ -116,7 +114,7 @@ export default function AdminOverview({
           desc: "Allocate weekly clinician shifts, and monitor real-time clock-in/out logs.",
           icon: Calendar,
           color: "text-teal-400 bg-teal-500/10 border-teal-500/20 hover:border-teal-500/40",
-          show: isWardAuthorized
+          show: hasAccess('roster', user.role, adminDelegation)
         },
         {
           id: 'broadcasts',
@@ -124,7 +122,7 @@ export default function AdminOverview({
           desc: "Broadcast notifications to staff, role groups, or platform support.",
           icon: Bell,
           color: "text-purple-400 bg-purple-500/10 border-purple-500/20 hover:border-purple-500/40",
-          show: isWardAuthorized
+          show: hasAccess('broadcasts', user.role, adminDelegation)
         }
       ]
     },
@@ -137,7 +135,7 @@ export default function AdminOverview({
           desc: "Track clinic purchases, inventory balances, and recurring utility invoices.",
           icon: ShoppingBag,
           color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20 hover:border-cyan-500/40",
-          show: true
+          show: hasAccess('procurement', user.role, adminDelegation)
         },
         {
           id: 'help_desk',
@@ -147,7 +145,7 @@ export default function AdminOverview({
           color: "text-rose-400 bg-rose-500/10 border-rose-500/20 hover:border-rose-500/40",
           badge: pendingTickets,
           badgeColor: "bg-rose-500/20 text-rose-400 border-rose-500/30",
-          show: true
+          show: hasAccess('help_desk', user.role, adminDelegation)
         }
       ]
     },
@@ -162,7 +160,7 @@ export default function AdminOverview({
           color: "text-red-400 bg-red-500/10 border-red-500/20 hover:border-red-500/40",
           badge: failedAfyaLink,
           badgeColor: "bg-red-500/20 text-red-400 border-red-500/30",
-          show: true
+          show: hasAccess('afyalink', user.role, adminDelegation)
         },
         {
           id: 'smtp_settings',
@@ -170,7 +168,7 @@ export default function AdminOverview({
           desc: "Manage custom SMTP outbound email credentials and timeout limits.",
           icon: Server,
           color: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20 hover:border-indigo-500/40",
-          show: true
+          show: hasAccess('smtp_settings', user.role, adminDelegation)
         },
         {
           id: 'email_logs',
@@ -180,7 +178,7 @@ export default function AdminOverview({
           color: "text-blue-400 bg-blue-500/10 border-blue-500/20 hover:border-blue-500/40",
           badge: emailLogs.length,
           badgeColor: "bg-slate-955 text-slate-400 border-slate-800",
-          show: true
+          show: hasAccess('email_logs', user.role, adminDelegation)
         },
         {
           id: 'audit',
@@ -188,7 +186,7 @@ export default function AdminOverview({
           desc: "Track secure clinic logs, provider check-ins, and critical change histories.",
           icon: Shield,
           color: "text-teal-400 bg-teal-500/10 border-teal-500/20 hover:border-teal-500/40",
-          show: true
+          show: hasAccess('audit', user.role, adminDelegation)
         },
         {
           id: 'licensing',
@@ -196,7 +194,7 @@ export default function AdminOverview({
           desc: "Check clinic licensing status, usage limits, and SaaS package invoices.",
           icon: CreditCard,
           color: "text-purple-400 bg-purple-500/10 border-purple-500/20 hover:border-purple-500/40",
-          show: true
+          show: hasAccess('licensing', user.role, adminDelegation)
         }
       ]
     }

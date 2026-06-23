@@ -16,11 +16,13 @@ import {
   UserCheck,
   Printer,
   Search,
-  Save
+  Save,
+  Zap
 } from 'lucide-react';
 import { labTestMaster } from '../../medicalMaster';
+import InstrumentTracker from './InstrumentTracker';
 
-export default function Orders({ user, onComplete }) {
+export default function Orders({ user, onComplete, showNotification }) {
   const [labVisits, setLabVisits] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [pendingOrders, setPendingOrders] = useState([]);
@@ -40,6 +42,7 @@ export default function Orders({ user, onComplete }) {
   const [editableCatalog, setEditableCatalog] = useState({});
 
   const [selectedAnalyzerId, setSelectedAnalyzerId] = useState('');
+  const [selectedAnalyzer, setSelectedAnalyzer] = useState(null);
   const [labCaptureMethod, setLabCaptureMethod] = useState('manual'); // 'manual' | 'analyzer'
   const [analyzerProtocol, setAnalyzerProtocol] = useState('serial');
   const [analyzerComPort, setAnalyzerComPort] = useState('COM3');
@@ -98,19 +101,65 @@ export default function Orders({ user, onComplete }) {
       }));
     };
 
-    const analyzerName = selectedAnalyzerId 
-      ? "Mindray LIS Analyzer"
+    const analyzerName = selectedAnalyzer
+      ? `${selectedAnalyzer.name} (Model: ${selectedAnalyzer.model || 'N/A'})`
       : "Default LIS Simulator";
 
     try {
+      if (selectedAnalyzer) {
+        pushRunLog(`Validating calibration certificate for ${selectedAnalyzer.name}...`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const isCalibrated = selectedAnalyzer.next_calibration_date && new Date(selectedAnalyzer.next_calibration_date) > new Date();
+        if (!isCalibrated) {
+          pushRunLog(`[ERROR] Connection aborted. Instrument calibration expired on ${selectedAnalyzer.next_calibration_date || 'N/A'}.`);
+          pushRunLog(`[ERROR] CRITICAL: LIS refuses data from uncertified hardware.`);
+          throw new Error(`Device calibration expired on ${selectedAnalyzer.next_calibration_date}`);
+        }
+        pushRunLog(`Calibration verification: OK (Expires: ${selectedAnalyzer.next_calibration_date})`);
+      }
+
       pushRunLog(`Establishing session with ${analyzerName}...`);
+      if (labCaptureMethod === 'analyzer' && selectedAnalyzer) {
+        if (analyzerProtocol === 'serial') {
+          pushRunLog(`[TRACE] RS-232 connection initialized on ${analyzerComPort} (Baud Rate: ${analyzerBaudRate}, Parity: None, Data Bits: 8, Stop Bits: 1).`);
+        } else {
+          pushRunLog(`[TRACE] TCP/IP Socket connection opened to Host: ${analyzerIp}:${analyzerPort}...`);
+        }
+      }
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      pushRunLog(`Sending Order Record (L-Record) for Accession ID...`);
-      await new Promise(resolve => setTimeout(resolve, 600));
+      pushRunLog(`Tx: <ENQ> (ASTM Handshake Enquiry)`);
+      await new Promise(resolve => setTimeout(resolve, 400));
+      pushRunLog(`Rx: <ACK> (Acknowledge)`);
 
-      pushRunLog(`Analyzer acknowledged. Initiating test run...`);
-      pushRunLog(`Spinning sample. Performing optical scan / electrical impedance counting...`);
+      const ord = pendingOrders.find(o => o.id === orderId);
+      const meta = ord?.metadata ? (typeof ord.metadata === 'string' ? JSON.parse(ord.metadata) : ord.metadata) : {};
+
+      pushRunLog(`Tx: <STX>1H|\\^&|||${selectedAnalyzer ? selectedAnalyzer.name : 'LIS'}|||||||P|1<CR><ETX>5F`);
+      await new Promise(resolve => setTimeout(resolve, 400));
+      pushRunLog(`Rx: <ACK>`);
+
+      pushRunLog(`Tx: <STX>2P|1||Patient_${ord?.patient_id || 'UNKNOWN'}||||||||||||<CR><ETX>12`);
+      await new Promise(resolve => setTimeout(resolve, 400));
+      pushRunLog(`Rx: <ACK>`);
+
+      const barcodeCode = meta?.barcode || '';
+      if (!barcodeCode) {
+        pushRunLog(`[WARNING] Accession Barcode is missing. Querying LIS Host...`);
+        pushRunLog(`Tx: <STX>3Q|1|^NoBarcodeAccession|||||||||<CR><ETX>7C`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        pushRunLog(`Rx: <NAK> (Negative Acknowledge: Host Query rejected, barcode required)`);
+        pushRunLog(`[ERROR] Handshake failed: Accession Barcode is required for external LIS devices.`);
+        throw new Error("Missing Accession Barcode");
+      }
+
+      pushRunLog(`Tx: <STX>3O|1|Accession_${barcodeCode}||^^^${itemName}||||||||||||<CR><ETX>3E`);
+      await new Promise(resolve => setTimeout(resolve, 400));
+      pushRunLog(`Rx: <ACK>`);
+
+      pushRunLog(`[TRACE] Instrument sensor status: Operational. Spin speed: 3000 RPM.`);
+      pushRunLog(`[TRACE] Performing optical colorimetric scan & laser flow cytometry counting...`);
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       pushRunLog(`Generating results parameters...`);
@@ -147,6 +196,7 @@ export default function Orders({ user, onComplete }) {
               : p.range;
           }
           results[p.name] = mockVal;
+          pushRunLog(`[TRACE] Tx: <STX>4R|${results[p.name]} ^^${p.name}^${p.unit || ''}<CR><ETX>`);
         });
 
         setResultsInputs(prev => ({
@@ -160,12 +210,24 @@ export default function Orders({ user, onComplete }) {
           ...prev,
           [orderId]: mockVal
         }));
+        pushRunLog(`[TRACE] Tx: <STX>4R|${mockVal}<CR><ETX>`);
         pushRunLog(`ASTM Result Transmission complete: "${mockVal}"`);
       }
 
+      pushRunLog(`Tx: <STX>5L|1|N<CR><ETX>40`);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      pushRunLog(`Rx: <ACK>`);
+      pushRunLog(`Tx: <EOT> (End of Transmission)`);
+
       pushRunLog(`SUCCESS: Results automatically populated! Review and submit findings.`);
+      if (showNotification) {
+        showNotification('success', 'ASTM Sync Success', 'LIS results populated successfully!');
+      }
     } catch (err) {
-      pushRunLog(`ERROR: ASTM transfer failed.`);
+      pushRunLog(`[ERROR] ASTM transfer failed: ${err.message}`);
+      if (showNotification) {
+        showNotification('error', 'Device Sync Error', `Failed to sync: ${err.message}`);
+      }
     } finally {
       setRunningAnalyzerOrderId(null);
     }
@@ -832,14 +894,24 @@ export default function Orders({ user, onComplete }) {
 
       // Log action to audit trail
       await supabase.from('audit_logs').insert({
+        facility_id: user.facility_id,
+        user_id: user.id,
         action: `Lab Order Status: ${newStatus.toUpperCase()}`,
         details: `Updated test ${activeOrder?.item_name} status to ${newStatus.toUpperCase()} for patient ${selectedVisit?.patient?.name}.`
       });
 
-      setMessage({ type: 'success', text: `Order updated to ${newStatus.toUpperCase()} successfully!` });
+      if (showNotification) {
+        showNotification('success', 'Order Updated', `Order updated to ${newStatus.toUpperCase()} successfully!`);
+      } else {
+        setMessage({ type: 'success', text: `Order updated to ${newStatus.toUpperCase()} successfully!` });
+      }
       await handleSelectVisit(selectedVisit);
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Error updating order status.' });
+      if (showNotification) {
+        showNotification('error', 'Update Failed', err.message || 'Error updating order status.');
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Error updating order status.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -1109,6 +1181,8 @@ export default function Orders({ user, onComplete }) {
 
       // 2. Log release
       await supabase.from('audit_logs').insert({
+        facility_id: user.facility_id,
+        user_id: user.id,
         action: 'Lab Results Released',
         details: `Released finalized results for ${activeOrder?.item_name} (${meta.values}) for patient ${selectedVisit?.patient?.name}.`
       });
@@ -1139,18 +1213,30 @@ export default function Orders({ user, onComplete }) {
         if (visitErr) throw visitErr;
 
         const targetLabel = routeTarget === 'billing' ? 'Billing Desk' : 'Clinician Consultation';
-        setMessage({ type: 'success', text: `All results released! Patient redirected to ${targetLabel}.` });
+        if (showNotification) {
+          showNotification('success', 'Results Released', `All results released! Patient redirected to ${targetLabel}.`);
+        } else {
+          setMessage({ type: 'success', text: `All results released! Patient redirected to ${targetLabel}.` });
+        }
         setTimeout(() => {
           sessionStorage.removeItem('egesa_selected_visit_id_orders');
           fetchLabQueue();
           if (onComplete) onComplete();
         }, 1500);
       } else {
-        setMessage({ type: 'success', text: 'Results released to patient profile.' });
+        if (showNotification) {
+          showNotification('success', 'Results Released', 'Results released to patient profile.');
+        } else {
+          setMessage({ type: 'success', text: 'Results released to patient profile.' });
+        }
         await handleSelectVisit(selectedVisit);
       }
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Error releasing results.' });
+      if (showNotification) {
+        showNotification('error', 'Release Failed', err.message || 'Error releasing results.');
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Error releasing results.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -1442,8 +1528,9 @@ export default function Orders({ user, onComplete }) {
                 <InstrumentTracker
                   category="lab"
                   selectedId={selectedAnalyzerId}
-                  onSelect={(id) => {
+                  onSelect={(id, instrument) => {
                     setSelectedAnalyzerId(id);
+                    setSelectedAnalyzer(instrument);
                     setConnectionLogs([]);
                   }}
                   measurementType="lab_analyzer"
@@ -1987,7 +2074,10 @@ export default function Orders({ user, onComplete }) {
                                       <InstrumentTracker
                                         category="lab"
                                         selectedId={selectedAnalyzerId}
-                                        onSelect={(id) => setSelectedAnalyzerId(id)}
+                                        onSelect={(id, instrument) => {
+                                          setSelectedAnalyzerId(id);
+                                          setSelectedAnalyzer(instrument);
+                                        }}
                                         measurementType="lab_analyzer"
                                       />
                                       {selectedAnalyzerId && (

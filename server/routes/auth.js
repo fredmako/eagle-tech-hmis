@@ -934,9 +934,22 @@ router.get("/me", authenticateToken, async (req, res) => {
 
 // Submit a new Role Request
 router.post("/role-request", async (req, res) => {
-  const { user_id, full_name, email, facility_id, requested_role } = req.body;
+  let { user_id, full_name, email, facility_id, requested_role, request_category } = req.body;
   if (!user_id || !full_name || !email || !facility_id || !requested_role) {
     return res.status(400).json({ error: "All request fields are required" });
+  }
+
+  if (!request_category) {
+    const roles = (requested_role || "").split(",");
+    const isAdminRole = roles.some(r => ["facility_admin", "hr_manager"].includes(r));
+    const isOperationalRole = roles.some(r => ["receptionist", "nurse", "clinician", "lab_tech", "pharmacist", "cashier", "reporting_officer"].includes(r));
+    if (isAdminRole && isOperationalRole) {
+      request_category = "Mixed Access";
+    } else if (isAdminRole) {
+      request_category = "Administrative & Management Settings";
+    } else {
+      request_category = "Clinical & Operational Workflows";
+    }
   }
 
   try {
@@ -947,6 +960,7 @@ router.post("/role-request", async (req, res) => {
       email,
       facility_id,
       requested_role,
+      request_category,
       status: "pending",
     });
 
@@ -958,7 +972,7 @@ router.post("/role-request", async (req, res) => {
         facility_id: facility_id,
         user_id: user_id,
         action: "ROLE_REQUEST_SUBMITTED",
-        details: `${full_name} (${email}) requested role ${requested_role.toUpperCase()} for facility ID ${facility_id}.`,
+        details: `${full_name} (${email}) requested role ${requested_role.toUpperCase()} under category "${request_category}" for facility ID ${facility_id}.`,
       }
     );
 
@@ -983,6 +997,7 @@ router.post("/role-request", async (req, res) => {
           <div style="background-color: #1e293b; padding: 15px; border-left: 4px solid #2dd4bf; border-radius: 4px; margin: 15px 0;">
             <p style="margin: 0; font-size: 14px;"><strong>Applicant Name:</strong> ${full_name}</p>
             <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Applicant Email:</strong> ${email}</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Request Category:</strong> ${request_category}</p>
             <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Requested Role:</strong> <span style="font-family: monospace; color: #2dd4bf; font-weight: bold;">${requested_role.toUpperCase()}</span></p>
           </div>
           

@@ -52,10 +52,16 @@ import {
   X,
   Clock,
   HelpCircle,
+  CheckCircle,
+  ShieldAlert,
 } from "lucide-react";
 
 export default function App() {
   const { user, setUser, logout, loading, checkSession } = useAuth();
+  const [notification, setNotification] = useState(null); // { type: 'success' | 'error', title: string, message: string }
+  const showNotification = (type, title, message) => {
+    setNotification({ type, title, message });
+  };
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem("egesa_active_tab") || "dashboard";
   });
@@ -83,9 +89,26 @@ export default function App() {
     return "landing";
   });
 
-  const [theme, setTheme] = useState(
-    () => localStorage.getItem("egesa_theme") || "slate",
+  const [themeMode, setThemeMode] = useState(() => {
+    const savedMode = localStorage.getItem("egesa_theme_mode");
+    if (savedMode) return savedMode;
+    const oldTheme = localStorage.getItem("egesa_theme");
+    if (oldTheme === "emerald") return "light";
+    return "dark";
+  });
+
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = localStorage.getItem("egesa_theme");
+    if (savedTheme === "emerald") return "green";
+    if (savedTheme === "slate") return "blue";
+    if (savedTheme) return savedTheme;
+    return "teal";
+  });
+
+  const [menuLayout, setMenuLayout] = useState(
+    () => localStorage.getItem("egesa_menu_layout") || "sidebar"
   );
+
   const [lang, setLang] = useState(
     () => localStorage.getItem("egesa_lang") || "en",
   );
@@ -106,12 +129,13 @@ export default function App() {
   useEffect(() => {
     const root = document.documentElement;
     const classesToRemove = Array.from(root.classList).filter(
-      (c) => c.startsWith("theme-") || c.startsWith("font-")
+      (c) => c.startsWith("theme-") || c.startsWith("font-") || c.startsWith("mode-")
     );
     classesToRemove.forEach((c) => root.classList.remove(c));
     root.classList.add(`theme-${theme}`);
+    root.classList.add(`mode-${themeMode}`);
     root.classList.add(`font-${font}`);
-  }, [theme, font]);
+  }, [theme, themeMode, font]);
 
   useEffect(() => {
     const syncPublicViewFromHash = () => {
@@ -219,8 +243,17 @@ export default function App() {
     setTheme(newTheme);
     localStorage.setItem("egesa_theme", newTheme);
   };
+  const handleThemeModeChange = (newMode) => {
+    setThemeMode(newMode);
+    localStorage.setItem("egesa_theme_mode", newMode);
+  };
   const toggleLightDark = () =>
-    handleThemeChange(theme === "emerald" ? "slate" : "emerald");
+    handleThemeModeChange(themeMode === "light" ? "dark" : "light");
+
+  const handleMenuLayoutChange = (newLayout) => {
+    setMenuLayout(newLayout);
+    localStorage.setItem("egesa_menu_layout", newLayout);
+  };
 
   const handleLangChange = (newLang) => {
     setLang(newLang);
@@ -364,14 +397,14 @@ export default function App() {
         onNavigateToLogin={() => setPublicView("login")}
         onNavigateToSignup={() => setPublicView("signup")}
         onNavigateToCards={() => setPublicView("cards")}
-        theme={theme}
+        theme={themeMode}
         onToggleTheme={toggleLightDark}
       />
       );
     })();
     return (
       <div
-        className={`theme-${theme} font-${font} min-h-screen bg-slate-950 text-slate-100`}
+        className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-950 text-slate-100`}
       >
         {publicContent}
       </div>
@@ -381,22 +414,17 @@ export default function App() {
   if (user.role === "super_admin") {
     return (
       <div
-        className={`theme-${theme} font-${font} min-h-screen bg-slate-955 text-slate-100`}
+        className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100`}
       >
         <SuperAdminDashboard user={user} onSignOut={handleSignOut} />
       </div>
     );
   }
 
-  if (
-    user.role !== "patient" &&
-    user.facility_is_verified === false &&
-    (!user.email ||
-      user.email.toLowerCase().trim() !== "fredrickmakori102@gmail.com")
-  ) {
+  if (!user.facility_is_verified) {
     return (
       <div
-        className={`theme-${theme} font-${font} min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 font-['DM_Sans',system-ui,sans-serif]`}
+        className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100 flex flex-col justify-center items-center p-4 font-['DM_Sans',system-ui,sans-serif]`}
       >
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -464,7 +492,7 @@ export default function App() {
   if (user.role === "patient") {
     return (
       <div
-        className={`theme-${theme} font-${font} min-h-screen bg-slate-955 text-slate-100`}
+        className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100`}
       >
         <PatientPortal />
       </div>
@@ -581,8 +609,109 @@ export default function App() {
 
   return (
     <div
-      className={`flex h-screen bg-slate-950 text-slate-100 overflow-hidden theme-${theme} font-${font} font-['DM_Sans',system-ui,sans-serif]`}
+      className={`flex h-screen bg-slate-950 text-slate-100 overflow-hidden theme-${theme} mode-${themeMode} font-${font} font-['DM_Sans',system-ui,sans-serif] ${menuLayout === 'topbar' ? 'flex-col' : 'flex-row'}`}
     >
+      {menuLayout === 'topbar' && (
+        <header className="hidden md:flex items-center justify-between px-6 py-2.5 bg-slate-900 border-b border-teal-500/10 z-30 shrink-0">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="text-slate-400 hover:text-slate-100 p-1 rounded focus:outline-none"
+              aria-label="Open menu"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="flex items-center gap-2.5">
+              {renderLogo(user.facility_logo)}
+              <div>
+                <span className="font-['Instrument_Serif',serif] text-[13px] text-slate-100 block leading-tight truncate max-w-[200px]">
+                  {user.facility_name || "Eagle Tech HMIS"}
+                </span>
+                <span className="text-[9px] text-teal-400 font-bold uppercase tracking-wider block mt-0.5 leading-none">
+                  {t("poweredBy") || "Eagle Tech HMIS"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <nav className="flex-1 max-w-4xl mx-6 flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
+            {visibleMenuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                    isActive 
+                      ? "bg-teal-400 text-slate-950 shadow shadow-teal-500/15" 
+                      : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
+                  }`}
+                >
+                  <Icon size={13} />
+                  <span>{t(item.id) || item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setActiveTab('settings')}
+              title="View Account Preferences & Profile"
+              className="flex items-center gap-2 border-r border-teal-500/10 pr-3 cursor-pointer hover:opacity-80 transition text-left focus:outline-none"
+            >
+              <div className="h-7 w-7 rounded-full bg-slate-800 border border-teal-500/15 flex items-center justify-center font-bold text-teal-400 text-[10px] shadow shrink-0">
+                {user.full_name?.substring(0, 2).toUpperCase()}
+              </div>
+              <div className="hidden lg:block text-left truncate max-w-[120px]">
+                <span className="text-[11px] font-bold text-slate-200 block leading-tight truncate">
+                  {user.full_name}
+                </span>
+                <span className="font-['JetBrains_Mono',monospace] text-[9px] text-teal-400 font-semibold uppercase block leading-none">
+                  {user.role}
+                </span>
+              </div>
+            </button>
+            
+            <NotificationBell user={user} onNavigate={setActiveTab} />
+            <ThemeToggle themeMode={themeMode} onToggle={toggleLightDark} />
+
+            {user.email === "fredrickmakori102@gmail.com" && (
+              <button
+                onClick={() => {
+                  const updatedUser = {
+                    ...user,
+                    role: "super_admin",
+                    facility_id: null,
+                    facility_name: "Eagle Tech Systems Control",
+                    facility_logo: null,
+                    facility_is_verified: true,
+                  };
+                  setUser(updatedUser);
+                  sessionStorage.setItem(
+                    "egesa_health_active_user",
+                    JSON.stringify(updatedUser),
+                  );
+                }}
+                title="Systems Control Console"
+                className="p-1.5 border border-yellow-500/10 hover:border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10 text-yellow-400 rounded-lg transition duration-150 cursor-pointer shrink-0"
+              >
+                <ShieldCheck size={14} />
+              </button>
+            )}
+
+            <button
+              onClick={handleSignOut}
+              title={t("signOut") || "Sign Out"}
+              className="p-1.5 border border-teal-500/10 hover:border-red-500/30 bg-slate-900/50 hover:bg-red-500/5 text-slate-400 hover:text-red-400 rounded-lg transition duration-150 cursor-pointer shrink-0"
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
+        </header>
+      )}
+
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
@@ -591,7 +720,11 @@ export default function App() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-teal-500/10 flex flex-col shrink-0 transition-transform duration-300 transform md:translate-x-0 md:static md:flex ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-teal-500/10 flex flex-col shrink-0 transition-transform duration-300 transform ${
+          menuLayout === 'topbar'
+            ? (isSidebarOpen ? "translate-x-0" : "-translate-x-full")
+            : `md:translate-x-0 md:static md:flex ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`
+        }`}
       >
         <div className="p-4 border-b border-teal-500/10 flex items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5 truncate">
@@ -636,19 +769,25 @@ export default function App() {
 
         <div className="p-4 border-t border-teal-500/10 bg-slate-950/40 space-y-3">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-slate-800 border border-teal-500/15 flex items-center justify-center font-bold text-teal-400 text-xs shadow">
-              {user.full_name?.substring(0, 2).toUpperCase()}
-            </div>
-            <div className="truncate flex-1">
-              <span className="text-xs font-bold text-slate-200 block truncate leading-snug">
-                {user.full_name}
-              </span>
-              <span className="font-['JetBrains_Mono',monospace] text-[10px] text-teal-400 font-semibold uppercase block leading-none">
-                {user.role}
-              </span>
-            </div>
+            <button 
+              onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }}
+              title="View Account Preferences & Profile"
+              className="flex items-center gap-3 truncate flex-1 cursor-pointer hover:opacity-80 transition text-left focus:outline-none"
+            >
+              <div className="h-8 w-8 rounded-full bg-slate-800 border border-teal-500/15 flex items-center justify-center font-bold text-teal-400 text-xs shadow shrink-0">
+                {user.full_name?.substring(0, 2).toUpperCase()}
+              </div>
+              <div className="truncate flex-1">
+                <span className="text-xs font-bold text-slate-200 block truncate leading-snug">
+                  {user.full_name}
+                </span>
+                <span className="font-['JetBrains_Mono',monospace] text-[10px] text-teal-400 font-semibold uppercase block leading-none">
+                  {user.role}
+                </span>
+              </div>
+            </button>
             <NotificationBell user={user} onNavigate={setActiveTab} />
-            <ThemeToggle theme={theme} onToggle={toggleLightDark} />
+            <ThemeToggle themeMode={themeMode} onToggle={toggleLightDark} />
           </div>
 
           {user.email === "fredrickmakori102@gmail.com" && (
@@ -708,7 +847,7 @@ export default function App() {
           </div>
           <div className="flex items-center gap-2">
             <NotificationBell user={user} onNavigate={setActiveTab} />
-            <ThemeToggle theme={theme} onToggle={toggleLightDark} />
+            <ThemeToggle themeMode={themeMode} onToggle={toggleLightDark} />
             <span className="font-['JetBrains_Mono',monospace] text-[10px] text-teal-400 font-semibold uppercase bg-teal-500/10 px-2 py-0.5 rounded">
               {user.role}
             </span>
@@ -723,6 +862,7 @@ export default function App() {
             <Registration
               user={user}
               onNavigateToQueue={handleNavigateToQueue}
+              showNotification={showNotification}
             />
           )}
           {activeTab === "queue" && (
@@ -733,21 +873,23 @@ export default function App() {
             />
           )}
           {activeTab === "triage" && (
-            <Triage user={user} onComplete={() => setActiveTab("dashboard")} />
+            <Triage user={user} onComplete={() => setActiveTab("dashboard")} showNotification={showNotification} />
           )}
           {activeTab === "consultation" && (
             <Consultation
               user={user}
               onComplete={() => setActiveTab("dashboard")}
+              showNotification={showNotification}
             />
           )}
           {activeTab === "orders" && (
-            <Orders user={user} onComplete={() => setActiveTab("dashboard")} />
+            <Orders user={user} onComplete={() => setActiveTab("dashboard")} showNotification={showNotification} />
           )}
           {activeTab === "radiology" && (
             <Radiology
               user={user}
               onComplete={() => setActiveTab("dashboard")}
+              showNotification={showNotification}
             />
           )}
           {activeTab === "surgery" && (
@@ -757,28 +899,66 @@ export default function App() {
             <Pharmacy
               user={user}
               onComplete={() => setActiveTab("dashboard")}
+              showNotification={showNotification}
             />
           )}
           {activeTab === "billing" && (
-            <Billing user={user} onComplete={() => setActiveTab("dashboard")} />
+            <Billing user={user} onComplete={() => setActiveTab("dashboard")} showNotification={showNotification} />
           )}
           {activeTab === "reports" && <Reports user={user} />}
           {activeTab === "patient_dashboard" && <PatientDashboard />}
-          {activeTab === "ward" && <Ward user={user} />}
+          {activeTab === "ward" && <Ward user={user} showNotification={showNotification} />}
           {activeTab === "admin" && <Admin user={user} />}
           {activeTab === "settings" && (
             <Preferences
               currentTheme={theme}
               onChangeTheme={handleThemeChange}
+              currentThemeMode={themeMode}
+              onChangeThemeMode={handleThemeModeChange}
+              currentMenuLayout={menuLayout}
+              onChangeMenuLayout={handleMenuLayoutChange}
               currentLang={lang}
               onChangeLang={handleLangChange}
               currentFont={font}
               onChangeFont={handleFontChange}
+              user={user}
+              setUser={setUser}
             />
           )}
           {activeTab === "support" && <SupportPanel />}
         </div>
       </main>
+
+      {notification && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 font-sans animate-fadeIn">
+          <div className={`w-full max-w-sm bg-slate-900 border rounded-2xl p-6 shadow-2xl relative overflow-hidden transition-all ${
+            notification.type === 'success' ? 'border-teal-500/30' : 'border-rose-500/30'
+          }`}>
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-650" />
+            
+            <div className="flex flex-col items-center text-center mt-2">
+              <div className={`p-3 rounded-full mb-4 ${
+                notification.type === 'success' ? 'bg-teal-500/10 text-teal-400' : 'bg-rose-500/10 text-rose-400'
+              }`}>
+                {notification.type === 'success' ? (
+                  <CheckCircle size={36} className="animate-pulse" />
+                ) : (
+                  <ShieldAlert size={36} className="animate-bounce" />
+                )}
+              </div>
+              <h3 className="text-base font-bold text-slate-100 mb-1.5">{notification.title}</h3>
+              <p className="text-xs text-slate-400 leading-relaxed mb-6 whitespace-pre-wrap">{notification.message}</p>
+            </div>
+            
+            <button
+              onClick={() => setNotification(null)}
+              className="w-full bg-slate-800 hover:bg-slate-750 text-slate-200 hover:text-white font-bold text-xs py-2.5 rounded-lg border border-slate-700/60 transition active:scale-[0.98] cursor-pointer"
+            >
+              Close Confirmation
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

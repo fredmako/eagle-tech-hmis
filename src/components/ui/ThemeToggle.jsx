@@ -1,8 +1,8 @@
 import { Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-export function ThemeToggle({ theme, onToggle, className = '' }) {
-  const isLight = theme === 'emerald';
+export function ThemeToggle({ theme, themeMode, onToggle, className = '' }) {
+  const isLight = themeMode ? themeMode === 'light' : (theme === 'emerald' || theme === 'light');
   return (
     <button
       onClick={onToggle}

@@ -280,7 +280,7 @@ export const AuthProvider = ({ children }) => {
     setError('');
   };
 
-  const submitRoleRequest = async (userId, fullName, email, facilityId, requestedRole) => {
+  const submitRoleRequest = async (userId, fullName, email, facilityId, requestedRole, requestCategory) => {
     setError('');
     setLoading(true);
     try {
@@ -292,7 +292,8 @@ export const AuthProvider = ({ children }) => {
           full_name: fullName,
           email,
           facility_id: facilityId,
-          requested_role: requestedRole
+          requested_role: requestedRole,
+          request_category: requestCategory
         })
       });
       const data = await res.json();

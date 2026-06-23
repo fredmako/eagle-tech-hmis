@@ -62,7 +62,7 @@ export default function RoleRequestsList({
                 <tr className="bg-slate-950/60 text-slate-400 border-b border-slate-950 text-[10px] uppercase font-bold">
                   <th className="py-2.5 px-3">Staff Name</th>
                   <th className="py-2.5 px-3">Email Address</th>
-                  <th className="py-2.5 px-3">Requested Role</th>
+                  <th className="py-2.5 px-3">Category & Requested Roles</th>
                   <th className="py-2.5 px-3">Submitted Date</th>
                   <th className="py-2.5 px-3 text-center">Action Controls</th>
                 </tr>
@@ -73,9 +73,18 @@ export default function RoleRequestsList({
                     <td className="py-3 px-3 text-slate-100 capitalize">{req.full_name}</td>
                     <td className="py-3 px-3 font-mono text-[11px] text-slate-450">{req.email}</td>
                     <td className="py-3 px-3">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-teal-500/10 border border-teal-500/20 text-teal-400">
-                        {req.requested_role}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] text-slate-400 font-mono tracking-wide uppercase">
+                          {req.request_category || 'Clinical & Operational Workflows'}
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {(req.requested_role || '').split(',').map(role => (
+                            <span key={role} className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-teal-500/10 border border-teal-500/20 text-teal-400 w-fit">
+                              {role}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     </td>
                     <td className="py-3 px-3 text-slate-500 font-mono text-[10px]">
                       {new Date(req.created_at).toLocaleString()}

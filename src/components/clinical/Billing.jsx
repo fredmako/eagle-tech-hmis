@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { CreditCard, DollarSign, Printer, CheckCircle, AlertCircle, Eye } from 'lucide-react';
 
-export default function Billing({ user, onComplete }) {
+export default function Billing({ user, onComplete, showNotification }) {
   const [billingVisits, setBillingVisits] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [invoice, setInvoice] = useState(null);
@@ -120,12 +120,20 @@ export default function Billing({ user, onComplete }) {
         details: `Added ad-hoc service charge ${selectedAdhocService} (KES ${charge}) for patient ${selectedVisit?.patient?.name}.`
       });
 
-      setMessage({ type: 'success', text: `Custom charge '${selectedAdhocService}' (KES ${charge}) added successfully!` });
+      if (showNotification) {
+        showNotification('success', 'Charge Added', `Custom charge '${selectedAdhocService}' (KES ${charge}) added successfully!`);
+      } else {
+        setMessage({ type: 'success', text: `Custom charge '${selectedAdhocService}' (KES ${charge}) added successfully!` });
+      }
       setSelectedAdhocService('');
       await handleSelectVisit(selectedVisit);
     } catch (err) {
       console.error('Error adding adhoc charge:', err);
-      setMessage({ type: 'error', text: err.message || 'Failed to add charge.' });
+      if (showNotification) {
+        showNotification('error', 'Charge Failed', err.message || 'Failed to add charge.');
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Failed to add charge.' });
+      }
     } finally {
       setAddingAdhoc(false);
     }
@@ -220,7 +228,11 @@ export default function Billing({ user, onComplete }) {
         setCheckoutId(data.CheckoutRequestID);
         setIsSimulated(!!data.simulated);
         setTumaStatus('sent');
-        setMessage({ type: 'success', text: 'Tuma Pay payment prompt sent successfully!' });
+        if (showNotification) {
+          showNotification('success', 'Prompt Sent', 'Tuma Pay payment prompt sent successfully!');
+        } else {
+          setMessage({ type: 'success', text: 'Tuma Pay payment prompt sent successfully!' });
+        }
       } else {
         // Standard Manual Flow (Cash or Insurance)
         if (isNaN(paidVal) || paidVal < (parseFloat(invoice.total_amount) + 350)) {
@@ -248,9 +260,13 @@ export default function Billing({ user, onComplete }) {
 
         if (visitErr) throw visitErr;
 
-        setMessage({ type: 'success', text: 'Invoice payment recorded successfully!' });
+        if (showNotification) {
+          showNotification('success', 'Payment Settled', 'Invoice payment recorded successfully!');
+        } else {
+          setMessage({ type: 'success', text: 'Invoice payment recorded successfully!' });
+        }
         setShowReceipt(true);
-
+ 
         // Log invoice payment
         await supabase.from('audit_logs').insert({
           action: 'Invoice Settlement',
@@ -258,7 +274,11 @@ export default function Billing({ user, onComplete }) {
         });
       }
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Billing error.' });
+      if (showNotification) {
+        showNotification('error', 'Payment Failed', err.message || 'Billing error.');
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Billing error.' });
+      }
     } finally {
       setLoading(false);
     }

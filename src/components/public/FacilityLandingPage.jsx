@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
-import { PhoneCall, DollarSign, Calendar, ShieldCheck, ArrowRight, UserPlus, LogIn, Award, MapPin } from 'lucide-react';
+import { 
+  PhoneCall, DollarSign, Calendar, ShieldCheck, ArrowRight, UserPlus, 
+  LogIn, Award, MapPin, Heart, Activity, Clock, Users, Check, 
+  Sparkles, Stethoscope, Layers, Search, Mail, Key 
+} from 'lucide-react';
 
 export default function FacilityLandingPage() {
   const hostnameParts = window.location.hostname.split('.');
@@ -16,6 +20,10 @@ export default function FacilityLandingPage() {
   }
   const [facility, setFacility] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Search & Category states for landing templates
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [activeCategoryTab, setActiveCategoryTab] = useState('All');
 
   // Patient Login & Register Card States
   const [isLoginTab, setIsLoginTab] = useState(true);
@@ -256,323 +264,705 @@ export default function FacilityLandingPage() {
   // Group services by category
   const services = facility.services_list || [];
   const categories = [...new Set(services.map(s => s.category))];
+  const template = facility.landing_template || 'classic';
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-teal-500 selection:text-slate-950 relative font-sans">
-      
-      {/* Top Navigation Banner */}
-      <header className="bg-slate-900/60 backdrop-blur border-b border-slate-900 py-3 px-6 shrink-0 flex justify-between items-center z-10 sticky top-0">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 bg-teal-500/10 border border-teal-500/20 rounded-lg flex items-center justify-center">
-            <Award className="text-teal-400" size={18} />
-          </div>
-          <div>
-            <h1 className="text-sm font-bold tracking-tight text-white">{facility.name}</h1>
-            <span className="text-[9px] text-teal-400 font-bold uppercase tracking-widest block">{facility.code}</span>
-          </div>
+  const renderHeader = () => (
+    <header className="bg-slate-900/60 backdrop-blur border-b border-slate-900 py-4 px-6 shrink-0 flex justify-between items-center z-50 sticky top-0 animate-slideDown">
+      <div className="flex items-center gap-2.5">
+        <div className={`h-9 w-9 border rounded-xl flex items-center justify-center transition-all ${
+          template === 'wellness' 
+            ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' 
+            : 'bg-teal-500/10 border-teal-500/20 text-teal-400'
+        }`}>
+          <Award size={20} />
         </div>
-        <div className="flex items-center gap-4 text-xs font-semibold">
-          <span className="text-slate-400 flex items-center gap-1"><MapPin size={13} /> {facility.address}</span>
+        <div>
+          <h1 className="text-sm font-bold tracking-tight text-white">{facility.name}</h1>
+          <span className={`text-[9px] font-bold uppercase tracking-widest block ${
+            template === 'wellness' ? 'text-purple-400' : 'text-teal-400'
+          }`}>{facility.code}</span>
         </div>
-      </header>
+      </div>
+      <div className="flex items-center gap-4 text-xs font-semibold">
+        <span className="text-slate-400 flex items-center gap-1.5">
+          <MapPin size={14} className={template === 'wellness' ? 'text-purple-400' : 'text-teal-400'} /> 
+          {facility.address}
+        </span>
+      </div>
+    </header>
+  );
 
-      {/* Main Content */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
-        
-        {/* Left 2 Cols: Services catalog and info */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          {/* Welcome Card */}
-          <div className="bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-4">
-            <h2 className="text-xl font-black text-white font-sans tracking-tight">Our Services & Specialities</h2>
-            <p className="text-xs text-slate-400 leading-relaxed font-sans">{facility.about_us}</p>
-          </div>
-
-          {/* Pricing Catalog */}
-          <div className="space-y-6">
-            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-widest">Medical Services Pricing Guide</h3>
-            
-            <div className="space-y-6">
-              {categories.map(cat => (
-                <div key={cat} className="space-y-2">
-                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 border-l-2 border-teal-500">{cat}</h4>
-                  <div className="bg-slate-950 border border-slate-900 rounded-xl divide-y divide-slate-900 overflow-hidden shadow-lg">
-                    {services.filter(s => s.category === cat).map((svc, idx) => (
-                      <div key={idx} className="flex justify-between items-center py-2.5 px-4 text-xs hover:bg-slate-900/10">
-                        <span className="font-semibold text-slate-200">{svc.name}</span>
-                        <span className="font-mono font-bold text-teal-400">{svc.charge}/-</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              {services.length === 0 && (
-                <p className="text-xs text-slate-500 italic">No services registered for this facility.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Contact / Inquiry Form */}
-          <div className="bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-6">
-            <div>
-              <h3 className="text-sm font-bold text-teal-400 uppercase tracking-widest flex items-center gap-2">
-                <PhoneCall size={16} /> Contact & Inquiry Help Desk
-              </h3>
-              <p className="text-2xs text-slate-400 mt-1 leading-relaxed">
-                Have a question or request for {facility.name}? Submit your query below and our team will get in touch.
-              </p>
-            </div>
-
-            {supportError && (
-              <div className="p-2.5 bg-red-500/5 border border-red-500/20 text-red-400 rounded text-xs">
-                {supportError}
-              </div>
-            )}
-            {supportSuccess && (
-              <div className="p-2.5 bg-teal-500/5 border border-teal-500/20 text-teal-400 rounded text-xs font-semibold">
-                {supportSuccess}
-              </div>
-            )}
-
-            <form onSubmit={handleSupportSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Your Full Name</label>
-                  <input
-                    type="text"
-                    value={supportName}
-                    onChange={(e) => setSupportName(e.target.value)}
-                    placeholder="Jane Doe"
-                    className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
-                  <input
-                    type="email"
-                    value={supportEmail}
-                    onChange={(e) => setSupportEmail(e.target.value)}
-                    placeholder="jane.doe@example.com"
-                    className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Subject of Inquiry</label>
-                <select
-                  value={supportSubject}
-                  onChange={(e) => setSupportSubject(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                >
-                  <option value="General Inquiry">General Inquiry</option>
-                  <option value="Appointment Query">Appointment Query</option>
-                  <option value="Billing Question">Billing Question</option>
-                  <option value="Feedback">Feedback & Suggestions</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Message / Query Description</label>
-                <textarea
-                  value={supportMessage}
-                  onChange={(e) => setSupportMessage(e.target.value)}
-                  placeholder="How can we assist you today? Please provide as much detail as possible..."
-                  rows={4}
-                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 placeholder:text-slate-650 focus:outline-none focus:border-teal-500 transition resize-none leading-relaxed"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={supportLoading}
-                className="w-full bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-slate-950 font-black py-2 rounded-lg text-xs transition flex items-center justify-center gap-1.5"
-              >
-                {supportLoading ? (
-                  <>
-                    <div className="h-3.5 w-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                    <span>Submitting Inquiry...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Submit Inquiry</span>
-                    <ArrowRight size={14} />
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* Right Col: Patient Portal Access Widget */}
-        <div className="bg-slate-900 border border-slate-850 rounded-2xl shadow-2xl p-6 space-y-6">
-          <div className="flex border-b border-slate-850">
-            <button
-              onClick={() => { setIsLoginTab(true); setAuthError(''); }}
-              className={`flex-1 pb-3 text-center text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                isLoginTab ? 'border-b-2 border-teal-500 text-teal-400' : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <LogIn size={14} /> Patient Login
-            </button>
-            <button
-              onClick={() => { setIsLoginTab(false); setAuthError(''); }}
-              className={`flex-1 pb-3 text-center text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                !isLoginTab ? 'border-b-2 border-teal-500 text-teal-400' : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <UserPlus size={14} /> Patient Sign Up
-            </button>
-          </div>
-
-          {authError && (
-            <div className="p-2.5 bg-red-500/5 border border-red-500/20 text-red-400 rounded text-xs">
-              {authError}
-            </div>
-          )}
-          {authSuccess && (
-            <div className="p-2.5 bg-teal-500/5 border border-teal-500/20 text-teal-400 rounded text-xs">
-              {authSuccess}
-            </div>
-          )}
-
-          {isLoginTab ? (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="patient@eagletechsolutions.tech"
-                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={authLoading}
-                className="w-full bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-slate-950 font-black py-2 rounded-lg text-xs transition flex items-center justify-center gap-1"
-              >
-                Sign In <ArrowRight size={14} />
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleSignup} className="space-y-3.5">
-              <div>
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Full Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="John Doe"
-                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="john@example.com"
-                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Date of Birth</label>
-                  <input
-                    type="date"
-                    value={dob}
-                    onChange={(e) => setDob(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-850 rounded-lg py-1.5 px-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Gender</label>
-                  <select
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-850 rounded-lg py-1.5 px-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                  >
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="07XXXXXXXX"
-                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={authLoading}
-                className="w-full bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-slate-950 font-black py-2 rounded-lg text-xs transition flex items-center justify-center gap-1"
-              >
-                Register Account <ArrowRight size={14} />
-              </button>
-            </form>
-          )}
-        </div>
-      </main>
-
-      {/* Floating WhatsApp Widget */}
-      {facility.whatsapp_number && (
-        <a
-          href={`https://wa.me/${facility.whatsapp_number}?text=${encodeURIComponent(facility.whatsapp_welcome_message)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold p-3 rounded-full flex items-center gap-2 shadow-2xl transition hover:scale-105 z-50 group duration-300"
-          title="Chat on WhatsApp"
+  const renderAuthWidget = () => (
+    <div className={`bg-slate-900 border rounded-2xl shadow-2xl p-6 space-y-6 transition duration-300 ${
+      template === 'wellness' ? 'border-slate-800 hover:border-purple-500/30' : 'border-slate-850 hover:border-teal-500/30'
+    }`}>
+      <div className="flex border-b border-slate-800">
+        <button
+          onClick={() => { setIsLoginTab(true); setAuthError(''); }}
+          className={`flex-1 pb-3 text-center text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+            isLoginTab 
+              ? `border-b-2 ${template === 'wellness' ? 'border-purple-500 text-purple-400' : 'border-teal-500 text-teal-400'}` 
+              : 'text-slate-500 hover:text-slate-300'
+          }`}
         >
-          <PhoneCall size={20} className="group-hover:rotate-12 duration-300" />
-          <span className="max-w-0 overflow-hidden group-hover:max-w-[150px] transition-all duration-300 text-xs font-black tracking-wide whitespace-nowrap block">
-            Chat on WhatsApp
-          </span>
-        </a>
+          <LogIn size={14} /> Patient Login
+        </button>
+        <button
+          onClick={() => { setIsLoginTab(false); setAuthError(''); }}
+          className={`flex-1 pb-3 text-center text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+            !isLoginTab 
+              ? `border-b-2 ${template === 'wellness' ? 'border-purple-500 text-purple-400' : 'border-teal-500 text-teal-400'}` 
+              : 'text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          <UserPlus size={14} /> Patient Sign Up
+        </button>
+      </div>
+
+      {authError && (
+        <div className="p-2.5 bg-red-500/5 border border-red-500/20 text-red-400 rounded text-xs animate-fadeIn">
+          {authError}
+        </div>
+      )}
+      {authSuccess && (
+        <div className="p-2.5 bg-teal-500/5 border border-teal-500/20 text-teal-400 rounded text-xs animate-fadeIn">
+          {authSuccess}
+        </div>
       )}
 
+      {isLoginTab ? (
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+            <div className="flex bg-slate-950 border border-slate-850 rounded-lg focus-within:border-teal-500/60 transition overflow-hidden">
+              <span className="pl-3 py-2 text-slate-550 flex items-center justify-center"><Mail size={13} /></span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="patient@eagletechsolutions.tech"
+                className="flex-1 bg-transparent py-2 px-2 text-xs text-slate-100 focus:outline-none"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
+            <div className="flex bg-slate-950 border border-slate-850 rounded-lg focus-within:border-teal-500/60 transition overflow-hidden">
+              <span className="pl-3 py-2 text-slate-550 flex items-center justify-center"><Key size={13} /></span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="flex-1 bg-transparent py-2 px-2 text-xs text-slate-100 focus:outline-none"
+                required
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            disabled={authLoading}
+            className={`w-full font-black py-2 rounded-lg text-xs transition flex items-center justify-center gap-1 active:scale-[0.97] cursor-pointer ${
+              template === 'wellness' 
+                ? 'bg-purple-500 hover:bg-purple-650 text-white shadow-lg shadow-purple-500/10' 
+                : 'bg-teal-500 hover:bg-teal-600 text-slate-950 shadow-lg shadow-teal-500/10'
+            }`}
+          >
+            Sign In <ArrowRight size={14} />
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={handleSignup} className="space-y-3.5">
+          <div>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Full Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="John Doe"
+              className="w-full bg-slate-950 border border-slate-850 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="john@example.com"
+              className="w-full bg-slate-950 border border-slate-850 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-slate-950 border border-slate-850 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Date of Birth</label>
+              <input
+                type="date"
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-850 rounded-lg py-1.5 px-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Gender</label>
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-850 rounded-lg py-1.5 px-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              >
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="07XXXXXXXX"
+              className="w-full bg-slate-950 border border-slate-850 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={authLoading}
+            className={`w-full font-black py-2 rounded-lg text-xs transition flex items-center justify-center gap-1 active:scale-[0.97] cursor-pointer ${
+              template === 'wellness' 
+                ? 'bg-purple-500 hover:bg-purple-650 text-white shadow-lg' 
+                : 'bg-teal-500 hover:bg-teal-600 text-slate-950 shadow-lg'
+            }`}
+          >
+            Register Account <ArrowRight size={14} />
+          </button>
+        </form>
+      )}
+    </div>
+  );
+
+  const renderInquiryForm = () => (
+    <div className="bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-6">
+      <div>
+        <h3 className={`text-sm font-bold uppercase tracking-widest flex items-center gap-2 ${
+          template === 'wellness' ? 'text-purple-400' : 'text-teal-400'
+        }`}>
+          <PhoneCall size={16} /> Contact & Inquiry Help Desk
+        </h3>
+        <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+          Have a question or request for {facility.name}? Submit your query below and our team will get in touch.
+        </p>
+      </div>
+
+      {supportError && (
+        <div className="p-2.5 bg-red-500/5 border border-red-500/20 text-red-400 rounded text-xs animate-fadeIn">
+          {supportError}
+        </div>
+      )}
+      {supportSuccess && (
+        <div className="p-2.5 bg-teal-500/5 border border-teal-500/20 text-teal-400 rounded text-xs font-semibold animate-fadeIn">
+          {supportSuccess}
+        </div>
+      )}
+
+      <form onSubmit={handleSupportSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Your Full Name</label>
+            <input
+              type="text"
+              value={supportName}
+              onChange={(e) => setSupportName(e.target.value)}
+              placeholder="Jane Doe"
+              className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+            <input
+              type="email"
+              value={supportEmail}
+              onChange={(e) => setSupportEmail(e.target.value)}
+              placeholder="jane.doe@example.com"
+              className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Subject of Inquiry</label>
+          <select
+            value={supportSubject}
+            onChange={(e) => setSupportSubject(e.target.value)}
+            className="w-full bg-slate-955 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+          >
+            <option value="General Inquiry">General Inquiry</option>
+            <option value="Appointment Query">Appointment Query</option>
+            <option value="Billing Question">Billing Question</option>
+            <option value="Feedback">Feedback & Suggestions</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Message / Query Description</label>
+          <textarea
+            value={supportMessage}
+            onChange={(e) => setSupportMessage(e.target.value)}
+            placeholder="How can we assist you today? Please provide as much detail as possible..."
+            rows={4}
+            className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 placeholder:text-slate-650 focus:outline-none focus:border-teal-500 transition resize-none leading-relaxed"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={supportLoading}
+          className={`w-full font-black py-2.5 rounded-lg text-xs transition flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer ${
+            template === 'wellness' 
+              ? 'bg-purple-500 hover:bg-purple-650 text-white' 
+              : 'bg-teal-500 hover:bg-teal-600 text-slate-955'
+          }`}
+        >
+          {supportLoading ? (
+            <>
+              <div className="h-3.5 w-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+              <span>Submitting Inquiry...</span>
+            </>
+          ) : (
+            <>
+              <span>Submit Inquiry</span>
+              <ArrowRight size={14} />
+            </>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+
+  const renderClassicBody = () => (
+    <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-3 gap-10 items-start animate-fadeIn">
+      {/* Left 2 Cols: Services catalog and info */}
+      <div className="lg:col-span-2 space-y-8 animate-slideUp">
+        {/* Welcome Card */}
+        <div className="bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-4">
+          <h2 className="text-xl font-black text-white font-sans tracking-tight">Our Services & Specialities</h2>
+          <p className="text-xs text-slate-400 leading-relaxed font-sans">{facility.about_us}</p>
+        </div>
+
+        {/* Pricing Catalog */}
+        <div className="space-y-6">
+          <h3 className="text-xs font-bold text-teal-400 uppercase tracking-widest">Medical Services Pricing Guide</h3>
+          
+          <div className="space-y-6">
+            {categories.map(cat => (
+              <div key={cat} className="space-y-2">
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 border-l-2 border-teal-500">{cat}</h4>
+                <div className="bg-slate-950 border border-slate-900 rounded-xl divide-y divide-slate-900 overflow-hidden shadow-lg">
+                  {services.filter(s => s.category === cat).map((svc, idx) => (
+                    <div key={idx} className="flex justify-between items-center py-2.5 px-4 text-xs hover:bg-slate-900/10">
+                      <span className="font-semibold text-slate-200">{svc.name}</span>
+                      <span className="font-mono font-bold text-teal-400">{svc.charge}/-</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {services.length === 0 && (
+              <p className="text-xs text-slate-550 italic">No services registered for this facility.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Contact / Inquiry Form */}
+        {renderInquiryForm()}
+      </div>
+
+      {/* Right Col: Patient Portal Access Widget */}
+      <div className="animate-slideUp delay-100">
+        {renderAuthWidget()}
+      </div>
+    </main>
+  );
+
+  const renderModernBody = () => {
+    // Filter services based on search query and active tab
+    const filteredServices = services.filter(s => {
+      const matchSearch = s.name.toLowerCase().includes(serviceSearch.toLowerCase()) || 
+                          s.category.toLowerCase().includes(serviceSearch.toLowerCase());
+      const matchTab = activeCategoryTab === 'All' || s.category === activeCategoryTab;
+      return matchSearch && matchTab;
+    });
+
+    const displayCategories = ['All', ...categories];
+
+    return (
+      <div className="flex-1 space-y-16 py-6 font-sans animate-fadeIn">
+        {/* Modern Hero Section */}
+        <section className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-8">
+          <div className="lg:col-span-7 space-y-6 animate-slideUp">
+            <span className="text-[10px] font-bold text-teal-400 uppercase tracking-widest bg-teal-500/10 border border-teal-500/20 px-4 py-1.5 rounded-full inline-flex items-center gap-1.5 select-none">
+              <Sparkles size={12} className="animate-pulse" /> Premium Healthcare
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight font-serif">
+              Next-Gen Intelligent Healthcare for <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">Your Family</span>
+            </h2>
+            <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
+              {facility.about_us} Eagle Tech HMIS enables direct laboratory integrations, electronic medical records, digital pharmacies, and seamless real-time notifications.
+            </p>
+            <div className="flex flex-wrap gap-4 pt-2">
+              <a 
+                href="#portal-access" 
+                className="bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-black text-xs px-6 py-3 rounded-xl shadow-lg hover:shadow-teal-500/10 hover:scale-[1.02] transition active:scale-[0.98]"
+              >
+                Access Patient Portal
+              </a>
+              <a 
+                href="#pricing-catalog" 
+                className="bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-bold text-xs px-6 py-3 rounded-xl hover:bg-slate-850 transition"
+              >
+                View Price Catalog
+              </a>
+            </div>
+          </div>
+          <div className="lg:col-span-5 relative flex justify-center animate-slideUp delay-100">
+            <div className="absolute inset-0 bg-teal-500/5 rounded-2xl blur-3xl -z-10" />
+            <img 
+              src="/modern_hospital_hero.png" 
+              alt="Healthcare Vector illustration" 
+              className="w-full max-w-md rounded-2xl shadow-2xl border border-slate-850 transform hover:scale-[1.02] transition duration-500 shadow-teal-500/5 object-cover h-[280px]"
+            />
+          </div>
+        </section>
+
+        {/* Dynamic Key Stats Strip */}
+        <section className="bg-slate-900/30 border-y border-slate-900/60 py-10">
+          <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="p-5 bg-slate-900/60 border border-slate-855 rounded-2xl text-center space-y-1 hover:border-slate-800 transition">
+              <span className="block text-2xl font-black text-teal-400">15+</span>
+              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">Departments</span>
+            </div>
+            <div className="p-5 bg-slate-900/60 border border-slate-855 rounded-2xl text-center space-y-1 hover:border-slate-800 transition">
+              <span className="block text-2xl font-black text-teal-400">100%</span>
+              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">Certified Results</span>
+            </div>
+            <div className="p-5 bg-slate-900/60 border border-slate-855 rounded-2xl text-center space-y-1 hover:border-slate-800 transition">
+              <span className="block text-2xl font-black text-teal-400">24/7</span>
+              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">WhatsApp Support</span>
+            </div>
+            <div className="p-5 bg-slate-900/60 border border-slate-855 rounded-2xl text-center space-y-1 hover:border-slate-800 transition">
+              <span className="block text-2xl font-black text-teal-400">Secure</span>
+              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">MOH Integrations</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Gallery Showcase (if images exist) */}
+        {facility.facility_images && facility.facility_images.length > 0 && (
+          <section className="max-w-7xl mx-auto px-6 space-y-6 animate-slideUp">
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold font-serif text-white">Facility Gallery</h3>
+              <p className="text-xs text-slate-455">Explore views of our modern clinics, wards, and treatment equipment.</p>
+            </div>
+            
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {facility.facility_images.map((imgUrl, idx) => (
+                <div key={idx} className="relative aspect-video rounded-2xl overflow-hidden border border-slate-850 shadow-md group bg-slate-900">
+                  <img 
+                    src={imgUrl} 
+                    alt={`Facility view ${idx + 1}`} 
+                    className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent" />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Services Section with Search and Tabs */}
+        <section id="pricing-catalog" className="max-w-7xl mx-auto px-6 space-y-8 scroll-mt-20">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 border-b border-slate-900 pb-6">
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold font-serif text-white">Medical Catalog & Services</h3>
+              <p className="text-xs text-slate-450">Filter specialized diagnostics, vaccinations, consultations, and inpatient checkups.</p>
+            </div>
+            {/* Search Input */}
+            <div className="w-full md:max-w-xs flex bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 focus-within:border-teal-500/50 transition">
+              <Search size={14} className="text-slate-550 mt-0.5 mr-2 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search services..."
+                value={serviceSearch}
+                onChange={(e) => setServiceSearch(e.target.value)}
+                className="w-full bg-transparent text-xs text-slate-100 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Category Tabs */}
+          <div className="flex flex-wrap gap-2">
+            {displayCategories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategoryTab(cat)}
+                className={`text-[10px] font-bold tracking-wider uppercase px-4 py-2 rounded-lg transition-all cursor-pointer ${
+                  activeCategoryTab === cat 
+                    ? 'bg-teal-500 text-slate-950' 
+                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Catalog grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredServices.map((svc, idx) => (
+              <div 
+                key={idx} 
+                className="flex justify-between items-center bg-slate-900/40 border border-slate-855/60 p-4 rounded-xl text-xs hover:border-slate-800 transition shadow-sm hover:shadow"
+              >
+                <div className="space-y-1">
+                  <span className="text-[9px] font-bold text-teal-400 uppercase tracking-widest">{svc.category}</span>
+                  <h4 className="font-bold text-slate-200">{svc.name}</h4>
+                </div>
+                <span className="font-mono font-bold text-teal-400 bg-teal-500/5 border border-teal-500/10 px-3 py-1.5 rounded-lg">{svc.charge}/-</span>
+              </div>
+            ))}
+            {filteredServices.length === 0 && (
+              <div className="col-span-full py-8 text-center text-xs text-slate-550 italic">
+                No matching medical services found. Try a different query.
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Portal Access and Support section */}
+        <section id="portal-access" className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 scroll-mt-20">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold font-serif text-white">Join Our Digital Patient Portal</h3>
+              <p className="text-xs text-slate-450 leading-relaxed font-sans">
+                Registered patients can view laboratory sync logs, check active prescriptions, verify outstanding billing invoices, and consult medical professionals online.
+              </p>
+            </div>
+            {renderAuthWidget()}
+          </div>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold font-serif text-white">Inquire or File a Request</h3>
+              <p className="text-xs text-slate-450 leading-relaxed font-sans">
+                Need details regarding medical packages, hospital admission files, or custom billing structures? Fill in the form and we will notify you.
+              </p>
+            </div>
+            {renderInquiryForm()}
+          </div>
+        </section>
+      </div>
+    );
+  };
+
+  const renderWellnessBody = () => (
+    <div className="flex-1 space-y-16 py-6 font-sans animate-fadeIn">
+      {/* Wellness Hero Section */}
+      <section className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-8">
+        <div className="lg:col-span-7 space-y-6 animate-slideUp">
+          <div className="inline-flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold tracking-widest uppercase px-4 py-1.5 rounded-full select-none">
+            <Activity size={12} className="animate-pulse" /> Compassionate Clinical Care
+          </div>
+          <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight font-serif">
+            Providing Calming Care & <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">Wellness Solutions</span>
+          </h2>
+          <p className="text-xs text-slate-450 leading-relaxed max-w-xl">
+            {facility.about_us} Our clinic prioritizes a calm patient experience, certified laboratory parameters, and instant digital check-ins to make your health journey stress-free.
+          </p>
+          <div className="flex flex-wrap gap-4 pt-2">
+            <a 
+              href="#appointment-desk" 
+              className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xs px-6 py-3 rounded-xl shadow-lg hover:shadow-purple-500/10 hover:scale-[1.02] transition active:scale-[0.98]"
+            >
+              Book Inquiries / Appointment
+            </a>
+            <a 
+              href="#portal-widget" 
+              className="bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-bold text-xs px-6 py-3 rounded-xl hover:bg-slate-850 transition"
+            >
+              Patient Sign In
+            </a>
+          </div>
+        </div>
+        <div className="lg:col-span-5 relative flex justify-center animate-slideUp delay-100">
+          <div className="absolute inset-0 bg-purple-500/5 rounded-2xl blur-3xl -z-10" />
+          <img 
+            src="/wellness_clinic_hero.png" 
+            alt="Wellness illustration" 
+            className="w-full max-w-md rounded-2xl shadow-2xl border border-slate-800 transform hover:scale-[1.02] transition duration-500 shadow-purple-500/5 object-cover h-[280px]"
+          />
+        </div>
+      </section>
+
+      {/* Trust & Certifications Section */}
+      <section className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="p-6 bg-slate-900/40 border border-slate-850 rounded-2xl flex gap-4 items-start">
+          <span className="p-3 rounded-xl bg-purple-500/10 text-purple-400 shrink-0"><ShieldCheck size={20} /></span>
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold text-slate-200">Certified Operations</h4>
+            <p className="text-[10px] text-slate-500 leading-relaxed font-sans">Full integrations with Kenyan MOH registers, verified licensing numbers, and audit logs.</p>
+          </div>
+        </div>
+        <div className="p-6 bg-slate-900/40 border border-slate-850 rounded-2xl flex gap-4 items-start">
+          <span className="p-3 rounded-xl bg-purple-500/10 text-purple-400 shrink-0"><Heart size={20} /></span>
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold text-slate-200">Patient-Centric Portal</h4>
+            <p className="text-[10px] text-slate-500 leading-relaxed font-sans">Allows patient login, direct accessions tracking, invoice verification, and vaccine rosters.</p>
+          </div>
+        </div>
+        <div className="p-6 bg-slate-900/40 border border-slate-850 rounded-2xl flex gap-4 items-start">
+          <span className="p-3 rounded-xl bg-purple-500/10 text-purple-400 shrink-0"><Stethoscope size={20} /></span>
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold text-slate-200">Automated LIS Tracker</h4>
+            <p className="text-[10px] text-slate-500 leading-relaxed font-sans">Lab results sync automatically from diagnostic equipment handshakes, reducing delays.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Gallery Showcase (if images exist) */}
+      {facility.facility_images && facility.facility_images.length > 0 && (
+        <section className="max-w-4xl mx-auto px-6 space-y-6 animate-slideUp">
+          <div className="text-center space-y-2">
+            <h3 className="text-xl font-bold font-serif text-white font-normal">Explore Our Premises</h3>
+            <p className="text-xs text-slate-455 max-w-lg mx-auto">A visual tour of our calming wellness spaces and modern treatment areas.</p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            {facility.facility_images.map((imgUrl, idx) => (
+              <div key={idx} className="relative aspect-video rounded-2xl overflow-hidden border border-slate-850 shadow-lg group bg-slate-900">
+                <img 
+                  src={imgUrl} 
+                  alt={`Wellness Space ${idx + 1}`} 
+                  className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 to-transparent" />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Dynamic Services Catalog */}
+      <section className="max-w-4xl mx-auto px-6 space-y-8">
+        <div className="text-center space-y-2">
+          <h3 className="text-xl font-bold font-serif text-white">Our Services Directory</h3>
+          <p className="text-xs text-slate-450 max-w-lg mx-auto">Explore standard rates and departments configured by the clinical administration.</p>
+        </div>
+
+        <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-850 p-6 rounded-2xl space-y-6">
+          {categories.map(cat => (
+            <div key={cat} className="space-y-3">
+              <span className="inline-block text-[9px] font-bold text-purple-400 bg-purple-500/10 px-3 py-1 rounded-md uppercase tracking-wider">{cat}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-1">
+                {services.filter(s => s.category === cat).map((svc, idx) => (
+                  <div key={idx} className="flex justify-between items-center py-2 px-3 bg-slate-950/40 border border-slate-900 rounded-xl text-xs hover:border-slate-850 transition">
+                    <span className="font-semibold text-slate-350">{svc.name}</span>
+                    <span className="font-mono text-purple-400 font-bold">{svc.charge}/-</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {services.length === 0 && (
+            <p className="text-xs text-slate-550 italic text-center">No services registered for this facility.</p>
+          )}
+        </div>
+      </section>
+
+      {/* Appointment Booking Inquiry & Portal Section */}
+      <section className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start pt-8">
+        <div id="appointment-desk" className="lg:col-span-7 space-y-4 scroll-mt-20">
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold font-serif text-white">Inquiry Help Desk</h3>
+            <p className="text-xs text-slate-455">Submit health enquiries or department bookings directly. Our nurses will notify you.</p>
+          </div>
+          {renderInquiryForm()}
+        </div>
+        <div id="portal-widget" className="lg:col-span-5 space-y-4 scroll-mt-20">
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold font-serif text-white">Secure Access Portal</h3>
+            <p className="text-xs text-slate-455 font-sans">Access medical records and digital pharmacy prescriptions.</p>
+          </div>
+          {renderAuthWidget()}
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderWhatsAppWidget = () => {
+    if (!facility.whatsapp_number) return null;
+    return (
+      <a
+        href={`https://wa.me/${facility.whatsapp_number}?text=${encodeURIComponent(facility.whatsapp_welcome_message)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`fixed bottom-6 right-6 text-slate-950 font-extrabold p-3 rounded-full flex items-center gap-2 shadow-2xl transition hover:scale-105 z-50 group duration-300 ${
+          template === 'wellness' ? 'bg-purple-400 hover:bg-purple-500 text-slate-950' : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950'
+        }`}
+        title="Chat on WhatsApp"
+      >
+        <PhoneCall size={20} className="group-hover:rotate-12 duration-300" />
+        <span className="max-w-0 overflow-hidden group-hover:max-w-[150px] transition-all duration-300 text-xs font-black tracking-wide whitespace-nowrap block">
+          Chat on WhatsApp
+        </span>
+      </a>
+    );
+  };
+
+  const renderFooter = () => (
+    <footer className="bg-slate-950 py-4 px-6 text-center text-[10px] text-slate-600 border-t border-slate-900 shrink-0 font-sans">
+      © 2026 Eagle Tech HMIS Solutions. All rights reserved. Managed by {facility.name}.
+    </footer>
+  );
+
+  return (
+    <div className={`min-h-screen text-slate-100 flex flex-col justify-between selection:bg-teal-500 selection:text-slate-950 relative font-sans ${
+      template === 'wellness' 
+        ? 'bg-gradient-to-br from-slate-950 via-purple-950/10 to-slate-950' 
+        : 'bg-slate-950'
+    }`}>
+      
+      {/* Top Navigation Banner */}
+      {renderHeader()}
+
+      {/* Main Content Body depending on active template selection */}
+      {template === 'modern' && renderModernBody()}
+      {template === 'wellness' && renderWellnessBody()}
+      {template === 'classic' && renderClassicBody()}
+
+      {/* Floating WhatsApp Widget */}
+      {renderWhatsAppWidget()}
+
       {/* Footer */}
-      <footer className="bg-slate-950 py-4 px-6 text-center text-[10px] text-slate-600 border-t border-slate-900 shrink-0 font-sans">
-        © 2026 Eagle Tech HMIS Solutions. All rights reserved. Managed by {facility.name}.
-      </footer>
+      {renderFooter()}
     </div>
   );
 }

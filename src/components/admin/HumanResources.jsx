@@ -43,25 +43,52 @@ export default function HumanResources({
     try {
       // 1. Create a mock user ID for direct registration in sandbox or Supabase profiles table
       const profileId = 'u_dir_' + Math.random().toString(36).substring(2, 12);
-      
       const rolesString = Array.isArray(newStaffRole) ? newStaffRole.join(',') : newStaffRole;
-      const { error: profileErr } = await supabase.from('profiles').insert({
-        id: profileId,
-        full_name: newStaffName,
-        role: rolesString,
-        facility_id: user.facility_id,
-        email: newStaffEmail,
-        department: newStaffDept
+
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+      // Insert profile via DB proxy
+      const insertRes = await fetch(`${apiBase}/db/insert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          table: 'profiles',
+          rows: {
+            id: profileId,
+            full_name: newStaffName,
+            role: rolesString,
+            facility_id: user.facility_id,
+            email: newStaffEmail,
+            department: newStaffDept
+          }
+        })
       });
 
-      if (profileErr) throw profileErr;
+      if (!insertRes.ok) {
+        const errData = await insertRes.json();
+        throw new Error(errData.error || 'Failed to insert profile record.');
+      }
 
-      // 2. Log configuration change in audit logs
-      await supabase.from('audit_logs').insert({
-        facility_id: user.facility_id,
-        user_id: user.id,
-        action: 'Direct HR Registration',
-        details: `Directly registered staff profile ${newStaffName} (${Array.isArray(newStaffRole) ? newStaffRole.join(', ') : newStaffRole}) under email ${newStaffEmail}.`
+      // 2. Log configuration change in audit logs via DB proxy
+      await fetch(`${apiBase}/db/insert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          table: 'audit_logs',
+          rows: {
+            facility_id: user.facility_id,
+            user_id: user.id,
+            action: 'Direct HR Registration',
+            details: `Directly registered staff profile ${newStaffName} (${rolesString}) under email ${newStaffEmail}.`
+          }
+        })
       });
 
       setMessage({ type: 'success', text: `Staff profile for ${newStaffName} has been successfully registered directly!` });
@@ -80,17 +107,43 @@ export default function HumanResources({
     setActionLoading(profileId);
     setMessage({ type: '', text: '' });
     try {
-      const { error } = await supabase.from('profiles')
-        .update({ role: newRole })
-        .eq('id', profileId);
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-      if (error) throw error;
+      const updateRes = await fetch(`${apiBase}/db/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          table: 'profiles',
+          column: 'id',
+          value: profileId,
+          values: { role: newRole }
+        })
+      });
 
-      await supabase.from('audit_logs').insert({
-        facility_id: user.facility_id,
-        user_id: user.id,
-        action: 'Staff Role Changed',
-        details: `Updated role for profile ID ${profileId} to ${newRole.toUpperCase()}.`
+      if (!updateRes.ok) {
+        const errData = await updateRes.json();
+        throw new Error(errData.error || 'Failed to update profile role.');
+      }
+
+      await fetch(`${apiBase}/db/insert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          table: 'audit_logs',
+          rows: {
+            facility_id: user.facility_id,
+            user_id: user.id,
+            action: 'Staff Role Changed',
+            details: `Updated role for profile ID ${profileId} to ${newRole.toUpperCase()}.`
+          }
+        })
       });
 
       setMessage({ type: 'success', text: 'Staff role has been updated successfully!' });
@@ -110,17 +163,42 @@ export default function HumanResources({
     setActionLoading(profileId);
     setMessage({ type: '', text: '' });
     try {
-      const { error } = await supabase.from('profiles')
-        .delete()
-        .eq('id', profileId);
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-      if (error) throw error;
+      const deleteRes = await fetch(`${apiBase}/db/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          table: 'profiles',
+          column: 'id',
+          value: profileId
+        })
+      });
 
-      await supabase.from('audit_logs').insert({
-        facility_id: user.facility_id,
-        user_id: user.id,
-        action: 'Staff Profile Removed',
-        details: `Permanently removed staff profile for ${staffName} (ID: ${profileId}).`
+      if (!deleteRes.ok) {
+        const errData = await deleteRes.json();
+        throw new Error(errData.error || 'Failed to delete profile record.');
+      }
+
+      await fetch(`${apiBase}/db/insert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          table: 'audit_logs',
+          rows: {
+            facility_id: user.facility_id,
+            user_id: user.id,
+            action: 'Staff Profile Removed',
+            details: `Permanently removed staff profile for ${staffName} (ID: ${profileId}).`
+          }
+        })
       });
 
       setMessage({ type: 'success', text: 'Staff profile removed successfully!' });

@@ -390,7 +390,7 @@ export default function Preferences({
             <h3 className="text-xs font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5 pb-2.5 border-b border-slate-850">
               <Sun size={14} className="text-teal-400" /> Color Mode
             </h3>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {[
                 { id: 'light', name: 'Light Mode', icon: Sun },
                 { id: 'dark', name: 'Dark Mode', icon: Moon }
@@ -446,7 +446,7 @@ export default function Preferences({
             <h3 className="text-xs font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5 pb-2.5 border-b border-slate-850">
               <Sidebar size={14} className="text-teal-400" /> Navigation Layout
             </h3>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {[
                 { id: 'sidebar', name: 'Left Sidebar', icon: Sidebar },
                 { id: 'topbar', name: 'Top Navigation', icon: PanelTop }

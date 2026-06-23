@@ -350,6 +350,17 @@ export default function Ward({ user, showNotification }) {
   const [mohDiastolic, setMohDiastolic] = useState("");
   const [mohConfirmed, setMohConfirmed] = useState(false);
 
+  // Mobile layout and modal states
+  const [viewModeTab, setViewModeTab] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return 'list';
+    }
+    return 'map';
+  });
+  const [showVitalsModal, setShowVitalsModal] = useState(false);
+  const [showAdmissionModal, setShowAdmissionModal] = useState(false);
+  const [showDischargeModal, setShowDischargeModal] = useState(false);
+
   useEffect(() => {
     fetchWardData();
   }, []);
@@ -827,152 +838,307 @@ export default function Ward({ user, showNotification }) {
     <div className="space-y-6">
       {/* Bed Layout Graphical Visualizer */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-850 pb-2">
           <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 font-sans">
             <Bed size={14} className={getThemeColor('primary-text')} /> Inpatient Ward Map (Active Occupancy)
           </h3>
-          {/* Room Selector Tabs */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 max-w-full">
-            {Array.from(new Set([
-              'Room 1',
-              ...beds.map(b => b.room_name).filter(Boolean)
-            ])).filter(r => r !== 'Unassigned').sort().map((room) => (
-              <button
-                key={room}
-                onClick={() => setActiveRoomTab(room)}
-                className={`px-3 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition cursor-pointer ${
-                  activeRoomTab === room
-                    ? 'bg-slate-800 border border-slate-700 text-teal-400'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {room}
-              </button>
+          {/* Layout Toggle Selector */}
+          <div className="flex gap-1.5 self-end sm:self-auto bg-slate-950 p-1 border border-slate-850 rounded-lg shadow-inner shrink-0 select-none">
+            <button
+              onClick={() => setViewModeTab('map')}
+              className={`px-3 py-1 rounded-md text-[10px] font-bold cursor-pointer transition ${
+                viewModeTab === 'map'
+                  ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20'
+                  : 'text-slate-400 border border-transparent hover:text-slate-200'
+              }`}
+            >
+              Map Layout
+            </button>
+            <button
+              onClick={() => setViewModeTab('list')}
+              className={`px-3 py-1 rounded-md text-[10px] font-bold cursor-pointer transition ${
+                viewModeTab === 'list'
+                  ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20'
+                  : 'text-slate-400 border border-transparent hover:text-slate-200'
+              }`}
+            >
+              Quick Access Cards
+            </button>
+          </div>
+        </div>
+
+        {viewModeTab === 'list' ? (
+          <div className="space-y-6">
+            {Array.from(new Set(beds.map(b => b.room_name).filter(Boolean))).filter(r => r !== 'Unassigned').sort().map((room) => (
+              <div key={room} className="space-y-3">
+                <div className="border-b border-slate-850 pb-1.5 flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <MapPin size={11} className="text-teal-450" /> {room}
+                  </span>
+                  <span className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider">
+                    {beds.filter(b => b.room_name === room).length} Beds Configured
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {beds.filter(b => b.room_name === room).map((bed) => {
+                    const occupant = admissions.find(a => a.bed_id === bed.id);
+                    const isSelected = occupant && selectedAdmission?.id === occupant.id;
+
+                    let statusText = 'Vacant';
+                    let badgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                    let cardBorder = isSelected ? 'border-teal-500 ring-1 ring-teal-500/20 shadow shadow-teal-500/10 bg-slate-900/80' : 'border-slate-850 hover:border-slate-800 bg-slate-900/40';
+
+                    if (bed.bed_status === 'dirty') {
+                      statusText = 'Dirty / Needs Cleaning';
+                      badgeColor = 'bg-yellow-500/10 text-yellow-450 border-yellow-500/20';
+                    } else if (bed.bed_status === 'occupied') {
+                      statusText = 'Occupied';
+                      badgeColor = 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+                    } else if (bed.bed_status === 'maintenance') {
+                      statusText = 'Maintenance';
+                      badgeColor = 'bg-red-500/10 text-red-400 border-red-500/20';
+                    }
+
+                    return (
+                      <div 
+                        key={bed.id}
+                        className={`border rounded-2xl p-4.5 space-y-3 flex flex-col justify-between transition-all duration-medium ${cardBorder}`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="font-mono text-xs font-black text-slate-100 block leading-tight">{bed.bed_number}</span>
+                            <span className="text-[8.5px] text-slate-550 font-mono mt-0.5 block">{bed.id}</span>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border ${badgeColor}`}>
+                            {statusText}
+                          </span>
+                        </div>
+
+                        {occupant ? (
+                          <div className="space-y-1 text-xs">
+                            <span className="text-slate-400 block">Patient: <strong className="text-slate-100">{occupant.patient?.name}</strong></span>
+                            <span className="text-[9.5px] text-slate-500 block leading-none">Code: {occupant.patient?.facility_id_code}</span>
+                            <span className="text-[9.5px] text-slate-500 block leading-none mt-1">LOS: {Math.max(1, Math.ceil((new Date() - new Date(occupant.admission_datetime)) / (1000 * 60 * 60 * 24)))} Day(s)</span>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-slate-550 italic py-2">
+                            No patient admitted
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-850/60">
+                          {occupant ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedAdmission(occupant);
+                                  setShowVitalsModal(true);
+                                }}
+                                className="flex-1 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 font-bold text-[10px] py-1.5 px-2 rounded-lg transition active:scale-[0.97] cursor-pointer"
+                              >
+                                Log Vitals
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedAdmission(occupant);
+                                  setShowDischargeModal(true);
+                                }}
+                                className="flex-1 bg-slate-800 hover:bg-slate-750 text-red-400 font-bold text-[10px] py-1.5 px-2 rounded-lg transition active:scale-[0.97] cursor-pointer"
+                              >
+                                Discharge
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedAdmission(occupant);
+                                  document.getElementById('patient-file-section')?.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                                className="w-full border border-slate-800 hover:bg-slate-850 text-slate-350 font-bold text-[9px] py-1.5 rounded-lg transition text-center cursor-pointer"
+                              >
+                                View History File
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              {bed.bed_status === 'dirty' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => updateBedStatus(bed.id, 'clean')}
+                                  className="w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold text-[10px] py-1.5 rounded-lg transition cursor-pointer"
+                                >
+                                  Mark as Clean
+                                </button>
+                              ) : bed.bed_status === 'clean' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTargetBedId(bed.id);
+                                    setShowAdmissionModal(true);
+                                  }}
+                                  className="w-full bg-teal-500 hover:bg-teal-650 text-slate-950 font-bold text-[10px] py-1.5 rounded-lg transition active:scale-[0.97] cursor-pointer shadow-sm"
+                                >
+                                  Admit Patient
+                                </button>
+                              ) : (
+                                <span className="text-[9px] text-slate-600 italic text-center w-full py-1">Under Maintenance</span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             ))}
           </div>
-        </div>
-
-        {/* Graphical Room Canvas Area */}
-        <div className="overflow-x-auto flex justify-center py-2">
-          <div
-            className="bg-slate-950/20 border border-slate-850 rounded-xl relative overflow-hidden shadow-inner select-none"
-            style={{
-              width: '600px',
-              height: '380px',
-              backgroundImage: 'radial-gradient(circle, #27272a 1px, transparent 1px)',
-              backgroundSize: '20px 20px',
-            }}
-          >
-            {/* Visual grid indicators */}
-            <div className="absolute inset-2 border border-slate-850/40 rounded-lg pointer-events-none border-dashed flex items-end justify-between p-2 text-[9px] text-slate-650 font-mono">
-              <span>Room Layout: {activeRoomTab}</span>
-              <span>1m = 40px</span>
+        ) : (
+          <>
+            {/* Room Selector Tabs */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1 max-w-full">
+              {Array.from(new Set([
+                'Room 1',
+                ...beds.map(b => b.room_name).filter(Boolean)
+              ])).filter(r => r !== 'Unassigned').sort().map((room) => (
+                <button
+                  key={room}
+                  onClick={() => setActiveRoomTab(room)}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition cursor-pointer ${
+                    activeRoomTab === room
+                      ? 'bg-slate-800 border border-slate-700 text-teal-400'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {room}
+                </button>
+              ))}
             </div>
 
-            {/* Positioned Beds */}
-            {beds.filter(b => b.room_name === activeRoomTab).map((bed) => {
-              const occupant = admissions.find(a => a.bed_id === bed.id);
-              const isSelected = occupant && selectedAdmission?.id === occupant.id;
-              
-              let statusBorderColor = 'border-emerald-500/40 bg-emerald-955/20 text-emerald-400';
-              if (bed.bed_status === 'dirty') {
-                statusBorderColor = 'border-yellow-500/40 bg-yellow-955/20 text-yellow-400';
-              } else if (bed.bed_status === 'occupied') {
-                statusBorderColor = isSelected
-                  ? `${getThemeColor('bed-selected')} ring-2 ring-teal-400 border-transparent shadow shadow-teal-400/20`
-                  : 'border-blue-500/40 bg-blue-955/20 text-blue-400 hover:border-blue-400';
-              } else if (bed.bed_status === 'maintenance') {
-                statusBorderColor = 'border-red-900/40 bg-red-955/10 text-red-400';
-              }
+            {/* Graphical Room Canvas Area */}
+            <div className="overflow-x-auto flex justify-center py-2">
+              <div
+                className="bg-slate-955/20 border border-slate-850 rounded-xl relative overflow-hidden shadow-inner select-none shrink-0"
+                style={{
+                  width: '600px',
+                  height: '380px',
+                  backgroundImage: 'radial-gradient(circle, #27272a 1px, transparent 1px)',
+                  backgroundSize: '20px 20px',
+                }}
+              >
+                {/* Visual grid indicators */}
+                <div className="absolute inset-2 border border-slate-850/40 rounded-lg pointer-events-none border-dashed flex items-end justify-between p-2 text-[9px] text-slate-650 font-mono">
+                  <span>Room Layout: {activeRoomTab}</span>
+                  <span>1m = 40px</span>
+                </div>
 
-              return (
-                <button
-                  key={bed.id}
-                  onClick={() => {
-                    if (occupant) {
-                      setSelectedAdmission(occupant);
-                      setMessage({ type: '', text: '' });
-                    }
-                  }}
-                  className={`absolute rounded border flex flex-col justify-between p-1.5 transition-all text-left ${statusBorderColor}`}
-                  style={{
-                    left: `${bed.x_position || 0}px`,
-                    top: `${bed.y_position || 0}px`,
-                    width: '70px',
-                    height: '90px',
-                    transform: `rotate(${bed.rotation || 0}deg)`,
-                    transformOrigin: 'center center',
-                    cursor: occupant ? 'pointer' : 'default'
-                  }}
-                >
-                  {/* Headboard Pillow */}
-                  <div className={`w-[36px] h-[12px] bg-slate-800/80 border border-slate-700/40 rounded mx-auto mt-0.5 ${
-                    occupant ? 'animate-pulse' : ''
-                  }`} />
+                {/* Positioned Beds */}
+                {beds.filter(b => b.room_name === activeRoomTab).map((bed) => {
+                  const occupant = admissions.find(a => a.bed_id === bed.id);
+                  const isSelected = occupant && selectedAdmission?.id === occupant.id;
                   
-                  {/* Bed Label */}
-                  <div className="text-center mt-1">
-                    <span className="text-[10px] font-bold block text-slate-100 font-mono truncate leading-none">{bed.bed_number}</span>
-                    <span className="text-[8px] truncate max-w-full font-semibold block mt-1 text-slate-400 leading-none">
-                      {occupant ? occupant.patient?.name.split(' ')[0] : bed.bed_status === 'maintenance' ? 'Maint' : 'Vacant'}
-                    </span>
+                  let statusBorderColor = 'border-emerald-500/40 bg-emerald-955/20 text-emerald-400';
+                  if (bed.bed_status === 'dirty') {
+                    statusBorderColor = 'border-yellow-500/40 bg-yellow-955/20 text-yellow-450';
+                  } else if (bed.bed_status === 'occupied') {
+                    statusBorderColor = isSelected
+                      ? `${getThemeColor('bed-selected')} ring-2 ring-teal-400 border-transparent shadow shadow-teal-400/20`
+                      : 'border-blue-500/40 bg-blue-955/20 text-blue-450 hover:border-blue-400';
+                  } else if (bed.bed_status === 'maintenance') {
+                    statusBorderColor = 'border-red-900/40 bg-red-955/10 text-red-400';
+                  }
+
+                  return (
+                    <button
+                      key={bed.id}
+                      onClick={() => {
+                        if (occupant) {
+                          setSelectedAdmission(occupant);
+                          setMessage({ type: '', text: '' });
+                        }
+                      }}
+                      className={`absolute rounded border flex flex-col justify-between p-1.5 transition-all text-left ${statusBorderColor}`}
+                      style={{
+                        left: `${bed.x_position || 0}px`,
+                        top: `${bed.y_position || 0}px`,
+                        width: '70px',
+                        height: '90px',
+                        transform: `rotate(${bed.rotation || 0}deg)`,
+                        transformOrigin: 'center center',
+                        cursor: occupant ? 'pointer' : 'default'
+                      }}
+                    >
+                      {/* Headboard Pillow */}
+                      <div className={`w-[36px] h-[12px] bg-slate-800/80 border border-slate-700/40 rounded mx-auto mt-0.5 ${
+                        occupant ? 'animate-pulse' : ''
+                      }`} />
+                      
+                      {/* Bed Label */}
+                      <div className="text-center mt-1">
+                        <span className="text-[10px] font-bold block text-slate-100 font-mono truncate leading-none">{bed.bed_number}</span>
+                        <span className="text-[8px] truncate max-w-full font-semibold block mt-1 text-slate-400 leading-none">
+                          {occupant ? occupant.patient?.name.split(' ')[0] : bed.bed_status === 'maintenance' ? 'Maint' : 'Vacant'}
+                        </span>
+                      </div>
+
+                      {/* Bed Sheet fold */}
+                      <div className="w-full h-[28px] bg-slate-900/60 border-t border-slate-800/50 rounded-b mt-auto" />
+                    </button>
+                  );
+                })}
+
+                {beds.filter(b => b.room_name === activeRoomTab).length === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center text-center p-6 text-xs text-slate-500 italic">
+                    No beds configured in this room layout. Add coordinates in Admin Settings.
                   </div>
+                )}
+              </div>
+            </div>
 
-                  {/* Bed Sheet fold */}
-                  <div className="w-full h-[28px] bg-slate-900/60 border-t border-slate-800/50 rounded-b mt-auto" />
-                </button>
-              );
-            })}
+            {/* Unassigned / Palette beds */}
+            {beds.filter(b => b.room_name === 'Unassigned' || (!b.x_position && !b.y_position)).length > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-800 space-y-2">
+                <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Unassigned Beds (Palette)</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                  {beds.filter(b => b.room_name === 'Unassigned' || (!b.x_position && !b.y_position)).map(bed => {
+                    const occupant = admissions.find(a => a.bed_id === bed.id);
+                    const isSelected = occupant && selectedAdmission?.id === occupant.id;
+                    
+                    let statusBg = 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400';
+                    if (bed.bed_status === 'dirty') {
+                      statusBg = 'bg-yellow-500/10 border-yellow-500/25 text-yellow-450';
+                    } else if (bed.bed_status === 'occupied') {
+                      statusBg = isSelected
+                        ? `${getThemeColor('bed-selected')} shadow shadow-teal-500/10`
+                        : 'border-slate-800 bg-slate-955 hover:border-slate-700 text-blue-400';
+                    } else if (bed.bed_status === 'maintenance') {
+                      statusBg = 'border-red-900/50 bg-red-950/10 text-red-400';
+                    }
 
-            {beds.filter(b => b.room_name === activeRoomTab).length === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center text-center p-6 text-xs text-slate-500 italic">
-                No beds configured in this room layout. Add coordinates in Admin Settings.
+                    return (
+                      <button
+                        key={bed.id}
+                        onClick={() => {
+                          if (occupant) {
+                            setSelectedAdmission(occupant);
+                            setMessage({ type: '', text: '' });
+                          }
+                        }}
+                        className={`border rounded-lg p-2 flex flex-col justify-between text-center min-h-[90px] transition cursor-pointer ${statusBg}`}
+                      >
+                        <Bed size={16} className="mx-auto opacity-85" />
+                        <span className="text-[10px] font-bold block text-slate-100 font-mono mt-1 leading-none">{bed.bed_number}</span>
+                        <span className="text-[8px] truncate block opacity-75 mt-0.5">
+                          {occupant ? occupant.patient?.name.split(' ')[0] : bed.bed_status === 'maintenance' ? 'Maint' : 'Vacant'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Unassigned / Palette beds */}
-        {beds.filter(b => b.room_name === 'Unassigned' || (!b.x_position && !b.y_position)).length > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-800 space-y-2">
-            <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Unassigned Beds (Palette)</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-              {beds.filter(b => b.room_name === 'Unassigned' || (!b.x_position && !b.y_position)).map(bed => {
-                const occupant = admissions.find(a => a.bed_id === bed.id);
-                const isSelected = occupant && selectedAdmission?.id === occupant.id;
-                
-                let statusBg = 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400';
-                if (bed.bed_status === 'dirty') {
-                  statusBg = 'bg-yellow-500/10 border-yellow-500/25 text-yellow-400';
-                } else if (bed.bed_status === 'occupied') {
-                  statusBg = isSelected
-                    ? `${getThemeColor('bed-selected')} shadow shadow-teal-500/10`
-                    : 'border-slate-800 bg-slate-955 hover:border-slate-700 text-blue-400';
-                } else if (bed.bed_status === 'maintenance') {
-                  statusBg = 'border-red-900/50 bg-red-950/10 text-red-400';
-                }
-
-                return (
-                  <button
-                    key={bed.id}
-                    onClick={() => {
-                      if (occupant) {
-                        setSelectedAdmission(occupant);
-                        setMessage({ type: '', text: '' });
-                      }
-                    }}
-                    className={`border rounded-lg p-2 flex flex-col justify-between text-center min-h-[90px] transition cursor-pointer ${statusBg}`}
-                  >
-                    <Bed size={16} className="mx-auto opacity-85" />
-                    <span className="text-[10px] font-bold block text-slate-100 font-mono mt-1 leading-none">{bed.bed_number}</span>
-                    <span className="text-[8px] truncate block opacity-75 mt-0.5">
-                      {occupant ? occupant.patient?.name.split(' ')[0] : bed.bed_status === 'maintenance' ? 'Maint' : 'Vacant'}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          </>
         )}
       </div>
 
@@ -1629,6 +1795,283 @@ export default function Ward({ user, showNotification }) {
             >
               Log Another Round for this Day
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE OBSERVATIONS ENTRY DRAWER/MODAL */}
+      {showVitalsModal && selectedAdmission && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in font-sans">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-5 shadow-2xl space-y-4 flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-80 shrink-0">
+              <div>
+                <h3 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                  <Thermometer size={16} className="text-teal-400" /> Chart Observations: {selectedAdmission.bed}
+                </h3>
+                <p className="text-[10px] text-slate-500 mt-0.5">Patient: {selectedAdmission.patient?.name}</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setShowVitalsModal(false)}
+                className="text-slate-400 hover:text-slate-200 font-bold text-lg"
+              >
+                ×
+              </button>
+            </div>
+
+            <form 
+              onSubmit={async (e) => {
+                await handleLogObservation(e);
+                setShowVitalsModal(false);
+              }}
+              className="flex-1 overflow-y-auto pr-1 space-y-3.5"
+            >
+              <div className="grid grid-cols-2 gap-3.5 text-xs">
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Temperature (°C)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={temp}
+                    onChange={(e) => setTemp(e.target.value)}
+                    placeholder="e.g. 36.8"
+                    className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Blood Pressure</label>
+                  <input
+                    type="text"
+                    value={bp}
+                    onChange={(e) => setBp(e.target.value)}
+                    placeholder="e.g. 120/80"
+                    className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-teal-500 font-mono"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Pulse Rate (bpm)</label>
+                  <input
+                    type="number"
+                    value={pulse}
+                    onChange={(e) => setPulse(e.target.value)}
+                    placeholder="e.g. 72"
+                    className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Resp Rate (bpm)</label>
+                  <input
+                    type="number"
+                    value={respRate}
+                    onChange={(e) => setRespRate(e.target.value)}
+                    placeholder="e.g. 16"
+                    className="w-full bg-slate-955 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Oxygen Sat (SPO2 %)</label>
+                  <input
+                    type="number"
+                    value={spo2}
+                    onChange={(e) => setSpo2(e.target.value)}
+                    placeholder="e.g. 98"
+                    className="w-full bg-slate-955 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Pain Score (0-10)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={painScore}
+                    onChange={(e) => setPainScore(e.target.value)}
+                    placeholder="0 to 10"
+                    className="w-full bg-slate-955 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1 text-xs">
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Medications Given</label>
+                <input
+                  type="text"
+                  value={medsGiven}
+                  onChange={(e) => setMedsGiven(e.target.value)}
+                  placeholder="e.g. Paracetamol 1g PO"
+                  className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                />
+              </div>
+
+              <div className="space-y-1 text-xs">
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Fluids Administered</label>
+                <input
+                  type="text"
+                  value={fluidsAdmin}
+                  onChange={(e) => setFluidsAdmin(e.target.value)}
+                  placeholder="e.g. Normal Saline 500ml IV"
+                  className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                />
+              </div>
+
+              <div className="space-y-1 text-xs">
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Clinical Progress Round Notes</label>
+                <textarea
+                  rows="3"
+                  value={progressNotes}
+                  onChange={(e) => setProgressNotes(e.target.value)}
+                  placeholder="Notes..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-teal-500 font-sans"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowVitalsModal(false)}
+                  className="flex-1 py-2 border border-slate-800 hover:border-slate-700 text-slate-400 rounded-lg text-xs font-bold transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`flex-1 py-2 ${getThemeColor('accent-btn')} font-black rounded-lg text-xs transition cursor-pointer`}
+                >
+                  {loading ? 'Saving...' : 'Save Observations'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE ADMIT PATIENT MODAL */}
+      {showAdmissionModal && (
+        <div className="fixed inset-0 bg-slate-955/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in font-sans">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-md w-full space-y-4 shadow-xl">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-850">
+              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                <PlusCircle size={15} className="text-teal-400" /> Admit Patient
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setShowAdmissionModal(false)}
+                className="text-slate-450 hover:text-slate-200 font-bold text-lg cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                await handleAdmit(e);
+                setShowAdmissionModal(false);
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Select Patient</label>
+                <select
+                  value={selectedPatientId}
+                  onChange={(e) => setSelectedPatientId(e.target.value)}
+                  className="w-full bg-slate-955 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition cursor-pointer"
+                  required
+                >
+                  <option value="">-- Choose Patient --</option>
+                  {patients.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} ({p.facility_id_code})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Target Bed</label>
+                <div className="bg-slate-950 border border-slate-850 p-2.5 rounded-lg font-bold text-slate-300 font-mono">
+                  {beds.find(b => b.id === targetBedId)?.bed_number || 'No bed selected'}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAdmissionModal(false)}
+                  className="flex-1 py-2 border border-slate-800 hover:border-slate-700 text-slate-400 rounded-lg text-xs font-bold transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`flex-1 py-2 ${getThemeColor('accent-btn')} font-black rounded-lg text-xs transition cursor-pointer`}
+                >
+                  {loading ? 'Admitting...' : 'Confirm Admission'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE AUTHORIZE DISCHARGE SUMMARY MODAL */}
+      {showDischargeModal && selectedAdmission && (
+        <div className="fixed inset-0 bg-slate-955/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in font-sans">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-md w-full space-y-4 shadow-xl">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-850">
+              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                <ClipboardList size={15} className="text-teal-400" /> Authorize Patient Discharge
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setShowDischargeModal(false)}
+                className="text-slate-450 hover:text-slate-200 font-bold text-lg cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setShowDischargeModal(false);
+                await handleDischargeClick(e);
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <span className="text-[10px] text-slate-500 block">Patient Name</span>
+                <div className="font-bold text-slate-200 mt-0.5">{selectedAdmission.patient?.name}</div>
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Discharge Diagnoses & Instructions *</label>
+                <textarea
+                  rows="4"
+                  value={dischargeNotes}
+                  onChange={(e) => setDischargeNotes(e.target.value)}
+                  placeholder="Write instructions/diagnoses..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-teal-500 font-sans"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDischargeModal(false)}
+                  className="flex-1 py-2 border border-slate-800 hover:border-slate-700 text-slate-400 rounded-lg text-xs font-bold transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={`flex-1 py-2 ${getThemeColor('accent-btn')} font-black rounded-lg text-xs transition cursor-pointer`}
+                >
+                  Authorize Discharge
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

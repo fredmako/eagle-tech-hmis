@@ -35,6 +35,7 @@ export default function Orders({ user, onComplete }) {
   const [customWalkinPrecedingWorkflow, setCustomWalkinPrecedingWorkflow] = useState('Phlebotomy');
   const [customWalkinDescription, setCustomWalkinDescription] = useState('');
   const [savingCatalog, setSavingCatalog] = useState(false);
+  const [routeTarget, setRouteTarget] = useState('billing'); // 'billing' | 'consultation'
   const [catalogSearch, setCatalogSearch] = useState('');
   const [editableCatalog, setEditableCatalog] = useState({});
 
@@ -1129,14 +1130,15 @@ export default function Orders({ user, onComplete }) {
       const allReleased = updatedOrders.every(o => o.status === 'released' || o.status === 'cancelled');
 
       if (allReleased) {
-        // Move visit to Billing
+        // Move visit to selected route target
         const { error: visitErr } = await supabase.from('visits').update({
-          department: 'billing',
+          department: routeTarget,
           status: 'waiting'
         }).eq('id', selectedVisit.id);
         if (visitErr) throw visitErr;
 
-        setMessage({ type: 'success', text: 'All results released! Patient redirected to Billing Desk.' });
+        const targetLabel = routeTarget === 'billing' ? 'Billing Desk' : 'Clinician Consultation';
+        setMessage({ type: 'success', text: `All results released! Patient redirected to ${targetLabel}.` });
         setTimeout(() => {
           sessionStorage.removeItem('egesa_selected_visit_id_orders');
           fetchLabQueue();
@@ -1577,7 +1579,19 @@ export default function Orders({ user, onComplete }) {
                 <h3 className="text-base font-bold text-slate-100 mt-0.5">{selectedVisit.patient?.name}</h3>
                 <p className="text-xs text-slate-505">{selectedVisit.patient?.facility_id_code} | Age: {new Date().getFullYear() - new Date(selectedVisit.patient?.dob).getFullYear()} yrs | Gender: <span className="capitalize">{selectedVisit.patient?.gender}</span></p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-850 rounded px-2.5 py-1 text-[10px] text-slate-400 font-medium">
+                  <span className="font-bold text-slate-400 uppercase tracking-wider text-[8.5px]">Route Patient To:</span>
+                  <select
+                    value={routeTarget}
+                    onChange={(e) => setRouteTarget(e.target.value)}
+                    className="bg-slate-900 border border-slate-800 rounded py-0.5 px-2 text-[10px] text-slate-200 focus:outline-none focus:border-teal-500 font-sans cursor-pointer"
+                  >
+                    <option value="billing">Cashier / Billing Desk</option>
+                    <option value="consultation">Clinician / Consultation</option>
+                  </select>
+                </div>
+
                 {pendingOrders.some(o => ['completed', 'verified', 'released'].includes(o.status)) && (
                   <button
                     onClick={() => handlePrintLabReport(null)}

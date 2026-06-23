@@ -11,7 +11,8 @@ import {
   Compass,
   AlertTriangle,
   Clipboard,
-  ShieldAlert as WarnIcon
+  ShieldAlert as WarnIcon,
+  FlaskConical
 } from "lucide-react";
 import { diseaseMaster, medicineMaster, labTestMaster, radiologyTestMaster, surgicalProcedureMaster } from "../../medicalMaster";
 import { parsePatientContact } from "../../notificationService";
@@ -752,12 +753,28 @@ export default function Consultation({ user, onComplete }) {
         .select("*")
         .eq("department", "consultation")
         .eq("status", "waiting");
-      const { data: pts } = await supabase.from("patients").select("*");
+      const visitIds = vsts ? vsts.map(v => v.id) : [];
+      let ords = [];
+      if (visitIds.length > 0) {
+        const { data: fetchedOrds } = await supabase
+          .from("orders")
+          .select("*")
+          .in("visit_id", visitIds);
+        ords = fetchedOrds || [];
+      }
 
       const enrichedQueue = vsts
         ? vsts.map((v) => {
             const p = pts?.find((pt) => pt.id === v.patient_id);
-            return { ...v, patient: p };
+            const vOrds = ords.filter(o => o.visit_id === v.id);
+            const completedLabs = vOrds.filter(o => o.type === 'lab' && o.status === 'released');
+            return {
+              ...v,
+              patient: p,
+              hasCompletedLabs: completedLabs.length > 0,
+              completedLabsCount: completedLabs.length,
+              totalLabsCount: vOrds.filter(o => o.type === 'lab').length
+            };
           })
         : [];
 
@@ -1458,15 +1475,22 @@ export default function Consultation({ user, onComplete }) {
               </span>
               <div className="flex justify-between items-center text-[9px] text-slate-500 font-mono w-full">
                 <span>{item.patient?.facility_id_code}</span>
-                <span
-                  className={`px-1 py-0.5 rounded capitalize ${
-                    item.priority === "emergency"
-                      ? "text-red-400 bg-red-950/20"
-                      : "text-slate-400 bg-slate-850"
-                  }`}
-                >
-                  {item.priority}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {item.hasCompletedLabs && (
+                    <span className="px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-sans font-bold flex items-center gap-0.5 animate-pulse">
+                      <FlaskConical size={8} /> Results Ready ({item.completedLabsCount}/{item.totalLabsCount})
+                    </span>
+                  )}
+                  <span
+                    className={`px-1 py-0.5 rounded capitalize ${
+                      item.priority === "emergency"
+                        ? "text-red-400 bg-red-950/20"
+                        : "text-slate-400 bg-slate-850"
+                    }`}
+                  >
+                    {item.priority}
+                  </span>
+                </div>
               </div>
             </button>
           ))}
@@ -1587,6 +1611,76 @@ export default function Consultation({ user, onComplete }) {
                 </div>
               )}
             </div>
+
+            {/* Laboratory Results Alert Widget */}
+            {(() => {
+              const currentVisitReleasedLabs = patientHistory?.orders?.filter(
+                o => o.visit_id === selectedVisit.id && o.type === 'lab' && o.status === 'released'
+              ) || [];
+              if (currentVisitReleasedLabs.length === 0) return null;
+              
+              return (
+                <div className="bg-emerald-950/20 border border-emerald-500/25 p-4 rounded-xl space-y-3">
+                  <div className="flex justify-between items-center border-b border-emerald-500/10 pb-2">
+                    <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                      <FlaskConical size={14} className="text-emerald-400 animate-pulse" /> Laboratory Examination Results Ready
+                    </h4>
+                    <span className="text-[10px] bg-emerald-400/10 text-emerald-400 border border-emerald-400/20 px-2 py-0.5 rounded-full font-bold font-sans">
+                      Released ({currentVisitReleasedLabs.length})
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+                    {currentVisitReleasedLabs.map((lab, i) => {
+                      let meta = {};
+                      if (lab.results && lab.results.startsWith('{')) {
+                        try { meta = JSON.parse(lab.results); } catch (e) {}
+                      }
+                      
+                      // Render either structured parameters or standard raw text findings
+                      const parameterValues = meta.values ? Object.entries(meta.values) : [];
+                      
+                      return (
+                        <div key={i} className="bg-slate-950 border border-slate-850 p-3 rounded-lg space-y-2 font-sans">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="font-bold text-slate-200 text-xs block">{lab.item_name}</span>
+                              <span className="text-[9px] text-slate-505 font-mono">Released: {new Date(lab.updated_at || lab.created_at).toLocaleTimeString()}</span>
+                            </div>
+                            {meta.critical === true && (
+                              <span className="text-[9px] bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded font-black animate-pulse">
+                                CRITICAL VALUE
+                              </span>
+                            )}
+                          </div>
+                          
+                          {parameterValues.length > 0 ? (
+                            <div className="space-y-1 bg-slate-900/50 p-2 rounded border border-slate-900/80 font-sans">
+                              {parameterValues.map(([param, val], idx) => (
+                                <div key={idx} className="flex justify-between text-[10px] py-0.5 border-b border-slate-950/40 last:border-b-0">
+                                  <span className="text-slate-400 font-medium">{param}:</span>
+                                  <span className="font-mono text-slate-200 font-bold">{val}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[10.5px] text-slate-350 bg-slate-900/50 p-2 rounded border border-slate-900/80 font-mono whitespace-pre-wrap">
+                              {lab.results || 'No result details available.'}
+                            </p>
+                          )}
+                          
+                          {lab.notes && (
+                            <p className="text-[10px] text-slate-500 italic">
+                              Note: {lab.notes}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Historical Clinical Review Panel */}
             {patientHistory && patientHistory.visits.length > 1 && (

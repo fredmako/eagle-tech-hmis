@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { Menu, X, CheckCircle, Send, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import { Hero } from './landing/sections/Hero';
 import { StatsStrip } from './landing/sections/StatsStrip';

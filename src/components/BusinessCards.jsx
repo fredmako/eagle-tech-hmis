@@ -256,8 +256,9 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
   const [theme, setTheme] = useState("teal"); // 'teal', 'green', 'blue', 'light'
   const [isPreviewSheet, setIsPreviewSheet] = useState(false);
   const [sheetSide, setSheetSide] = useState("front"); // 'front', 'back'
+  const [copiesPerPage, setCopiesPerPage] = useState(12);
 
-  const [formData, setFormData] = useState({
+  const [formData] = useState({
     name: "Fredrick Makori",
     designation: "CEO, Eagle Tech Solutions",
     role: "Software Developer",
@@ -270,10 +271,6 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
     summary: "Digital health systems for modern hospitals."
   });
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
 
   return (
     <div className="business-cards-page min-h-screen bg-slate-950 text-slate-100 font-sans">
@@ -332,17 +329,17 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
 
       {/* RENDERED printable sheets during print execution */}
       <div className="hidden print:block">
-        {/* Page 1: 12 Front cards grid */}
+        {/* Page 1: Front cards grid */}
         <div className="print-page">
-          {Array.from({ length: 12 }).map((_, i) => (
+          {Array.from({ length: copiesPerPage }).map((_, i) => (
             <div key={i} className="print-card-wrapper">
               <BusinessCardFront theme={theme} formData={formData} isPrintMode={true} />
             </div>
           ))}
         </div>
-        {/* Page 2: 12 Back cards grid */}
+        {/* Page 2: Back cards grid */}
         <div className="print-page">
-          {Array.from({ length: 12 }).map((_, i) => (
+          {Array.from({ length: copiesPerPage }).map((_, i) => (
             <div key={i} className="print-card-wrapper">
               <BusinessCardBack theme={theme} formData={formData} isPrintMode={true} />
             </div>
@@ -409,15 +406,15 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.9fr]">
           
           {/* Left Column: Settings Form */}
-          <div className="rounded-2xl border border-slate-850 bg-slate-900/40 p-5 space-y-5">
+          <div className="rounded-2xl border border-slate-850 bg-slate-900/40 p-5 space-y-6">
             <div className="flex items-center gap-2 border-b border-slate-850 pb-3">
               <Sliders size={15} className="text-teal-400" />
-              <h2 className="text-xs uppercase tracking-[0.25em] text-slate-300 font-bold">Customize Card Particulars</h2>
+              <h2 className="text-xs uppercase tracking-[0.25em] text-slate-300 font-bold">Print Configuration</h2>
             </div>
 
             {/* Theme selection dropdown */}
             <div className="space-y-2">
-              <label className="text-[10px] text-slate-550 font-bold uppercase tracking-wider block">Card Style Theme</label>
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Card Style Theme</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'teal', label: 'Teal & Cyan', color: 'bg-teal-400' },
@@ -430,7 +427,7 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
                     onClick={() => setTheme(t.id)}
                     className={`flex items-center gap-2 p-2 rounded-xl border text-[11px] font-bold transition text-left cursor-pointer ${
                       theme === t.id
-                        ? 'bg-teal-500/10 border-teal-500/30 text-teal-405'
+                        ? 'bg-teal-500/10 border-teal-500/30 text-teal-400'
                         : 'bg-slate-950/40 border-slate-850 text-slate-450 hover:border-slate-800'
                     }`}
                   >
@@ -441,110 +438,30 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
               </div>
             </div>
 
-            {/* Text details input fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              <div className="space-y-1">
-                <label className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider block">Full Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-lg p-2 focus:outline-none focus:border-teal-505"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider block">Designation</label>
-                <input
-                  type="text"
-                  name="designation"
-                  value={formData.designation}
-                  onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-lg p-2 focus:outline-none focus:border-teal-505"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider block">Role Title</label>
-                <input
-                  type="text"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-lg p-2 focus:outline-none focus:border-teal-505"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider block">Primary Phone</label>
-                <input
-                  type="text"
-                  name="phone1"
-                  value={formData.phone1}
-                  onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-lg p-2 focus:outline-none focus:border-teal-505"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider block">Secondary Phone</label>
-                <input
-                  type="text"
-                  name="phone2"
-                  value={formData.phone2}
-                  onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-lg p-2 focus:outline-none focus:border-teal-505"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider block">Email Address</label>
-                <input
-                  type="text"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-lg p-2 focus:outline-none focus:border-teal-505"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider block">Website URL</label>
-                <input
-                  type="text"
-                  name="website"
-                  value={formData.website}
-                  onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-lg p-2 focus:outline-none focus:border-teal-505"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider block">Location Address</label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-lg p-2 focus:outline-none focus:border-teal-505"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider block">Service tagline</label>
+            {/* Copies per page range input */}
+            <div className="space-y-3 pt-2">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block flex justify-between">
+                <span>Copies per Page</span>
+                <span className="text-teal-405 font-mono text-xs">{copiesPerPage} / 12</span>
+              </label>
               <input
-                type="text"
-                name="tagline"
-                value={formData.tagline}
-                onChange={handleInputChange}
-                className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-lg p-2 focus:outline-none focus:border-teal-550"
+                type="range"
+                min="1"
+                max="12"
+                value={copiesPerPage}
+                onChange={(e) => setCopiesPerPage(parseInt(e.target.value))}
+                className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-teal-400"
               />
+              <div className="flex justify-between text-[9px] text-slate-500 font-bold font-mono">
+                <span>1 Copy</span>
+                <span>6 Copies</span>
+                <span>12 Copies</span>
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider block">Summary Text</label>
-              <textarea
-                rows={2}
-                name="summary"
-                value={formData.summary}
-                onChange={handleInputChange}
-                className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-lg p-2 focus:outline-none focus:border-teal-550 resize-none font-sans"
-              />
+            <div className="bg-teal-500/5 border border-teal-500/10 p-4 rounded-xl text-[10.5px] text-slate-400 leading-relaxed font-sans">
+              <span className="font-bold text-slate-300 block mb-1">ℹ️ Read-Only Contact Details</span>
+              Card contact information (Full Name, Designation, Phone numbers, Email address, Website, Location) is populated automatically from the facility's corporate registry and cannot be modified from this workstation.
             </div>
           </div>
 
@@ -623,10 +540,16 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
                       {Array.from({ length: 12 }).map((_, i) => (
                         <div key={i} className="border border-dashed border-slate-700/50 overflow-hidden flex items-center justify-center relative">
                           <div className="absolute inset-0 scale-[0.94]">
-                            {sheetSide === 'front' ? (
-                              <BusinessCardFront theme={theme} formData={formData} isPrintMode={true} />
+                            {i < copiesPerPage ? (
+                              sheetSide === 'front' ? (
+                                <BusinessCardFront theme={theme} formData={formData} isPrintMode={true} />
+                              ) : (
+                                <BusinessCardBack theme={theme} formData={formData} isPrintMode={true} />
+                              )
                             ) : (
-                              <BusinessCardBack theme={theme} formData={formData} isPrintMode={true} />
+                              <div className="w-full h-full bg-slate-950/20 flex items-center justify-center text-[7.5px] text-slate-700 font-bold uppercase tracking-wider select-none font-mono">
+                                Empty Slot
+                              </div>
                             )}
                           </div>
                         </div>

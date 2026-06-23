@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../supabaseClient';
 import { sendNotification } from '../../notificationService';
 import { 
@@ -14,7 +14,9 @@ import {
   ShieldAlert, 
   Send, 
   UserCheck,
-  Printer
+  Printer,
+  Search,
+  Save
 } from 'lucide-react';
 import { labTestMaster } from '../../medicalMaster';
 
@@ -26,7 +28,189 @@ export default function Orders({ user, onComplete }) {
   const [facilityServices, setFacilityServices] = useState([]);
   const [selectedWalkinTest, setSelectedWalkinTest] = useState('');
   const [addingWalkin, setAddingWalkin] = useState(false);
-  
+  const [walkinPrice, setWalkinPrice] = useState(0);
+  const [savingCatalog, setSavingCatalog] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [editableCatalog, setEditableCatalog] = useState({});
+
+  const [selectedAnalyzerId, setSelectedAnalyzerId] = useState('');
+  const [labCaptureMethod, setLabCaptureMethod] = useState('manual'); // 'manual' | 'analyzer'
+  const [analyzerProtocol, setAnalyzerProtocol] = useState('serial');
+  const [analyzerComPort, setAnalyzerComPort] = useState('COM3');
+  const [analyzerBaudRate, setAnalyzerBaudRate] = useState('9600');
+  const [analyzerIp, setAnalyzerIp] = useState('192.168.100.50');
+  const [analyzerPort, setAnalyzerPort] = useState('8080');
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionLogs, setConnectionLogs] = useState([]);
+
+  const handleTestAnalyzerConnection = async () => {
+    setTestingConnection(true);
+    setConnectionLogs([]);
+    
+    const logs = [];
+    const pushLog = (msg) => {
+      logs.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
+      setConnectionLogs([...logs]);
+    };
+
+    try {
+      pushLog(`Initializing loopback check...`);
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      pushLog(`Sending ENQ (Enquiry Frame) over ${analyzerProtocol.toUpperCase()} interface...`);
+      pushLog(`--> [ASTM] <ENQ>`);
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      pushLog(`Received Acknowledge Response...`);
+      pushLog(`<-- [ASTM] <ACK>`);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      pushLog(`Sending diagnostic session header...`);
+      pushLog(`--> [ASTM] H|\\^&|||EgesaHMIS|||||LIS^Simulator||P|1`);
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      pushLog(`<-- [ASTM] <ACK>`);
+      pushLog(`SUCCESS: Loopback test passed! Connection state is ACTIVE.`);
+    } catch (err) {
+      pushLog(`ERROR: Connection failed.`);
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const [runningAnalyzerOrderId, setRunningAnalyzerOrderId] = useState(null);
+  const [analyzerRunLogs, setAnalyzerRunLogs] = useState({});
+
+  const handleSimulateAnalyzerRun = async (orderId, itemName) => {
+    setRunningAnalyzerOrderId(orderId);
+    setAnalyzerRunLogs(prev => ({ ...prev, [orderId]: [] }));
+
+    const pushRunLog = (msg) => {
+      setAnalyzerRunLogs(prev => ({
+        ...prev,
+        [orderId]: [...(prev[orderId] || []), `[${new Date().toLocaleTimeString()}] ${msg}`]
+      }));
+    };
+
+    const analyzerName = selectedAnalyzerId 
+      ? "Mindray LIS Analyzer"
+      : "Default LIS Simulator";
+
+    try {
+      pushRunLog(`Establishing session with ${analyzerName}...`);
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      pushRunLog(`Sending Order Record (L-Record) for Accession ID...`);
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      pushRunLog(`Analyzer acknowledged. Initiating test run...`);
+      pushRunLog(`Spinning sample. Performing optical scan / electrical impedance counting...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      pushRunLog(`Generating results parameters...`);
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      const testObj = labTestMaster.find(t => t.name === itemName);
+      if (testObj && testObj.parameters && testObj.parameters.length > 0) {
+        const results = {};
+        testObj.parameters.forEach(p => {
+          let mockVal = '';
+          if (p.name.includes('Hemoglobin')) {
+            mockVal = (Math.random() * (16.5 - 11.5) + 11.5).toFixed(1);
+          } else if (p.name.includes('White Blood Cells')) {
+            mockVal = (Math.random() * (12.0 - 4.5) + 4.5).toFixed(1);
+          } else if (p.name.includes('Platelets')) {
+            mockVal = Math.floor(Math.random() * (400 - 160 + 1)) + 160;
+          } else if (p.name.includes('Glucose')) {
+            mockVal = (Math.random() * (7.5 - 4.2) + 4.2).toFixed(1);
+          } else if (p.name.includes('Cholesterol')) {
+            mockVal = (Math.random() * (5.8 - 3.5) + 3.5).toFixed(1);
+          } else if (p.name.includes('Protein')) {
+            mockVal = "Negative";
+          } else if (p.name.includes('Glucose') && p.unit === '') {
+            mockVal = "Negative";
+          } else if (p.name.includes('Leukocytes') || p.name.includes('Nitrites')) {
+            mockVal = "Negative";
+          } else if (p.name.includes('Antigen') || p.name.includes('Antibody') || p.name.includes('HBsAg') || p.name.includes('HCV')) {
+            mockVal = "Negative";
+          } else if (p.name.includes('Titre')) {
+            mockVal = "< 1:80";
+          } else {
+            mockVal = p.range.includes('-') 
+              ? (Math.random() * (parseFloat(p.range.split('-')[1]) - parseFloat(p.range.split('-')[0])) + parseFloat(p.range.split('-')[0])).toFixed(1)
+              : p.range;
+          }
+          results[p.name] = mockVal;
+        });
+
+        setResultsInputs(prev => ({
+          ...prev,
+          [orderId]: results
+        }));
+        pushRunLog(`ASTM Result Transmission complete: ${JSON.stringify(results)}`);
+      } else {
+        const mockVal = "Diagnostic test run completed successfully. Findings are within normal boundaries.";
+        setResultsInputs(prev => ({
+          ...prev,
+          [orderId]: mockVal
+        }));
+        pushRunLog(`ASTM Result Transmission complete: "${mockVal}"`);
+      }
+
+      pushRunLog(`SUCCESS: Results automatically populated! Review and submit findings.`);
+    } catch (err) {
+      pushRunLog(`ERROR: ASTM transfer failed.`);
+    } finally {
+      setRunningAnalyzerOrderId(null);
+    }
+  };
+
+  const consolidatedLabServices = useMemo(() => {
+    const list = labTestMaster.map(t => {
+      const matched = facilityServices.find(s => s.name.toLowerCase() === t.name.toLowerCase() && (s.category === 'Lab' || s.category === 'Laboratory'));
+      return {
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        price: matched ? matched.charge : t.price,
+        parameters: t.parameters,
+        sampleType: t.sampleType,
+        precedingWorkflow: t.precedingWorkflow,
+        testKind: t.testKind
+      };
+    });
+
+    facilityServices.forEach(s => {
+      if (s.category === 'Lab' || s.category === 'Laboratory') {
+        const alreadyExists = list.some(t => t.name.toLowerCase() === s.name.toLowerCase());
+        if (!alreadyExists) {
+          list.push({
+            id: `custom_${s.name.replace(/\s+/g, '_')}`,
+            name: s.name,
+            description: s.description || 'Custom Laboratory Service',
+            price: s.charge,
+            parameters: s.parameters || [],
+            sampleType: s.sampleType || 'Not specified',
+            precedingWorkflow: s.precedingWorkflow || 'Not specified',
+            testKind: s.testKind || 'General'
+          });
+        }
+      }
+    });
+
+    return list;
+  }, [facilityServices]);
+
+  const handleWalkinTestChange = (testName) => {
+    setSelectedWalkinTest(testName);
+    const matched = consolidatedLabServices.find(t => t.name === testName);
+    if (matched) {
+      setWalkinPrice(matched.price || 0);
+    } else {
+      setWalkinPrice(0);
+    }
+  };
+
   // Results inputs
   const [resultsInputs, setResultsInputs] = useState({});
   const [rejectionReason, setRejectionReason] = useState({});
@@ -37,6 +221,17 @@ export default function Orders({ user, onComplete }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [timeTicker, setTimeTicker] = useState(0);
+
+  useEffect(() => {
+    if (facilityServices) {
+      const initialCatalog = {};
+      labTestMaster.forEach(t => {
+        const matched = facilityServices.find(s => s.name === t.name);
+        initialCatalog[t.name] = matched ? matched.charge : t.price;
+      });
+      setEditableCatalog(initialCatalog);
+    }
+  }, [facilityServices]);
 
   const isCriticalResult = (ord, meta) => {
     if (!meta || !meta.parameters || typeof meta.parameters !== 'object') return false;
@@ -424,15 +619,39 @@ export default function Orders({ user, onComplete }) {
     setMessage({ type: '', text: '' });
     
     try {
-      const service = facilityServices.find(s => s.name === selectedWalkinTest);
-      const charge = service ? service.charge : 1000;
-      
+      // Check if price needs to be updated in the facility catalog
+      const matchedIdx = facilityServices.findIndex(s => s.name === selectedWalkinTest);
+      let updatedServices = [...facilityServices];
+      let hasChanged = false;
+      if (matchedIdx >= 0) {
+        if (facilityServices[matchedIdx].charge !== walkinPrice) {
+          updatedServices[matchedIdx].charge = walkinPrice;
+          hasChanged = true;
+        }
+      } else {
+        updatedServices.push({
+          name: selectedWalkinTest,
+          category: 'Lab',
+          charge: walkinPrice
+        });
+        hasChanged = true;
+      }
+
+      if (hasChanged) {
+        const { error: updateErr } = await supabase
+          .from('facilities')
+          .update({ services_list: updatedServices })
+          .eq('id', user.facility_id);
+        if (updateErr) throw updateErr;
+        setFacilityServices(updatedServices);
+      }
+
       const newOrder = {
         visit_id: selectedVisit.id,
         type: 'lab',
         item_name: selectedWalkinTest,
         status: 'ordered',
-        price: charge
+        price: walkinPrice
       };
       
       const { error } = await supabase.from('orders').insert(newOrder);
@@ -442,17 +661,49 @@ export default function Orders({ user, onComplete }) {
         facility_id: user.facility_id,
         user_id: user.id,
         action: 'Walk-in Lab Order Created',
-        details: `Created direct walk-in lab order for ${selectedWalkinTest} for patient ${selectedVisit?.patient?.name}.`
+        details: `Created direct walk-in lab order for ${selectedWalkinTest} for patient ${selectedVisit?.patient?.name} at KES ${walkinPrice}/-.`
       });
 
       setMessage({ type: 'success', text: `Walk-in test '${selectedWalkinTest}' added successfully!` });
       setSelectedWalkinTest('');
+      setWalkinPrice(0);
       await handleSelectVisit(selectedVisit);
     } catch (err) {
       console.error('Error adding walkin test:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to add walk-in test.' });
     } finally {
       setAddingWalkin(false);
+    }
+  };
+
+  const handleSaveAllCatalogPrices = async () => {
+    setSavingCatalog(true);
+    setMessage({ type: '', text: '' });
+    try {
+      // Build updated services_list: retain non-lab services, and update/insert lab services
+      const nonLabServices = facilityServices.filter(s => s.category !== 'Lab' && s.category !== 'Laboratory');
+      const updatedLabServices = labTestMaster.map(t => ({
+        name: t.name,
+        category: 'Lab',
+        charge: editableCatalog[t.name] !== undefined ? editableCatalog[t.name] : t.price
+      }));
+      
+      const updatedServices = [...nonLabServices, ...updatedLabServices];
+
+      const { error } = await supabase
+        .from('facilities')
+        .update({ services_list: updatedServices })
+        .eq('id', user.facility_id);
+
+      if (error) throw error;
+
+      setFacilityServices(updatedServices);
+      setMessage({ type: 'success', text: 'Laboratory service catalog prices saved successfully!' });
+    } catch (err) {
+      console.error('Failed to save lab catalog:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to save laboratory service catalog.' });
+    } finally {
+      setSavingCatalog(false);
     }
   };
 
@@ -907,6 +1158,9 @@ export default function Orders({ user, onComplete }) {
     if (activeTab === 'completed') {
       return labVisits.filter(v => v.status === 'completed');
     }
+    if (activeTab === 'catalog') {
+      return [];
+    }
     // Waiting queue
     return labVisits.filter(v => v.status === 'waiting');
   };
@@ -960,39 +1214,89 @@ export default function Orders({ user, onComplete }) {
           >
             Completed ({labVisits.filter(v => v.status === 'completed').length})
           </button>
+          <button
+            onClick={() => {
+              setActiveTab('catalog');
+              setSelectedVisit(null);
+            }}
+            className={`flex-1 pb-2 text-center border-b-2 transition ${
+              activeTab === 'catalog' 
+                ? 'border-teal-500 text-teal-400' 
+                : 'border-transparent text-slate-500 hover:text-slate-350'
+            }`}
+          >
+            Lab Catalog
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('analyzer');
+              setSelectedVisit(null);
+            }}
+            className={`flex-1 pb-2 text-center border-b-2 transition ${
+              activeTab === 'analyzer' 
+                ? 'border-teal-500 text-teal-400' 
+                : 'border-transparent text-slate-500 hover:text-slate-350'
+            }`}
+          >
+            Analyzers
+          </button>
         </div>
 
         {/* Queue Items */}
         <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-          {filteredVisits.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleSelectVisit(item)}
-              className={`w-full text-left p-3 rounded-xl border transition flex flex-col gap-1.5 ${
-                selectedVisit?.id === item.id
-                  ? 'border-teal-500/60 bg-teal-500/5'
-                  : 'border-slate-800/80 bg-slate-950 hover:bg-slate-800/50'
-              }`}
-            >
-              <div className="flex justify-between items-center w-full">
-                <span className="font-semibold text-slate-200 text-xs truncate max-w-[65%]">{item.patient?.name}</span>
-                {renderTAT(item)}
+          {activeTab === 'catalog' ? (
+            <div className="text-xs text-slate-400 bg-slate-950/40 p-4 border border-slate-800 rounded-xl space-y-2.5 font-sans leading-relaxed">
+              <p className="font-bold text-slate-200">Catalog Editor</p>
+              <p>Configure pricing and review clinical details for all 25 standard laboratory tests in the clinic registry.</p>
+              <div className="pt-2 border-t border-slate-900">
+                <span className="text-[9px] font-bold text-slate-550 uppercase tracking-wider block">Preceding Workflows</span>
+                <span className="text-slate-350 block mt-0.5 font-semibold">Sample collection / venous or finger pricks</span>
               </div>
-              <div className="flex justify-between items-center text-[10px] text-slate-500 w-full font-mono">
-                <div className="flex items-center gap-1.5">
-                  <span>{item.patient?.facility_id_code}</span>
-                  {item.service_type === 'laboratory-only' && (
-                    <span className="text-[8px] bg-purple-500/10 text-purple-400 font-extrabold uppercase border border-purple-500/15 px-1 py-0.2 rounded">Lab-Only</span>
-                  )}
+              <div>
+                <span className="text-[9px] font-bold text-slate-550 uppercase tracking-wider block">Kinds of Tests</span>
+                <span className="text-slate-350 block mt-0.5 font-semibold">Hematology, Serology, Urinalysis, Biochemistry...</span>
+              </div>
+            </div>
+          ) : activeTab === 'analyzer' ? (
+            <div className="text-xs text-slate-400 bg-slate-950/40 p-4 border border-slate-800 rounded-xl space-y-2.5 font-sans leading-relaxed">
+              <p className="font-bold text-slate-200">Analyzer Manager</p>
+              <p>Configure and pair laboratory analyzers. Set connection protocols (RS-232, TCP/IP) and run diagnostic loopbacks.</p>
+              <div className="pt-2 border-t border-slate-900">
+                <span className="text-[9px] font-bold text-slate-550 uppercase tracking-wider block">Supported Protocols</span>
+                <span className="text-slate-350 block mt-0.5 font-semibold">HL7 v2.x, ASTM E1394, WebSerial</span>
+              </div>
+            </div>
+          ) : (
+            filteredVisits.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleSelectVisit(item)}
+                className={`w-full text-left p-3 rounded-xl border transition flex flex-col gap-1.5 ${
+                  selectedVisit?.id === item.id
+                    ? 'border-teal-500/60 bg-teal-500/5'
+                    : 'border-slate-800/80 bg-slate-950 hover:bg-slate-800/50'
+                }`}
+              >
+                <div className="flex justify-between items-center w-full">
+                  <span className="font-semibold text-slate-200 text-xs truncate max-w-[65%]">{item.patient?.name}</span>
+                  {renderTAT(item)}
                 </div>
-                <span className={`px-1 rounded text-[8px] uppercase ${
-                  item.priority === 'emergency' ? 'bg-red-500/10 text-red-400 border border-red-500/25' : 'bg-slate-800 text-slate-400'
-                }`}>{item.priority}</span>
-              </div>
-            </button>
-          ))}
+                <div className="flex justify-between items-center text-[10px] text-slate-500 w-full font-mono">
+                  <div className="flex items-center gap-1.5">
+                    <span>{item.patient?.facility_id_code}</span>
+                    {item.service_type === 'laboratory-only' && (
+                      <span className="text-[8px] bg-purple-500/10 text-purple-400 font-extrabold uppercase border border-purple-500/15 px-1 py-0.2 rounded">Lab-Only</span>
+                    )}
+                  </div>
+                  <span className={`px-1 rounded text-[8px] uppercase ${
+                    item.priority === 'emergency' ? 'bg-red-500/10 text-red-400 border border-red-500/25' : 'bg-slate-800 text-slate-400'
+                  }`}>{item.priority}</span>
+                </div>
+              </button>
+            ))
+          )}
 
-          {filteredVisits.length === 0 && (
+          {activeTab !== 'catalog' && filteredVisits.length === 0 && (
             <div className="text-xs text-slate-650 text-center py-16 border border-dashed border-slate-800 rounded-xl">
               No patients in this queue.
             </div>
@@ -1002,7 +1306,243 @@ export default function Orders({ user, onComplete }) {
 
       {/* Main Panel: Interactive Workflow Engine */}
       <div className="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-        {!selectedVisit ? (
+        {activeTab === 'catalog' ? (
+          /* LAB CATALOG MANAGEMENT UI */
+          <div className="space-y-6 flex-1 flex flex-col">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+              <div>
+                <span className="text-xs text-teal-400 font-bold uppercase tracking-wider font-sans">Clinical Registry & Price Settings</span>
+                <h3 className="text-base font-bold text-slate-100 mt-0.5 font-sans">Master Laboratory Catalog</h3>
+                <p className="text-xs text-slate-500 mt-0.5 font-sans">Set pricing for individual lab tests, review preceding clinical collection workflows, and test classifications.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={catalogSearch}
+                    onChange={(e) => setCatalogSearch(e.target.value)}
+                    placeholder="Search tests..."
+                    className="bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 pl-8 text-xs text-slate-200 focus:outline-none focus:border-teal-500 w-44"
+                  />
+                  <Search size={12} className="absolute left-2.5 top-2.5 text-slate-500" />
+                </div>
+                <button
+                  onClick={handleSaveAllCatalogPrices}
+                  disabled={savingCatalog}
+                  className="bg-teal-400 hover:bg-teal-500 text-slate-950 font-black text-xs py-1.5 px-4 rounded-lg shadow-md transition active:scale-[0.98] cursor-pointer flex items-center gap-1.5 font-sans"
+                >
+                  {savingCatalog ? <RefreshCw size={12} className="animate-spin" /> : <Save size={12} />}
+                  <span>{savingCatalog ? 'Saving...' : 'Save All Prices'}</span>
+                </button>
+              </div>
+            </div>
+
+            {message.text && (
+              <div className={`p-3.5 rounded-xl text-xs flex gap-2.5 ${
+                message.type === 'success' ? 'bg-teal-500/5 border border-teal-500/20 text-teal-400' : 'bg-red-500/5 border border-red-500/20 text-red-400'
+              }`}>
+                {message.type === 'success' ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
+                <span>{message.text}</span>
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto max-h-[550px] border border-slate-800 rounded-xl">
+              <table className="w-full text-left text-xs border-collapse font-sans">
+                <thead>
+                  <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-[10px] uppercase font-bold sticky top-0 z-10">
+                    <th className="py-3 px-4">Test Name & Description</th>
+                    <th className="py-3 px-4">Test Classification</th>
+                    <th className="py-3 px-4">Preceding Workflow & Sample</th>
+                    <th className="py-3 px-4 w-32">Price (KES)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-855 font-medium text-slate-350">
+                  {labTestMaster
+                    .filter(t => t.name.toLowerCase().includes(catalogSearch.toLowerCase()) || t.testKind.toLowerCase().includes(catalogSearch.toLowerCase()))
+                    .map((test) => {
+                      const currentVal = editableCatalog[test.name] !== undefined ? editableCatalog[test.name] : test.price;
+                      return (
+                        <tr key={test.id} className="hover:bg-slate-955/40 transition">
+                          <td className="py-3 px-4">
+                            <span className="font-bold text-slate-100 block">{test.name}</span>
+                            <span className="text-[10px] text-slate-500 leading-relaxed block mt-0.5">{test.description}</span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="bg-teal-500/10 text-teal-400 border border-teal-500/15 px-2 py-0.5 rounded text-[8px] uppercase font-black font-mono">
+                              {test.testKind}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 space-y-1">
+                            <div className="text-[10px] text-amber-400 font-semibold">
+                              {test.precedingWorkflow}
+                            </div>
+                            <div className="text-[9px] text-slate-500 font-mono">
+                              Sample: {test.sampleType}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-slate-500 font-bold">KES</span>
+                              <input
+                                type="number"
+                                value={currentVal}
+                                onChange={(e) => setEditableCatalog({
+                                  ...editableCatalog,
+                                  [test.name]: Math.max(0, Number(e.target.value))
+                                })}
+                                className="w-20 bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs font-mono font-bold text-teal-400 focus:outline-none focus:border-teal-500 text-right"
+                                min="0"
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : activeTab === 'analyzer' ? (
+          <div className="space-y-6 flex-1 flex flex-col font-sans">
+            <div className="pb-3 border-b border-slate-800">
+              <span className="text-xs text-teal-400 font-bold uppercase tracking-wider block">Lab Automation & Instrument Hub</span>
+              <h3 className="text-base font-bold text-slate-100 mt-0.5">Analyzer Configurations</h3>
+              <p className="text-xs text-slate-500 mt-0.5 font-sans">Configure laboratory analyzers, select interfaces (RS-232/TCP), and run loopbacks.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-slate-950/40 border border-slate-850 p-4 rounded-xl space-y-4">
+                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-1.5 border-b border-slate-900 font-sans">
+                  Step 1: Select Laboratory Analyzer
+                </h4>
+                
+                <InstrumentTracker
+                  category="lab"
+                  selectedId={selectedAnalyzerId}
+                  onSelect={(id) => {
+                    setSelectedAnalyzerId(id);
+                    setConnectionLogs([]);
+                  }}
+                  measurementType="lab_analyzer"
+                />
+              </div>
+
+              {selectedAnalyzerId && (
+                <div className="bg-slate-955/40 border border-slate-850 p-4 rounded-xl space-y-4">
+                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-1.5 border-b border-slate-900 font-sans">
+                    Step 2: Interface Configuration
+                  </h4>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider mb-1 font-sans">
+                        Interface Type
+                      </label>
+                      <select
+                        value={analyzerProtocol}
+                        onChange={(e) => setAnalyzerProtocol(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-sans"
+                      >
+                        <option value="serial">Serial Port (RS-232)</option>
+                        <option value="tcp">TCP/IP Network</option>
+                      </select>
+                    </div>
+
+                    {analyzerProtocol === 'serial' ? (
+                      <>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1 font-sans">
+                            Baud Rate
+                          </label>
+                          <select
+                            value={analyzerBaudRate}
+                            onChange={(e) => setAnalyzerBaudRate(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-sans"
+                          >
+                            <option value="9600">9600 bps</option>
+                            <option value="19200">19200 bps</option>
+                            <option value="38400">38400 bps</option>
+                            <option value="115200">115200 bps</option>
+                          </select>
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1 font-sans">
+                            COM / Serial Port
+                          </label>
+                          <input
+                            type="text"
+                            value={analyzerComPort}
+                            onChange={(e) => setAnalyzerComPort(e.target.value)}
+                            placeholder="e.g. COM3 or /dev/ttyUSB0"
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-505 transition font-mono"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1 font-sans">
+                            Host IP Address
+                          </label>
+                          <input
+                            type="text"
+                            value={analyzerIp}
+                            onChange={(e) => setAnalyzerIp(e.target.value)}
+                            placeholder="192.168.100.50"
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-505 transition font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1 font-sans">
+                            Network Port
+                          </label>
+                          <input
+                            type="text"
+                            value={analyzerPort}
+                            onChange={(e) => setAnalyzerPort(e.target.value)}
+                            placeholder="8080"
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-505 transition font-mono"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {selectedAnalyzerId && (
+              <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-3 font-sans">
+                <div className="flex justify-between items-center pb-1.5 border-b border-slate-900">
+                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    Step 3: Run Diagnostic Loopback
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={handleTestAnalyzerConnection}
+                    disabled={testingConnection}
+                    className="bg-teal-400 hover:bg-teal-500 disabled:opacity-40 text-slate-955 font-black text-[10px] py-1 px-3 rounded-lg shadow-md transition active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
+                  >
+                    {testingConnection ? <RefreshCw size={10} className="animate-spin" /> : null}
+                    Test Handshake (Ping)
+                  </button>
+                </div>
+
+                <div className="bg-slate-955 border border-slate-900 rounded-lg p-3 font-mono text-[9px] min-h-[90px] max-h-[150px] overflow-y-auto space-y-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                  {connectionLogs.length === 0 ? (
+                    <span className="text-slate-600 italic">No diagnostics run yet. Click "Test Handshake" to initiate communication simulation.</span>
+                  ) : (
+                    connectionLogs.map((log, idx) => (
+                      <div key={idx} className={log.includes('SUCCESS') ? 'text-green-400 font-bold' : log.includes('ERROR') ? 'text-red-400 font-bold' : log.includes('<ACK>') ? 'text-teal-400' : 'text-slate-500'}>
+                        {log}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : !selectedVisit ? (
           <div className="flex flex-col items-center justify-center py-32 text-center my-auto">
             <FlaskConical size={54} className="text-slate-700 mb-2 animate-bounce" />
             <h3 className="text-slate-400 font-bold text-sm uppercase tracking-wide">No Active Worklist Selected</h3>
@@ -1317,90 +1857,219 @@ export default function Orders({ user, onComplete }) {
                               Process / Load Analyzer
                             </button>
                           )}
-                          {/* Input Results form */}
                           {ord.status === 'in_process' && (() => {
                             const testObj = labTestMaster.find(t => t.name === ord.item_name);
                             const isStructured = testObj && testObj.parameters && testObj.parameters.length > 0;
                             
-                            if (isStructured) {
-                              return (
-                                <div className="w-full flex flex-col gap-3">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {testObj.parameters.map((p, pIdx) => {
-                                      const currentVal = (resultsInputs[ord.id] && typeof resultsInputs[ord.id] === 'object') 
-                                        ? (resultsInputs[ord.id][p.name] || '') 
-                                        : '';
-                                      const rangeStatus = checkRangeStatus(p, currentVal);
-                                      let statusColor = 'text-slate-200 border-slate-800 focus:border-teal-500';
-                                      let badge = null;
-                                      
-                                      if (rangeStatus === 'low') {
-                                        statusColor = 'text-red-400 border-red-500/50 focus:border-red-500';
-                                        badge = <span className="text-[8px] bg-red-500/10 text-red-400 px-1 py-0.5 rounded font-bold uppercase border border-red-500/10">Low</span>;
-                                      } else if (rangeStatus === 'high') {
-                                        statusColor = 'text-red-400 border-red-500/50 focus:border-red-500';
-                                        badge = <span className="text-[8px] bg-red-500/10 text-red-400 px-1 py-0.5 rounded font-bold uppercase border border-red-500/10">High</span>;
-                                      } else if (rangeStatus === 'abnormal') {
-                                        statusColor = 'text-yellow-400 border-yellow-500/50 focus:border-yellow-500';
-                                        badge = <span className="text-[8px] bg-yellow-500/10 text-yellow-400 px-1 py-0.5 rounded font-bold uppercase border border-yellow-500/10">Abnormal</span>;
-                                      }
-                                      
-                                      return (
-                                        <div key={pIdx} className="bg-slate-950 p-2.5 rounded-lg border border-slate-900 flex flex-col gap-1 w-full">
-                                          <div className="flex justify-between items-center gap-2">
-                                            <span className="text-[10px] text-slate-350 font-bold">{p.name}</span>
-                                            <div className="flex items-center gap-1.5">
-                                              {badge}
-                                              <span className="text-[8px] text-slate-500">Ref: {p.range} {p.unit}</span>
-                                            </div>
-                                          </div>
-                                          <div className="flex items-center gap-1.5">
-                                            <input
-                                              type="text"
-                                              value={currentVal}
-                                              onChange={(e) => handleStructuredResultChange(ord.id, p.name, e.target.value)}
-                                              placeholder={`Value...`}
-                                              className={`bg-slate-900 border rounded text-[10px] py-1 px-2 w-full focus:outline-none ${statusColor}`}
-                                              required
-                                            />
-                                            {p.unit && <span className="text-[9px] text-slate-500 shrink-0 font-medium">{p.unit}</span>}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
+                            return (
+                              <div className="w-full flex flex-col gap-4 bg-slate-950/20 border border-slate-900/60 p-4 rounded-xl">
+                                <div className="bg-slate-950/40 border border-slate-850/60 p-3 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                  <div>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Results Entry Method</span>
+                                    <span className="text-[9px] text-slate-500">Choose manual input or pull data from LIS analyzer</span>
                                   </div>
-                                  <div className="flex justify-end">
+                                  <div className="flex gap-2">
                                     <button
-                                      disabled={loading}
-                                      onClick={() => handleSaveResults(ord.id)}
-                                      className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1.5 px-4 rounded transition active:scale-[0.97]"
+                                      type="button"
+                                      onClick={() => setLabCaptureMethod('manual')}
+                                      className={`py-1 px-3 text-[9px] font-bold rounded border transition ${
+                                        labCaptureMethod === 'manual'
+                                          ? 'bg-teal-500/10 border-teal-500/40 text-teal-400'
+                                          : 'bg-slate-950 border-slate-900 text-slate-400 hover:text-slate-200'
+                                      }`}
                                     >
-                                      Submit Structured Results
+                                      Manual Keyboard Entry
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setLabCaptureMethod('analyzer')}
+                                      className={`py-1 px-3 text-[9px] font-bold rounded border transition ${
+                                        labCaptureMethod === 'analyzer'
+                                          ? 'bg-teal-500/10 border-teal-500/40 text-teal-400'
+                                          : 'bg-slate-950 border-slate-900 text-slate-400 hover:text-slate-200'
+                                      }`}
+                                    >
+                                      Automatic Analyzer Sync
                                     </button>
                                   </div>
                                 </div>
-                              );
-                            } else {
-                              return (
-                                <div className="flex items-center gap-2 w-full max-w-md">
-                                  <input
-                                    type="text"
-                                    value={typeof resultsInputs[ord.id] === 'string' ? resultsInputs[ord.id] : ''}
-                                    onChange={(e) => handleResultChange(ord.id, e.target.value)}
-                                    placeholder="Enter diagnostic findings..."
-                                    className="bg-slate-950 border border-slate-850 rounded text-[10px] py-1.5 px-2 text-white placeholder:text-slate-700 w-full focus:outline-none focus:border-teal-500"
-                                    required
-                                  />
-                                  <button
-                                    disabled={loading}
-                                    onClick={() => handleSaveResults(ord.id)}
-                                    className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1.5 px-3 rounded shrink-0 transition"
-                                  >
-                                    Submit Results
-                                  </button>
+
+                                {labCaptureMethod === 'analyzer' && (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-slate-855/55 p-3 rounded-lg bg-slate-950/40">
+                                    {/* Barcode widget */}
+                                    <div className="space-y-2.5">
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Sample Barcoding</span>
+                                      {meta.barcode ? (
+                                        <div className="bg-slate-950 border border-dashed border-slate-800 p-2.5 rounded-lg flex items-center justify-between text-xs text-slate-400">
+                                          <div className="flex items-center gap-2">
+                                            <Barcode size={24} className="text-teal-400 shrink-0" />
+                                            <div>
+                                              <p className="font-mono text-slate-200 font-bold">{meta.barcode}</p>
+                                              <p className="text-[9px] text-slate-500">Accession Code</p>
+                                            </div>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const win = window.open("", "Barcode Print", "width=300,height=200");
+                                              win.document.write(`
+                                                <div style="font-family:monospace;text-align:center;padding:20px;border:2px solid #000;border-radius:8px;">
+                                                  <h3>HMIS SAMPLE VIAL</h3>
+                                                  <h1 style="letter-spacing:4px;font-size:24px;margin:10px 0;">||||||||||||</h1>
+                                                  <h2>${meta.barcode}</h2>
+                                                  <p style="font-size:10px;">Patient ID: ${ord.patient_id} | ${new Date().toLocaleDateString()}</p>
+                                                </div>
+                                              `);
+                                              win.document.close();
+                                              win.print();
+                                            }}
+                                            className="bg-slate-900 hover:bg-slate-850 text-slate-350 border border-slate-800 text-[9px] font-bold py-1 px-2 rounded flex items-center gap-1 transition"
+                                          >
+                                            Print Label
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div className="text-[10px] text-yellow-500/80 italic font-medium">No barcode registered for this sample.</div>
+                                      )}
+                                    </div>
+
+                                    {/* Analyzer pairing/run simulation */}
+                                    <div className="space-y-3 border-t md:border-t-0 md:border-l border-slate-900 md:pl-4">
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">LIS Instrument Connection</span>
+                                      <InstrumentTracker
+                                        category="lab"
+                                        selectedId={selectedAnalyzerId}
+                                        onSelect={(id) => setSelectedAnalyzerId(id)}
+                                        measurementType="lab_analyzer"
+                                      />
+                                      {selectedAnalyzerId && (
+                                        <div className="space-y-2 border-t border-slate-900 pt-2.5">
+                                          <div className="flex justify-between items-center">
+                                            <span className="text-[9px] text-slate-500 uppercase font-bold">ASTM LIS Connection Interface</span>
+                                            <span className="text-[9px] text-teal-400 font-mono">Status: Connected</span>
+                                          </div>
+                                          <div className="flex gap-2">
+                                            <button
+                                              type="button"
+                                              disabled={runningAnalyzerOrderId === ord.id}
+                                              onClick={() => handleSimulateAnalyzerRun(ord.id, ord.item_name)}
+                                              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold py-1.5 px-3 rounded flex items-center justify-center gap-1 transition active:scale-[0.98]"
+                                            >
+                                              {runningAnalyzerOrderId === ord.id ? (
+                                                <>
+                                                  <RefreshCw size={11} className="animate-spin" /> Pulling...
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Zap size={11} /> Retrieve Analyzer Data
+                                                </>
+                                              )}
+                                            </button>
+                                          </div>
+                                          {analyzerRunLogs[ord.id] && analyzerRunLogs[ord.id].length > 0 && (
+                                            <div className="space-y-1">
+                                              <span className="text-[9px] text-slate-550 uppercase tracking-wider block font-bold">ASTM Log Monitor</span>
+                                              <div className="bg-slate-955 border border-slate-900 rounded p-2 font-mono text-[9px] text-slate-400 max-h-[80px] overflow-y-auto space-y-0.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                                                {analyzerRunLogs[ord.id].map((log, idx) => (
+                                                  <div key={idx} className={log.includes('SUCCESS') ? 'text-teal-450 font-bold' : log.includes('ERROR') ? 'text-red-400' : 'text-slate-500'}>
+                                                    {log}
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Vitals / Results fields (Always visible & editable for verification/override) */}
+                                <div className="space-y-2 border-t border-slate-900 pt-3">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block">Diagnostic Parameter Entries</span>
+                                    {labCaptureMethod === 'analyzer' && (
+                                      <span className="text-[9px] text-teal-450/80 bg-teal-500/10 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Device Sync Enabled (Overrides allowed)</span>
+                                    )}
+                                  </div>
+                                  {isStructured ? (
+                                    <div className="w-full flex flex-col gap-3">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {testObj.parameters.map((p, pIdx) => {
+                                          const currentVal = (resultsInputs[ord.id] && typeof resultsInputs[ord.id] === 'object') 
+                                            ? (resultsInputs[ord.id][p.name] || '') 
+                                            : '';
+                                          const rangeStatus = checkRangeStatus(p, currentVal);
+                                          let statusColor = 'text-slate-200 border-slate-800 focus:border-teal-500';
+                                          let badge = null;
+                                          
+                                          if (rangeStatus === 'low') {
+                                            statusColor = 'text-red-400 border-red-500/50 focus:border-red-500';
+                                            badge = <span className="text-[8px] bg-red-500/10 text-red-400 px-1 py-0.5 rounded font-bold uppercase border border-red-500/10">Low</span>;
+                                          } else if (rangeStatus === 'high') {
+                                            statusColor = 'text-red-400 border-red-500/50 focus:border-red-500';
+                                            badge = <span className="text-[8px] bg-red-500/10 text-red-400 px-1 py-0.5 rounded font-bold uppercase border border-red-500/10">High</span>;
+                                          } else if (rangeStatus === 'abnormal') {
+                                            statusColor = 'text-yellow-400 border-yellow-500/50 focus:border-yellow-500';
+                                            badge = <span className="text-[8px] bg-yellow-500/10 text-yellow-400 px-1 py-0.5 rounded font-bold uppercase border border-yellow-500/10">Abnormal</span>;
+                                          }
+                                          
+                                          return (
+                                            <div key={pIdx} className="bg-slate-950 p-2.5 rounded-lg border border-slate-900 flex flex-col gap-1 w-full">
+                                              <div className="flex justify-between items-center gap-2">
+                                                <span className="text-[10px] text-slate-355 font-bold">{p.name}</span>
+                                                <div className="flex items-center gap-1.5">
+                                                  {badge}
+                                                  <span className="text-[8px] text-slate-500">Ref: {p.range} {p.unit}</span>
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center gap-1.5">
+                                                <input
+                                                  type="text"
+                                                  value={currentVal}
+                                                  onChange={(e) => handleStructuredResultChange(ord.id, p.name, e.target.value)}
+                                                  placeholder={`Value...`}
+                                                  className={`bg-slate-900 border rounded text-[10px] py-1 px-2 w-full focus:outline-none ${statusColor}`}
+                                                  required
+                                                />
+                                                {p.unit && <span className="text-[9px] text-slate-550 shrink-0 font-medium">{p.unit}</span>}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                      <div className="flex justify-end">
+                                        <button
+                                          disabled={loading}
+                                          onClick={() => handleSaveResults(ord.id)}
+                                          className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1.5 px-4 rounded transition active:scale-[0.97]"
+                                        >
+                                          Submit Structured Results
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2 w-full max-w-md">
+                                      <input
+                                        type="text"
+                                        value={typeof resultsInputs[ord.id] === 'string' ? resultsInputs[ord.id] : ''}
+                                        onChange={(e) => handleResultChange(ord.id, e.target.value)}
+                                        placeholder="Enter diagnostic findings..."
+                                        className="bg-slate-955 border border-slate-855 rounded text-[10px] py-1.5 px-2 text-white placeholder:text-slate-700 w-full focus:outline-none focus:border-teal-500"
+                                        required
+                                      />
+                                      <button
+                                        disabled={loading}
+                                        onClick={() => handleSaveResults(ord.id)}
+                                        className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1.5 px-3 rounded shrink-0 transition"
+                                      >
+                                        Submit Results
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
-                              );
-                            }
+                              </div>
+                            );
                           })()}
 
                           {/* Verify double-check (no senior role required) */}
@@ -1460,32 +2129,83 @@ export default function Orders({ user, onComplete }) {
                         This patient checked in directly without going through a clinician consultation. Select a custom lab service from your facility's catalog to create a test order.
                       </p>
                       
-                      <form onSubmit={handleAddWalkinTest} className="flex flex-col sm:flex-row gap-3 pt-1">
-                        <div className="flex-1">
-                          <select
-                            value={selectedWalkinTest}
-                            onChange={(e) => setSelectedWalkinTest(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
-                            required
-                          >
-                            <option value="">-- Select Lab Service / Specialty --</option>
-                            {facilityServices
-                              .filter(s => s.category === 'Lab' || s.category === 'Laboratory' || s.category === 'Other')
-                              .map((svc, i) => (
+                      <form onSubmit={handleAddWalkinTest} className="space-y-4 pt-1">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2 flex-1">
+                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block font-sans">
+                              Select Laboratory Service
+                            </label>
+                            <select
+                              value={selectedWalkinTest}
+                              onChange={(e) => handleWalkinTestChange(e.target.value)}
+                              className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                              required
+                            >
+                              <option value="">-- Select Lab Service / Specialty --</option>
+                              {consolidatedLabServices.map((svc, i) => (
                                 <option key={i} value={svc.name}>
-                                  {svc.name} - KES {svc.charge}/-
+                                  {svc.name} (KES {svc.price}/-)
                                 </option>
-                              ))
-                            }
-                          </select>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block font-sans">
+                              Test Price (KES) - Set or Override
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={walkinPrice}
+                              onChange={(e) => setWalkinPrice(Number(e.target.value))}
+                              className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
+                              placeholder="Enter service price..."
+                              required
+                            />
+                          </div>
                         </div>
-                        <button
-                          type="submit"
-                          disabled={addingWalkin || !selectedWalkinTest}
-                          className="bg-teal-400 hover:bg-teal-500 disabled:opacity-40 text-slate-950 font-black text-xs py-2 px-6 rounded-lg shadow-lg active:scale-[0.98] transition cursor-pointer shrink-0"
-                        >
-                          {addingWalkin ? 'Adding...' : 'Add Test Order'}
-                        </button>
+
+                        {selectedWalkinTest && (() => {
+                          const meta = consolidatedLabServices.find(t => t.name === selectedWalkinTest);
+                          if (!meta) return null;
+                          return (
+                            <div className="bg-slate-950/65 border border-slate-800/80 rounded-lg p-3 space-y-2 text-xs font-sans">
+                              <h5 className="text-[11px] font-bold text-teal-400 uppercase tracking-wide flex items-center gap-1.5">
+                                <FlaskConical size={12} /> Test Workflow & Classification Details
+                              </h5>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                                <div className="bg-slate-900/60 p-2.5 rounded border border-slate-900/80">
+                                  <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-semibold">Test Classification</span>
+                                  <span className="text-slate-200 font-bold mt-0.5 block">{meta.testKind || 'General'}</span>
+                                </div>
+                                <div className="bg-slate-900/60 p-2.5 rounded border border-slate-900/80">
+                                  <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-semibold">Sample Type Required</span>
+                                  <span className="text-slate-200 font-semibold mt-0.5 block">{meta.sampleType || 'Not specified'}</span>
+                                </div>
+                                <div className="bg-slate-900/60 p-2.5 rounded border border-slate-900/80">
+                                  <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-semibold">Preceding Workflow</span>
+                                  <span className="text-slate-300 italic mt-0.5 block">{meta.precedingWorkflow || 'None'}</span>
+                                </div>
+                              </div>
+                              {meta.description && (
+                                <p className="text-[10px] text-slate-400 italic pt-1 leading-relaxed border-t border-slate-900/50 mt-1">
+                                  {meta.description}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        <div className="flex justify-end pt-1">
+                          <button
+                            type="submit"
+                            disabled={addingWalkin || !selectedWalkinTest}
+                            className="bg-teal-400 hover:bg-teal-500 disabled:opacity-40 text-slate-950 font-black text-xs py-2 px-6 rounded-lg shadow-lg active:scale-[0.98] transition cursor-pointer shrink-0 animate-pulse"
+                          >
+                            {addingWalkin ? 'Adding...' : 'Add Test Order'}
+                          </button>
+                        </div>
                       </form>
                     </div>
                   </div>

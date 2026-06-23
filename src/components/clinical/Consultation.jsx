@@ -315,6 +315,19 @@ export default function Consultation({ user, onComplete }) {
     }
   };
 
+  const getLabPrice = (testName) => {
+    if (facilityDetails?.services_list) {
+      const matched = facilityDetails.services_list.find(
+        (s) => s.name.toLowerCase() === testName.toLowerCase() && (s.category === "Lab" || s.category === "Laboratory")
+      );
+      if (matched && matched.charge !== undefined) {
+        return matched.charge;
+      }
+    }
+    const testObj = labTestMaster.find((t) => t.name.toLowerCase() === testName.toLowerCase());
+    return testObj ? testObj.price : 0;
+  };
+
   const handlePrintConsultationSummary = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -1235,7 +1248,7 @@ export default function Consultation({ user, onComplete }) {
               type: "lab",
               item_name: testObj.name,
               status: "ordered",
-              price: testObj.price,
+              price: getLabPrice(testObj.name),
             })
           );
         }
@@ -1337,8 +1350,7 @@ export default function Consultation({ user, onComplete }) {
 
       // 5. Generate Billing Invoice automatically if items ordered
       const labBill = orderedLabs.reduce((sum, testName) => {
-        const testObj = labTestMaster.find(t => t.name === testName);
-        return sum + (testObj ? testObj.price : 0);
+        return sum + getLabPrice(testName);
       }, 0);
 
       const radBill = orderedRadiology.reduce((sum, scanName) => {
@@ -2157,7 +2169,7 @@ export default function Consultation({ user, onComplete }) {
                           }}
                           className="accent-teal-500 rounded border-slate-800 bg-slate-950 text-teal-600 focus:ring-teal-500 h-3.5 w-3.5"
                         />
-                        {test.name} ({test.price}/-)
+                        {test.name} (KES {getLabPrice(test.name)}/-)
                       </label>
                     ))}
                   </div>

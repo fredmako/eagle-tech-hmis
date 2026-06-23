@@ -26,6 +26,34 @@ if (isRealSupabase) {
 
 const SANDBOX_DB_PATH = path.join(__dirname, "../sandbox_db.json");
 
+const DEFAULT_LAB_SERVICES = [
+  { name: "Malaria BS/RDT", category: "Lab", charge: 150 },
+  { name: "Full Blood Count (FBC)", category: "Lab", charge: 400 },
+  { name: "Urinalysis Dipstick", category: "Lab", charge: 200 },
+  { name: "Widal Agglutination Test", category: "Lab", charge: 300 },
+  { name: "Blood Sugar (Fasting/Random)", category: "Lab", charge: 150 },
+  { name: "Lipid Profile", category: "Lab", charge: 800 },
+  { name: "H. pylori Stool Antigen", category: "Lab", charge: 500 },
+  { name: "Liver Function Tests (LFT)", category: "Lab", charge: 1200 },
+  { name: "Renal Function Tests (RFT)", category: "Lab", charge: 1200 },
+  { name: "Blood Grouping & Rh", category: "Lab", charge: 250 },
+  { name: "HIV 1/2 Screening Test", category: "Lab", charge: 200 },
+  { name: "Syphilis VDRL / RPR", category: "Lab", charge: 250 },
+  { name: "HBsAg (Hepatitis B)", category: "Lab", charge: 350 },
+  { name: "HCV Ab (Hepatitis C)", category: "Lab", charge: 400 },
+  { name: "Serum Pregnancy (hCG)", category: "Lab", charge: 450 },
+  { name: "Thyroid Profile (TSH Only)", category: "Lab", charge: 1000 },
+  { name: "PSA (Prostate Specific Antigen)", category: "Lab", charge: 1500 },
+  { name: "Glycated Hemoglobin (HbA1c)", category: "Lab", charge: 1200 },
+  { name: "Serum Uric Acid", category: "Lab", charge: 400 },
+  { name: "ESR (Erythrocyte Sedimentation Rate)", category: "Lab", charge: 300 },
+  { name: "Stool Microscopy", category: "Lab", charge: 250 },
+  { name: "Sputum GeneXpert (TB PCR)", category: "Lab", charge: 2500 },
+  { name: "Brucella Slide Antigen", category: "Lab", charge: 350 },
+  { name: "Typhoid Antigen Test", category: "Lab", charge: 400 },
+  { name: "High Vaginal Swab (HVS) Wet Mount", category: "Lab", charge: 300 }
+];
+
 const getInitialSandboxData = () => {
   // Hash for 'password123'
   const defaultHash =
@@ -39,20 +67,23 @@ const getInitialSandboxData = () => {
         logo_url: "preset:shield",
         address: "Nairobi, Kenya",
         is_verified: true,
-        stripe_publishable_key: "",
-        stripe_secret_key: "",
+        stripe_publishable_key: process.env.STRIPE_PUBLISHABLE_KEY || "",
+        stripe_secret_key: process.env.STRIPE_SECRET_KEY || "",
         paypal_client_id: "",
         paypal_client_secret: "",
         whatsapp_number: "254712345678",
         whatsapp_welcome_message: "Hello, welcome to Eagle Tech Medical Clinic!",
         subdomain_prefix: "egesa-medical",
         about_us: "Eagle Tech Medical Clinic is Nairobi's leading family medical center offering out-patient care, laboratory tests, immunization schedules, and minor theatre surgeries.",
+        custom_domain: "",
+        domain_status: "pending",
         services_list: [
           { name: "General Outpatient Consultation", category: "Consultation", charge: 1000 },
           { name: "Comprehensive Lab Panel", category: "Lab", charge: 3500 },
           { name: "Pediatric Vaccination Package", category: "Immunization", charge: 1500 },
           { name: "Standard ANC Antenatal Care Checkup", category: "ANC", charge: 2000 },
-          { name: "Inpatient Admission Ward Bed (Daily)", category: "Ward", charge: 4000 }
+          { name: "Inpatient Admission Ward Bed (Daily)", category: "Ward", charge: 4000 },
+          ...DEFAULT_LAB_SERVICES
         ]
       },
       {
@@ -62,18 +93,21 @@ const getInitialSandboxData = () => {
         logo_url: "preset:cross",
         address: "Mombasa, Kenya",
         is_verified: true,
-        stripe_publishable_key: "",
-        stripe_secret_key: "",
+        stripe_publishable_key: process.env.STRIPE_PUBLISHABLE_KEY || "",
+        stripe_secret_key: process.env.STRIPE_SECRET_KEY || "",
         paypal_client_id: "",
         paypal_client_secret: "",
         whatsapp_number: "254722334455",
         whatsapp_welcome_message: "Hello, welcome to Meso Referral Hospital!",
         subdomain_prefix: "meso-hospital",
         about_us: "Meso Referral Hospital is Mombasa's primary diagnostic referral center.",
+        custom_domain: "",
+        domain_status: "pending",
         services_list: [
           { name: "Specialist Consultation", category: "Consultation", charge: 2500 },
           { name: "CT Scan / MRI Panel", category: "Radiology", charge: 12000 },
-          { name: "ICU Admission Ward Bed (Daily)", category: "Ward", charge: 15000 }
+          { name: "ICU Admission Ward Bed (Daily)", category: "Ward", charge: 15000 },
+          ...DEFAULT_LAB_SERVICES
         ]
       },
     ],
@@ -295,7 +329,11 @@ const getInitialSandboxData = () => {
       { id: "inst_thermometer", facility_id: "f1", name: "Cold Chain Logger Thermometer", type: "thermometer", category: "immunization", manufacturer: "LogTag", model: "UTRED30-16", serial_number: "THERM-LT-948302", installation_date: "2025-11-05", calibration_date: "2026-05-01", next_calibration_date: "2026-11-01", location_ward: "Cold Chain Fridge", status: "active", usage_count: 0 },
       { id: "inst_defibrillator", facility_id: "f1", name: "Emergency Defibrillator", type: "defibrillator", category: "emergency", manufacturer: "ZOLL Medical", model: "AED Plus", serial_number: "DEFIB-ZOLL-840291", installation_date: "2025-04-12", calibration_date: "2026-04-12", next_calibration_date: "2026-10-12", location_ward: "ER Room", status: "active", usage_count: 0 },
       { id: "inst_monitor", facility_id: "f1", name: "Patient Monitor Vitals", type: "monitor", category: "triage", manufacturer: "Mindray", model: "ePM 10", serial_number: "MON-MIND-928318", installation_date: "2025-03-15", calibration_date: "2026-03-01", next_calibration_date: "2026-09-01", location_ward: "ER Triage", status: "active", usage_count: 0 },
-      { id: "inst_pump", facility_id: "f1", name: "IV Infusion Pump", type: "pump", category: "ward", manufacturer: "Baxter", model: "Flo-Gard", serial_number: "PUMP-BAX-493021", installation_date: "2025-07-22", calibration_date: "2026-02-18", next_calibration_date: "2026-08-18", location_ward: "Ward A", status: "active", usage_count: 0 }
+      { id: "inst_pump", facility_id: "f1", name: "IV Infusion Pump", type: "pump", category: "ward", manufacturer: "Baxter", model: "Flo-Gard", serial_number: "PUMP-BAX-493021", installation_date: "2025-07-22", calibration_date: "2026-02-18", next_calibration_date: "2026-08-18", location_ward: "Ward A", status: "active", usage_count: 0 },
+      { id: "inst_hematology", facility_id: "f1", name: "Mindray BC-5300 Hematology Analyzer", type: "analyzer", category: "lab", manufacturer: "Mindray", model: "BC-5300", serial_number: "LAB-HEM-503921", installation_date: "2025-04-20", calibration_date: "2026-02-10", next_calibration_date: "2026-08-10", location_ward: "Laboratory", status: "active", usage_count: 0 },
+      { id: "inst_biochemistry", facility_id: "f1", name: "Roche Cobas c311 Chemistry Analyzer", type: "analyzer", category: "lab", manufacturer: "Roche", model: "Cobas c311", serial_number: "LAB-CHEM-839201", installation_date: "2025-09-01", calibration_date: "2026-03-01", next_calibration_date: "2026-09-01", location_ward: "Laboratory", status: "active", usage_count: 0 },
+      { id: "inst_radiology", facility_id: "f1", name: "GE Healthcare Digital X-Ray", type: "xray", category: "radiology", manufacturer: "GE Healthcare", model: "Brivo DR-F", serial_number: "RAD-XRAY-392018", installation_date: "2025-06-15", calibration_date: "2026-01-15", next_calibration_date: "2026-07-15", location_ward: "Radiology Wing", status: "active", usage_count: 0 },
+      { id: "inst_ultrasound_rad", facility_id: "f1", name: "Mindray DC-70 Ultrasound Modality", type: "ultrasound", category: "radiology", manufacturer: "Mindray", model: "DC-70", serial_number: "RAD-US-849201", installation_date: "2025-08-10", calibration_date: "2026-04-10", next_calibration_date: "2026-10-10", location_ward: "Radiology Wing", status: "active", usage_count: 0 }
     ],
     instrument_usage_logs: [],
     inventory_items: [
@@ -453,6 +491,24 @@ const loadSandboxDB = () => {
       const initial = getInitialSandboxData();
       data.facilities = initial.facilities;
       updated = true;
+    } else {
+      // Ensure DEFAULT_LAB_SERVICES are present in all existing facilities
+      data.facilities.forEach(fac => {
+        if (!fac.services_list) {
+          fac.services_list = [];
+        }
+        let facilityUpdated = false;
+        DEFAULT_LAB_SERVICES.forEach(svc => {
+          const exists = fac.services_list.some(s => s.name.toLowerCase() === svc.name.toLowerCase());
+          if (!exists) {
+            fac.services_list.push(svc);
+            facilityUpdated = true;
+          }
+        });
+        if (facilityUpdated) {
+          updated = true;
+        }
+      });
     }
 
     if (!data.wards) {

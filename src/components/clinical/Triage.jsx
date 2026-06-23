@@ -26,11 +26,166 @@ export default function Triage({ user, onComplete }) {
   const [message, setMessage] = useState({ type: '', text: '' });
 
   // ETAT+ Triage & ABC Checklist States
+  const [captureMethod, setCaptureMethod] = useState('manual'); // 'manual' | 'device'
   const [airwayStatus, setAirwayStatus] = useState('clear');
   const [breathingStatus, setBreathingStatus] = useState('normal');
   const [circulationStatus, setCirculationStatus] = useState('normal');
   const [consciousnessLevel, setConsciousnessLevel] = useState('alert');
   const [boundInstrumentId, setBoundInstrumentId] = useState('');
+  const [deviceConnected, setDeviceConnected] = useState(false);
+  const [serialLog, setSerialLog] = useState([]);
+  const [activePort, setActivePort] = useState(null);
+  const [simulationMode, setSimulationMode] = useState(true);
+  const [readingLoop, setReadingLoop] = useState(null);
+
+  const handleConnectDevice = async () => {
+    setMessage({ type: '', text: '' });
+    if (simulationMode) {
+      setDeviceConnected(true);
+      setSerialLog(prev => [...prev, `[SIMULATOR] Connecting to Mindray ePM 10...`, `[SIMULATOR] Connected successfully! Listening to stream...`]);
+      
+      if (readingLoop) clearInterval(readingLoop);
+      const interval = setInterval(() => {
+        const sysVal = Math.floor(Math.random() * (135 - 110 + 1)) + 110;
+        const diaVal = Math.floor(Math.random() * (85 - 70 + 1)) + 70;
+        const hrVal = Math.floor(Math.random() * (90 - 65 + 1)) + 65;
+        const spo2Val = Math.floor(Math.random() * (100 - 95 + 1)) + 95;
+        const tempVal = (Math.random() * (37.2 - 36.2) + 36.2).toFixed(1);
+        
+        const rawLine = `[RAW] NIBP: ${sysVal}/${diaVal} mmHg; SPO2: ${spo2Val}%; HR: ${hrVal} bpm; TEMP: ${tempVal} C`;
+        setSerialLog(prev => {
+          const updated = [...prev, rawLine];
+          return updated.slice(-8);
+        });
+      }, 3000);
+      setReadingLoop(interval);
+      return;
+    }
+
+    if (!navigator.serial) {
+      setMessage({ type: 'error', text: 'WebSerial API is not supported in this browser. Please use Simulation Mode.' });
+      return;
+    }
+
+    try {
+      const port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 9600 });
+      setActivePort(port);
+      setDeviceConnected(true);
+      setSerialLog(prev => [...prev, `[SERIAL] Connected to port. Reading data...`]);
+
+      const textDecoder = new TextDecoderStream();
+      const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+      const reader = textDecoder.readable.getReader();
+
+      const readStream = async () => {
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) {
+              break;
+            }
+            if (value) {
+              setSerialLog(prev => {
+                const updated = [...prev, `[RAW] ${value.trim()}`];
+                return updated.slice(-8);
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Serial read loop error:", err);
+        } finally {
+          reader.releaseLock();
+        }
+      };
+
+      readStream();
+    } catch (err) {
+      console.error("WebSerial connection error:", err);
+      setMessage({ type: 'error', text: `Failed to connect: ${err.message}` });
+    }
+  };
+
+  const handleDisconnectDevice = () => {
+    if (readingLoop) {
+      clearInterval(readingLoop);
+      setReadingLoop(null);
+    }
+    if (activePort) {
+      try {
+        activePort.close();
+      } catch (err) {
+        console.error(err);
+      }
+      setActivePort(null);
+    }
+    setDeviceConnected(false);
+    setSerialLog([]);
+  };
+
+  const handleCaptureVitals = () => {
+    if (serialLog.length === 0) {
+      setMessage({ type: 'error', text: 'No device data stream detected yet.' });
+      return;
+    }
+
+    let matchedLine = null;
+    for (let i = serialLog.length - 1; i >= 0; i--) {
+      const line = serialLog[i];
+      if (line.includes('NIBP') || line.includes('SPO2') || line.includes('HR') || line.includes('TEMP')) {
+        matchedLine = line;
+        break;
+      }
+    }
+
+    if (!matchedLine) {
+      setMessage({ type: 'error', text: 'Could not find valid vital parameters in the stream log.' });
+      return;
+    }
+
+    try {
+      const nibpMatch = matchedLine.match(/NIBP:\s*(\d+)\/(\d+)/i);
+      const spo2Match = matchedLine.match(/SPO2:\s*(\d+)/i);
+      const hrMatch = matchedLine.match(/HR:\s*(\d+)/i);
+      const tempMatch = matchedLine.match(/TEMP:\s*([\d.]+)/i);
+
+      let parsedSys = '';
+      let parsedDia = '';
+      let parsedSpO2 = '';
+      let parsedHR = '';
+      let parsedTemp = '';
+
+      if (nibpMatch) {
+        parsedSys = nibpMatch[1];
+        parsedDia = nibpMatch[2];
+        setSystolic(parsedSys);
+        setDiastolic(parsedDia);
+      }
+      if (spo2Match) {
+        parsedSpO2 = spo2Match[1];
+        setSpo2(parsedSpO2);
+      }
+      if (hrMatch) {
+        parsedHR = hrMatch[1];
+        setHeartRate(parsedHR);
+      }
+      if (tempMatch) {
+        parsedTemp = tempMatch[1];
+        setTemp(parsedTemp);
+      }
+
+      setMessage({ type: 'success', text: `Captured vitals from instrument: BP ${parsedSys}/${parsedDia}, SpO2 ${parsedSpO2}%, HR ${parsedHR} bpm, Temp ${parsedTemp}°C` });
+    } catch (err) {
+      console.error("Vitals capture parsing failed:", err);
+      setMessage({ type: 'error', text: 'Failed to parse vitals from data stream.' });
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (readingLoop) clearInterval(readingLoop);
+    };
+  }, [readingLoop]);
 
   // Auto evaluate ETAT+ priority flag
   useEffect(() => {
@@ -439,13 +594,130 @@ export default function Triage({ user, onComplete }) {
                 </div>
               </div>
 
-              {/* Instrument Tracker */}
-              <InstrumentTracker
-                category="triage"
-                selectedId={boundInstrumentId}
-                onSelect={(id) => setBoundInstrumentId(id)}
-                measurementType="vitals_monitoring"
-              />
+              <div className="bg-slate-950/40 border border-slate-850/60 rounded-xl p-3.5 space-y-3">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vitals Data Entry Method</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCaptureMethod('manual')}
+                    className={`flex-1 py-1.5 px-3 text-xs font-bold rounded-lg border transition ${
+                      captureMethod === 'manual'
+                        ? 'bg-teal-500/10 border-teal-500/40 text-teal-400'
+                        : 'bg-slate-950 border-slate-900 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Manual Keyboard Entry
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCaptureMethod('device')}
+                    className={`flex-1 py-1.5 px-3 text-xs font-bold rounded-lg border transition ${
+                      captureMethod === 'device'
+                        ? 'bg-teal-500/10 border-teal-500/40 text-teal-400'
+                        : 'bg-slate-950 border-slate-900 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Automatic Device Sync
+                  </button>
+                </div>
+              </div>
+
+              {captureMethod === 'manual' ? (
+                <div className="bg-slate-950/20 border border-slate-900/60 p-3.5 rounded-xl text-slate-400 text-xs flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-teal-450 animate-pulse" />
+                  <span>Manual mode active. Fill in patient vitals directly using your keyboard.</span>
+                </div>
+              ) : (
+                <>
+                  <InstrumentTracker
+                    category="triage"
+                    selectedId={boundInstrumentId}
+                    onSelect={(id) => setBoundInstrumentId(id)}
+                    measurementType="vitals_monitoring"
+                  />
+
+                  {boundInstrumentId && (
+                    <div className="bg-slate-950/65 border border-slate-800/80 p-4 rounded-xl space-y-3 shadow-md font-sans">
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-900">
+                        <span className="text-[10px] font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5">
+                          <Zap size={12} className="text-teal-400" /> Device Connection & Capture Console
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <label className="text-[10px] text-slate-500 flex items-center gap-1 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={simulationMode}
+                              onChange={(e) => {
+                                handleDisconnectDevice();
+                                setSimulationMode(e.target.checked);
+                              }}
+                              className="accent-teal-500 rounded bg-slate-950 border-slate-800 h-3 w-3"
+                            />
+                            Simulation Mode (Virtual)
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-3 items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2.5 w-2.5 rounded-full ${deviceConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                          <span className="text-xs text-slate-300">
+                            {deviceConnected 
+                              ? `Connected (${simulationMode ? 'Virtual Instrument' : 'USB Serial Device'})` 
+                              : 'Disconnected'}
+                          </span>
+                        </div>
+
+                        <div className="flex gap-2">
+                          {!deviceConnected ? (
+                            <button
+                              type="button"
+                              onClick={handleConnectDevice}
+                              className="bg-teal-400 hover:bg-teal-500 text-slate-950 font-black text-[10px] py-1.5 px-4 rounded-lg shadow-md transition active:scale-[0.98] cursor-pointer"
+                            >
+                              Pair & Connect
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={handleCaptureVitals}
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[10px] py-1.5 px-4 rounded-lg shadow-md transition active:scale-[0.98] animate-pulse flex items-center gap-1 cursor-pointer"
+                              >
+                                <Zap size={11} /> Capture Vitals
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleDisconnectDevice}
+                                className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 font-bold text-[10px] py-1.5 px-3 rounded-lg transition active:scale-[0.98] cursor-pointer"
+                              >
+                                Disconnect
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {deviceConnected && (
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-slate-500 uppercase tracking-wider block font-bold">Raw Data Stream Monitor</span>
+                          <div className="bg-slate-955 border border-slate-900 rounded-lg p-2.5 font-mono text-[9px] text-slate-400 min-h-[60px] max-h-[100px] overflow-y-auto space-y-0.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                            {serialLog.length === 0 ? (
+                              <span className="text-slate-600 italic">Waiting for incoming data...</span>
+                            ) : (
+                              serialLog.map((log, idx) => (
+                                <div key={idx} className={log.includes('[RAW]') ? 'text-teal-400 font-bold' : 'text-slate-550'}>
+                                  {log}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
 
               {/* Form Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

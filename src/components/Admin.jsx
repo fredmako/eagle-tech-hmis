@@ -137,6 +137,7 @@ export default function Admin({ user }) {
   // Custom Domain/Subdomain states
   const [customSubdomain, setCustomSubdomain] = useState(localStorage.getItem(`egesa_subdomain_${user.facility_id}`) || '');
   const [customDomain, setCustomDomain] = useState(localStorage.getItem(`egesa_custom_domain_${user.facility_id}`) || '');
+  const [domainStatus, setDomainStatus] = useState('pending');
   const [savingDomain, setSavingDomain] = useState(false);
   const [domainMessage, setDomainMessage] = useState({ type: '', text: '' });
 
@@ -196,6 +197,10 @@ export default function Admin({ user }) {
           setLogoOption('custom');
           setCustomLogoUrl(logo);
         }
+
+        setCustomSubdomain(activeFac.subdomain_prefix || '');
+        setCustomDomain(activeFac.custom_domain || '');
+        setDomainStatus(activeFac.domain_status || 'pending');
       }
 
       // Fetch role requests for this facility from backend
@@ -791,22 +796,120 @@ export default function Admin({ user }) {
     e.preventDefault();
     setSavingDomain(true);
     setDomainMessage({ type: '', text: '' });
+    
     try {
-      localStorage.setItem(`egesa_subdomain_${user.facility_id}`, customSubdomain.trim());
-      localStorage.setItem(`egesa_custom_domain_${user.facility_id}`, customDomain.trim());
+      const cleanSubdomain = customSubdomain.trim().toLowerCase().replace(/[^a-z0-9\-]/g, '');
+      const cleanDomain = customDomain.trim().toLowerCase().replace(/[^a-z0-9.-]/g, '');
       
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+      // 1. Save subdomain prefix to facilities table via DB Proxy
+      const resSub = await fetch(`${apiBase}/db/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          table: 'facilities',
+          column: 'id',
+          value: user.facility_id,
+          values: { subdomain_prefix: cleanSubdomain }
+        })
+      });
+
+      if (!resSub.ok) {
+        const errorData = await resSub.json();
+        throw new Error(errorData.error || 'Failed to update subdomain prefix.');
+      }
+
+      localStorage.setItem(`egesa_subdomain_${user.facility_id}`, cleanSubdomain);
+
+      // 2. If custom domain is set, configure it programmatically via backend domains router
+      if (cleanDomain) {
+        const resDom = await fetch(`${apiBase}/domains/add`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            domain: cleanDomain,
+            facilityId: user.facility_id
+          })
+        });
+
+        if (!resDom.ok) {
+          const errorData = await resDom.json();
+          throw new Error(errorData.error || 'Failed to register custom domain with Vercel.');
+        }
+
+        localStorage.setItem(`egesa_custom_domain_${user.facility_id}`, cleanDomain);
+      } else {
+        // Clear custom domain on backend if user empties the field
+        const resDomClear = await fetch(`${apiBase}/db/update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            table: 'facilities',
+            column: 'id',
+            value: user.facility_id,
+            values: { custom_domain: '', domain_status: 'pending' }
+          })
+        });
+        if (!resDomClear.ok) {
+          const errorData = await resDomClear.json();
+          throw new Error(errorData.error || 'Failed to clear custom domain settings.');
+        }
+        localStorage.removeItem(`egesa_custom_domain_${user.facility_id}`);
+      }
+
       // Log event in audit trail
       await supabase.from('audit_logs').insert({
         facility_id: user.facility_id,
         user_id: user.id,
         action: 'Custom Domain Updated',
-        details: `Subdomain prefix set to: ${customSubdomain.trim()}, Custom domain set to: ${customDomain.trim()}`
+        details: `Subdomain prefix set to: ${cleanSubdomain}, Custom domain set to: ${cleanDomain || 'None'}`
       });
 
-      setDomainMessage({ type: 'success', text: 'Hospital subdomain & outbound configurations saved successfully!' });
-      fetchAdminData();
+      setDomainMessage({ type: 'success', text: 'Hospital subdomain & custom domain saved successfully!' });
+      await fetchAdminData();
     } catch (err) {
+      console.error('Save domain settings failed:', err);
       setDomainMessage({ type: 'error', text: err.message || 'Failed to save domain configuration.' });
+    } finally {
+      setSavingDomain(false);
+    }
+  };
+
+  const handleVerifyDomainStatus = async () => {
+    if (!customDomain) return;
+    setSavingDomain(true);
+    setDomainMessage({ type: '', text: '' });
+    try {
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiBase}/domains/status?domain=${customDomain.trim()}&facilityId=${user.facility_id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Verification query failed.');
+
+      if (data.verified) {
+        setDomainMessage({ type: 'success', text: 'DNS configurations are verified! Custom domain is live.' });
+      } else {
+        setDomainMessage({ type: 'error', text: 'Domain configuration verification is still pending. Please verify CNAME/A records.' });
+      }
+      await fetchAdminData();
+    } catch (err) {
+      console.error('Verify domain status failed:', err);
+      setDomainMessage({ type: 'error', text: err.message || 'Failed to verify DNS.' });
     } finally {
       setSavingDomain(false);
     }
@@ -1565,7 +1668,7 @@ export default function Admin({ user }) {
               )}
 
               <form onSubmit={handleSaveDomain} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-sans">
                       Preferred Subdomain Prefix
@@ -1579,16 +1682,27 @@ export default function Admin({ user }) {
                         className="flex-1 bg-transparent py-2 px-3 text-xs text-slate-100 focus:outline-none font-mono"
                       />
                       <span className="bg-slate-900 px-3 py-2 text-xs text-slate-550 border-l border-slate-800 select-none font-mono">
-                        .egatechsolutions.tech
+                        .eagletechsolutions.tech
                       </span>
                     </div>
                     <p className="text-[9px] text-slate-500 mt-1 font-sans">Only lower-case letters, numbers, and hyphens are supported.</p>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-sans">
-                      Custom Outer Domain (Optional)
-                    </label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-sans">
+                        Custom Outer Domain (Optional)
+                      </label>
+                      {customDomain && (
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                          domainStatus === 'active' 
+                            ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' 
+                            : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400'
+                        }`}>
+                          {domainStatus === 'active' ? 'Verified & Active' : 'Verification Pending'}
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="text"
                       value={customDomain}
@@ -1601,12 +1715,22 @@ export default function Admin({ user }) {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-2">
+                  {customDomain && (
+                    <button
+                      type="button"
+                      onClick={handleVerifyDomainStatus}
+                      disabled={savingDomain}
+                      className="bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 font-bold text-xs py-2 px-5 rounded-lg transition active:scale-[0.98] cursor-pointer font-sans animate-pulse"
+                    >
+                      Verify DNS Status
+                    </button>
+                  )}
                   <button
                     type="submit"
                     disabled={savingDomain}
                     className="bg-teal-500 hover:bg-teal-600 text-slate-955 font-bold text-xs py-2 px-5 rounded-lg shadow-md transition active:scale-[0.98] cursor-pointer font-sans"
                   >
-                    {savingDomain ? 'Saving Subdomain...' : 'Save Domain Settings'}
+                    {savingDomain ? 'Saving Settings...' : 'Save Domain Settings'}
                   </button>
                 </div>
               </form>
@@ -1620,7 +1744,7 @@ export default function Admin({ user }) {
                 </div>
                 
                 <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
-                  To map your workspace subdomain or custom domain context dynamically, sign in to your DNS registrar account (e.g. GoDaddy, Cloudflare, DigitalOcean) and add the following CNAME configuration record:
+                  To point your subdomain or custom domain to your Eagle Tech portal, sign in to your DNS provider control panel and configure the following DNS records:
                 </p>
 
                 <div className="overflow-x-auto border border-slate-900 rounded-lg">
@@ -1639,15 +1763,21 @@ export default function Admin({ user }) {
                         <td className="py-2 px-2.5 text-teal-500">
                           {customSubdomain || 'egesamedicalclinic'}
                         </td>
-                        <td className="py-2 px-2.5">egatechsolutions.tech</td>
-                        <td className="py-2 px-2.5 text-center text-green-400 font-bold">● Propagation Active</td>
+                        <td className="py-2 px-2.5">cname.vercel-dns.com</td>
+                        <td className="py-2 px-2.5 text-center text-green-400 font-bold">● Active (Wildcard Routing)</td>
                       </tr>
                       {customDomain && (
                         <tr>
-                          <td className="py-2 px-2.5 text-slate-300">CNAME</td>
-                          <td className="py-2 px-2.5 text-teal-500">www</td>
-                          <td className="py-2 px-2.5">egatechsolutions.tech</td>
-                          <td className="py-2 px-2.5 text-center text-green-400 font-bold">● Propagation Active</td>
+                          <td className="py-2 px-2.5 text-slate-300">A Record</td>
+                          <td className="py-2 px-2.5 text-teal-500">@</td>
+                          <td className="py-2 px-2.5">76.76.21.21</td>
+                          <td className="py-2 px-2.5 text-center font-bold">
+                            {domainStatus === 'active' ? (
+                              <span className="text-green-400">● Verified</span>
+                            ) : (
+                              <span className="text-yellow-400">● Pending DNS Check</span>
+                            )}
+                          </td>
                         </tr>
                       )}
                     </tbody>

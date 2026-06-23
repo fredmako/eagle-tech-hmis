@@ -580,7 +580,9 @@ export const labTestMaster = [
       { name: "Rapid Test (RDT)", unit: "", range: "Negative" },
       { name: "Blood Smear (BS)", unit: "/µL", range: "No parasites seen" }
     ],
-    sampleType: "Whole Blood (EDTA / Capillary)"
+    sampleType: "Whole Blood (EDTA / Capillary)",
+    precedingWorkflow: "Capillary finger prick or Phlebotomy",
+    testKind: "Parasitology"
   },
   {
     id: "lab_2",
@@ -592,7 +594,9 @@ export const labTestMaster = [
       { name: "White Blood Cells (WBC)", unit: "x10^9/L", range: "4.0 - 11.0" },
       { name: "Platelets", unit: "x10^9/L", range: "150 - 450" }
     ],
-    sampleType: "Whole Blood (EDTA)"
+    sampleType: "Whole Blood (EDTA)",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Hematology"
   },
   {
     id: "lab_3",
@@ -605,7 +609,9 @@ export const labTestMaster = [
       { name: "Leukocytes", unit: "", range: "Negative" },
       { name: "Nitrites", unit: "", range: "Negative" }
     ],
-    sampleType: "Urine (Mid-stream)"
+    sampleType: "Urine (Mid-stream)",
+    precedingWorkflow: "Urine sample container collection",
+    testKind: "Urinalysis"
   },
   {
     id: "lab_4",
@@ -616,7 +622,9 @@ export const labTestMaster = [
       { name: "Salmonella typhi 'O' Antigen", unit: "Titre", range: "< 1:80" },
       { name: "Salmonella typhi 'H' Antigen", unit: "Titre", range: "< 1:80" }
     ],
-    sampleType: "Serum"
+    sampleType: "Serum",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Serology"
   },
   {
     id: "lab_5",
@@ -626,7 +634,9 @@ export const labTestMaster = [
     parameters: [
       { name: "Glucose Concentration", unit: "mmol/L", range: "4.0 - 7.0 (Fasting)" }
     ],
-    sampleType: "Whole Blood (Fluoride Oxalate)"
+    sampleType: "Whole Blood (Fluoride Oxalate)",
+    precedingWorkflow: "Capillary finger prick or Phlebotomy",
+    testKind: "Biochemistry"
   },
   {
     id: "lab_6",
@@ -639,7 +649,9 @@ export const labTestMaster = [
       { name: "HDL Cholesterol", unit: "mmol/L", range: "> 1.0" },
       { name: "LDL Cholesterol", unit: "mmol/L", range: "< 3.0" }
     ],
-    sampleType: "Serum"
+    sampleType: "Serum",
+    precedingWorkflow: "Phlebotomy / Venous blood draw (12-hour Fasting)",
+    testKind: "Biochemistry"
   },
   {
     id: "lab_7",
@@ -649,7 +661,243 @@ export const labTestMaster = [
     parameters: [
       { name: "H. pylori Antigen", unit: "", range: "Negative" }
     ],
-    sampleType: "Stool"
+    sampleType: "Stool",
+    precedingWorkflow: "Stool specimen container collection",
+    testKind: "Serology"
+  },
+  {
+    id: "lab_8",
+    name: "Liver Function Tests (LFT)",
+    description: "Evaluates enzymes and proteins produced by the liver.",
+    price: 1200,
+    parameters: [
+      { name: "Total Bilirubin", unit: "µmol/L", range: "3.4 - 20.5" },
+      { name: "ALT (SGPT)", unit: "U/L", range: "7 - 56" },
+      { name: "AST (SGOT)", unit: "U/L", range: "10 - 40" },
+      { name: "Alkaline Phosphatase (ALP)", unit: "U/L", range: "44 - 147" },
+      { name: "Total Protein", unit: "g/L", range: "60 - 80" },
+      { name: "Albumin", unit: "g/L", range: "35 - 50" }
+    ],
+    sampleType: "Serum",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Biochemistry"
+  },
+  {
+    id: "lab_9",
+    name: "Renal Function Tests (RFT)",
+    description: "Measures urea, creatinine, and electrolytes to assess kidney health.",
+    price: 1200,
+    parameters: [
+      { name: "Urea", unit: "mmol/L", range: "2.5 - 7.8" },
+      { name: "Creatinine", unit: "µmol/L", range: "53 - 115" },
+      { name: "Sodium (Na+)", unit: "mmol/L", range: "135 - 145" },
+      { name: "Potassium (K+)", unit: "mmol/L", range: "3.5 - 5.0" },
+      { name: "Chloride (Cl-)", unit: "mmol/L", range: "98 - 107" }
+    ],
+    sampleType: "Serum",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Biochemistry"
+  },
+  {
+    id: "lab_10",
+    name: "Blood Grouping & Rh",
+    description: "Determines ABO blood group and Rhesus factor type.",
+    price: 250,
+    parameters: [
+      { name: "ABO Group", unit: "", range: "A, B, AB, or O" },
+      { name: "Rhesus Factor", unit: "", range: "Positive or Negative" }
+    ],
+    sampleType: "Whole Blood (EDTA)",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Hematology"
+  },
+  {
+    id: "lab_11",
+    name: "HIV 1/2 Screening Test",
+    description: "Rapid immunochromatographic screening for HIV 1 and HIV 2 antibodies.",
+    price: 200,
+    parameters: [
+      { name: "HIV 1/2 Antibody", unit: "", range: "Negative" }
+    ],
+    sampleType: "Whole Blood / Serum",
+    precedingWorkflow: "Phlebotomy / Capillary finger prick",
+    testKind: "Serology"
+  },
+  {
+    id: "lab_12",
+    name: "Syphilis VDRL / RPR",
+    description: "Nonspecific screening test for Syphilis antibodies.",
+    price: 250,
+    parameters: [
+      { name: "VDRL Titre", unit: "Ratio", range: "Non-reactive" }
+    ],
+    sampleType: "Serum",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Serology"
+  },
+  {
+    id: "lab_13",
+    name: "HBsAg (Hepatitis B)",
+    description: "Rapid screening for Hepatitis B Virus Surface Antigen.",
+    price: 350,
+    parameters: [
+      { name: "HBsAg", unit: "", range: "Negative" }
+    ],
+    sampleType: "Serum",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Serology"
+  },
+  {
+    id: "lab_14",
+    name: "HCV Ab (Hepatitis C)",
+    description: "Screening for Hepatitis C Virus Antibodies.",
+    price: 400,
+    parameters: [
+      { name: "HCV Antibody", unit: "", range: "Negative" }
+    ],
+    sampleType: "Serum",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Serology"
+  },
+  {
+    id: "lab_15",
+    name: "Serum Pregnancy (hCG)",
+    description: "Quantitative beta-hCG test for pregnancy confirmation.",
+    price: 450,
+    parameters: [
+      { name: "Beta-hCG", unit: "mIU/mL", range: "< 5.0 (Negative)" }
+    ],
+    sampleType: "Serum",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Serology"
+  },
+  {
+    id: "lab_16",
+    name: "Thyroid Profile (TSH Only)",
+    description: "Measures Thyroid Stimulating Hormone level in blood.",
+    price: 1000,
+    parameters: [
+      { name: "TSH Level", unit: "µIU/mL", range: "0.4 - 4.5" }
+    ],
+    sampleType: "Serum",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Biochemistry"
+  },
+  {
+    id: "lab_17",
+    name: "PSA (Prostate Specific Antigen)",
+    description: "Screening for prostate health and marker evaluation.",
+    price: 1500,
+    parameters: [
+      { name: "Total PSA", unit: "ng/mL", range: "< 4.0" }
+    ],
+    sampleType: "Serum",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Biochemistry"
+  },
+  {
+    id: "lab_18",
+    name: "Glycated Hemoglobin (HbA1c)",
+    description: "Measures average blood sugar levels over the past 3 months.",
+    price: 1200,
+    parameters: [
+      { name: "HbA1c", unit: "%", range: "4.0 - 5.6" }
+    ],
+    sampleType: "Whole Blood (EDTA)",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Biochemistry"
+  },
+  {
+    id: "lab_19",
+    name: "Serum Uric Acid",
+    description: "Measures uric acid to evaluate for gout or kidney stones.",
+    price: 400,
+    parameters: [
+      { name: "Uric Acid", unit: "µmol/L", range: "140 - 430" }
+    ],
+    sampleType: "Serum",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Biochemistry"
+  },
+  {
+    id: "lab_20",
+    name: "ESR (Erythrocyte Sedimentation Rate)",
+    description: "Measures red blood cell sedimentation rate to evaluate systemic inflammation.",
+    price: 300,
+    parameters: [
+      { name: "ESR Rate", unit: "mm/hr", range: "0 - 15" }
+    ],
+    sampleType: "Whole Blood (Sodium Citrate)",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Hematology"
+  },
+  {
+    id: "lab_21",
+    name: "Stool Microscopy",
+    description: "Wet mount analysis of stool specimen for ova, cysts, and cells.",
+    price: 250,
+    parameters: [
+      { name: "Ova & Parasites", unit: "", range: "None seen" },
+      { name: "Protozoa Cysts", unit: "", range: "None seen" },
+      { name: "Red Blood Cells", unit: "/HPF", range: "0 - 2" },
+      { name: "Pus Cells", unit: "/HPF", range: "0 - 5" }
+    ],
+    sampleType: "Stool",
+    precedingWorkflow: "Stool specimen container collection",
+    testKind: "Parasitology"
+  },
+  {
+    id: "lab_22",
+    name: "Sputum GeneXpert (TB PCR)",
+    description: "PCR amplification test to detect Mycobacterium tuberculosis and Rifampicin resistance.",
+    price: 2500,
+    parameters: [
+      { name: "TB DNA Detection", unit: "", range: "Negative" },
+      { name: "Rifampicin Resistance", unit: "", range: "Not detected" }
+    ],
+    sampleType: "Sputum",
+    precedingWorkflow: "Sputum specimen container collection",
+    testKind: "Microbiology"
+  },
+  {
+    id: "lab_23",
+    name: "Brucella Slide Antigen",
+    description: "Serological slide test for Brucellosis abortus and melitensis.",
+    price: 350,
+    parameters: [
+      { name: "Brucella abortus Titre", unit: "Titre", range: "< 1:80" },
+      { name: "Brucella melitensis Titre", unit: "Titre", range: "< 1:80" }
+    ],
+    sampleType: "Serum",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Serology"
+  },
+  {
+    id: "lab_24",
+    name: "Typhoid Antigen Test",
+    description: "Serological evaluation of Salmonella typhi antibodies.",
+    price: 400,
+    parameters: [
+      { name: "Typhoid IgM", unit: "", range: "Negative" },
+      { name: "Typhoid IgG", unit: "", range: "Negative" }
+    ],
+    sampleType: "Serum / Stool",
+    precedingWorkflow: "Phlebotomy / Venous blood draw",
+    testKind: "Serology"
+  },
+  {
+    id: "lab_25",
+    name: "High Vaginal Swab (HVS) Wet Mount",
+    description: "Microscopic analysis of vaginal fluid swab.",
+    price: 300,
+    parameters: [
+      { name: "Trichomonas vaginalis", unit: "", range: "Negative" },
+      { name: "Candida albicans (Yeast)", unit: "", range: "Negative" },
+      { name: "Clue Cells (BV Flag)", unit: "", range: "Negative" }
+    ],
+    sampleType: "High Vaginal Swab",
+    precedingWorkflow: "HVS swab collection via speculum",
+    testKind: "Microbiology"
   }
 ];
 

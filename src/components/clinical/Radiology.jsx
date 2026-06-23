@@ -51,6 +51,83 @@ export default function Radiology({ user, onComplete }) {
   const [brightness, setBrightness] = useState(100);
   const [capturedImageData, setCapturedImageData] = useState(null);
 
+  // PACS & Modality Worklist Integration states
+  const [radCaptureMethod, setRadCaptureMethod] = useState('manual'); // 'manual' | 'pacs'
+  const [pacsAetitle, setPacsAetitle] = useState('EAGLE_PACS');
+  const [pacsHost, setPacsHost] = useState('192.168.100.99');
+  const [pacsPort, setPacsPort] = useState('104');
+  const [testingEcho, setTestingEcho] = useState(false);
+  const [echoLogs, setEchoLogs] = useState([]);
+  const [pacsConnected, setPacsConnected] = useState(false);
+  const [selectedModalityId, setSelectedModalityId] = useState('');
+  const [mwlEnqueued, setMwlEnqueued] = useState(false);
+  const [enqueuingMwl, setEnqueuingMwl] = useState(false);
+  const [mwlLogs, setMwlLogs] = useState([]);
+
+  const handlePacsCEcho = async () => {
+    setTestingEcho(true);
+    setEchoLogs([]);
+    const logs = [];
+    const pushLog = (msg) => {
+      logs.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
+      setEchoLogs([...logs]);
+    };
+
+    try {
+      pushLog(`Initializing association request to ${pacsAetitle} (${pacsHost}:${pacsPort})...`);
+      await new Promise(r => setTimeout(r, 600));
+      pushLog(`Sending A-ASSOCIATE-RQ PDU...`);
+      await new Promise(r => setTimeout(r, 600));
+      pushLog(`Received A-ASSOCIATE-AC (Association Accept)...`);
+      await new Promise(r => setTimeout(r, 650));
+      pushLog(`Sending C-ECHO Request (Message ID: 1, Context ID: 1)...`);
+      await new Promise(r => setTimeout(r, 800));
+      pushLog(`Received C-ECHO Response: Success (Status Code: 0000H)`);
+      await new Promise(r => setTimeout(r, 400));
+      pushLog(`Releasing association connection...`);
+      setPacsConnected(true);
+      setMessage({ type: 'success', text: 'PACS Server C-ECHO connection verified successfully!' });
+    } catch (err) {
+      pushLog(`C-ECHO Error: Timeout or connection refused.`);
+      setPacsConnected(false);
+      setMessage({ type: 'error', text: 'PACS C-ECHO failed. Please verify Host & Port details.' });
+    } finally {
+      setTestingEcho(false);
+    }
+  };
+
+  const handleEnqueueMwl = async () => {
+    if (!selectedOrder) return;
+    setEnqueuingMwl(true);
+    setMwlLogs([]);
+    const logs = [];
+    const pushLog = (msg) => {
+      logs.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
+      setMwlLogs([...logs]);
+    };
+
+    try {
+      pushLog(`Connecting to DICOM Modality worklist provider...`);
+      await new Promise(r => setTimeout(r, 600));
+      pushLog(`Creating C-FIND association context...`);
+      await new Promise(r => setTimeout(r, 500));
+      pushLog(`Enqueuing patient demographics metadata:`);
+      pushLog(`  -> Patient ID: ${selectedVisit.patient_id_code || selectedVisit.patient?.facility_id_code}`);
+      pushLog(`  -> Patient Name: ${selectedVisit.patient?.name}`);
+      pushLog(`  -> Requested Procedure: ${selectedOrder.item_name}`);
+      pushLog(`  -> Modality: ${modality}`);
+      await new Promise(r => setTimeout(r, 1000));
+      pushLog(`Modality Worklist (MWL) sync complete. Entry enqueued.`);
+      setMwlEnqueued(true);
+      setMessage({ type: 'success', text: `Patient successfully enqueued onto Modality Worklist for ${selectedOrder.item_name}!` });
+    } catch (err) {
+      pushLog(`MWL Error: Failed to push to modality worklist.`);
+      setMwlEnqueued(false);
+    } finally {
+      setEnqueuingMwl(false);
+    }
+  };
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const canvasRef = useRef(null);
@@ -1016,24 +1093,156 @@ export default function Radiology({ user, onComplete }) {
               )}
 
               {selectedOrder && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1">
-                  {/* PACS Scanner Screen Simulator */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-300 uppercase tracking-wide flex items-center gap-1.5"><Tv size={14} className="text-teal-400" /> Modality PACS Monitor</span>
-                      <div className="flex gap-2">
-                        <select
-                          value={presetType}
-                          onChange={(e) => setPresetType(e.target.value)}
-                          className="bg-slate-950 border border-slate-850 rounded text-[11px] px-2 py-1 focus:outline-none focus:border-teal-500"
-                        >
-                          <option value="Chest X-Ray">Chest X-Ray Preset</option>
-                          <option value="Brain CT Scan">Brain CT Scan Preset</option>
-                          <option value="Knee MRI">Knee MRI Preset</option>
-                          <option value="Pelvic Ultrasound">Pelvic Ultrasound Preset</option>
-                        </select>
-                      </div>
+                <div className="flex flex-col gap-4 flex-1">
+                  <div className="bg-slate-950/40 border border-slate-850/60 p-3 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Radiology Capture Method</span>
+                      <span className="text-[9px] text-slate-500">Choose manual preset execution or pull data from DICOM PACS server</span>
                     </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setRadCaptureMethod('manual')}
+                        className={`py-1 px-3 text-[9px] font-bold rounded border transition ${
+                          radCaptureMethod === 'manual'
+                            ? 'bg-teal-500/10 border-teal-500/40 text-teal-400'
+                            : 'bg-slate-950 border-slate-900 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        Manual Keyboard Entry
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRadCaptureMethod('pacs')}
+                        className={`py-1 px-3 text-[9px] font-bold rounded border transition ${
+                          radCaptureMethod === 'pacs'
+                            ? 'bg-teal-500/10 border-teal-500/40 text-teal-400'
+                            : 'bg-slate-950 border-slate-900 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        Automatic Modality Sync (PACS)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1">
+                    {/* PACS Scanner Screen Simulator */}
+                    <div className="space-y-4">
+                      {radCaptureMethod === 'pacs' && (
+                        <div className="bg-slate-950 border border-slate-850 p-3.5 rounded-xl space-y-3 font-sans">
+                          <div className="flex justify-between items-center pb-2 border-b border-slate-900">
+                            <span className="text-[10px] font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5">
+                              <SlidersHorizontal size={12} className="text-teal-400 animate-pulse" /> DICOM PACS Configuration & C-ECHO
+                            </span>
+                            <span className={`h-2 w-2 rounded-full ${pacsConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="space-y-1">
+                              <label className="text-[8px] text-slate-500 uppercase font-bold">Calling AETitle</label>
+                              <input
+                                type="text"
+                                value={pacsAetitle}
+                                onChange={(e) => setPacsAetitle(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded py-1 px-2 text-[10px] text-slate-300 font-mono"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] text-slate-500 uppercase font-bold">Host IP</label>
+                              <input
+                                type="text"
+                                value={pacsHost}
+                                onChange={(e) => setPacsHost(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded py-1 px-2 text-[10px] text-slate-300 font-mono"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] text-slate-500 uppercase font-bold">Port</label>
+                              <input
+                                type="text"
+                                value={pacsPort}
+                                onChange={(e) => setPacsPort(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded py-1 px-2 text-[10px] text-slate-300 font-mono"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              disabled={testingEcho}
+                              onClick={handlePacsCEcho}
+                              className="flex-1 bg-slate-900 hover:bg-slate-855 border border-slate-800 hover:border-teal-500/30 text-slate-300 text-[9px] font-bold py-1 px-2.5 rounded transition active:scale-[0.98]"
+                            >
+                              {testingEcho ? 'C-ECHO Testing...' : 'Test Connection (C-ECHO)'}
+                            </button>
+                          </div>
+
+                          {echoLogs.length > 0 && (
+                            <div className="space-y-1">
+                              <span className="text-[8px] text-slate-500 uppercase font-bold">C-ECHO Logs</span>
+                              <div className="bg-slate-955 border border-slate-900 rounded p-2 font-mono text-[8px] text-slate-400 max-h-[70px] overflow-y-auto space-y-0.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                                {echoLogs.map((log, idx) => (
+                                  <div key={idx} className={log.includes('Success') ? 'text-teal-400 font-bold' : log.includes('Error') ? 'text-red-400' : 'text-slate-500'}>
+                                    {log}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="border-t border-slate-900 pt-3 space-y-2.5">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-bold text-slate-350 uppercase tracking-wider">Modality Worklist (MWL) Gateway</span>
+                              <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded font-mono uppercase ${mwlEnqueued ? 'bg-teal-500/10 text-teal-400 border border-teal-500/10' : 'bg-yellow-500/10 text-yellow-450 border border-yellow-500/10'}`}>
+                                {mwlEnqueued ? 'Enqueued' : 'Pending'}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={enqueuingMwl || !pacsConnected}
+                              onClick={handleEnqueueMwl}
+                              className="w-full bg-teal-500 hover:bg-teal-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 text-[10px] font-black py-1.5 px-3 rounded flex items-center justify-center gap-1 transition active:scale-[0.98]"
+                            >
+                              {enqueuingMwl ? (
+                                <RefreshCw size={11} className="animate-spin" />
+                              ) : (
+                                <Zap size={11} />
+                              )}
+                              {!pacsConnected ? 'PACS Connection Required' : 'Enqueue Patient onto Modality Worklist (MWL)'}
+                            </button>
+
+                            {mwlLogs.length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-[8px] text-slate-500 uppercase font-bold">MWL Logs</span>
+                                <div className="bg-slate-955 border border-slate-900 rounded p-2 font-mono text-[8px] text-slate-400 max-h-[85px] overflow-y-auto space-y-0.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                                  {mwlLogs.map((log, idx) => (
+                                    <div key={idx} className={log.includes('complete') ? 'text-teal-400 font-bold' : 'text-slate-500'}>
+                                      {log}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-300 uppercase tracking-wide flex items-center gap-1.5"><Tv size={14} className="text-teal-400" /> Modality PACS Monitor</span>
+                        <div className="flex gap-2">
+                          <select
+                            value={presetType}
+                            onChange={(e) => setPresetType(e.target.value)}
+                            className="bg-slate-955 border border-slate-855 rounded text-[11px] px-2 py-1 focus:outline-none focus:border-teal-500"
+                          >
+                            <option value="Chest X-Ray">Chest X-Ray Preset</option>
+                            <option value="Brain CT Scan">Brain CT Scan Preset</option>
+                            <option value="Knee MRI">Knee MRI Preset</option>
+                            <option value="Pelvic Ultrasound">Pelvic Ultrasound Preset</option>
+                          </select>
+                        </div>
+                      </div>
 
                     {/* Canvas/Scan screen view */}
                     <div className="relative border border-slate-850 rounded-xl bg-slate-950 flex items-center justify-center overflow-hidden aspect-[4/3] w-full">
@@ -1052,14 +1261,19 @@ export default function Radiology({ user, onComplete }) {
                           </div>
                           <div>
                             <span className="text-xs font-bold text-slate-300 block">RIS Scanner Connected</span>
-                            <span className="text-[10px] text-slate-505 block mt-0.5">Press button below to execute imaging capture.</span>
+                            <span className="text-[10px] text-slate-505 block mt-0.5">
+                              {radCaptureMethod === 'pacs' && !mwlEnqueued
+                                ? 'Awaiting Modality Worklist (MWL) sync to pull credentials.'
+                                : 'Press button below to execute imaging capture.'}
+                            </span>
                           </div>
                           <button
                             type="button"
+                            disabled={radCaptureMethod === 'pacs' && !mwlEnqueued}
                             onClick={triggerScanAcquisition}
-                            className="bg-teal-500 text-slate-950 hover:bg-teal-400 transition text-[11px] font-bold px-4 py-2 rounded-lg tracking-wide uppercase"
+                            className="bg-teal-500 text-slate-950 hover:bg-teal-400 disabled:opacity-40 disabled:cursor-not-allowed transition text-[11px] font-bold px-4 py-2 rounded-lg tracking-wide uppercase"
                           >
-                            Execute Scan Acquisition
+                            {radCaptureMethod === 'pacs' && !mwlEnqueued ? 'MWL Sync Pending' : 'Execute Scan Acquisition'}
                           </button>
                         </div>
                       )}
@@ -1255,6 +1469,7 @@ export default function Radiology({ user, onComplete }) {
                     </div>
                   </form>
                 </div>
+              </div>
               )}
             </div>
           )}

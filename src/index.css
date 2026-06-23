@@ -45,6 +45,19 @@
     --radius: 0.75rem;
     --primary-color: #0d9488;
     --primary-hover: #0f766e;
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: var(--secondary);
+    --slate-850: var(--secondary);
+    --slate-900: var(--card);
+    --slate-950: var(--background);
+    --slate-955: var(--background);
   }
   .mode-light {
     color-scheme: light;
@@ -76,6 +89,19 @@
     --border-subtle: color-mix(in oklab, var(--primary) 8%, transparent);
     --border-strong: color-mix(in oklab, var(--primary) 25%, transparent);
     --border-emphasis: color-mix(in oklab, var(--primary) 40%, transparent);
+    --slate-50: #0f172a;
+    --slate-100: var(--foreground);
+    --slate-200: var(--foreground);
+    --slate-300: var(--foreground);
+    --slate-400: var(--muted-foreground);
+    --slate-500: var(--muted-foreground);
+    --slate-600: var(--muted-foreground);
+    --slate-700: var(--border);
+    --slate-800: var(--secondary);
+    --slate-850: var(--secondary);
+    --slate-900: var(--card);
+    --slate-955: var(--background);
+    --slate-950: var(--background);
   }
   .theme-blue,
   .theme-navy {
@@ -207,32 +233,100 @@
   .mode-light.theme-navy,
   .mode-light .theme-blue,
   .mode-light .theme-navy {
+    color-scheme: light;
     --background: #f0f4f8;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
     --primary: #2563eb;
+    --primary-foreground: #ffffff;
+    --secondary: #e1e8f0;
+    --secondary-foreground: #1e293b;
+    --muted: #e1e8f0;
+    --muted-foreground: #64748b;
     --accent: #2563eb;
+    --accent-foreground: #ffffff;
+    --destructive: #dc2626;
+    --destructive-foreground: #ffffff;
+    --border: color-mix(in oklab, var(--primary) 20%, transparent);
+    --input: #ffffff;
+    --input-background: #ffffff;
     --ring: #2563eb;
   }
   .mode-light.theme-green,
   .mode-light.theme-emerald,
   .mode-light .theme-green,
   .mode-light .theme-emerald {
+    color-scheme: light;
     --background: #f0fdf4;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
     --primary: #059669;
+    --primary-foreground: #ffffff;
+    --secondary: #e6f4ea;
+    --secondary-foreground: #1e293b;
+    --muted: #e6f4ea;
+    --muted-foreground: #64748b;
     --accent: #059669;
+    --accent-foreground: #ffffff;
+    --destructive: #dc2626;
+    --destructive-foreground: #ffffff;
+    --border: color-mix(in oklab, var(--primary) 20%, transparent);
+    --input: #ffffff;
+    --input-background: #ffffff;
     --ring: #059669;
   }
   .mode-light.theme-purple,
   .mode-light .theme-purple {
+    color-scheme: light;
     --background: #faf5ff;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
     --primary: #7c3aed;
+    --primary-foreground: #ffffff;
+    --secondary: #f3e8ff;
+    --secondary-foreground: #1e293b;
+    --muted: #f3e8ff;
+    --muted-foreground: #64748b;
     --accent: #7c3aed;
+    --accent-foreground: #ffffff;
+    --destructive: #dc2626;
+    --destructive-foreground: #ffffff;
+    --border: color-mix(in oklab, var(--primary) 20%, transparent);
+    --input: #ffffff;
+    --input-background: #ffffff;
     --ring: #7c3aed;
   }
   .mode-light.theme-amber,
   .mode-light .theme-amber {
+    color-scheme: light;
     --background: #fffbeb;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
     --primary: #d97706;
+    --primary-foreground: #ffffff;
+    --secondary: #fef3c7;
+    --secondary-foreground: #1e293b;
+    --muted: #fef3c7;
+    --muted-foreground: #64748b;
     --accent: #d97706;
+    --accent-foreground: #ffffff;
+    --destructive: #dc2626;
+    --destructive-foreground: #ffffff;
+    --border: color-mix(in oklab, var(--primary) 20%, transparent);
+    --input: #ffffff;
+    --input-background: #ffffff;
     --ring: #d97706;
   }
   body {
@@ -333,6 +427,19 @@
   --duration-medium: 250ms;
   --duration-slow: 500ms;
   --duration-glacial: 1000ms;
+  --color-slate-50: var(--slate-50);
+  --color-slate-100: var(--slate-100);
+  --color-slate-200: var(--slate-200);
+  --color-slate-300: var(--slate-300);
+  --color-slate-400: var(--slate-400);
+  --color-slate-500: var(--slate-500);
+  --color-slate-600: var(--slate-600);
+  --color-slate-700: var(--slate-700);
+  --color-slate-800: var(--slate-800);
+  --color-slate-850: var(--slate-850);
+  --color-slate-900: var(--slate-900);
+  --color-slate-950: var(--slate-950);
+  --color-slate-955: var(--slate-955);
 }
 
 @layer utilities {
@@ -416,14 +523,24 @@
 .mode-light .bg-slate-955,
 .mode-light .bg-slate-950,
 .mode-light .bg-slate-900,
+.mode-light .bg-slate-900\/10,
+.mode-light .bg-slate-900\/20,
+.mode-light .bg-slate-900\/30,
+.mode-light .bg-slate-900\/40,
+.mode-light .bg-slate-900\/50,
+.mode-light .bg-slate-900\/60,
+.mode-light .bg-slate-900\/80,
 .mode-light .bg-slate-955\/20,
 .mode-light .bg-slate-955\/25,
 .mode-light .bg-slate-955\/50,
-.mode-light .bg-slate-950\/40,
+.mode-light .bg-slate-950\/10,
 .mode-light .bg-slate-950\/20,
-.mode-light .bg-slate-955\/20,
+.mode-light .bg-slate-950\/30,
+.mode-light .bg-slate-950\/40,
+.mode-light .bg-slate-950\/50,
 .mode-light .bg-slate-950\/60,
-.mode-light .bg-slate-950\/80 {
+.mode-light .bg-slate-950\/80,
+.mode-light .bg-slate-955\/40 {
   background-color: var(--card) !important;
 }
 

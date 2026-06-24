@@ -722,3 +722,38 @@ export const parsePatientContact = (contactString) => {
   return { phone, email, preferences };
 };
 
+// WhatsApp simulated alert dispatcher
+export const sendWhatsAppNotification = async (phone, message, facilityId = null) => {
+  console.log(`[WhatsApp Dispatch Simulation] To: ${phone}`);
+  console.log(`Message: "${message}"`);
+
+  let finalFacId = facilityId;
+  if (!finalFacId) {
+    const sessionUser = sessionStorage.getItem('egesa_health_active_user');
+    if (sessionUser) {
+      try {
+        finalFacId = JSON.parse(sessionUser).facility_id;
+      } catch (e) {
+        finalFacId = 'f1';
+      }
+    } else {
+      finalFacId = 'f1';
+    }
+  }
+
+  try {
+    const { error } = await supabase.from('audit_logs').insert({
+      facility_id: finalFacId,
+      user_id: 'system',
+      action: 'WhatsApp Dispatched',
+      details: `WhatsApp simulation sent to ${phone}: ${message}`
+    });
+    if (error) throw error;
+    return { success: true };
+  } catch (err) {
+    console.error('Failed to log WhatsApp simulation to audit logs:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+

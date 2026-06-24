@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useAuth } from '../../context/AuthContext';
-import { sendNotification, parsePatientContact } from '../../notificationService';
-import { Bed, PlusCircle, CheckCircle, AlertCircle, ClipboardList, Thermometer, MapPin, Activity, Heart } from 'lucide-react';
+import { sendNotification, parsePatientContact, sendWhatsAppNotification } from '../../notificationService';
+import { Bed, PlusCircle, CheckCircle, AlertCircle, ClipboardList, Thermometer, MapPin, Activity, Heart, Users } from 'lucide-react';
 
 // 1. Hook to ensure clinical check-ins and discharges meet MOH reporting validation criteria
 function useMOHReportingValidation() {
@@ -361,6 +361,31 @@ export default function Ward({ user, showNotification }) {
   const [showAdmissionModal, setShowAdmissionModal] = useState(false);
   const [showDischargeModal, setShowDischargeModal] = useState(false);
 
+  // Caretakers and Visitors tracking states
+  const [inpatientTab, setInpatientTab] = useState('clinical'); // 'clinical' or 'visitors'
+  const [caretakers, setCaretakers] = useState([]);
+  const [visitorLogs, setVisitorLogs] = useState([]);
+  const [showAddCaretaker, setShowAddCaretaker] = useState(false);
+  const [showCheckInVisitor, setShowCheckInVisitor] = useState(false);
+
+  // Add Caretaker Form state
+  const [newCaretaker, setNewCaretaker] = useState({
+    name: '',
+    relationship: 'Spouse',
+    phone_number: '',
+    is_primary_caretaker: false,
+    is_allowed_visitor: true
+  });
+
+  // Check-In Visitor Form state
+  const [newVisitor, setNewVisitor] = useState({
+    visitor_name: '',
+    visitor_phone: '',
+    visitor_id_number: '',
+    relationship_to_patient: 'Family Member',
+    security_notes: ''
+  });
+
   useEffect(() => {
     fetchWardData();
   }, []);
@@ -368,9 +393,13 @@ export default function Ward({ user, showNotification }) {
   useEffect(() => {
     if (selectedAdmission) {
       fetchObservations(selectedAdmission.id);
+      fetchCaretakers(selectedAdmission.patient?.id);
+      fetchVisitorLogs(selectedAdmission.id);
       sessionStorage.setItem('egesa_selected_admission_id_ward', selectedAdmission.id);
     } else {
       setObservations([]);
+      setCaretakers([]);
+      setVisitorLogs([]);
       sessionStorage.removeItem('egesa_selected_admission_id_ward');
     }
   }, [selectedAdmission]);
@@ -386,6 +415,216 @@ export default function Ward({ user, showNotification }) {
       setObservations(data || []);
     } catch (err) {
       console.error('Error fetching ward care records:', err);
+    }
+  };
+
+  const fetchCaretakers = async (patientId) => {
+    if (!patientId) return;
+    try {
+      const { data, error } = await supabase
+        .from('patient_caretakers')
+        .select('*')
+        .eq('patient_id', patientId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setCaretakers(data || []);
+    } catch (err) {
+      console.error('Failed to fetch caretakers:', err);
+    }
+  };
+
+  const fetchVisitorLogs = async (admissionId) => {
+    if (!admissionId) return;
+    try {
+      const { data, error } = await supabase
+        .from('patient_visitor_logs')
+        .select('*')
+        .eq('admission_id', admissionId)
+        .order('check_in_datetime', { ascending: false });
+      if (error) throw error;
+      setVisitorLogs(data || []);
+    } catch (err) {
+      console.error('Failed to fetch visitor logs:', err);
+    }
+  };
+
+  const handleAddCaretaker = async (e) => {
+    e.preventDefault();
+    if (!selectedAdmission || !selectedAdmission.patient) return;
+    setLoading(true);
+    try {
+      const id = 'car_' + Math.random().toString(36).substring(2, 12);
+      
+      if (newCaretaker.is_primary_caretaker) {
+        await supabase
+          .from('patient_caretakers')
+          .update({ is_primary_caretaker: false })
+          .eq('patient_id', selectedAdmission.patient.id);
+      }
+
+      const { error } = await supabase
+        .from('patient_caretakers')
+        .insert({
+          id,
+          patient_id: selectedAdmission.patient.id,
+          facility_id: user.facility_id,
+          name: newCaretaker.name,
+          relationship: newCaretaker.relationship,
+          phone_number: newCaretaker.phone_number,
+          is_primary_caretaker: newCaretaker.is_primary_caretaker,
+          is_allowed_visitor: newCaretaker.is_allowed_visitor
+        });
+
+      if (error) throw error;
+      
+      setMessage({ type: 'success', text: 'Caretaker/authorized person registered successfully.' });
+      setNewCaretaker({
+        name: '',
+        relationship: 'Spouse',
+        phone_number: '',
+        is_primary_caretaker: false,
+        is_allowed_visitor: true
+      });
+      setShowAddCaretaker(false);
+      fetchCaretakers(selectedAdmission.patient.id);
+    } catch (err) {
+      console.error('Failed to add caretaker:', err);
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCaretaker = async (id) => {
+    if (!window.confirm('Are you sure you want to remove this authorized person?')) return;
+    try {
+      const { error } = await supabase
+        .from('patient_caretakers')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      setMessage({ type: 'success', text: 'Authorized person removed.' });
+      if (selectedAdmission && selectedAdmission.patient) {
+        fetchCaretakers(selectedAdmission.patient.id);
+      }
+    } catch (err) {
+      console.error('Failed to delete caretaker:', err);
+      setMessage({ type: 'error', text: err.message });
+    }
+  };
+
+  const handleVisitorCheckIn = async (e) => {
+    e.preventDefault();
+    if (!selectedAdmission) return;
+    setLoading(true);
+    try {
+      const id = 'vis_' + Math.random().toString(36).substring(2, 12);
+      
+      const normalizedVisitorName = newVisitor.visitor_name.toLowerCase().trim();
+      const normalizedVisitorPhone = newVisitor.visitor_phone.replace(/\D/g, '');
+      
+      const isAuthorized = caretakers.some(c => {
+        const cName = c.name.toLowerCase().trim();
+        const cPhone = c.phone_number.replace(/\D/g, '');
+        return (cName === normalizedVisitorName || cPhone === normalizedVisitorPhone) && c.is_allowed_visitor;
+      });
+
+      const isExplicitlyBlocked = caretakers.some(c => {
+        const cName = c.name.toLowerCase().trim();
+        const cPhone = c.phone_number.replace(/\D/g, '');
+        return (cName === normalizedVisitorName || cPhone === normalizedVisitorPhone) && !c.is_allowed_visitor;
+      });
+
+      let status = 'active';
+      let isApproved = true;
+      
+      if (isExplicitlyBlocked) {
+        status = 'flagged';
+        isApproved = false;
+      } else if (!isAuthorized && caretakers.length > 0) {
+        isApproved = false;
+        status = 'flagged';
+      }
+
+      const { error } = await supabase
+        .from('patient_visitor_logs')
+        .insert({
+          id,
+          admission_id: selectedAdmission.id,
+          patient_id: selectedAdmission.patient?.id,
+          facility_id: user.facility_id,
+          visitor_name: newVisitor.visitor_name,
+          visitor_phone: newVisitor.visitor_phone,
+          visitor_id_number: newVisitor.visitor_id_number,
+          relationship_to_patient: newVisitor.relationship_to_patient,
+          security_notes: newVisitor.security_notes + (isExplicitlyBlocked ? ' [FLAGGED: Explicitly unauthorized visitor]' : !isApproved && caretakers.length > 0 ? ' [ALERT: Visitor not on patient authorized list]' : ''),
+          status,
+          is_approved: isApproved
+        });
+
+      if (error) throw error;
+
+      const primaryCaretaker = caretakers.find(c => c.is_primary_caretaker);
+      if (primaryCaretaker) {
+        let alertMessage = `Ward Visitor Alert: ${newVisitor.visitor_name} (ID: ${newVisitor.visitor_id_number}) has checked in to visit patient ${selectedAdmission.patient?.name} in Bed ${selectedAdmission.bed} at ${new Date().toLocaleTimeString()}.`;
+        if (isExplicitlyBlocked) {
+          alertMessage = `SECURITY ALERT: Explicitly BLOCKED visitor ${newVisitor.visitor_name} (ID: ${newVisitor.visitor_id_number}) attempted to visit patient ${selectedAdmission.patient?.name} in Bed ${selectedAdmission.bed}. Ward security has been notified.`;
+        } else if (!isApproved && caretakers.length > 0) {
+          alertMessage = `Security Notice: Unlisted visitor ${newVisitor.visitor_name} (ID: ${newVisitor.visitor_id_number}, Relation: ${newVisitor.relationship_to_patient}) has checked in to visit ${selectedAdmission.patient?.name} in Bed ${selectedAdmission.bed}. If this is unexpected, please notify ward staff.`;
+        }
+
+        const notifyRes = await sendWhatsAppNotification(primaryCaretaker.phone_number, alertMessage, user.facility_id);
+        if (notifyRes.success) {
+          setMessage({
+            type: isApproved ? 'success' : 'warning',
+            text: `Visitor checked in. WhatsApp alert dispatched to primary caretaker ${primaryCaretaker.name} (${primaryCaretaker.phone_number}).`
+          });
+        } else {
+          setMessage({
+            type: isApproved ? 'success' : 'warning',
+            text: `Visitor checked in. (WhatsApp simulation failed: ${notifyRes.error})`
+          });
+        }
+      } else {
+        setMessage({
+          type: isApproved ? 'success' : 'warning',
+          text: `Visitor checked in.${!isApproved ? ' WARNING: This visitor is not on the patient\'s authorized list.' : ''}`
+        });
+      }
+
+      setNewVisitor({
+        visitor_name: '',
+        visitor_phone: '',
+        visitor_id_number: '',
+        relationship_to_patient: 'Family Member',
+        security_notes: ''
+      });
+      setShowCheckInVisitor(false);
+      fetchVisitorLogs(selectedAdmission.id);
+    } catch (err) {
+      console.error('Failed to log check-in:', err);
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVisitorCheckOut = async (logId) => {
+    try {
+      const { error } = await supabase
+        .from('patient_visitor_logs')
+        .update({
+          check_out_datetime: new Date().toISOString(),
+          status: 'completed'
+        })
+        .eq('id', logId);
+
+      if (error) throw error;
+      setMessage({ type: 'success', text: 'Visitor checked out successfully.' });
+      fetchVisitorLogs(selectedAdmission.id);
+    } catch (err) {
+      console.error('Failed to log check-out:', err);
+      setMessage({ type: 'error', text: err.message });
     }
   };
 
@@ -1221,6 +1460,35 @@ export default function Ward({ user, showNotification }) {
                 </div>
               </div>
 
+              {/* Secondary Navigation Tabs for Inpatient File */}
+              <div className="flex border-b border-slate-800 pb-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setInpatientTab('clinical')}
+                  className={`text-xs font-bold pb-1.5 transition border-b-2 cursor-pointer ${
+                    inpatientTab === 'clinical'
+                      ? 'text-teal-400 border-teal-400 font-extrabold'
+                      : 'text-slate-400 border-transparent hover:text-slate-200'
+                  }`}
+                >
+                  Clinical Chart & Vitals
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInpatientTab('visitors')}
+                  className={`text-xs font-bold pb-1.5 transition border-b-2 cursor-pointer ${
+                    inpatientTab === 'visitors'
+                      ? 'text-teal-400 border-teal-400 font-extrabold'
+                      : 'text-slate-400 border-transparent hover:text-slate-200'
+                  }`}
+                >
+                  Caretakers & Visitor Log
+                </button>
+              </div>
+
+              {inpatientTab === 'clinical' && (
+                <>
+
               {/* Clinical Progress Calendar */}
               <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-3 font-sans">
                 <div className="flex justify-between items-center">
@@ -1517,6 +1785,315 @@ export default function Ward({ user, showNotification }) {
                     <div className="flex justify-between items-center text-[10px] text-slate-400 pt-2 border-t border-slate-850">
                       <span>Sync Target: Ministry of Health (HIE)</span>
                       <span>Authorized by: Dr. {user.full_name}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {inpatientTab === 'visitors' && (
+                <div className="space-y-6">
+                  {/* Caretakers List Section */}
+                  <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Users size={12} className="text-teal-450" /> Authorized Caretakers & Allowed Visitors
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddCaretaker(!showAddCaretaker)}
+                        className="text-[10px] text-teal-400 border border-teal-500/20 bg-teal-500/5 hover:bg-teal-500/10 px-2 py-1 rounded cursor-pointer transition font-bold font-sans"
+                      >
+                        {showAddCaretaker ? 'Cancel' : '+ Add Authorized Person'}
+                      </button>
+                    </div>
+
+                    {showAddCaretaker && (
+                      <form onSubmit={handleAddCaretaker} className="bg-slate-900 border border-slate-850 p-3 rounded-lg space-y-3 font-sans text-xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Full Name</label>
+                            <input
+                              type="text"
+                              value={newCaretaker.name}
+                              onChange={(e) => setNewCaretaker({...newCaretaker, name: e.target.value})}
+                              placeholder="e.g. Mary Jane"
+                              className="w-full bg-slate-955 border border-slate-800 rounded py-1.5 px-2.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Relationship</label>
+                            <select
+                              value={newCaretaker.relationship}
+                              onChange={(e) => setNewCaretaker({...newCaretaker, relationship: e.target.value})}
+                              className="w-full bg-slate-955 border border-slate-800 rounded py-1.5 px-2.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
+                            >
+                              <option value="Spouse">Spouse</option>
+                              <option value="Parent">Parent</option>
+                              <option value="Sibling">Sibling</option>
+                              <option value="Child">Child</option>
+                              <option value="Relative">Relative</option>
+                              <option value="Friend">Friend</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Phone Number (with Code)</label>
+                            <input
+                              type="text"
+                              value={newCaretaker.phone_number}
+                              onChange={(e) => setNewCaretaker({...newCaretaker, phone_number: e.target.value})}
+                              placeholder="e.g. +254712345678"
+                              className="w-full bg-slate-955 border border-slate-800 rounded py-1.5 px-2.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500 font-mono"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-4 items-center bg-slate-955/50 p-2 rounded">
+                          <label className="flex items-center gap-1.5 text-[11px] text-slate-400 select-none cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={newCaretaker.is_primary_caretaker}
+                              onChange={(e) => setNewCaretaker({...newCaretaker, is_primary_caretaker: e.target.checked})}
+                              className="accent-teal-500"
+                            />
+                            Primary Contact (Alerts)
+                          </label>
+                          <label className="flex items-center gap-1.5 text-[11px] text-slate-400 select-none cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={newCaretaker.is_allowed_visitor}
+                              onChange={(e) => setNewCaretaker({...newCaretaker, is_allowed_visitor: e.target.checked})}
+                              className="accent-teal-500"
+                            />
+                            Allowed Entry (Visitor)
+                          </label>
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="w-full bg-teal-600 hover:bg-teal-500 text-slate-950 font-bold text-xs py-1.5 rounded transition cursor-pointer"
+                        >
+                          {loading ? 'Registering...' : 'Save Authorized Person'}
+                        </button>
+                      </form>
+                    )}
+
+                    {caretakers.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {caretakers.map((c) => (
+                          <div key={c.id} className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 flex justify-between items-center text-xs">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-slate-200">{c.name}</span>
+                                <span className="text-[9px] bg-slate-850 text-slate-400 px-1.5 py-0.5 rounded-full font-bold font-sans">
+                                  {c.relationship}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                                <span>Phone: <span className="font-mono text-slate-400">{c.phone_number}</span></span>
+                              </div>
+                              <div className="flex gap-1.5 pt-0.5">
+                                {c.is_primary_caretaker && (
+                                  <span className="text-[8px] bg-teal-500/10 text-teal-400 border border-teal-500/20 px-1 py-0.2 rounded font-bold uppercase tracking-wider font-sans">
+                                    Primary Contact
+                                  </span>
+                                )}
+                                {c.is_allowed_visitor ? (
+                                  <span className="text-[8px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1 py-0.2 rounded font-bold uppercase tracking-wider font-sans">
+                                    Allowed Entry
+                                  </span>
+                                ) : (
+                                  <span className="text-[8px] bg-red-500/10 text-red-400 border border-red-500/20 px-1 py-0.2 rounded font-bold uppercase tracking-wider font-sans">
+                                    Blocked / No Entry
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCaretaker(c.id)}
+                              className="text-slate-500 hover:text-red-400 p-1"
+                              title="Remove"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-slate-500 italic p-3 text-center border border-dashed border-slate-850 rounded-lg bg-slate-900/20">
+                        No caretakers registered. Add authorized family members to allow entry and receive automated WhatsApp alerts.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Visitor Logs Section */}
+                  <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Activity size={12} className="text-teal-450" /> Security Visitor Tracking Logs
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowCheckInVisitor(!showCheckInVisitor)}
+                        className="text-[10px] text-teal-400 border border-teal-500/20 bg-teal-500/5 hover:bg-teal-500/10 px-2 py-1 rounded cursor-pointer transition font-bold font-sans"
+                      >
+                        {showCheckInVisitor ? 'Cancel' : 'Log Visitor Check-In'}
+                      </button>
+                    </div>
+
+                    {showCheckInVisitor && (
+                      <form onSubmit={handleVisitorCheckIn} className="bg-slate-900 border border-slate-850 p-3 rounded-lg space-y-3 font-sans text-xs">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Visitor Name</label>
+                            <input
+                              type="text"
+                              value={newVisitor.visitor_name}
+                              onChange={(e) => setNewVisitor({...newVisitor, visitor_name: e.target.value})}
+                              placeholder="e.g. David Cooper"
+                              className="w-full bg-slate-955 border border-slate-800 rounded py-1.5 px-2.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
+                            <input
+                              type="text"
+                              value={newVisitor.visitor_phone}
+                              onChange={(e) => setNewVisitor({...newVisitor, visitor_phone: e.target.value})}
+                              placeholder="e.g. +254700000000"
+                              className="w-full bg-slate-955 border border-slate-800 rounded py-1.5 px-2.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500 font-mono"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">ID / Passport Number</label>
+                            <input
+                              type="text"
+                              value={newVisitor.visitor_id_number}
+                              onChange={(e) => setNewVisitor({...newVisitor, visitor_id_number: e.target.value})}
+                              placeholder="e.g. 34928402"
+                              className="w-full bg-slate-955 border border-slate-800 rounded py-1.5 px-2.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500 font-mono"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Claimed Relation</label>
+                            <input
+                              type="text"
+                              value={newVisitor.relationship_to_patient}
+                              onChange={(e) => setNewVisitor({...newVisitor, relationship_to_patient: e.target.value})}
+                              placeholder="e.g. Uncle, Spouse"
+                              className="w-full bg-slate-955 border border-slate-800 rounded py-1.5 px-2.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Security / Observations Notes</label>
+                          <textarea
+                            rows="2"
+                            value={newVisitor.security_notes}
+                            onChange={(e) => setNewVisitor({...newVisitor, security_notes: e.target.value})}
+                            placeholder="e.g. Bag searched. Authorized visitor."
+                            className="w-full bg-slate-955 border border-slate-800 rounded py-1.5 px-2.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="w-full bg-teal-600 hover:bg-teal-500 text-slate-950 font-bold text-xs py-1.5 rounded transition cursor-pointer"
+                        >
+                          {loading ? 'Processing Check-in...' : 'Check In Visitor (Dispatches SMS/WhatsApp Alert)'}
+                        </button>
+                      </form>
+                    )}
+
+                    {/* Active Visitors list */}
+                    <div className="space-y-2">
+                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Active Visits ({visitorLogs.filter(v => v.status === 'active' || v.status === 'flagged').length})</span>
+                      {visitorLogs.filter(v => v.status === 'active' || v.status === 'flagged').length > 0 ? (
+                        <div className="space-y-2">
+                          {visitorLogs.filter(v => v.status === 'active' || v.status === 'flagged').map((log) => (
+                            <div key={log.id} className={`border rounded-lg p-3 text-xs flex flex-col sm:flex-row justify-between sm:items-center gap-3 ${log.status === 'flagged' ? 'bg-red-500/5 border-red-500/20' : 'bg-slate-900/50 border-slate-850'}`}>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-slate-200">{log.visitor_name}</span>
+                                  <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-full font-mono">
+                                    ID: {log.visitor_id_number}
+                                  </span>
+                                  {log.status === 'flagged' && (
+                                    <span className="text-[8px] bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.2 rounded font-bold uppercase tracking-wider font-sans">
+                                      Flagged / Unauthorized
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-500 flex flex-wrap gap-x-3 gap-y-1">
+                                  <span>Phone: <span className="font-mono text-slate-400">{log.visitor_phone}</span></span>
+                                  <span>Relation: <span className="text-slate-400">{log.relationship_to_patient}</span></span>
+                                  <span>In: <span className="text-teal-400 font-mono">{new Date(log.check_in_datetime).toLocaleTimeString()}</span></span>
+                                </div>
+                                {log.security_notes && (
+                                  <p className="text-[10.5px] text-slate-450 bg-slate-950/40 p-1.5 rounded italic">
+                                    "{log.security_notes}"
+                                  </p>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleVisitorCheckOut(log.id)}
+                                className="px-3 py-1 bg-slate-800 hover:bg-slate-750 border border-slate-700 text-[10px] font-bold rounded-lg transition-all cursor-pointer text-slate-350 self-end sm:self-auto"
+                              >
+                                Check Out
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-slate-500 italic p-3 text-center border border-dashed border-slate-850 rounded bg-slate-900/10">
+                          No active visitors currently in the ward.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Past Visitors list */}
+                    <div className="space-y-2 pt-2 border-t border-slate-850/50">
+                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">History Logs ({visitorLogs.filter(v => v.status === 'completed').length})</span>
+                      {visitorLogs.filter(v => v.status === 'completed').length > 0 ? (
+                        <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                          {visitorLogs.filter(v => v.status === 'completed').map((log) => (
+                            <div key={log.id} className="bg-slate-955/40 border border-slate-850/80 rounded-lg p-2.5 text-xs flex justify-between items-center gap-4">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-slate-300">{log.visitor_name}</span>
+                                  <span className="text-[8px] bg-slate-900 text-slate-550 px-1 rounded-full font-mono">ID: {log.visitor_id_number}</span>
+                                </div>
+                                <div className="text-[9.5px] text-slate-500 flex gap-3">
+                                  <span>In: <span className="font-mono">{new Date(log.check_in_datetime).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span></span>
+                                  <span>Out: <span className="font-mono">{new Date(log.check_out_datetime).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span></span>
+                                </div>
+                              </div>
+                              <span className="text-[9px] bg-slate-900 text-slate-500 border border-slate-850 px-2 py-0.5 rounded font-bold uppercase tracking-wider font-sans">
+                                Checked Out
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-slate-500 italic p-3 text-center">
+                          No history visitor logs recorded for this admission.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

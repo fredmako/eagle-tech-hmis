@@ -18,7 +18,8 @@ import {
   Sun,
   Moon,
   Sidebar,
-  PanelTop
+  PanelTop,
+  Eye
 } from 'lucide-react';
 
 export default function Preferences({ 
@@ -32,6 +33,10 @@ export default function Preferences({
   onChangeLang, 
   currentFont, 
   onChangeFont,
+  brightness,
+  onChangeBrightness,
+  nightVision,
+  onChangeNightVision,
   user,
   setUser
 }) {
@@ -468,6 +473,54 @@ export default function Preferences({
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Screen & Visual Comfort */}
+          <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl space-y-4">
+            <h3 className="text-xs font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5 pb-2.5 border-b border-slate-850">
+              <Eye size={14} className="text-teal-400" /> Screen & Visual Comfort
+            </h3>
+            <div className="space-y-4">
+              {/* Brightness Adjustment */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-450">Display Brightness</span>
+                  <span className="font-mono text-teal-400 font-bold">{brightness}%</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-slate-500"><Sun size={12} /></span>
+                  <input 
+                    type="range" 
+                    min="50" 
+                    max="150" 
+                    value={brightness} 
+                    onChange={(e) => onChangeBrightness(Number(e.target.value))}
+                    className="flex-1 accent-teal-400 bg-slate-950 h-1.5 rounded-lg appearance-none cursor-pointer border border-slate-800"
+                  />
+                  <span className="text-slate-400"><Sun size={15} /></span>
+                </div>
+              </div>
+
+              {/* Night Vision Toggle */}
+              <div className="flex justify-between items-center pt-2.5 border-t border-slate-850/60">
+                <div>
+                  <span className="text-xs font-bold text-slate-450 block">Night Vision Mode</span>
+                  <span className="text-[9px] text-slate-500 block">Green phosphor tint to reduce eye strain on night shifts</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onChangeNightVision(!nightVision)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border ${
+                    nightVision 
+                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 animate-pulse' 
+                      : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700'
+                  }`}
+                >
+                  <Eye size={13} />
+                  {nightVision ? 'Active' : 'Enable'}
+                </button>
+              </div>
             </div>
           </div>
 

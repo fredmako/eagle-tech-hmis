@@ -154,6 +154,12 @@ export default function App() {
   const [font, setFont] = useState(
     () => localStorage.getItem("egesa_font") || "sans",
   );
+  const [brightness, setBrightness] = useState(
+    () => Number(localStorage.getItem("egesa_brightness") || 100)
+  );
+  const [nightVision, setNightVision] = useState(
+    () => localStorage.getItem("egesa_night_vision") === "true"
+  );
 
   useEffect(() => {
     localStorage.setItem("egesa_active_tab", activeTab);
@@ -298,6 +304,14 @@ export default function App() {
   const handleLangChange = (newLang) => {
     setLang(newLang);
     localStorage.setItem("egesa_lang", newLang);
+  };
+  const handleBrightnessChange = (val) => {
+    setBrightness(val);
+    localStorage.setItem("egesa_brightness", val);
+  };
+  const handleNightVisionChange = (val) => {
+    setNightVision(val);
+    localStorage.setItem("egesa_night_vision", val);
   };
   const handleFontChange = (newFont) => {
     setFont(newFont);
@@ -478,6 +492,11 @@ export default function App() {
     return (
       <div
         className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden`}
+        style={{
+          filter: nightVision 
+            ? `sepia(1) saturate(1.8) hue-rotate(80deg) brightness(${brightness}%)` 
+            : `brightness(${brightness}%)`
+        }}
       >
         {publicContent}
       </div>
@@ -488,6 +507,11 @@ export default function App() {
     return (
       <div
         className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100`}
+        style={{
+          filter: nightVision 
+            ? `sepia(1) saturate(1.8) hue-rotate(80deg) brightness(${brightness}%)` 
+            : `brightness(${brightness}%)`
+        }}
       >
         <SuperAdminDashboard user={user} onSignOut={handleSignOut} />
       </div>
@@ -498,6 +522,11 @@ export default function App() {
     return (
       <div
         className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100 flex flex-col justify-center items-center p-4 font-['DM_Sans',system-ui,sans-serif]`}
+        style={{
+          filter: nightVision 
+            ? `sepia(1) saturate(1.8) hue-rotate(80deg) brightness(${brightness}%)` 
+            : `brightness(${brightness}%)`
+        }}
       >
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -566,6 +595,11 @@ export default function App() {
     return (
       <div
         className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100`}
+        style={{
+          filter: nightVision 
+            ? `sepia(1) saturate(1.8) hue-rotate(80deg) brightness(${brightness}%)` 
+            : `brightness(${brightness}%)`
+        }}
       >
         <PatientPortal />
       </div>
@@ -759,6 +793,11 @@ export default function App() {
   return (
     <div
       className={`flex h-screen bg-slate-950 text-slate-100 overflow-hidden theme-${theme} mode-${themeMode} font-${font} font-['DM_Sans',system-ui,sans-serif] ${menuLayout === 'topbar' ? 'flex-col' : 'flex-row'}`}
+      style={{
+        filter: nightVision 
+          ? `sepia(1) saturate(1.8) hue-rotate(80deg) brightness(${brightness}%)` 
+          : `brightness(${brightness}%)`
+      }}
     >
       {menuLayout === 'topbar' && (
         <header className="hidden md:flex items-center justify-between px-6 py-2.5 bg-slate-900 border-b border-teal-500/10 z-30 shrink-0">
@@ -1166,6 +1205,10 @@ export default function App() {
                 onChangeLang={handleLangChange}
                 currentFont={font}
                 onChangeFont={handleFontChange}
+                brightness={brightness}
+                onChangeBrightness={handleBrightnessChange}
+                nightVision={nightVision}
+                onChangeNightVision={handleNightVisionChange}
                 user={user}
                 setUser={setUser}
               />

@@ -63,6 +63,13 @@ export default function Consultation({ user, onComplete, showNotification }) {
   const [mohDiastolic, setMohDiastolic] = useState("");
   const [mohConfirmed, setMohConfirmed] = useState(false);
 
+  // EMR Specialty Template selector states
+  const [activeTemplate, setActiveTemplate] = useState('general');
+  const [pediatricWeight, setPediatricWeight] = useState('');
+  const [pediatricHeadCirc, setPediatricHeadCirc] = useState('');
+  const [pediatricMilestones, setPediatricMilestones] = useState('normal');
+  const [pediatricImmunizations, setPediatricImmunizations] = useState([]);
+
   // Specialized Workflow States
   const [activePregnancy, setActivePregnancy] = useState(null);
   const [ancGaWeeks, setAncGaWeeks] = useState(0);
@@ -807,6 +814,19 @@ export default function Consultation({ user, onComplete, showNotification }) {
     setAncGaWeeks(0);
     setAncEdd('');
     setAncLmp('');
+    if (visit.service_type === 'ANC') {
+      setActiveTemplate('anc');
+    } else if (visit.service_type === 'IMM') {
+      setActiveTemplate('pediatrics');
+    } else if (visit.service_type === 'FP') {
+      setActiveTemplate('fp');
+    } else {
+      setActiveTemplate('general');
+    }
+    setPediatricWeight('');
+    setPediatricHeadCirc('');
+    setPediatricMilestones('normal');
+    setPediatricImmunizations([]);
     setAncGravidity(1);
     setAncParity(0);
     setAncAbortions(0);
@@ -945,6 +965,58 @@ export default function Consultation({ user, onComplete, showNotification }) {
       ...prescriptions,
       { name: "", dosage: "", frequency: "1x1", duration: "3 days", price: 0 },
     ]);
+  };
+
+  const handleQuickPrescribe = (comboType) => {
+    let drugsToPrescribe = [];
+    if (comboType === 'malaria') {
+      drugsToPrescribe = [
+        { name: 'Artemether-Lumefantrine (AL) (Coartem) 20 mg / 120 mg', generic: 'Artemether-Lumefantrine', strength: '20 mg / 120 mg', frequency: '2x1', duration: '3 days' },
+        { name: 'Paracetamol (Panadol) 500 mg', generic: 'Paracetamol', strength: '500 mg', frequency: '3x1', duration: '3 days' }
+      ];
+    } else if (comboType === 'hypertension') {
+      drugsToPrescribe = [
+        { name: 'Omeprazole (Losec) 20 mg', generic: 'Omeprazole', strength: '20 mg', frequency: '1x1', duration: '14 days' },
+        { name: 'Antacid suspension (Actal / Mucogel) 250 mg / 5 ml', generic: 'Antacid suspension', strength: '250 mg / 5 ml', frequency: '3x1', duration: '5 days' }
+      ];
+    } else if (comboType === 'cold') {
+      drugsToPrescribe = [
+        { name: 'Amoxicillin (Amoxil) 500 mg', generic: 'Amoxicillin', strength: '500 mg', frequency: '3x1', duration: '5 days' },
+        { name: 'Paracetamol (Panadol) 500 mg', generic: 'Paracetamol', strength: '500 mg', frequency: '3x1', duration: '3 days' }
+      ];
+    } else if (comboType === 'diarrhea') {
+      drugsToPrescribe = [
+        { name: 'Oral rehydration salts (ORS Sachet) 20.5 g sachet', generic: 'Oral rehydration salts', strength: '20.5 g sachet', frequency: 'PRN', duration: '3 days' },
+        { name: 'Zinc sulfate (Zinc-20) 20 mg', generic: 'Zinc sulfate', strength: '20 mg', frequency: '1x1', duration: '10 days' },
+        { name: 'Metronidazole (Flagyl) 400 mg', generic: 'Metronidazole', strength: '400 mg', frequency: '3x1', duration: '5 days' }
+      ];
+    }
+
+    const validPrescriptions = [];
+    drugsToPrescribe.forEach(combo => {
+      const match = availableDrugs.find(d => d.name.toLowerCase().includes(combo.generic.toLowerCase()));
+      if (match) {
+        validPrescriptions.push({
+          name: match.name,
+          dosage: match.strength || combo.strength,
+          frequency: combo.frequency,
+          duration: combo.duration,
+          price: match.price || 0
+        });
+      }
+    });
+
+    if (validPrescriptions.length > 0) {
+      if (prescriptions.length === 1 && !prescriptions[0].name) {
+        setPrescriptions(validPrescriptions);
+      } else {
+        const filteredNew = validPrescriptions.filter(newP => !prescriptions.some(p => p.name === newP.name));
+        setPrescriptions([...prescriptions, ...filteredNew]);
+      }
+      if (showNotification) {
+        showNotification('success', 'Combo Prescribed', `Added ${validPrescriptions.map(p => p.name.split(' (')[0]).join(', ')} to prescriptions.`);
+      }
+    }
   };
 
   const removePrescriptionRow = (index) => {
@@ -1111,11 +1183,13 @@ export default function Consultation({ user, onComplete, showNotification }) {
       // 1. Insert Consultation Notes
       const consultRecord = {
         visit_id: selectedVisit.id,
-        history: selectedVisit.service_type === 'ANC' 
+        history: activeTemplate === 'anc' 
           ? `ANC Visit Notes\nFundal Height: ${ancFundalHeight}cm\nFetal Heart Rate: ${ancFetalHeartRate}bpm\n${history}` 
-          : selectedVisit.service_type === 'FP' 
+          : activeTemplate === 'fp' 
             ? `FP Consultation Notes\nMethod Selected: ${fpMethodSelectedId}\nEligibility Category: ${fpEligibilityCategory}\n${history}` 
-            : history,
+            : activeTemplate === 'pediatrics'
+              ? `Pediatric Visit Notes\nWeight: ${pediatricWeight}kg\nHead Circ: ${pediatricHeadCirc}cm\nMilestones: ${pediatricMilestones}\nVaccines: ${pediatricImmunizations.join(', ')}\n${history}`
+              : history,
         examination: exam,
         diagnosis_icd10: diagnosis,
         treatment_plan: treatmentPlan,
@@ -1812,8 +1886,100 @@ export default function Consultation({ user, onComplete, showNotification }) {
 
             <form onSubmit={handleSubmitClick} className="space-y-6">
               
+              {/* EMR Template Selector */}
+              <div className="bg-slate-900 border border-slate-850 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Clinical EMR Template:</span>
+                  <select
+                    value={activeTemplate}
+                    onChange={(e) => setActiveTemplate(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 font-semibold focus:outline-none focus:border-teal-500 cursor-pointer"
+                  >
+                    <option value="general">General Outpatient Template</option>
+                    <option value="pediatrics">Pediatrics / Child Development Template</option>
+                    <option value="anc">Antenatal Care (Obstetric) Template</option>
+                    <option value="fp">Family Planning (FP) Template</option>
+                  </select>
+                </div>
+                <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider bg-teal-500/10 px-2.5 py-1 rounded">
+                  Classification: {selectedVisit.service_type}
+                </span>
+              </div>
+
+              {/* Specialized Pediatrics Form */}
+              {activeTemplate === 'pediatrics' && (
+                <div className="bg-slate-950 border border-slate-900 p-4 rounded-xl space-y-4">
+                  <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">Pediatric Growth & Immunization Chart</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Child Weight (kg)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="e.g. 8.5"
+                        value={pediatricWeight}
+                        onChange={(e) => setPediatricWeight(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Head Circumference (cm)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="e.g. 42.0"
+                        value={pediatricHeadCirc}
+                        onChange={(e) => setPediatricHeadCirc(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Developmental Milestones</label>
+                      <select
+                        value={pediatricMilestones}
+                        onChange={(e) => setPediatricMilestones(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                      >
+                        <option value="normal">Normal / Age-Appropriate</option>
+                        <option value="delayed">Slight Milestone Delay</option>
+                        <option value="significant_delay">Significant Delay (Referral Needed) ⚠️</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-900 pt-3">
+                    <label className="block text-[10px] font-bold text-slate-405 uppercase tracking-wider mb-2">Immunizations / Vaccines Administered Today</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      {[
+                        { id: 'bcg', label: 'BCG (Tuberculosis)' },
+                        { id: 'opv', label: 'OPV (Oral Polio Vaccine)' },
+                        { id: 'dpt', label: 'DPT-HepB-Hib (Pentavalent)' },
+                        { id: 'measles', label: 'Measles-Rubella (MR)' }
+                      ].map(v => (
+                        <label key={v.id} className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none hover:text-white transition">
+                          <input
+                            type="checkbox"
+                            checked={pediatricImmunizations.includes(v.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setPediatricImmunizations([...pediatricImmunizations, v.id]);
+                              } else {
+                                setPediatricImmunizations(pediatricImmunizations.filter(id => id !== v.id));
+                              }
+                            }}
+                            className="accent-teal-500"
+                          />
+                          {v.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* Specialized ANC Enrollment/Form */}
-              {selectedVisit.service_type === 'ANC' && !activePregnancy && (
+              {activeTemplate === 'anc' && !activePregnancy && (
                 <div className="bg-slate-950 border border-slate-850 p-6 rounded-xl space-y-4">
                   <div>
                     <h4 className="text-sm font-bold text-teal-400">Pregnancy Registry Enrollment</h4>
@@ -1875,7 +2041,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                 </div>
               )}
 
-              {selectedVisit.service_type === 'ANC' && activePregnancy && (
+              {activeTemplate === 'anc' && activePregnancy && (
                 <div className="space-y-6">
                   {renderPregnancyProgress()}
 
@@ -1992,7 +2158,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
               )}
 
               {/* Specialized Family Planning Form */}
-              {selectedVisit.service_type === 'FP' && (
+              {activeTemplate === 'fp' && (
                 <div className="space-y-6">
                   <div className="bg-slate-950 border border-slate-900 p-4 rounded-xl space-y-4">
                     <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">Reproductive Profile & counseling</h4>
@@ -2369,6 +2535,39 @@ export default function Consultation({ user, onComplete, showNotification }) {
                       className="text-[10px] text-teal-400 hover:text-teal-300 font-semibold"
                     >
                       + Add Drug
+                    </button>
+                  </div>
+
+                  {/* Quick Prescribe Toolbar */}
+                  <div className="flex flex-wrap items-center gap-1.5 bg-slate-900/60 p-2 border border-slate-850 rounded-lg">
+                    <span className="text-[9.5px] text-slate-500 font-bold uppercase mr-1">Quick Prescribe:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickPrescribe('malaria')}
+                      className="text-[9px] font-bold px-2 py-1 bg-slate-955 border border-slate-800 hover:border-teal-500/30 text-slate-350 rounded hover:text-teal-400 transition cursor-pointer"
+                    >
+                      + Malaria Combo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickPrescribe('hypertension')}
+                      className="text-[9px] font-bold px-2 py-1 bg-slate-955 border border-slate-800 hover:border-teal-500/30 text-slate-350 rounded hover:text-teal-400 transition cursor-pointer"
+                    >
+                      + Gastritis Set
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickPrescribe('cold')}
+                      className="text-[9px] font-bold px-2 py-1 bg-slate-955 border border-slate-800 hover:border-teal-500/30 text-slate-350 rounded hover:text-teal-400 transition cursor-pointer"
+                    >
+                      + Cold & Cough
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickPrescribe('diarrhea')}
+                      className="text-[9px] font-bold px-2 py-1 bg-slate-955 border border-slate-800 hover:border-teal-500/30 text-slate-350 rounded hover:text-teal-400 transition cursor-pointer"
+                    >
+                      + Gastroenteritis Set
                     </button>
                   </div>
 

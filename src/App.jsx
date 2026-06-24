@@ -21,6 +21,7 @@ import LandingPage from "./components/LandingPage";
 import BusinessCards from "./components/BusinessCards";
 import Preferences from "./components/Preferences";
 import AuthCallback from "./components/AuthCallback";
+import Appointments from "./components/Appointments";
 import translations from "./translations";
 import SuperAdminDashboard from "./components/SuperAdminDashboard";
 import FacilityLandingPage from "./components/public/FacilityLandingPage";
@@ -54,6 +55,7 @@ import {
   HelpCircle,
   CheckCircle,
   ShieldAlert,
+  Calendar,
 } from "lucide-react";
 
 export default function App() {
@@ -581,6 +583,12 @@ export default function App() {
     },
     { id: "admin", label: "Admin Settings", icon: Settings, roles: ["admin", "facility_admin", "hr_manager", "marketing_admin", "operations_manager", "it_support"] },
     {
+      id: "appointments",
+      label: "Appointments Schedule",
+      icon: Calendar,
+      roles: ["receptionist", "nurse", "clinician", "admin"],
+    },
+    {
       id: "settings",
       label: "System Preferences",
       icon: Sliders,
@@ -918,6 +926,9 @@ export default function App() {
               user={user}
               setUser={setUser}
             />
+          )}
+          {activeTab === "appointments" && (
+            <Appointments user={user} showNotification={showNotification} />
           )}
           {activeTab === "support" && <SupportPanel />}
         </div>

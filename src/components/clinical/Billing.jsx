@@ -15,6 +15,14 @@ export default function Billing({ user, onComplete, showNotification }) {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [amountPaid, setAmountPaid] = useState('');
   
+  // Insurance split payment states
+  const [insuranceProvider, setInsuranceProvider] = useState('');
+  const [memberId, setMemberId] = useState('');
+  const [preAuthCode, setPreAuthCode] = useState('');
+  const [insuranceCoverage, setInsuranceCoverage] = useState('');
+  const [copayPaymentMethod, setCopayPaymentMethod] = useState('cash');
+  const [copayAmount, setCopayAmount] = useState('');
+  
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -144,6 +152,12 @@ export default function Billing({ user, onComplete, showNotification }) {
     setMessage({ type: '', text: '' });
     setShowReceipt(false);
     setAmountPaid('');
+    setInsuranceProvider('');
+    setMemberId('');
+    setPreAuthCode('');
+    setInsuranceCoverage('');
+    setCopayPaymentMethod('cash');
+    setCopayAmount('');
     if (visit) {
       sessionStorage.setItem('egesa_selected_visit_id_billing', visit.id);
     } else {
@@ -196,13 +210,14 @@ export default function Billing({ user, onComplete, showNotification }) {
     if (!selectedVisit || !invoice) return;
 
     const consultFee = getConsultationFee(selectedVisit);
-    const paidVal = parseFloat(amountPaid || (parseFloat(invoice.total_amount) + consultFee));
+    const grandTotal = parseFloat(invoice.total_amount) + consultFee;
 
     setLoading(true);
     setMessage({ type: '', text: '' });
 
     try {
       if (paymentMethod === 'mpesa') {
+        const paidVal = parseFloat(amountPaid || grandTotal);
         if (!tumaPhone.trim()) {
           setMessage({ type: 'error', text: 'Tuma Pay phone number is required.' });
           setLoading(false);
@@ -233,10 +248,90 @@ export default function Billing({ user, onComplete, showNotification }) {
         } else {
           setMessage({ type: 'success', text: 'Tuma Pay payment prompt sent successfully!' });
         }
+      } else if (paymentMethod === 'insurance') {
+        const coveredVal = parseFloat(insuranceCoverage || grandTotal);
+        const copayVal = parseFloat(copayAmount || 0);
+        const totalPaidVal = coveredVal + copayVal;
+        const providerName = insuranceProvider ? insuranceProvider.toUpperCase() : 'INSURANCE';
+        const methodRecorded = `insurance_split (${providerName} + ${copayPaymentMethod.toUpperCase()} CO-PAY)`;
+
+        if (copayVal > 0 && copayPaymentMethod === 'mpesa') {
+          if (!tumaPhone.trim()) {
+            setMessage({ type: 'error', text: 'Tuma Pay phone number is required for Co-pay.' });
+            setLoading(false);
+            return;
+          }
+
+          // Save meta details to invoice first before STK push
+          const { error: prepErr } = await supabase.from('invoices').update({
+            payment_method: methodRecorded,
+            amount_paid: totalPaidVal
+          }).eq('id', invoice.id);
+          if (prepErr) throw prepErr;
+
+          // Trigger STK Push for Co-pay portion
+          const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          const response = await fetch(`${backendUrl}/mpesa/stkpush`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: tumaPhone,
+              amount: copayVal,
+              reference: invoice.id
+            })
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Tuma Pay STK Push for Co-pay failed');
+          }
+
+          setCheckoutId(data.CheckoutRequestID);
+          setIsSimulated(!!data.simulated);
+          setTumaStatus('sent');
+          if (showNotification) {
+            showNotification('success', 'Co-pay Prompt Sent', 'Co-pay payment prompt sent successfully!');
+          } else {
+            setMessage({ type: 'success', text: 'Co-pay payment prompt sent successfully!' });
+          }
+        } else {
+          // Standard Cash co-pay or 100% insurance coverage
+          const { error: invErr } = await supabase.from('invoices').update({
+            amount_paid: totalPaidVal,
+            status: 'paid',
+            payment_method: methodRecorded
+          }).eq('id', invoice.id);
+
+          if (invErr) throw invErr;
+
+          // Redirect patient to Pharmacy queue or Complete
+          const hasPrescriptions = orders.some(o => o.type === 'prescription');
+          const nextDept = hasPrescriptions ? 'pharmacy' : 'completed';
+
+          const { error: visitErr } = await supabase.from('visits').update({
+            department: nextDept,
+            status: nextDept === 'completed' ? 'completed' : 'waiting'
+          }).eq('id', selectedVisit.id);
+
+          if (visitErr) throw visitErr;
+
+          if (showNotification) {
+            showNotification('success', 'Payment Settled', 'Insurance invoice payment recorded successfully!');
+          } else {
+            setMessage({ type: 'success', text: 'Insurance invoice payment recorded successfully!' });
+          }
+          setShowReceipt(true);
+
+          // Log invoice payment
+          await supabase.from('audit_logs').insert({
+            action: 'Invoice Settlement',
+            details: `Recorded split payment of ${totalPaidVal}/- via ${methodRecorded} for patient ${selectedVisit.patient?.name}`
+          });
+        }
       } else {
-        // Standard Manual Flow (Cash or Insurance)
-        if (isNaN(paidVal) || paidVal < (parseFloat(invoice.total_amount) + 350)) {
-          setMessage({ type: 'error', text: `Please enter full invoice payment of ${(parseFloat(invoice.total_amount) + 350).toFixed(2)}/-.` });
+        // Standard Manual Cash Flow
+        const paidVal = parseFloat(amountPaid || grandTotal);
+        if (isNaN(paidVal) || paidVal < grandTotal) {
+          setMessage({ type: 'error', text: `Please enter full invoice payment of ${grandTotal.toFixed(2)}/-.` });
           setLoading(false);
           return;
         }
@@ -266,7 +361,7 @@ export default function Billing({ user, onComplete, showNotification }) {
           setMessage({ type: 'success', text: 'Invoice payment recorded successfully!' });
         }
         setShowReceipt(true);
- 
+
         // Log invoice payment
         await supabase.from('audit_logs').insert({
           action: 'Invoice Settlement',
@@ -812,46 +907,151 @@ export default function Billing({ user, onComplete, showNotification }) {
                       <span className="font-mono text-teal-400">{(parseFloat(invoice?.total_amount || 0) + getConsultationFee(selectedVisit)).toFixed(2)}/-</span>
                     </div>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                </div>                <div className="grid grid-cols-1 gap-4">
                   {/* Payment Method */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Payment Method</label>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Primary Payment Option</label>
                     <select
                       value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                      onChange={(e) => {
+                        setPaymentMethod(e.target.value);
+                        if (e.target.value === 'insurance') {
+                          const totalDue = parseFloat(invoice?.total_amount || 0) + getConsultationFee(selectedVisit);
+                          setInsuranceCoverage(totalDue.toString());
+                          setCopayAmount('0');
+                        }
+                      }}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition cursor-pointer"
                     >
-                      <option value="cash">Cash (Manual Drawer)</option>
-                      <option value="mpesa">Tuma Pay (Mobile Money/Card)</option>
-                      <option value="insurance">NHIF / Insurance Scheme</option>
+                      <option value="cash">Cash (Manual Drawer Payment)</option>
+                      <option value="mpesa">Tuma Pay (Mobile Money STK Push)</option>
+                      <option value="insurance">NHIF / Private Insurance Split Checkout</option>
                     </select>
                   </div>
 
-                  {paymentMethod === 'mpesa' ? (
+                  {paymentMethod === 'mpesa' && (
                     <div>
                       <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Tuma Pay Mobile Number *</label>
                       <input
                         type="text"
                         value={tumaPhone}
                         onChange={(e) => setTumaPhone(e.target.value)}
-                        placeholder="e.g. 254712345678 or 0712345678"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
+                        placeholder="e.g. 0712345678"
+                        className="w-full bg-slate-955 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
                         required
                       />
                     </div>
-                  ) : (
+                  )}
+
+                  {paymentMethod === 'cash' && (
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Amount Received (KSH) *</label>
+                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Cash Amount Received (KSH) *</label>
                       <input
                         type="number"
                         value={amountPaid}
                         onChange={(e) => setAmountPaid(e.target.value)}
                         placeholder="e.g. 1000"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
+                        className="w-full bg-slate-955 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
                         required
                       />
+                    </div>
+                  )}
+
+                  {paymentMethod === 'insurance' && (
+                    <div className="bg-slate-950 p-4 border border-slate-855 rounded-xl space-y-4">
+                      <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider block">Insurance Authorization & Co-pay Split Details</span>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Insurance Provider</label>
+                          <select
+                            value={insuranceProvider}
+                            onChange={(e) => setInsuranceProvider(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition cursor-pointer"
+                          >
+                            <option value="">-- Select Provider --</option>
+                            <option value="nhif">NHIF (Social Health Authority)</option>
+                            <option value="aar">AAR Insurance</option>
+                            <option value="jubilee">Jubilee Insurance</option>
+                            <option value="britam">Britam Health</option>
+                            <option value="apa">APA Insurance</option>
+                            <option value="madison">Madison Insurance</option>
+                            <option value="corporate">Corporate Account (Co-pay direct)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Member ID / Policy Number</label>
+                          <input
+                            type="text"
+                            value={memberId}
+                            onChange={(e) => setMemberId(e.target.value)}
+                            placeholder="e.g. AAR-993821"
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Pre-auth Code</label>
+                          <input
+                            type="text"
+                            value={preAuthCode}
+                            onChange={(e) => setPreAuthCode(e.target.value)}
+                            placeholder="e.g. AUTH-5532"
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 border-t border-slate-900 pt-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Insurance Coverage (KES)</label>
+                          <input
+                            type="number"
+                            value={insuranceCoverage}
+                            onChange={(e) => {
+                              const cov = parseFloat(e.target.value) || 0;
+                              setInsuranceCoverage(e.target.value);
+                              const totalDue = parseFloat(invoice?.total_amount || 0) + getConsultationFee(selectedVisit);
+                              setCopayAmount(Math.max(0, totalDue - cov).toString());
+                            }}
+                            placeholder="Amount covered..."
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Patient Co-pay (KES)</label>
+                          <input
+                            type="number"
+                            value={copayAmount}
+                            onChange={(e) => setCopayAmount(e.target.value)}
+                            placeholder="Co-pay portion..."
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Co-pay Method</label>
+                          <select
+                            value={copayPaymentMethod}
+                            onChange={(e) => setCopayPaymentMethod(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition cursor-pointer"
+                          >
+                            <option value="cash">Cash Co-pay</option>
+                            <option value="mpesa">Tuma Pay (M-Pesa) Co-pay</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {copayPaymentMethod === 'mpesa' && parseFloat(copayAmount) > 0 && (
+                        <div className="w-full max-w-sm pt-2 border-t border-slate-900">
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Tuma Pay Mobile Number for Co-pay *</label>
+                          <input
+                            type="text"
+                            value={tumaPhone}
+                            onChange={(e) => setTumaPhone(e.target.value)}
+                            placeholder="e.g. 0712345678"
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
+                            required
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

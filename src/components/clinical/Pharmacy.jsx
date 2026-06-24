@@ -422,12 +422,33 @@ export default function Pharmacy({ user, onComplete, showNotification }) {
         .eq("department", "pharmacy");
       const { data: pts } = await supabase.from("patients").select("*");
 
-      const enrichedVisits = vsts
-        ? vsts.map((v) => {
-            const p = pts?.find((pt) => pt.id === v.patient_id);
-            return { ...v, patient: p };
-          })
-        : [];
+      // Also fetch visits that have pending prescriptions from EMR
+      const { data: prescOrders } = await supabase
+        .from("orders")
+        .select("visit_id")
+        .eq("type", "prescription")
+        .eq("status", "prescribed");
+
+      const prescVisitIds = prescOrders ? [...new Set(prescOrders.map(o => o.visit_id))] : [];
+
+      let allVisits = vsts ? [...vsts] : [];
+      const missingVisitIds = prescVisitIds.filter(id => !allVisits.some(v => v.id === id));
+
+      if (missingVisitIds.length > 0) {
+        const { data: extraVisits } = await supabase
+          .from("visits")
+          .select("*")
+          .in("id", missingVisitIds);
+        if (extraVisits) {
+          allVisits = [...allVisits, ...extraVisits];
+        }
+      }
+
+      const enrichedVisits = allVisits.map((v) => {
+        const p = pts?.find((pt) => pt.id === v.patient_id);
+        const hasPending = prescVisitIds.includes(v.id);
+        return { ...v, patient: p, hasPendingPresc: hasPending };
+      });
 
       setPharmVisits(enrichedVisits);
 
@@ -839,9 +860,16 @@ export default function Pharmacy({ user, onComplete, showNotification }) {
                   }`}
                 >
                   <div className="flex justify-between items-center w-full">
-                    <span className="font-semibold text-slate-200 text-xs truncate max-w-[65%] font-sans">
-                      {item.patient?.name}
-                    </span>
+                    <div className="flex items-center gap-1.5 truncate max-w-[70%]">
+                      <span className="font-semibold text-slate-200 text-xs truncate font-sans">
+                        {item.patient?.name}
+                      </span>
+                      {item.hasPendingPresc && (
+                        <span className="bg-teal-500/10 text-teal-400 border border-teal-500/20 text-[7px] font-extrabold px-1.5 py-0.2 rounded uppercase shrink-0">
+                          e-Presc
+                        </span>
+                      )}
+                    </div>
                     <span
                       className={`text-[8px] px-1 rounded uppercase font-bold font-sans ${
                         item.priority === "emergency"

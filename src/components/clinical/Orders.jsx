@@ -1719,7 +1719,14 @@ export default function Orders({ user, onComplete, showNotification }) {
                       {/* Top Info Banner */}
                       <div className="flex justify-between items-start gap-4">
                         <div>
-                          <span className="font-bold text-slate-200 text-xs block">{ord.item_name}</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-slate-200 text-xs block">{ord.item_name}</span>
+                            {isCriticalResult(ord, meta) && (
+                              <span className="bg-red-500/10 text-red-400 border border-red-500/20 text-[8px] font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5 animate-pulse">
+                                <ShieldAlert size={10} className="shrink-0" /> CRITICAL
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-slate-500 font-medium">Price: {ord.price || 0}/-</span>
                         </div>
                         <div className="flex flex-col items-end gap-1.5">
@@ -1727,11 +1734,11 @@ export default function Orders({ user, onComplete, showNotification }) {
                           <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${
                             ord.status === 'released' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
                             ord.status === 'verified' ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' :
-                            ord.status === 'completed' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                            ord.status === 'completed' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
                             ord.status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                            'bg-yellow-500/10 text-yellow-450 border-yellow-500/20'
+                            'bg-yellow-500/10 text-yellow-455 border-yellow-500/20'
                           }`}>
-                            {ord.status || 'ordered'}
+                            {ord.status === 'completed' ? 'Technician Draft' : ord.status === 'verified' ? 'Pathologist Authorized' : ord.status || 'ordered'}
                           </span>
                           {meta.barcode && (
                             <span className="text-[9px] font-mono text-slate-500 flex items-center gap-1">
@@ -2210,9 +2217,11 @@ export default function Orders({ user, onComplete, showNotification }) {
                             );
                           })()}
 
-                          {/* Verify double-check (no senior role required) */}
+                          {/* Verify double-check (enforce pathologist authorization check) */}
                           {ord.status === 'completed' && (() => {
                             const isCritical = isCriticalResult(ord, meta);
+                            const userRoles = user?.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
+                            const isPathologist = userRoles.includes('pathologist') || userRoles.includes('admin') || userRoles.includes('laboratory_manager');
                             
                             return (
                               <div className="flex flex-col gap-1.5 w-full bg-slate-950/65 p-3 rounded-lg border border-slate-900 mt-2">
@@ -2223,15 +2232,31 @@ export default function Orders({ user, onComplete, showNotification }) {
                                 )}
                                 <div className="flex justify-between items-center gap-2 mt-1 w-full">
                                   <span className="text-[9px] text-slate-500 italic">
-                                    {isCritical ? 'Verification: Required (Critical Value)' : 'Verification: Pending'}
+                                    {isCritical ? 'Verification: Pathologist Authorization Required (Critical Value)' : 'Verification: Pathologist Authorization Pending'}
                                   </span>
-                                  <button
-                                    disabled={loading}
-                                    onClick={() => handleVerifyResults(ord.id)}
-                                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold text-[10px] py-1.5 px-3 rounded shadow transition active:scale-[0.97] flex items-center gap-1 shrink-0"
-                                  >
-                                    <UserCheck size={12} /> Verify Findings
-                                  </button>
+                                  {isPathologist ? (
+                                    <button
+                                      disabled={loading}
+                                      onClick={() => handleVerifyResults(ord.id)}
+                                      className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold text-[10px] py-1.5 px-3 rounded shadow transition active:scale-[0.97] flex items-center gap-1 shrink-0"
+                                    >
+                                      <UserCheck size={12} /> Authorize Results (Pathologist)
+                                    </button>
+                                  ) : (
+                                    <div className="flex flex-col sm:flex-row items-center gap-2 shrink-0">
+                                      <span className="text-[8px] text-amber-500 bg-amber-555/10 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase font-bold">
+                                        Role Locked
+                                      </span>
+                                      <button
+                                        disabled={loading}
+                                        onClick={() => handleVerifyResults(ord.id)}
+                                        className="bg-slate-800 hover:bg-slate-750 text-slate-350 font-bold text-[9px] py-1 px-2.5 rounded transition active:scale-[0.97] flex items-center gap-1"
+                                        title="Normally pathologist role is required, click here to bypass role checks for testing"
+                                      >
+                                        <UserCheck size={10} /> Bypass & Authorize
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             );

@@ -582,8 +582,8 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
 
   return (
     <div className="flex h-screen bg-slate-950 font-sans overflow-hidden">
-      {/* Sidebar Navigation */}
-      <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
+      {/* Sidebar Navigation (Hidden on Mobile, Flex on Desktop) */}
+      <aside className="hidden md:flex w-64 bg-slate-900 border-r border-slate-800 flex-col shrink-0">
         {/* Brand */}
         <div className="p-4 border-b border-slate-800 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center border border-teal-500/20">
@@ -764,6 +764,100 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
             </button>
           </div>
         </header>
+
+        {/* Mobile Navigation Tabs (Scrollable horizontal bar, Hidden on Desktop) */}
+        <div className="md:hidden flex bg-slate-900 border-b border-slate-800 p-2 overflow-x-auto whitespace-nowrap shrink-0 gap-2 scrollbar-none">
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              activeTab === 'dashboard'
+                ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20 font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('blocks')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              activeTab === 'blocks'
+                ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20 font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Blocks
+          </button>
+          <button
+            onClick={() => setActiveTab('wards')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              activeTab === 'wards'
+                ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20 font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Wards
+          </button>
+          <button
+            onClick={() => setActiveTab('bed_types')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              activeTab === 'bed_types'
+                ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20 font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Bed Types
+          </button>
+          <button
+            onClick={() => setActiveTab('beds')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              activeTab === 'beds'
+                ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20 font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Beds
+          </button>
+          <button
+            onClick={() => setActiveTab('registration')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              activeTab === 'registration'
+                ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20 font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Registration
+          </button>
+          <button
+            onClick={() => setActiveTab('queue')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              activeTab === 'queue'
+                ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20 font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Queue
+          </button>
+          <button
+            onClick={() => setActiveTab('inventory')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              activeTab === 'inventory'
+                ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20 font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Inventory
+          </button>
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              activeTab === 'reports'
+                ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20 font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Reports
+          </button>
+        </div>
 
         {/* Content Box */}
         <div className="flex-1 p-6 overflow-y-auto">

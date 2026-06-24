@@ -173,7 +173,7 @@ export default function Preferences({
   ];
 
   return (
-    <div className="space-y-6 max-w-6xl font-sans pb-8 animate-fadeIn">
+    <div className="space-y-6 max-w-6xl mx-auto font-sans pb-8 animate-fadeIn">
       {/* Header */}
       <div className="border-b border-slate-800/60 pb-3 flex items-center gap-2.5">
         <div className="p-2 rounded-lg bg-teal-500/10 text-teal-400">

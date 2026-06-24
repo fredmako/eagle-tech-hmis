@@ -244,7 +244,7 @@ export default function Appointments({ user, showNotification }) {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl font-sans pb-8 animate-fadeIn">
+    <div className="space-y-6 max-w-6xl mx-auto font-sans pb-8 animate-fadeIn">
       {/* Upper Header Control panel */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/60 pb-4">
         <div className="flex items-center gap-2.5">

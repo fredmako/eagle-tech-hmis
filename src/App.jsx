@@ -1027,157 +1027,159 @@ export default function App() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
-          {activeTab === "dashboard" && (
-            <Dashboard user={user} onNavigate={setActiveTab} />
-          )}
-          {activeTab === "registration" && (
-            <Registration
-              user={user}
-              onNavigateToQueue={handleNavigateToQueue}
-              showNotification={showNotification}
-            />
-          )}
-          {activeTab === "queue" && (
-            <Queue
-              preselectedPatient={preselectedPatient}
-              user={user}
-              clearPreselected={clearPreselected}
-            />
-          )}
-          {activeTab === "triage" && (
-            <Triage user={user} onComplete={() => setActiveTab("dashboard")} showNotification={showNotification} />
-          )}
-          {activeTab === "consultation" && (
-            <Consultation
-              user={user}
-              onComplete={() => setActiveTab("dashboard")}
-              showNotification={showNotification}
-            />
-          )}
-          {activeTab === "orders" && (
-            <Orders user={user} onComplete={() => setActiveTab("dashboard")} showNotification={showNotification} />
-          )}
-          {activeTab === "radiology" && (
-            <Radiology
-              user={user}
-              onComplete={() => setActiveTab("dashboard")}
-              showNotification={showNotification}
-            />
-          )}
-          {activeTab === "surgery" && (
-            <Surgery user={user} onComplete={() => setActiveTab("dashboard")} />
-          )}
-          {activeTab === "pharmacy" && (
-            <Pharmacy
-              user={user}
-              initialSubTab={pharmacySubTab}
-              onComplete={() => setActiveTab("dashboard")}
-              showNotification={showNotification}
-            />
-          )}
-          {activeTab === "pos" && (
-            <Pharmacy
-              user={user}
-              initialSubTab="sell"
-              onComplete={() => setActiveTab("dashboard")}
-              showNotification={showNotification}
-            />
-          )}
-          {activeTab === "billing" && (
-            <Billing
-              user={user}
-              initialSubTab={billingSubTab}
-              onComplete={() => setActiveTab("dashboard")}
-              showNotification={showNotification}
-            />
-          )}
-          {activeTab === "reports" && <Reports user={user} />}
-          {activeTab === "patient_dashboard" && <PatientDashboard />}
-          {activeTab === "ward" && <Ward user={user} showNotification={showNotification} />}
-          {activeTab === "maternity" && (
-            (isAdmin || (user.department?.toLowerCase() || '').includes('maternity')) ? (
-              <MaternityDashboard
+          <div className={menuLayout === 'topbar' ? 'max-w-7xl mx-auto w-full' : ''}>
+            {activeTab === "dashboard" && (
+              <Dashboard user={user} onNavigate={setActiveTab} />
+            )}
+            {activeTab === "registration" && (
+              <Registration
                 user={user}
-                initialSubTab={maternitySubTab}
-                onClose={() => setActiveTab("dashboard")}
+                onNavigateToQueue={handleNavigateToQueue}
                 showNotification={showNotification}
               />
-            ) : (
+            )}
+            {activeTab === "queue" && (
+              <Queue
+                preselectedPatient={preselectedPatient}
+                user={user}
+                clearPreselected={clearPreselected}
+              />
+            )}
+            {activeTab === "triage" && (
+              <Triage user={user} onComplete={() => setActiveTab("dashboard")} showNotification={showNotification} />
+            )}
+            {activeTab === "consultation" && (
+              <Consultation
+                user={user}
+                onComplete={() => setActiveTab("dashboard")}
+                showNotification={showNotification}
+              />
+            )}
+            {activeTab === "orders" && (
+              <Orders user={user} onComplete={() => setActiveTab("dashboard")} showNotification={showNotification} />
+            )}
+            {activeTab === "radiology" && (
+              <Radiology
+                user={user}
+                onComplete={() => setActiveTab("dashboard")}
+                showNotification={showNotification}
+              />
+            )}
+            {activeTab === "surgery" && (
+              <Surgery user={user} onComplete={() => setActiveTab("dashboard")} />
+            )}
+            {activeTab === "pharmacy" && (
+              <Pharmacy
+                user={user}
+                initialSubTab={pharmacySubTab}
+                onComplete={() => setActiveTab("dashboard")}
+                showNotification={showNotification}
+              />
+            )}
+            {activeTab === "pos" && (
+              <Pharmacy
+                user={user}
+                initialSubTab="sell"
+                onComplete={() => setActiveTab("dashboard")}
+                showNotification={showNotification}
+              />
+            )}
+            {activeTab === "billing" && (
+              <Billing
+                user={user}
+                initialSubTab={billingSubTab}
+                onComplete={() => setActiveTab("dashboard")}
+                showNotification={showNotification}
+              />
+            )}
+            {activeTab === "reports" && <Reports user={user} />}
+            {activeTab === "patient_dashboard" && <PatientDashboard />}
+            {activeTab === "ward" && <Ward user={user} showNotification={showNotification} />}
+            {activeTab === "maternity" && (
+              (isAdmin || (user.department?.toLowerCase() || '').includes('maternity')) ? (
+                <MaternityDashboard
+                  user={user}
+                  initialSubTab={maternitySubTab}
+                  onClose={() => setActiveTab("dashboard")}
+                  showNotification={showNotification}
+                />
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
+                  <ShieldAlert size={48} className="text-red-500 mb-4 animate-pulse" />
+                  <h3 className="text-lg font-semibold text-slate-100">Access Denied</h3>
+                  <p className="text-sm text-slate-400 mt-2 max-w-md">
+                    You do not have permission to access the Maternity Setup module. Please verify your department assignment with an administrator.
+                  </p>
+                  <button
+                    onClick={() => setActiveTab("dashboard")}
+                    className="mt-6 bg-teal-400 hover:bg-teal-350 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98]"
+                  >
+                    Return to Dashboard
+                  </button>
+                </div>
+              )
+            )}
+            {activeTab === "mch" && (
+              (isAdmin || ['mch', 'anc', 'antenatal'].some(keyword => (user.department?.toLowerCase() || '').includes(keyword))) ? (
+                <MCHDashboard
+                  user={user}
+                  initialSubTab={mchSubTab}
+                  onClose={() => setActiveTab("dashboard")}
+                  showNotification={showNotification}
+                />
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
+                  <ShieldAlert size={48} className="text-red-500 mb-4 animate-pulse" />
+                  <h3 className="text-lg font-semibold text-slate-100">Access Denied</h3>
+                  <p className="text-sm text-slate-400 mt-2 max-w-md">
+                    You do not have permission to access the MCH Clinic module. Please verify your department assignment with an administrator.
+                  </p>
+                  <button
+                    onClick={() => setActiveTab("dashboard")}
+                    className="mt-6 bg-teal-400 hover:bg-teal-350 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98]"
+                  >
+                    Return to Dashboard
+                  </button>
+                </div>
+              )
+            )}
+            {activeTab === "admin" && <Admin user={user} initialSubTab={adminSubTab} />}
+            {activeTab === "settings" && (
+              <Preferences
+                currentTheme={theme}
+                onChangeTheme={handleThemeChange}
+                currentThemeMode={themeMode}
+                onChangeThemeMode={handleThemeModeChange}
+                currentMenuLayout={menuLayout}
+                onChangeMenuLayout={handleMenuLayoutChange}
+                currentLang={lang}
+                onChangeLang={handleLangChange}
+                currentFont={font}
+                onChangeFont={handleFontChange}
+                user={user}
+                setUser={setUser}
+              />
+            )}
+            {activeTab === "appointments" && (
+              <Appointments user={user} showNotification={showNotification} />
+            )}
+            {activeTab === "support" && <SupportPanel />}
+            {!["dashboard", "registration", "queue", "triage", "consultation", "orders", "radiology", "surgery", "pharmacy", "pos", "billing", "reports", "patient_dashboard", "ward", "maternity", "mch", "admin", "settings", "appointments", "support"].includes(activeTab) && (
               <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
-                <ShieldAlert size={48} className="text-red-500 mb-4 animate-pulse" />
-                <h3 className="text-lg font-semibold text-slate-100">Access Denied</h3>
-                <p className="text-sm text-slate-400 mt-2 max-w-md">
-                  You do not have permission to access the Maternity Setup module. Please verify your department assignment with an administrator.
+                <ShieldAlert size={48} className="text-yellow-500 mb-4 animate-bounce" />
+                <h3 className="text-lg font-bold text-slate-100">404 - Page Not Found</h3>
+                <p className="text-xs text-slate-400 mt-2 max-w-md">
+                  The requested module space or page "{activeTab}" is not registered on this system or is unavailable for your account.
                 </p>
                 <button
                   onClick={() => setActiveTab("dashboard")}
-                  className="mt-6 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98]"
+                  className="mt-6 bg-teal-400 hover:bg-teal-350 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98] cursor-pointer"
                 >
                   Return to Dashboard
                 </button>
               </div>
-            )
-          )}
-          {activeTab === "mch" && (
-            (isAdmin || ['mch', 'anc', 'antenatal'].some(keyword => (user.department?.toLowerCase() || '').includes(keyword))) ? (
-              <MCHDashboard
-                user={user}
-                initialSubTab={mchSubTab}
-                onClose={() => setActiveTab("dashboard")}
-                showNotification={showNotification}
-              />
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
-                <ShieldAlert size={48} className="text-red-500 mb-4 animate-pulse" />
-                <h3 className="text-lg font-semibold text-slate-100">Access Denied</h3>
-                <p className="text-sm text-slate-400 mt-2 max-w-md">
-                  You do not have permission to access the MCH Clinic module. Please verify your department assignment with an administrator.
-                </p>
-                <button
-                  onClick={() => setActiveTab("dashboard")}
-                  className="mt-6 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98]"
-                >
-                  Return to Dashboard
-                </button>
-              </div>
-            )
-          )}
-          {activeTab === "admin" && <Admin user={user} initialSubTab={adminSubTab} />}
-          {activeTab === "settings" && (
-            <Preferences
-              currentTheme={theme}
-              onChangeTheme={handleThemeChange}
-              currentThemeMode={themeMode}
-              onChangeThemeMode={handleThemeModeChange}
-              currentMenuLayout={menuLayout}
-              onChangeMenuLayout={handleMenuLayoutChange}
-              currentLang={lang}
-              onChangeLang={handleLangChange}
-              currentFont={font}
-              onChangeFont={handleFontChange}
-              user={user}
-              setUser={setUser}
-            />
-          )}
-          {activeTab === "appointments" && (
-            <Appointments user={user} showNotification={showNotification} />
-          )}
-          {activeTab === "support" && <SupportPanel />}
-          {!["dashboard", "registration", "queue", "triage", "consultation", "orders", "radiology", "surgery", "pharmacy", "pos", "billing", "reports", "patient_dashboard", "ward", "maternity", "mch", "admin", "settings", "appointments", "support"].includes(activeTab) && (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
-              <ShieldAlert size={48} className="text-yellow-500 mb-4 animate-bounce" />
-              <h3 className="text-lg font-bold text-slate-100">404 - Page Not Found</h3>
-              <p className="text-xs text-slate-400 mt-2 max-w-md">
-                The requested module space or page "{activeTab}" is not registered on this system or is unavailable for your account.
-              </p>
-              <button
-                onClick={() => setActiveTab("dashboard")}
-                className="mt-6 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98] cursor-pointer"
-              >
-                Return to Dashboard
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </main>
 

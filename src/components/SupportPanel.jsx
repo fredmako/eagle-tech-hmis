@@ -178,7 +178,7 @@ export default function SupportPanel() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl font-sans text-slate-100">
+    <div className="space-y-6 max-w-4xl mx-auto font-sans text-slate-100">
       <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">

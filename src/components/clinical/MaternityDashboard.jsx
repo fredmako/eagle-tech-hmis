@@ -5,7 +5,7 @@ import {
   Baby, Activity, Bed, Users, ShieldAlert, CheckCircle, RefreshCw,
   PlusCircle, Trash2, Edit2, Search, Sliders, Calendar, DollarSign,
   Package, LayoutDashboard, ChevronDown, ChevronRight, X, UserCheck,
-  TrendingUp, Shield, BarChart3, Thermometer, Clock
+  TrendingUp, Shield, BarChart3, Thermometer, Clock, Heart
 } from 'lucide-react';
 
 export default function MaternityDashboard({ user, onClose, showNotification, initialSubTab }) {

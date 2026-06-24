@@ -19,7 +19,8 @@ import {
   Moon,
   Sidebar,
   PanelTop,
-  Eye
+  Eye,
+  Camera
 } from 'lucide-react';
 
 export default function Preferences({ 
@@ -46,6 +47,7 @@ export default function Preferences({
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [activeTab, setActiveTab] = useState('profile');
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url || '');
   
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingPassword, setLoadingPassword] = useState(false);
@@ -56,8 +58,53 @@ export default function Preferences({
       setFullName(user.full_name || user.name || '');
       setPhone(user.phone || '');
       setDept(user.department || '');
+      setAvatarUrl(user.avatar_url || '');
     }
   }, [user]);
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Image file size should be less than 2MB.' });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 256;
+        const MAX_HEIGHT = 256;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setAvatarUrl(dataUrl);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -73,7 +120,8 @@ export default function Preferences({
         .update({
           full_name: fullName,
           phone: phone,
-          department: dept
+          department: dept,
+          avatar_url: avatarUrl
         })
         .eq('id', user.id);
       
@@ -92,7 +140,8 @@ export default function Preferences({
         full_name: fullName,
         name: fullName,
         phone: phone,
-        department: dept
+        department: dept,
+        avatar_url: avatarUrl
       };
       
       setUser(updatedUser);
@@ -238,6 +287,51 @@ export default function Preferences({
             
             <form onSubmit={handleSaveProfile} className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
+                {/* Passport Photo Upload Zone */}
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-3 bg-slate-950/40 border border-slate-850 rounded-xl">
+                  <div className="relative group w-16 h-16 rounded-full bg-slate-900 border-2 border-teal-500/20 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Passport Photo" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="font-bold text-teal-400 text-sm">
+                        {fullName ? fullName.substring(0, 2).toUpperCase() : '??'}
+                      </div>
+                    )}
+                    <label 
+                      htmlFor="passport-photo-input" 
+                      className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition flex items-center justify-center cursor-pointer"
+                    >
+                      <Camera size={16} className="text-teal-400" />
+                    </label>
+                  </div>
+                  <div className="flex-1 text-center sm:text-left">
+                    <span className="block text-[11px] font-bold text-slate-300">Passport Photo</span>
+                    <span className="block text-[9.5px] text-slate-500 mt-0.5">JPG or PNG. Auto-optimized for system profiles.</span>
+                    <label 
+                      htmlFor="passport-photo-input" 
+                      className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-teal-500/10 border border-teal-500/20 text-[10px] font-bold text-teal-400 cursor-pointer hover:bg-teal-500/20 transition"
+                    >
+                      <Camera size={11} /> Upload Photo
+                    </label>
+                    <input 
+                      id="passport-photo-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                  </div>
+                  {avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setAvatarUrl('')}
+                      className="text-[9.5px] text-red-400 hover:text-red-305 font-bold transition px-2.5 py-1 rounded border border-red-500/10 hover:border-red-500/25 bg-red-500/5 cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-[9.5px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                     Full Name

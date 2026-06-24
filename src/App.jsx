@@ -873,8 +873,12 @@ export default function App() {
               title="View Account Preferences & Profile"
               className="flex items-center gap-2 border-r border-teal-500/10 pr-3 cursor-pointer hover:opacity-80 transition text-left focus:outline-none"
             >
-              <div className="h-7 w-7 rounded-full bg-slate-800 border border-teal-500/15 flex items-center justify-center font-bold text-teal-400 text-[10px] shadow shrink-0">
-                {user.full_name?.substring(0, 2).toUpperCase()}
+              <div className="h-7 w-7 rounded-full bg-slate-800 border border-teal-500/15 flex items-center justify-center overflow-hidden font-bold text-teal-400 text-[10px] shadow shrink-0">
+                {user.avatar_url ? (
+                  <img src={user.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                ) : (
+                  user.full_name?.substring(0, 2).toUpperCase()
+                )}
               </div>
               <div className="hidden lg:block text-left truncate max-w-[120px]">
                 <span className="text-[11px] font-bold text-slate-200 block leading-tight truncate">
@@ -1053,8 +1057,12 @@ export default function App() {
               title="View Account Preferences & Profile"
               className="flex items-center gap-3 truncate flex-1 cursor-pointer hover:opacity-80 transition text-left focus:outline-none"
             >
-              <div className="h-8 w-8 rounded-full bg-slate-800 border border-teal-500/15 flex items-center justify-center font-bold text-teal-400 text-xs shadow shrink-0">
-                {user.full_name?.substring(0, 2).toUpperCase()}
+              <div className="h-8 w-8 rounded-full bg-slate-800 border border-teal-500/15 flex items-center justify-center overflow-hidden font-bold text-teal-400 text-xs shadow shrink-0">
+                {user.avatar_url ? (
+                  <img src={user.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                ) : (
+                  user.full_name?.substring(0, 2).toUpperCase()
+                )}
               </div>
               <div className="truncate flex-1">
                 <span className="text-xs font-bold text-slate-200 block truncate leading-snug">

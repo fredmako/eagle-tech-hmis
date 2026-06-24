@@ -349,7 +349,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
     {
       id: "pharmacy",
       name: "Independent Pharmacy",
-      price: "$29",
+      price: "Ksh 3,900",
       billing: "per month",
       description:
         "Designed exclusively for standalone pharmacies to manage stock, sales, and walk-in dispensing.",
@@ -364,7 +364,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
     {
       id: "clinic",
       name: "Basic Clinic",
-      price: "$49",
+      price: "Ksh 6,500",
       billing: "per month",
       description:
         "Ideal for small clinics and standalone outpatient triage stations.",
@@ -379,7 +379,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
     {
       id: "hospital",
       name: "Standard Hospital",
-      price: "$149",
+      price: "Ksh 19,500",
       billing: "per month",
       description:
         "Perfect for mid-size hospitals requiring ward operations and lab/pharmacy integration.",
@@ -394,7 +394,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
     {
       id: "enterprise",
       name: "Enterprise System",
-      price: "$399",
+      price: "Ksh 52,000",
       billing: "per month",
       description:
         "Built for large referral networks and multi-facility hospital groups.",

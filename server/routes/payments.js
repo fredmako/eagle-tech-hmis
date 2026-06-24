@@ -18,7 +18,7 @@ async function getFacilityCredentials(facilityId) {
 
 // 1. Stripe: Create Payment Intent
 router.post("/stripe/create-payment-intent", authenticateToken, async (req, res) => {
-  const { amount, currency = "usd", invoiceId, facilityId } = req.body;
+  const { amount, currency = "kes", invoiceId, facilityId } = req.body;
   if (!amount || !invoiceId || !facilityId) {
     return res.status(400).json({ error: "Amount, invoiceId, and facilityId are required" });
   }
@@ -28,7 +28,7 @@ router.post("/stripe/create-payment-intent", authenticateToken, async (req, res)
     const stripeSecret = creds?.stripe_secret_key || process.env.STRIPE_SECRET_KEY;
 
     if (!stripeSecret) {
-      console.log(`[Stripe Payments] Sandbox mode checkout for Invoice #${invoiceId}`);
+      console.log(`[Stripe Payments] Sandbox mode checkout for Invoice #${invoiceId}. Amount: ${amount} ${currency.toUpperCase()} (Simulated)`);
       return res.json({
         success: true,
         simulated: true,
@@ -40,10 +40,26 @@ router.post("/stripe/create-payment-intent", authenticateToken, async (req, res)
     const Stripe = require("stripe");
     const stripe = new Stripe(stripeSecret);
 
+    // KES is not supported by standard Stripe accounts, so we relate/convert it to USD
+    // We maintain all currencies in Kenyan Shillings (KES) on the platform, and only convert for processing.
+    let processAmount = amount;
+    let processCurrency = currency.toLowerCase();
+
+    if (processCurrency === "kes") {
+      const KES_TO_USD_RATE = 130.0;
+      processAmount = amount / KES_TO_USD_RATE;
+      processCurrency = "usd";
+    }
+
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // cents
-      currency: currency.toLowerCase(),
-      metadata: { invoiceId, facilityId }
+      amount: Math.round(processAmount * 100), // cents
+      currency: processCurrency,
+      metadata: { 
+        invoiceId, 
+        facilityId,
+        original_amount_kes: amount.toString(),
+        conversion_rate_usd: "130.0"
+      }
     });
 
     res.json({

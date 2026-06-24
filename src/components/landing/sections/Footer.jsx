@@ -170,7 +170,7 @@ export function Footer() {
                   
                   <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">2. Subscriptions & Billing Tiers</h4>
                   <p>
-                    Subscriptions are billed in Kenyan Shillings (Ksh) or USD as per the chosen package (Basic, Standard, or Enterprise). Domain registration, backups, and payment gateways are locked to the active billing cycles. If payments fail, a 7-day grace period is provided prior to read-only database locks.
+                    Subscriptions are billed in Kenyan Shillings (Ksh) as per the chosen package (Basic, Standard, or Enterprise). Domain registration, backups, and payment gateways are locked to the active billing cycles. If payments fail, a 7-day grace period is provided prior to read-only database locks.
                   </p>
                   
                   <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">3. White-Label & Domain Branding</h4>

@@ -1,10 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Reveal } from '../../ui/Reveal';
 import { motion } from 'motion/react';
 import { X } from 'lucide-react';
 
 export function Footer() {
   const [activeModal, setActiveModal] = useState(null); // 'privacy', 'service', or null
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash === '#privacy') {
+        setActiveModal('privacy');
+      } else if (hash === '#service') {
+        setActiveModal('service');
+      }
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const closeModal = () => {
+    setActiveModal(null);
+    if (window.location.hash === '#privacy' || window.location.hash === '#service') {
+      window.history.replaceState(null, null, ' ');
+    }
+  };
 
   const socials = [
     { 
@@ -40,9 +61,9 @@ export function Footer() {
         <div className="text-xs text-fg-faint text-center font-sans font-medium flex flex-col items-center gap-2">
           <div>© 2026 Eagle Tech Hospital Management Software Solutions. All rights reserved.</div>
           <div className="flex items-center gap-3 text-2xs text-fg-muted font-bold font-sans">
-            <button onClick={() => setActiveModal('privacy')} className="hover:text-primary transition-colors cursor-pointer hover:underline">Privacy Policy</button>
+            <a href="#privacy" onClick={(e) => { e.preventDefault(); setActiveModal('privacy'); window.location.hash = 'privacy'; }} className="hover:text-primary transition-colors cursor-pointer hover:underline">Privacy Policy</a>
             <span className="text-slate-805 font-bold">•</span>
-            <button onClick={() => setActiveModal('service')} className="hover:text-primary transition-colors cursor-pointer hover:underline">Service Agreement</button>
+            <a href="#service" onClick={(e) => { e.preventDefault(); setActiveModal('service'); window.location.hash = 'service'; }} className="hover:text-primary transition-colors cursor-pointer hover:underline">Service Agreement</a>
           </div>
         </div>
 
@@ -88,7 +109,7 @@ export function Footer() {
                 </h3>
               </div>
               <button 
-                onClick={() => setActiveModal(null)} 
+                onClick={closeModal} 
                 className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition focus:outline-none cursor-pointer"
               >
                 <X size={18} />
@@ -168,7 +189,7 @@ export function Footer() {
             <div className="p-4 bg-slate-950 border-t border-slate-850 flex flex-col sm:flex-row justify-between items-center gap-4">
               <span className="text-[9px] text-slate-500 italic text-center sm:text-left">Eagle Tech Legal Compliance. Certified HIPAA & Data Protection Act 2019.</span>
               <button
-                onClick={() => setActiveModal(null)}
+                onClick={closeModal}
                 className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[10px] py-1.5 px-5 rounded-lg transition cursor-pointer"
               >
                 Accept & Close

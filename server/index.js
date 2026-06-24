@@ -20,6 +20,7 @@ const afyalinkRouter = require("./routes/afyalink");
 const workflowsRouter = require("./routes/workflows");
 const paymentsRouter = require("./routes/payments");
 const domainsRouter = require("./routes/domains");
+const smsRouter = require("./routes/sms");
 
 // Mount routes
 app.use("/api/auth", authRouter);
@@ -32,6 +33,7 @@ app.use("/api/afyalink", afyalinkRouter);
 app.use("/api/workflows", workflowsRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/domains", domainsRouter);
+app.use("/api/sms", smsRouter);
 
 const { runMigrations } = require("./utils/migrationRunner");
 

@@ -13,12 +13,34 @@ const supabase = isRealSupabase ? createClient(supabaseUrl, supabaseKey) : null;
  * Implements fallback mock handling to ensure system resilience.
  */
 async function submitEncounterToAfyaLink(encounterData) {
-  const agentId = process.env.AFYALINK_AGENT_ID || 'DHABP06856';
-  const username = process.env.AFYALINK_USERNAME || 't8xwo9EjTR9xVot7jgc';
-  const password = process.env.AFYALINK_PASSWORD || '70h1gsbVx1cV1hgewB4';
-  const clientKey = process.env.AFYALINK_KEY || 'HA6-DHABP06856';
-  const clientSecret = process.env.AFYALINK_SECRET || 'fECP2T1dOAJn4BEzeyYtbgXmGz4moWTftxBx9aMGybfPj5Cr';
-  const baseUrl = process.env.AFYALINK_BASE_URL || 'https://api.dha.go.ke/v1';
+  let agentId = process.env.AFYALINK_AGENT_ID || 'DHABP06856';
+  let username = process.env.AFYALINK_USERNAME || 't8xwo9EjTR9xVot7jgc';
+  let password = process.env.AFYALINK_PASSWORD || '70h1gsbVx1cV1hgewB4';
+  let clientKey = process.env.AFYALINK_KEY || 'HA6-DHABP06856';
+  let clientSecret = process.env.AFYALINK_SECRET || 'fECP2T1dOAJn4BEzeyYtbgXmGz4moWTftxBx9aMGybfPj5Cr';
+  let baseUrl = process.env.AFYALINK_BASE_URL || 'https://api.dha.go.ke/v1';
+
+  if (supabase && encounterData.facility_id) {
+    try {
+      const { data, error } = await supabase
+        .from('facilities')
+        .select('system_admin_config')
+        .eq('id', encounterData.facility_id)
+        .maybeSingle();
+
+      if (!error && data && data.system_admin_config && data.system_admin_config.shaConfig) {
+        const sha = data.system_admin_config.shaConfig;
+        if (sha.agentId) agentId = sha.agentId;
+        if (sha.username) username = sha.username;
+        if (sha.password) password = sha.password;
+        if (sha.consumerKey) clientKey = sha.consumerKey;
+        if (sha.consumerSecret) clientSecret = sha.consumerSecret;
+        if (sha.appUrl) baseUrl = sha.appUrl.endsWith('/v1') ? sha.appUrl : (sha.appUrl + '/v1');
+      }
+    } catch (dbErr) {
+      console.error('[AfyaLink HIE] Failed to query dynamic credentials, using env defaults:', dbErr);
+    }
+  }
 
   // Construct standard DHA Health Information Exchange (HIE) FHIR payload
   const fhirPayload = {

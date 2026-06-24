@@ -16,7 +16,6 @@ import StaffScheduler from './admin/StaffScheduler';
 import BroadcastPanel from './admin/BroadcastPanel';
 import AdminDelegation from './admin/AdminDelegation';
 import ModulesConfig from './admin/ModulesConfig';
-import SystemAdministration from './admin/SystemAdministration';
 import LaboratoryManagement from './admin/LaboratoryManagement';
 import AssetsMaintenance from './admin/AssetsMaintenance';
 import { hasAccess } from '../utils/permissions';
@@ -1253,18 +1252,7 @@ export default function Admin({ user, initialSubTab }) {
               </button>
             )}
 
-            {isAdminRole && (
-              <button
-                onClick={() => setActiveSubTab('system_administration')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-                  activeSubTab === 'system_administration'
-                    ? 'bg-slate-850 border border-slate-705 text-teal-400'
-                    : 'text-slate-450 hover:text-slate-200'
-                }`}
-              >
-                <Sliders size={13} /> System Administration
-              </button>
-            )}
+
 
             {isAdminRole && (
               <button
@@ -1602,7 +1590,7 @@ export default function Admin({ user, initialSubTab }) {
         {/* Tab Contents */}
         <div className="flex-1 overflow-y-auto max-h-[500px] pr-1 space-y-4">
           
-          {activeSubTab !== 'overview' && activeSubTab !== 'delegation' && activeSubTab !== 'modules_config' && activeSubTab !== 'system_administration' && activeSubTab !== 'laboratory_management' && !hasAccess(activeSubTab, user.role, adminDelegation) ? (
+          {activeSubTab !== 'overview' && activeSubTab !== 'delegation' && activeSubTab !== 'modules_config' && activeSubTab !== 'laboratory_management' && !hasAccess(activeSubTab, user.role, adminDelegation) ? (
             <div className="p-8 text-center text-slate-500 font-medium bg-slate-950/20 border border-slate-850 rounded-xl space-y-2">
               <Lock className="mx-auto text-slate-600 mb-2" size={24} />
               <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Access Denied</h4>
@@ -1618,13 +1606,7 @@ export default function Admin({ user, initialSubTab }) {
                 />
               )}
 
-              {/* TAB: SYSTEM ADMINISTRATION */}
-              {activeSubTab === 'system_administration' && (
-                <SystemAdministration 
-                  user={user} 
-                  onClose={() => setActiveSubTab('overview')} 
-                />
-              )}
+
 
               {/* TAB: LABORATORY SERVICES */}
               {activeSubTab === 'laboratory_management' && (
@@ -1743,16 +1725,7 @@ export default function Admin({ user, initialSubTab }) {
           {/* TAB 6: HOSPITAL PROFILE PARTICULARS */}
           {activeSubTab === 'facility_profile' && (
             <HospitalProfile
-              facilityMessage={facilityMessage}
-              handleSaveFacilityDetails={handleSaveFacilityDetails}
-              facilityDetails={facilityDetails}
-              setFacilityDetails={setFacilityDetails}
-              logoOption={logoOption}
-              setLogoOption={setLogoOption}
-              handleLogoUpload={handleLogoUpload}
-              customLogoUrl={customLogoUrl}
-              setCustomLogoUrl={setCustomLogoUrl}
-              savingFacility={savingFacility}
+              user={user}
             />
           )}
 

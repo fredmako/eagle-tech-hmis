@@ -192,29 +192,46 @@ export function Footer() {
                 </>
               ) : (
                 <>
-                  <p className="font-bold text-slate-200">Last Updated: June 24, 2026</p>
+                  <p className="font-bold text-slate-200">Effective Date: 24 June 2026</p>
                   <p>
-                    This Service Agreement defines the standard operating criteria, subscription fees, and liability limitations for the Eagle Tech Hospital Management Information System (HMIS).
+                    This Service Agreement ("Agreement") governs the subscription, deployment, and use of the Eagle Tech Hospital Management Information System (HMIS) software and cloud services provided by <strong>Eagle Tech Solutions</strong>.
                   </p>
                   
-                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">1. Service Level SLA (99.9% Uptime)</h4>
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">1. Service Level Agreement (SLA) & Uptime</h4>
                   <p>
-                    Eagle Tech guarantees a <strong>99.9% platform service availability SLA</strong>. Scheduled maintenance is executed during low-traffic slots (Sundays 02:00–04:00 EAT) with preceding alerts dispatched to administrators.
+                    Eagle Tech Solutions guarantees a <strong>99.9% platform service uptime</strong> on all cloud-hosted portals. System performance and latency are actively monitored. Scheduled database optimizations or infrastructure upgrades are performed during low-traffic windows (Sundays 02:00–04:00 EAT), with notifications dispatched to administrators at least 24 hours in advance.
                   </p>
                   
-                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">2. Subscriptions & Billing Tiers</h4>
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">2. Subscriptions, Fees & Payment Tiers</h4>
                   <p>
-                    Subscriptions are billed in Kenyan Shillings (Ksh) as per the chosen package (Basic, Standard, or Enterprise). Domain registration, backups, and payment gateways are locked to the active billing cycles. If payments fail, a 7-day grace period is provided prior to read-only database locks.
+                    Services are offered on a recurring subscription basis under three tiers: Basic Care (Free), Standard Care ($29/month), and Enterprise Elite ($89/month) or their equivalent in Kenyan Shillings (Ksh). 
+                  </p>
+                  <p className="mt-1">
+                    Payments are due on the billing cycle date. In the event of a payment failure, a <strong>7-day grace period</strong> is automatically initiated. If the account remains unpaid after the grace period, the workspace will transition to a <strong>read-only lock state</strong>. Normal service, including custom DNS mapping, active queues, and outbound SMTP notifications, will resume immediately upon settlement.
                   </p>
                   
-                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">3. White-Label & Domain Branding</h4>
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">3. Intellectual Property & White-Label Customization</h4>
                   <p>
-                    Facilities receive custom DNS routing setups. You retain complete ownership of logos, branding designs, and user roles. Eagle Tech retains copyrights of the HMIS application logic and clinical algorithm frameworks.
+                    The subscribing healthcare facility retains full ownership of its trademarks, logos, custom domain branding, and all patient records inputted into the system database. Eagle Tech Solutions retains all intellectual property rights, copyrights, source code, and clinical algorithms of the HMIS application logic.
                   </p>
                   
-                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">4. Medical Liability Disclaimer</h4>
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">4. Medical Liability & Clinical Disclaimer</h4>
                   <p>
-                    Eagle Tech HMIS is a record-keeping and database management helper. It does not make diagnostic choices or define therapeutic paths. Clinical care choices remain the sole responsibility of the registered, licensed medical practitioners operating the workspace.
+                    <strong>IMPORTANT:</strong> Eagle Tech HMIS is an administrative utility, record-keeping framework, and decision-support helper. The system does not make clinical decisions, diagnostic determinations, or therapeutic prescriptions. Full medical responsibility, clinical care decisions, and prescription oversight remain the sole, non-delegable duty of the registered, licensed medical practitioners operating the platform.
+                  </p>
+                  
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">5. Data Protection and Jurisdiction</h4>
+                  <p>
+                    All clinical files and database tables are protected under the security guidelines of the <strong>Kenya Data Protection Act, 2019</strong>. In the event of a dispute, this Agreement shall be governed by, and construed in accordance with, the laws of the Republic of Kenya.
+                  </p>
+                  
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">6. Contact & Support</h4>
+                  <p>
+                    For service escalations, SLA reports, or billing disputes, please contact our support desk at:
+                  </p>
+                  <p className="font-semibold text-slate-200 mt-1">
+                    Eagle Tech Solutions Support<br />
+                    Email: <a href="mailto:info@eagletechsolutions.tech" className="text-teal-400 hover:underline font-sans">info@eagletechsolutions.tech</a>
                   </p>
                 </>
               )}

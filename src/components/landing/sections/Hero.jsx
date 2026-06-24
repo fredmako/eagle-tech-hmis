@@ -3,7 +3,7 @@ import { ArrowRight, ChevronRight, Activity } from 'lucide-react';
 import { SafeImage } from '../../ui/SafeImage';
 import { PHOTO_HERO } from '../data';
 
-export function Hero({ onPrimary, onSecondary }) {
+export function Hero({ user, onPrimary, onSecondary }) {
   const reduced = useReducedMotion();
   return (
     <section className="relative overflow-hidden">
@@ -34,7 +34,7 @@ export function Hero({ onPrimary, onSecondary }) {
               onClick={onPrimary}
               className="flex items-center justify-center gap-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-all duration-medium font-sans font-bold shadow-glow cursor-pointer"
             >
-              Start Free Hospital Setup <ArrowRight size={15} />
+              {user ? "Access Hospital Dashboard" : "Start Free Hospital Setup"} <ArrowRight size={15} />
             </motion.button>
             <motion.button
               whileHover={reduced ? {} : { scale: 1.03, y: -2 }}
@@ -42,7 +42,7 @@ export function Hero({ onPrimary, onSecondary }) {
               onClick={onSecondary}
               className="flex items-center justify-center gap-2 text-sm text-fg-body hover:text-fg-strong border border-border-strong hover:border-border-emphasis hover:bg-card px-6 py-3 rounded-xl transition-all duration-medium font-sans font-semibold cursor-pointer"
             >
-              Access Clinical Workspace <ChevronRight size={14} />
+              {user ? "Return to Dashboard" : "Access Clinical Workspace"} <ChevronRight size={14} />
             </motion.button>
           </motion.div>
         </div>

@@ -107,14 +107,17 @@ export default function App() {
   };
 
   const [preselectedPatient, setPreselectedPatient] = useState(null);
-  const [pathname, setPathname] = useState(() => window.location.pathname);
+  const [pathname, setPathname] = useState(() => {
+    const path = window.location.pathname;
+    if (path.includes("auth/callback") || window.location.hash.includes("access_token")) {
+      return "/auth/callback";
+    }
+    return path;
+  });
   const [publicView, setPublicView] = useState(() => {
     if (typeof window !== "undefined") {
       const path = window.location.pathname;
-      if (path === "/auth/callback" || path.startsWith("/auth/callback/")) {
-        return "callback";
-      }
-      if (window.location.hash.includes("access_token")) {
+      if (path.includes("auth/callback") || window.location.hash.includes("access_token")) {
         return "callback";
       }
       if (window.location.hash === "#cards") {
@@ -128,6 +131,12 @@ export default function App() {
     }
     return "landing";
   });
+
+  const handleLogoClick = () => {
+    window.history.replaceState({}, document.title, "/");
+    setPathname("/");
+    setPublicView("landing");
+  };
 
   const [themeMode, setThemeMode] = useState(() => {
     const savedMode = localStorage.getItem("egesa_theme_mode");
@@ -187,12 +196,9 @@ export default function App() {
   useEffect(() => {
     const syncPublicViewFromHash = () => {
       const path = window.location.pathname;
-      if (path === "/auth/callback" || path.startsWith("/auth/callback/")) {
+      if (path.includes("auth/callback") || window.location.hash.includes("access_token")) {
         setPublicView("callback");
-        return;
-      }
-      if (window.location.hash.includes("access_token")) {
-        setPublicView("callback");
+        setPathname("/auth/callback");
         return;
       }
       if (window.location.hash === "#cards") {
@@ -371,8 +377,14 @@ export default function App() {
     );
   };
 
-  const handleLoginSuccess = () => setActiveTab("dashboard");
-  const handleSignOut = () => logout();
+  const handleLoginSuccess = () => {
+    setPublicView("dashboard");
+    setActiveTab("dashboard");
+  };
+  const handleSignOut = () => {
+    logout();
+    setPublicView("landing");
+  };
   const handleNavigateToQueue = (patient) => {
     setPreselectedPatient(patient);
     setActiveTab("queue");
@@ -415,7 +427,8 @@ export default function App() {
     return <QueueBoardPublic />;
   }
 
-  if (!user) {
+  const isViewingPublic = !user || ["landing", "cards", "callback", "signup", "login"].includes(publicView) || pathname.startsWith("/hospital/");
+  if (isViewingPublic) {
     const publicContent = (() => {
       const hostnameParts = window.location.hostname.split('.');
       const isSubdomain = hostnameParts.length > 2 && hostnameParts[0] !== 'www' && !window.location.hostname.includes('localhost') && !window.location.hostname.match(/^[0-9.]+$/);
@@ -457,9 +470,10 @@ export default function App() {
       if (publicView === "callback")
         return (
           <AuthCallback
-            onCallbackComplete={(targetView) =>
-              setPublicView(targetView || "signup")
-            }
+            onCallbackComplete={(targetView) => {
+              setPathname("/");
+              setPublicView(targetView || "signup");
+            }}
           />
         );
       if (publicView === "signup")
@@ -483,9 +497,11 @@ export default function App() {
       );
       return (
       <LandingPage
+        user={user}
         onNavigateToLogin={() => setPublicView("login")}
         onNavigateToSignup={() => setPublicView("signup")}
         onNavigateToCards={() => setPublicView("cards")}
+        onNavigateToDashboard={() => setPublicView("dashboard")}
         theme={themeMode}
         onToggleTheme={toggleLightDark}
       />
@@ -493,7 +509,7 @@ export default function App() {
     })();
     return (
       <div
-        className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden`}
+        className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100 overflow-x-hidden`}
         style={{
           filter: nightVision 
             ? `sepia(1) saturate(1.8) hue-rotate(80deg) brightness(${brightness}%)` 
@@ -515,7 +531,7 @@ export default function App() {
             : `brightness(${brightness}%)`
         }}
       >
-        <SuperAdminDashboard user={user} onSignOut={handleSignOut} />
+        <SuperAdminDashboard user={user} onSignOut={handleSignOut} onLogoClick={handleLogoClick} />
       </div>
     );
   }
@@ -809,7 +825,7 @@ export default function App() {
       {menuLayout === 'topbar' && (
         <header className="hidden md:flex items-center justify-between px-6 py-2.5 bg-slate-900 border-b border-teal-500/10 z-30 shrink-0">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2.5">
+            <div onClick={handleLogoClick} className="flex items-center gap-2.5 cursor-pointer hover:opacity-85 transition active:scale-[0.98]">
               {renderLogo(user.facility_logo)}
               <div>
                 <span className="font-['Instrument_Serif',serif] text-[13px] text-slate-100 block leading-tight truncate max-w-[200px]">
@@ -943,7 +959,7 @@ export default function App() {
         }`}
       >
         <div className="p-4 border-b border-teal-500/10 flex items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2.5 truncate">
+          <div onClick={handleLogoClick} className="flex items-center gap-2.5 truncate cursor-pointer hover:opacity-85 transition active:scale-[0.98]">
             {renderLogo(user.facility_logo)}
             <div className="truncate flex-1">
               <span className="font-['Instrument_Serif',serif] text-[13px] text-slate-100 block truncate leading-tight">
@@ -1125,7 +1141,7 @@ export default function App() {
             >
               <Menu size={20} />
             </button>
-            <div className="flex items-center gap-2">
+            <div onClick={handleLogoClick} className="flex items-center gap-2 cursor-pointer hover:opacity-85 transition active:scale-[0.98]">
               {renderLogo(user.facility_logo)}
               <span className="font-['Instrument_Serif',serif] text-[13px] text-slate-100 truncate max-w-[180px]">
                 {user.facility_name || "Eagle Tech"}

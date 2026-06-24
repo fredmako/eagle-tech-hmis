@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, CheckCircle, Send, RefreshCw, ChevronDown, ChevronRight, MessageSquare, Search, HelpCircle, Activity, DollarSign, Settings, Layers } from 'lucide-react';
+import { Menu, X, CheckCircle, Send, RefreshCw, ChevronDown, ChevronRight, MessageSquare, Search, HelpCircle, Activity, DollarSign, Settings, Layers, LayoutDashboard } from 'lucide-react';
 import { Hero } from './landing/sections/Hero';
 import { StatsStrip } from './landing/sections/StatsStrip';
 import { ModulesGrid } from './landing/sections/ModulesGrid';
@@ -9,9 +9,11 @@ import { Footer } from './landing/sections/Footer';
 import { ThemeToggle } from './ui/ThemeToggle';
 
 export default function LandingPage({
+  user,
   onNavigateToLogin,
   onNavigateToSignup,
   onNavigateToCards,
+  onNavigateToDashboard,
   theme,
   onToggleTheme,
 }) {
@@ -335,8 +337,17 @@ export default function LandingPage({
           </nav>
           <div className="hidden md:flex items-center gap-3">
             {onToggleTheme && <ThemeToggle theme={theme} onToggle={onToggleTheme} />}
-            <button onClick={onNavigateToLogin} className="text-sm font-semibold text-fg-muted hover:text-fg-strong transition-colors px-3 py-1.5 cursor-pointer">Sign In</button>
-            <button onClick={onNavigateToSignup} className="text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg transition-all duration-medium active:scale-[0.97] cursor-pointer">Register Hospital</button>
+            {user ? (
+              <button onClick={onNavigateToDashboard} className="text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg transition-all duration-medium active:scale-[0.97] cursor-pointer flex items-center gap-1.5">
+                <LayoutDashboard size={14} />
+                <span>Go to Dashboard</span>
+              </button>
+            ) : (
+              <>
+                <button onClick={onNavigateToLogin} className="text-sm font-semibold text-fg-muted hover:text-fg-strong transition-colors px-3 py-1.5 cursor-pointer">Sign In</button>
+                <button onClick={onNavigateToSignup} className="text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg transition-all duration-medium active:scale-[0.97] cursor-pointer">Register Hospital</button>
+              </>
+            )}
             {onNavigateToCards && (
               <button onClick={onNavigateToCards} className="text-sm font-semibold text-fg-muted hover:text-fg-strong transition-colors px-3 py-1.5 cursor-pointer">
                 Business Cards
@@ -357,8 +368,17 @@ export default function LandingPage({
               <a href="#faqs" className="block text-fg-muted hover:text-fg-strong py-1" onClick={() => setMobileOpen(false)}>Help & FAQs</a>
               <a href="#support" className="block text-fg-muted hover:text-fg-strong py-1" onClick={() => setMobileOpen(false)}>Support</a>
               <div className="pt-2 flex flex-col gap-2">
-                <button onClick={() => { onNavigateToLogin(); setMobileOpen(false); }} className="text-left text-fg-muted hover:text-fg-strong cursor-pointer">Sign In</button>
-                <button onClick={() => { onNavigateToSignup(); setMobileOpen(false); }} className="font-bold bg-primary text-primary-foreground px-4 py-2 rounded-lg text-center cursor-pointer">Register Hospital</button>
+                {user ? (
+                  <button onClick={() => { onNavigateToDashboard(); setMobileOpen(false); }} className="font-bold bg-primary text-primary-foreground px-4 py-2 rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5">
+                    <LayoutDashboard size={14} />
+                    <span>Go to Dashboard</span>
+                  </button>
+                ) : (
+                  <>
+                    <button onClick={() => { onNavigateToLogin(); setMobileOpen(false); }} className="text-left text-fg-muted hover:text-fg-strong cursor-pointer">Sign In</button>
+                    <button onClick={() => { onNavigateToSignup(); setMobileOpen(false); }} className="font-bold bg-primary text-primary-foreground px-4 py-2 rounded-lg text-center cursor-pointer">Register Hospital</button>
+                  </>
+                )}
                 {onNavigateToCards && (
                   <button onClick={() => { onNavigateToCards(); setMobileOpen(false); }} className="text-left text-fg-muted hover:text-fg-strong cursor-pointer">
                     Business Cards
@@ -370,7 +390,11 @@ export default function LandingPage({
         )}
       </header>
       <main className="flex-1 relative z-10">
-        <Hero onPrimary={onNavigateToSignup} onSecondary={onNavigateToLogin} />
+        <Hero 
+          user={user}
+          onPrimary={user ? onNavigateToDashboard : onNavigateToSignup}
+          onSecondary={user ? onNavigateToDashboard : onNavigateToLogin}
+        />
         <StatsStrip />
         <ModulesGrid />
         <Pricing />

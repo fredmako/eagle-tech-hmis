@@ -26,7 +26,7 @@ import {
   Percent
 } from 'lucide-react';
 
-export default function SuperAdminDashboard({ user, onSignOut }) {
+export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
   const { setUser, authFetch } = useAuth();
   const [facilities, setFacilities] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
@@ -343,7 +343,7 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
     <div className="min-h-screen bg-slate-955 text-slate-100 flex flex-col font-sans">
       {/* Super Admin Top Control Bar */}
       <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-xl">
-        <div className="flex items-center gap-3">
+        <div onClick={onLogoClick} className="flex items-center gap-3 cursor-pointer hover:opacity-85 transition active:scale-[0.98]">
           <div className="bg-slate-955 border border-slate-900 p-1.5 rounded-xl shadow-lg shadow-teal-500/5">
             <img src="/logo.png" alt="Eagle Tech Logo" className="w-9 h-9 object-contain" />
           </div>

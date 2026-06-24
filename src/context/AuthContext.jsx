@@ -416,9 +416,13 @@ export const AuthProvider = ({ children }) => {
       headers
     });
     
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
       logout();
       throw new Error('Session expired. Please log in again.');
+    }
+    
+    if (res.status === 403) {
+      throw new Error('Access denied: You do not have permission to perform this action.');
     }
     
     return res;

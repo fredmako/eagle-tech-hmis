@@ -54,6 +54,34 @@ const DEFAULT_LAB_SERVICES = [
   { name: "High Vaginal Swab (HVS) Wet Mount", category: "Lab", charge: 300 }
 ];
 
+const DEFAULT_ACTIVE_MODULES = {
+  kitchen: true,
+  reception: true,
+  billing: true,
+  doctors: true,
+  laboratory: true,
+  pharmacy: true,
+  inpatient: true,
+  procurement: true,
+  hr: true,
+  payroll: true,
+  finance: true,
+  reports: true,
+  lastoffice: true,
+  maintenance: true,
+  laundry: true,
+  mch: true,
+  radiology: true,
+  theatre: true,
+  consultants: true,
+  night_shift: true,
+  help: true,
+  feedback: true,
+  payments: true,
+  suppliers_management: true,
+  maternity: true
+};
+
 const getInitialSandboxData = () => {
   // Hash for 'password123'
   const defaultHash =
@@ -80,9 +108,11 @@ const getInitialSandboxData = () => {
         admin_delegation: {},
         landing_template: "classic",
         facility_images: [],
+        active_modules: { ...DEFAULT_ACTIVE_MODULES },
         services_list: [
           { name: "General Outpatient Consultation", category: "Consultation", charge: 1000 },
           { name: "Comprehensive Lab Panel", category: "Lab", charge: 3500 },
+
           { name: "Pediatric Vaccination Package", category: "Immunization", charge: 1500 },
           { name: "Standard ANC Antenatal Care Checkup", category: "ANC", charge: 2000 },
           { name: "Inpatient Admission Ward Bed (Daily)", category: "Ward", charge: 4000 },
@@ -109,6 +139,7 @@ const getInitialSandboxData = () => {
         admin_delegation: {},
         landing_template: "classic",
         facility_images: [],
+        active_modules: { ...DEFAULT_ACTIVE_MODULES },
         services_list: [
           { name: "Specialist Consultation", category: "Consultation", charge: 2500 },
           { name: "CT Scan / MRI Panel", category: "Radiology", charge: 12000 },
@@ -493,7 +524,19 @@ const getInitialSandboxData = () => {
     ],
     notifications: [],
     duty_rosters: [],
-    attendance_logs: []
+    attendance_logs: [],
+    sample_specimens: [
+      { id: 'spec_1', facility_id: 'f1', category: 'MICROBIOLOGY', name: 'SERUM', description: 'Serum Crag', status: 'Active' },
+      { id: 'spec_2', facility_id: 'f1', category: 'MICROBIOLOGY', name: 'SCRAPING', description: 'SCRAPING', status: 'Active' },
+      { id: 'spec_3', facility_id: 'f1', category: 'HISTOLOGY', name: 'SPUTUM', description: 'SPUTUM', status: 'Active' },
+      { id: 'spec_4', facility_id: 'f1', category: 'BIOCHEMISTRY', name: 'SPUTUM', description: 'SPUTUM', status: 'Active' },
+      { id: 'spec_5', facility_id: 'f1', category: 'MICROBIOLOGY', name: 'BIOPSY', description: 'BIOPSY', status: 'Active' },
+      { id: 'spec_6', facility_id: 'f1', category: 'MICROBIOLOGY', name: 'SWAB', description: 'SWAP', status: 'Active' },
+      { id: 'spec_7', facility_id: 'f1', category: 'BIOCHEMISTRY', name: 'ASPIRATE', description: 'ASPIRATE', status: 'Active' },
+      { id: 'spec_8', facility_id: 'f1', category: 'HISTOLOGY', name: 'ASPIRATE', description: 'ASPIRATE', status: 'Active' },
+      { id: 'spec_9', facility_id: 'f1', category: 'HISTOLOGY', name: 'TISSUE', description: 'TISSUE', status: 'Active' },
+      { id: 'spec_10', facility_id: 'f1', category: 'HISTOLOGY', name: 'BLOOD', description: 'BLOOD', status: 'Active' }
+    ]
   };
 };
 
@@ -536,6 +579,10 @@ const loadSandboxDB = () => {
         }
         if (!fac.facility_images) {
           fac.facility_images = [];
+          facilityUpdated = true;
+        }
+        if (!fac.active_modules) {
+          fac.active_modules = { ...DEFAULT_ACTIVE_MODULES };
           facilityUpdated = true;
         }
         if (facilityUpdated) {
@@ -584,6 +631,10 @@ const loadSandboxDB = () => {
     }
     if (!data.attendance_logs) {
       data.attendance_logs = [];
+      updated = true;
+    }
+    if (!data.sample_specimens) {
+      data.sample_specimens = initial.sample_specimens || [];
       updated = true;
     }
 

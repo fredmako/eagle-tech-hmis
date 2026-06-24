@@ -29,6 +29,7 @@ import PatientPortal from "./components/PatientPortal";
 import { ThemeToggle } from "./components/ui/ThemeToggle";
 import NotificationBell from "./components/NotificationBell";
 import SupportPanel from "./components/SupportPanel";
+import POS from "./components/clinical/POS";
 import { motion } from "motion/react";
 
 import {
@@ -899,6 +900,13 @@ export default function App() {
           )}
           {activeTab === "pharmacy" && (
             <Pharmacy
+              user={user}
+              onComplete={() => setActiveTab("dashboard")}
+              showNotification={showNotification}
+            />
+          )}
+          {activeTab === "pos" && (
+            <POS
               user={user}
               onComplete={() => setActiveTab("dashboard")}
               showNotification={showNotification}

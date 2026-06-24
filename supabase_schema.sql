@@ -9,8 +9,11 @@ CREATE TABLE IF NOT EXISTS public.facilities (
     code text NOT NULL,
     logo_url text,
     address text,
+    active_modules jsonb,
+    system_admin_config jsonb,
     created_at timestamp with time zone DEFAULT now()
 );
+
 
 -- 2. Create profiles table
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -184,3 +187,31 @@ VALUES
 ('u6', 'Cashier Mary', 'cashier', 'f1', 'cashier@egesa.com'),
 ('u7', 'Admin Grace', 'admin', 'f1', 'admin@egesa.com')
 ON CONFLICT (id) DO NOTHING;
+
+-- 15. Create sample_specimens table
+CREATE TABLE IF NOT EXISTS public.sample_specimens (
+    id text PRIMARY KEY,
+    facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
+    category text NOT NULL,
+    name text NOT NULL,
+    description text,
+    status text NOT NULL DEFAULT 'Active',
+    created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE IF EXISTS public.sample_specimens DISABLE ROW LEVEL SECURITY;
+
+-- 16. Seed sample specimens
+INSERT INTO public.sample_specimens (id, facility_id, category, name, description, status)
+VALUES 
+('spec_1', 'f1', 'MICROBIOLOGY', 'SERUM', 'Serum Crag', 'Active'),
+('spec_2', 'f1', 'MICROBIOLOGY', 'SCRAPING', 'SCRAPING', 'Active'),
+('spec_3', 'f1', 'HISTOLOGY', 'SPUTUM', 'SPUTUM', 'Active'),
+('spec_4', 'f1', 'BIOCHEMISTRY', 'SPUTUM', 'SPUTUM', 'Active'),
+('spec_5', 'f1', 'MICROBIOLOGY', 'BIOPSY', 'BIOPSY', 'Active'),
+('spec_6', 'f1', 'MICROBIOLOGY', 'SWAB', 'SWAP', 'Active'),
+('spec_7', 'f1', 'BIOCHEMISTRY', 'ASPIRATE', 'ASPIRATE', 'Active'),
+('spec_8', 'f1', 'HISTOLOGY', 'ASPIRATE', 'ASPIRATE', 'Active'),
+('spec_9', 'f1', 'HISTOLOGY', 'TISSUE', 'TISSUE', 'Active'),
+('spec_10', 'f1', 'HISTOLOGY', 'BLOOD', 'BLOOD', 'Active')
+ON CONFLICT (id) DO NOTHING;
+

@@ -329,6 +329,11 @@
     --input-background: #ffffff;
     --ring: #d97706;
   }
+  html,
+  body {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground font-sans;
   }

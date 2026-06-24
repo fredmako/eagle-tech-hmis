@@ -199,7 +199,7 @@ export default function LandingPage({
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary selection:text-primary-foreground">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
       <div className="pointer-events-none fixed inset-0 z-0 opacity-30 ambient-grid" />
       <header className={['sticky top-0 z-50 transition-all duration-medium', scrolled ? 'bg-background/90 backdrop-blur-md border-b border-border' : 'bg-transparent border-b border-transparent'].join(' ')}>
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">

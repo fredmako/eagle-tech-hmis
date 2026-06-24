@@ -407,7 +407,7 @@ export default function App() {
     })();
     return (
       <div
-        className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-950 text-slate-100`}
+        className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden`}
       >
         {publicContent}
       </div>

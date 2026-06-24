@@ -944,7 +944,7 @@ export default function FacilityLandingPage() {
   );
 
   return (
-    <div className={`min-h-screen text-slate-100 flex flex-col justify-between selection:bg-teal-500 selection:text-slate-950 relative font-sans ${
+    <div className={`min-h-screen text-slate-100 flex flex-col justify-between selection:bg-teal-500 selection:text-slate-950 relative font-sans overflow-x-hidden ${
       template === 'wellness' 
         ? 'bg-gradient-to-br from-slate-950 via-purple-950/10 to-slate-950' 
         : 'bg-slate-950'

@@ -123,10 +123,15 @@ function BusinessCardFront({ theme = "teal", formData, isPrintMode = false }) {
         {/* Top Branding Section */}
         <div className="flex items-start justify-between gap-2 shrink-0">
           <div className="flex items-center gap-2">
-            <div className={`h-8 w-8 rounded-lg flex items-center justify-center p-1 border ${
-              theme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/40 border-white/10'
-            }`}>
-              <span className="font-serif text-md font-bold text-teal-400">E</span>
+            <div className="h-8 w-8 flex items-center justify-center bg-transparent border-transparent p-0 select-none shrink-0">
+              <img 
+                src="/logo.png" 
+                alt="Eagle Tech Logo" 
+                className="h-full w-full object-contain"
+                style={{
+                  filter: theme === 'light' ? 'invert(1) brightness(0)' : 'none'
+                }}
+              />
             </div>
             <div>
               <div className="text-[8.5px] uppercase tracking-[0.25em] text-teal-450 font-black leading-none">
@@ -200,16 +205,28 @@ function BusinessCardBack({ theme = "teal", formData, isPrintMode = false }) {
       
       <div className="relative h-full flex flex-col z-10 select-none">
         <div className="flex items-start justify-between gap-2 shrink-0">
-          <div className="min-w-0">
-            <div className={`text-[8.5px] uppercase tracking-[0.25em] font-black ${styles.backTextSecondary}`}>
-              Solutions that scale
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="h-8 w-8 flex items-center justify-center bg-transparent border-transparent p-0 select-none shrink-0">
+              <img 
+                src="/logo.png" 
+                alt="Eagle Tech Logo" 
+                className="h-full w-full object-contain"
+                style={{
+                  filter: theme === 'light' ? 'invert(1) brightness(0)' : 'none'
+                }}
+              />
             </div>
-            <h3 className="mt-1 font-serif text-[15px] font-black leading-none">
-              Eagle Tech HMIS
-            </h3>
-            <p className={`text-[9px] mt-1 max-w-[21ch] leading-relaxed line-clamp-2 ${styles.textMuted}`}>
-              Built for registration, triage, consultation, billing, reporting, and ward operations.
-            </p>
+            <div className="min-w-0">
+              <div className={`text-[8.5px] uppercase tracking-[0.25em] font-black ${styles.backTextSecondary}`}>
+                Solutions that scale
+              </div>
+              <h3 className="mt-0.5 font-serif text-[15px] font-black leading-none">
+                Eagle Tech HMIS
+              </h3>
+              <p className={`text-[9px] mt-1 max-w-[21ch] leading-relaxed line-clamp-2 ${styles.textMuted}`}>
+                Built for registration, triage, consultation, billing, reporting, and ward operations.
+              </p>
+            </div>
           </div>
           <div className={`rounded-xl border p-1 shrink-0 ${styles.backQrBorder} bg-white flex items-center justify-center`}>
             <img

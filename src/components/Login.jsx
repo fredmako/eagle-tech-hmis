@@ -969,31 +969,105 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
 
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4">
-      {/* Back to Landing Page Button */}
-      <div className="w-full max-w-md mb-4 flex justify-start">
-        <button
-          onClick={onNavigateToLanding}
-          className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition font-semibold"
-        >
-          ← Back to Homepage
-        </button>
-      </div>
-
-      {/* Header Banner */}
-      <div className="flex flex-col items-center mb-6">
-        <img src="/logo.png" alt="Eagle Tech Logo" className="h-28 object-contain" />
-        <span className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-2">HMIS SOFTWARE SOLUTIONS</span>
-      </div>
-
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-        {/* Sandbox banner */}
-        {isSandbox && (
-          <div className="absolute top-0 left-0 right-0 bg-teal-500/10 border-b border-teal-500/20 text-teal-400 text-xs py-1.5 px-4 flex items-center justify-between">
-            <span className="font-semibold">Local Sandbox Mode</span>
-            <span className="text-[10px] bg-teal-500/20 text-teal-300 py-0.5 px-1.5 rounded uppercase font-bold">No Credentials Required</span>
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-6 md:p-8 font-sans">
+      <div className="w-full max-w-md md:max-w-5xl bg-slate-900 border border-slate-850 rounded-[28px] shadow-2xl relative overflow-hidden grid grid-cols-1 md:grid-cols-[1.15fr_1fr] lg:grid-cols-[1.3fr_1fr] min-h-[550px] md:min-h-[640px] lg:min-h-[680px]">
+        
+        {/* Left Side: Logo & Branding Showcase (Desktop Only) */}
+        <div className="hidden md:flex flex-col justify-between p-8 lg:p-12 bg-gradient-to-br from-[#0c1e30] via-[#07111e] to-[#040a12] border-r border-slate-850 relative overflow-hidden select-none">
+          {/* Subtle Ambient Glow Effect */}
+          <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-teal-500/5 rounded-full blur-[80px] pointer-events-none" />
+          <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-80 h-80 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
+          
+          {/* Top tagline/version badge */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] bg-teal-500/10 text-teal-400 font-extrabold uppercase px-2.5 py-1 rounded-full border border-teal-500/20 tracking-wider">
+              Eagle Tech HMIS Enterprise
+            </span>
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+              v2.8.0
+            </span>
           </div>
-        )}
+          
+          {/* Main Logo & Description */}
+          <div className="my-auto space-y-6 relative z-10 flex flex-col items-center text-center">
+            <div className="relative group p-4 bg-slate-950/20 border border-slate-800/60 rounded-3xl backdrop-blur-sm shadow-xl transition-all duration-300 hover:border-teal-500/25 animate-fade-in">
+              <img 
+                src="/logo.png" 
+                alt="Eagle Tech Logo" 
+                className="w-44 h-44 lg:w-52 lg:h-52 object-contain drop-shadow-[0_10px_15px_rgba(45,212,191,0.12)]" 
+              />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-xl lg:text-2xl font-serif font-black text-slate-100 uppercase tracking-widest leading-none">
+                Eagle Tech
+              </h1>
+              <p className="text-xs text-teal-450 font-bold tracking-[0.25em] uppercase">
+                HMIS Software Solutions
+              </p>
+              <p className="text-[11px] text-slate-450 max-w-[36ch] mx-auto leading-relaxed pt-2">
+                Empowering healthcare institutions across Africa with secure EHR registries, streamlined triage, dynamic billing integrations, and automated compliance.
+              </p>
+            </div>
+          </div>
+          
+          {/* Footer Highlights */}
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-850/60 text-left">
+            <div className="flex items-start gap-2">
+              <div className="p-1 rounded bg-teal-500/10 border border-teal-500/20 text-teal-400 mt-0.5 shrink-0">
+                <CheckCircle size={10} />
+              </div>
+              <div>
+                <h4 className="text-[9.5px] font-bold text-slate-200 uppercase tracking-wider leading-none">RLS Compliant</h4>
+                <p className="text-[8.5px] text-slate-500 mt-0.5 font-medium">Secure patient data governance</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="p-1 rounded bg-teal-500/10 border border-teal-500/20 text-teal-400 mt-0.5 shrink-0">
+                <CheckCircle size={10} />
+              </div>
+              <div>
+                <h4 className="text-[9.5px] font-bold text-slate-200 uppercase tracking-wider leading-none">HIE Connected</h4>
+                <p className="text-[8.5px] text-slate-500 mt-0.5 font-medium">Automatic SHA & eTIMS syncing</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Right Side: Form Content Panel */}
+        <div className="flex flex-col justify-between p-6 sm:p-8 lg:p-10 relative overflow-y-auto">
+          
+          {/* Header Banner (Mobile Only, Hidden on Desktop) */}
+          <div className="flex flex-col items-center mb-6 md:hidden">
+            <img src="/logo.png" alt="Eagle Tech Logo" className="h-20 object-contain drop-shadow-[0_4px_6px_rgba(45,212,191,0.08)]" />
+            <span className="text-[9px] text-teal-400 font-extrabold tracking-widest uppercase mt-2">HMIS SOFTWARE SOLUTIONS</span>
+          </div>
+          
+          {/* Top Actions: Back to Homepage */}
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <button
+              onClick={onNavigateToLanding}
+              className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition font-semibold hover:translate-x-[-2px] duration-150"
+            >
+              ← Back to Homepage
+            </button>
+            
+            {/* Local Sandbox Badge for Desktop */}
+            {isSandbox && (
+              <span className="hidden md:inline-flex text-[9px] bg-teal-500/10 text-teal-400 px-2 py-0.5 rounded-full border border-teal-500/20 font-bold uppercase tracking-wider">
+                Sandbox Mode
+              </span>
+            )}
+          </div>
+          
+          {/* Forms Body Area */}
+          <div className="flex-1 flex flex-col justify-center min-h-0 relative">
+            {/* Sandbox banner (Mobile Only) */}
+            {isSandbox && (
+              <div className="md:hidden mb-4 bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[10px] py-1.5 px-3 rounded-lg flex items-center justify-between animate-pulse">
+                <span className="font-semibold">Local Sandbox Active</span>
+                <span className="bg-teal-500/20 text-teal-300 py-0.5 px-1 rounded uppercase font-bold text-[8px]">Auto-Auth</span>
+              </div>
+            )}
 
         {!isSignUp ? (
           <>
@@ -1615,6 +1689,8 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         </div>
 
 
+          </div>
+        </div>
       </div>
     </div>
   );

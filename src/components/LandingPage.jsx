@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, CheckCircle, Send, RefreshCw, ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
+import { Menu, X, CheckCircle, Send, RefreshCw, ChevronDown, ChevronRight, MessageSquare, Search, HelpCircle, Activity, DollarSign, Settings, Layers } from 'lucide-react';
 import { Hero } from './landing/sections/Hero';
 import { StatsStrip } from './landing/sections/StatsStrip';
 import { ModulesGrid } from './landing/sections/ModulesGrid';
@@ -28,6 +28,8 @@ export default function LandingPage({
   const [supportError, setSupportError] = useState('');
   const [activeFaq, setActiveFaq] = useState(null);
   const [selectedDoc, setSelectedDoc] = useState(null);
+  const [faqSearch, setFaqSearch] = useState('');
+  const [faqCategory, setFaqCategory] = useState('all');
 
   // Chatbot Assistant States
   const [chatOpen, setChatOpen] = useState(false);
@@ -40,37 +42,60 @@ export default function LandingPage({
   const faqs = [
     {
       q: "What features come with each package?",
-      a: "We offer three clear plans:\n- Basic Care (Free): Outpatient Electronic Medical Records (EMR), patient registration/queuing, basic triage vitals, clinical SOAP notes, and standard laboratory reporting.\n- Standard Care ($29/mo): Everything in Free plus full digital pharmacy, billing/cashier modules, radiology scan catalogs, operations procurement desks, and customized subdomains.\n- Enterprise Elite ($89/mo): Everything in Pro plus Kenyan MOH clinical validations, multi-tenant payment gateways (Stripe, PayPal, M-Pesa STK), interactive bed layout room editors, and self-service patient portals."
+      a: "We offer three clear plans:\n- Basic Care (Free): Outpatient Electronic Medical Records (EMR), patient registration/queuing, basic triage vitals, clinical SOAP notes, and standard laboratory reporting.\n- Standard Care ($29/mo): Everything in Free plus full digital pharmacy, billing/cashier modules, radiology scan catalogs, operations procurement desks, and customized subdomains.\n- Enterprise Elite ($89/mo): Everything in Pro plus Kenyan MOH clinical validations, multi-tenant payment gateways (Stripe, PayPal, M-Pesa STK), interactive bed layout room editors, and self-service patient portals.",
+      category: "billing"
     },
     {
       q: "How do I log in to the Eagle Tech HMIS platform?",
-      a: "Logging in is simple. Click the 'Sign In' button at the top right of the homepage. You can then enter your registered corporate email and password. If your organization has configured single sign-on (SSO), you can also click 'Continue with Google' to authenticate with your Google Workspace credentials."
+      a: "Logging in is simple. Click the 'Sign In' button at the top right of the homepage. You can then enter your registered corporate email and password. If your organization has configured single sign-on (SSO), you can also click 'Continue with Google' to authenticate with your Google Workspace credentials.",
+      category: "setup"
     },
     {
       q: "How do I create an account as a staff member?",
-      a: "Staff accounts are created by invitation or approval. First, your hospital administrator must register the facility. After that, you can sign up with your details. Your account will remain in a pending state until a facility administrator or HR manager approves your role request under Admin Settings > Human Resources."
+      a: "Staff accounts are created by invitation or approval. First, your hospital administrator must register the facility. After that, you can sign up with your details. Your account will remain in a pending state until a facility administrator or HR manager approves your role request under Admin Settings > Human Resources.",
+      category: "setup"
     },
     {
       q: "How do I register a hospital on the platform?",
-      a: "To register a new hospital facility, click the 'Register Hospital' button at the top right of the homepage. Fill in the organization registration form, providing details like your facility name, licensing credentials, and your MFL code (Master Facility List). The initial registering user will automatically become the primary Facility Administrator."
+      a: "To register a new hospital facility, click the 'Register Hospital' button at the top right of the homepage. Fill in the organization registration form, providing details like your facility name, licensing credentials, and your MFL code (Master Facility List). The initial registering user will automatically become the primary Facility Administrator.",
+      category: "setup"
     },
     {
       q: "How do I register and configure a pharmacy?",
-      a: "Once your hospital is registered under a Standard Care or Enterprise Elite subscription, the admin can navigate to the Procurement tab within Admin Settings. Here you can configure pharmacy attributes, enter drug catalogs, set markup multipliers, and record initial stock quantities to activate the digital pharmacy module."
+      a: "Once your hospital is registered under a Standard Care or Enterprise Elite subscription, the admin can navigate to the Procurement tab within Admin Settings. Here you can configure pharmacy attributes, enter drug catalogs, set markup multipliers, and record initial stock quantities to activate the digital pharmacy module.",
+      category: "clinical"
     },
     {
       q: "How do I configure and register a new pharmacy workflow?",
-      a: "Navigating the pharmacy module is straightforward. Once your facility is registered under a Standard or Enterprise plan, the administrator can customize drug inventories, unit prices, and category identifiers via the Procurement Settings. Pharmacists can process incoming prescriptions from clinical consultations or add walk-in patients directly to dispense medications and queue unpaid invoices instantly."
+      a: "Navigating the pharmacy module is straightforward. Once your facility is registered under a Standard or Enterprise plan, the administrator can customize drug inventories, unit prices, and category identifiers via the Procurement Settings. Pharmacists can process incoming prescriptions from clinical consultations or add walk-in patients directly to dispense medications and queue unpaid invoices instantly.",
+      category: "clinical"
     },
     {
       q: "Can I distribute facility administration responsibilities?",
-      a: "Yes. Under the Administrative Settings panel, administrators can access the 'Settings Delegation' matrix. This allows you to delegate specific settings tabs (e.g. SMTP config, HR manager settings, or ward arrangements) to specific staff profiles or roles, ensuring administrative duties are securely partitioned."
+      a: "Yes. Under the Administrative Settings panel, administrators can access the 'Settings Delegation' matrix. This allows you to delegate specific settings tabs (e.g. SMTP config, HR manager settings, or ward arrangements) to specific staff profiles or roles, ensuring administrative duties are securely partitioned.",
+      category: "setup"
     },
     {
       q: "How do we hook up lab analyzers for automatic results sync?",
-      a: "In the Laboratory module, select the 'Automation Config' tab. Select the analyzer model and enter communication parameters—serial COM port (COM1–COM8) with baud rates for RS-232, or TCP/IP address and port. Technicians can click 'Retrieve Analyzer Data' to pull ASTM/HL7 test runs, verify parameter bounds, and save diagnostic results instantly."
+      a: "In the Laboratory module, select the 'Automation Config' tab. Select the analyzer model and enter communication parameters—serial COM port (COM1–COM8) with baud rates for RS-232, or TCP/IP address and port. Technicians can click 'Retrieve Analyzer Data' to pull ASTM/HL7 test runs, verify parameter bounds, and save diagnostic results instantly.",
+      category: "clinical"
     }
   ];
+
+  const categories = [
+    { id: 'all', name: 'All Questions', icon: Layers, count: faqs.length },
+    { id: 'setup', name: 'Getting Started', icon: Settings, count: faqs.filter(f => f.category === 'setup').length },
+    { id: 'clinical', name: 'Clinical Modules', icon: Activity, count: faqs.filter(f => f.category === 'clinical').length },
+    { id: 'billing', name: 'Pricing & Plans', icon: DollarSign, count: faqs.filter(f => f.category === 'billing').length }
+  ];
+
+  const filteredFaqs = faqs.filter(faq => {
+    const matchesCategory = faqCategory === 'all' || faq.category === faqCategory;
+    const matchesSearch = faqSearch === '' || 
+      faq.q.toLowerCase().includes(faqSearch.toLowerCase()) || 
+      faq.a.toLowerCase().includes(faqSearch.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const helpDocs = [
     {
@@ -299,74 +324,238 @@ export default function LandingPage({
         <ModulesGrid />
         <Pricing />
         <About onRegister={onNavigateToSignup} />
-        
-        {/* Help & FAQ Section */}
+             {/* Help & FAQ Section */}
         <section id="faqs" className="py-20 bg-slate-900/20 border-t border-slate-900 font-sans relative z-10">
           <div className="max-w-6xl mx-auto px-6">
-            <div className="text-center space-y-3 mb-16">
-              <span className="text-xs text-primary font-bold uppercase tracking-wider bg-primary/10 px-3 py-1 rounded-full">Knowledge Hub</span>
-              <h2 className="text-2xl font-serif text-fg-strong sm:text-3xl">Help Center & Frequently Asked Questions</h2>
+            <div className="text-center space-y-3 mb-8">
+              <span className="text-xs text-primary font-bold uppercase tracking-wider bg-primary/10 px-3 py-1 rounded-full">Knowledge Base</span>
+              <h2 className="text-2xl font-serif text-fg-strong sm:text-3xl">Frequently Asked Questions</h2>
               <p className="text-xs text-fg-muted max-w-xl mx-auto">
-                Explore our guide documents and quick answers to configure, onboard, and manage your clinical workflows.
+                Explore our guide documents and search quick answers to configure, onboard, and manage your clinical workflows.
               </p>
             </div>
 
+            {/* Premium Interactive Search Input */}
+            <div className="relative max-w-xl mx-auto mb-12">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Search size={18} className="text-slate-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search questions, clinical modules, billing packages..."
+                value={faqSearch}
+                onChange={(e) => setFaqSearch(e.target.value)}
+                className="w-full pl-11 pr-10 py-3.5 bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl text-slate-200 placeholder-slate-500 text-xs focus:outline-none focus:border-primary/80 focus:ring-1 focus:ring-primary/80 transition-all shadow-lg"
+              />
+              {faqSearch && (
+                <button
+                  onClick={() => setFaqSearch('')}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-200 transition cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Column 1 & 2: Interactive FAQs Accordion (2/3 width) */}
-              <div className="lg:col-span-2 space-y-4">
-                <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-2 mb-4">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Frequently Asked Questions
-                </h3>
-                
-                {faqs.map((faq, idx) => {
-                  const isOpen = activeFaq === idx;
-                  return (
-                    <div 
-                      key={idx}
-                      className="bg-slate-900/60 border border-slate-850/80 rounded-xl overflow-hidden transition-all duration-300"
-                    >
+              {/* Left Column: Categories Selector & CTA */}
+              <div className="space-y-6">
+                {/* Desktop Categories List */}
+                <div className="hidden lg:block space-y-2">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 mb-3">
+                    Browse Categories
+                  </h3>
+                  <div className="space-y-1">
+                    {categories.map((cat) => {
+                      const IconComponent = cat.icon;
+                      const isActive = faqCategory === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => {
+                            setFaqCategory(cat.id);
+                            setActiveFaq(null);
+                          }}
+                          className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 text-left border cursor-pointer ${
+                            isActive
+                              ? 'bg-primary/10 border-primary/30 text-primary shadow-glow shadow-primary/5 font-semibold'
+                              : 'bg-slate-900/20 border-slate-900/40 text-slate-400 hover:bg-slate-900/45 hover:text-slate-200 hover:border-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <IconComponent size={15} className={isActive ? 'text-primary' : 'text-slate-500'} />
+                            <span className="text-xs">{cat.name}</span>
+                          </div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                            isActive ? 'bg-primary/20 text-primary' : 'bg-slate-800/40 text-slate-500'
+                          }`}>
+                            {cat.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Mobile Categories Selector */}
+                <div className="lg:hidden flex gap-2 overflow-x-auto pb-3 scrollbar-none snap-x">
+                  {categories.map((cat) => {
+                    const IconComponent = cat.icon;
+                    const isActive = faqCategory === cat.id;
+                    return (
                       <button
-                        type="button"
-                        onClick={() => setActiveFaq(isOpen ? null : idx)}
-                        className="w-full py-4 px-5 text-left flex items-center justify-between text-slate-200 hover:text-slate-100 font-bold text-xs cursor-pointer focus:outline-none"
+                        key={cat.id}
+                        onClick={() => {
+                          setFaqCategory(cat.id);
+                          setActiveFaq(null);
+                        }}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border shrink-0 snap-align-start cursor-pointer text-xs transition-all ${
+                          isActive
+                            ? 'bg-primary/15 border-primary/30 text-primary font-semibold'
+                            : 'bg-slate-900/40 border-slate-850 text-slate-400 hover:text-slate-200'
+                        }`}
                       >
-                        <span>{faq.q}</span>
-                        <span className={`text-primary transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
-                          <ChevronDown size={14} />
+                        <IconComponent size={14} />
+                        <span>{cat.name}</span>
+                        <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
+                          isActive ? 'bg-primary/25 text-primary' : 'bg-slate-800/60 text-slate-500'
+                        }`}>
+                          {cat.count}
                         </span>
                       </button>
-                      
-                      {isOpen && (
-                        <div className="px-5 pb-4 text-xs text-slate-400 leading-relaxed border-t border-slate-900/60 pt-3 animate-fadeIn">
-                          {faq.a}
-                        </div>
-                      )}
+                    );
+                  })}
+                </div>
+
+                {/* EagleBot CTA (Desktop only) */}
+                <div className="hidden lg:block p-5 bg-gradient-to-br from-primary/10 to-teal-500/5 rounded-2xl border border-primary/20 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0">
+                      <MessageSquare size={16} />
                     </div>
-                  );
-                })}
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-100">Still have questions?</h4>
+                      <p className="text-[10px] text-slate-400 leading-tight">Chat with EagleBot for instant support.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setChatOpen(true)}
+                    className="w-full bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-xs py-2 px-4 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-glow shadow-primary/10"
+                  >
+                    <MessageSquare size={14} />
+                    <span>Launch EagleBot</span>
+                  </button>
+                </div>
+
+                {/* Desktop Support Documents / Guides List */}
+                <div className="hidden lg:block space-y-4 pt-4 border-t border-slate-900/60">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 mb-2 flex items-center gap-2">
+                    <HelpCircle size={14} className="text-primary" />
+                    Guides & Documents
+                  </h3>
+                  <div className="space-y-3">
+                    {helpDocs.map((doc, idx) => (
+                      <div 
+                        key={idx}
+                        onClick={() => setSelectedDoc(doc)}
+                        className="p-4 rounded-xl border border-slate-850 bg-slate-900/20 hover:bg-slate-900/50 hover:border-slate-800 transition cursor-pointer flex flex-col gap-1"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-bold text-primary uppercase tracking-wider">{doc.category}</span>
+                          <ChevronRight size={12} className="text-slate-500" />
+                        </div>
+                        <h4 className="text-xs font-bold text-slate-200 mt-0.5">{doc.title}</h4>
+                        <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5">{doc.short}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              {/* Column 3: Quick Support Documents / Guides (1/3 width) */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-2 mb-4">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Support Documents & Guides
-                </h3>
-
-                <div className="space-y-3">
-                  {helpDocs.map((doc, idx) => (
-                    <div 
-                      key={idx}
-                      onClick={() => setSelectedDoc(doc)}
-                      className="p-4 rounded-xl border border-slate-855 bg-slate-900/30 hover:bg-slate-900/60 hover:border-slate-800 transition cursor-pointer flex flex-col gap-1"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{doc.category}</span>
-                        <ChevronRight size={12} className="text-slate-500" />
+              {/* Right Column: FAQ Accordion Panels */}
+              <div className="lg:col-span-2 space-y-4">
+                {filteredFaqs.length > 0 ? (
+                  filteredFaqs.map((faq) => {
+                    const originalIndex = faqs.findIndex(f => f.q === faq.q);
+                    const isOpen = activeFaq === originalIndex;
+                    return (
+                      <div 
+                        key={originalIndex}
+                        className={`backdrop-blur-md bg-slate-900/40 border rounded-2xl overflow-hidden transition-all duration-300 ${
+                          isOpen 
+                            ? 'border-primary/45 shadow-glow shadow-primary/5 translate-x-1' 
+                            : 'border-teal-500/10 hover:border-teal-500/35'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setActiveFaq(isOpen ? null : originalIndex)}
+                          className="w-full py-4.5 px-6 text-left flex items-center justify-between text-slate-200 hover:text-slate-105 font-bold text-xs cursor-pointer focus:outline-none"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className={`h-1.5 w-1.5 rounded-full transition-all ${
+                              isOpen ? 'bg-primary scale-125' : 'bg-slate-700'
+                            }`} />
+                            <span>{faq.q}</span>
+                          </div>
+                          <span className={`text-primary transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
+                            <ChevronDown size={14} />
+                          </span>
+                        </button>
+                        
+                        {isOpen && (
+                          <div className="px-6 pb-5 text-xs text-slate-400 leading-relaxed border-t border-slate-900/60 pt-4 animate-fadeIn whitespace-pre-line">
+                            {faq.a}
+                          </div>
+                        )}
                       </div>
-                      <h4 className="text-xs font-bold text-slate-250 mt-0.5">{doc.title}</h4>
-                      <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5">{doc.short}</p>
+                    );
+                  })
+                ) : (
+                  <div className="p-8 text-center bg-slate-900/20 border border-slate-850/80 rounded-2xl space-y-4 animate-fadeIn">
+                    <div className="h-12 w-12 rounded-full bg-slate-800/40 flex items-center justify-center mx-auto text-slate-500">
+                      <HelpCircle size={24} />
                     </div>
-                  ))}
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-bold text-slate-350">No questions found</h4>
+                      <p className="text-[10px] text-slate-500 max-w-xs mx-auto">
+                        We couldn't find any FAQs matching "{faqSearch}". Try adjusting your keywords or chat directly with EagleBot.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setFaqSearch('');
+                        setFaqCategory('all');
+                      }}
+                      className="text-xs text-primary hover:text-primary/80 font-bold underline transition cursor-pointer"
+                    >
+                      Clear filters & search
+                    </button>
+                  </div>
+                )}
+
+                {/* Mobile Support Documents & Guides List (Visible only on mobile below FAQs) */}
+                <div className="lg:hidden space-y-4 pt-6 mt-6 border-t border-slate-900/60">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <HelpCircle size={14} className="text-primary" />
+                    Guides & Documents
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {helpDocs.map((doc, idx) => (
+                      <div 
+                        key={idx}
+                        onClick={() => setSelectedDoc(doc)}
+                        className="p-4 rounded-xl border border-slate-850 bg-slate-900/20 hover:bg-slate-900/50 hover:border-slate-850 transition cursor-pointer flex flex-col gap-1"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-bold text-primary uppercase tracking-wider">{doc.category}</span>
+                          <ChevronRight size={12} className="text-slate-500" />
+                        </div>
+                        <h4 className="text-xs font-bold text-slate-200 mt-0.5">{doc.title}</h4>
+                        <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5">{doc.short}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

@@ -43,6 +43,12 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
   const [activeSubTab, setActiveSubTab] = useState(
     initialSubTab || (user?.license_tier === "pharmacy" ? "sell" : "dispensing")
   );
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
   
   // Cart & POS state variables
   const [cart, setCart] = useState([]);
@@ -2105,82 +2111,68 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
   };
 
   return (
-    <div className="flex h-full w-full bg-slate-950 text-slate-100 overflow-hidden font-sans select-none md:flex-row flex-col min-h-screen">
-      {/* Inner Secondary Sidebar */}
-      <div className="w-full md:w-56 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Pill size={16} className="text-teal-400" />
-            <span className="font-bold text-[11px] uppercase tracking-wider text-slate-200">Pharmacy Desk</span>
-          </div>
-        </div>
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveSubTab("dispensing");
-              setMessage({ type: "", text: "" });
-            }}
-            className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-[11.5px] font-bold tracking-wide transition-all duration-200 cursor-pointer ${
-              activeSubTab === "dispensing"
-                ? "bg-teal-500/10 text-teal-400 border border-teal-500/20 font-extrabold"
-                : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 border border-transparent"
-            }`}
-          >
-            <span className="text-[10px]">✳</span> Dispense Queue
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveSubTab("sell");
-              setMessage({ type: "", text: "" });
-            }}
-            className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-[11.5px] font-bold tracking-wide transition-all duration-200 cursor-pointer ${
-              activeSubTab === "sell"
-                ? "bg-teal-500/10 text-teal-400 border border-teal-500/20 font-extrabold"
-                : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 border border-transparent"
-            }`}
-          >
-            <span className="text-[10px]">✳</span> Sell Drug(s)
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveSubTab("modify");
-              setMessage({ type: "", text: "" });
-            }}
-            className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-[11.5px] font-bold tracking-wide transition-all duration-200 cursor-pointer ${
-              activeSubTab === "modify"
-                ? "bg-teal-500/10 text-teal-400 border border-teal-500/20 font-extrabold"
-                : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 border border-transparent"
-            }`}
-          >
-            <span className="text-[10px]">✳</span> Modify Sale
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveSubTab("paid");
-              setMessage({ type: "", text: "" });
-            }}
-            className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-[11.5px] font-bold tracking-wide transition-all duration-200 cursor-pointer ${
-              activeSubTab === "paid"
-                ? "bg-teal-500/10 text-teal-400 border border-teal-500/20 font-extrabold"
-                : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 border border-transparent"
-            }`}
-          >
-            <span className="text-[10px]">✳</span> Paid Drugs
-          </button>
-        </nav>
+    <div className="space-y-6">
+      {/* Top Console Navigation Bar */}
+      <div className="flex border-b border-slate-800 pb-2 gap-6">
+        <button
+          type="button"
+          onClick={() => {
+            setActiveSubTab("dispensing");
+            setMessage({ type: "", text: "" });
+          }}
+          className={`text-sm font-bold pb-2 transition border-b-2 cursor-pointer ${
+            activeSubTab === "dispensing"
+              ? "text-teal-400 border-teal-400 font-extrabold"
+              : "text-slate-400 border-transparent hover:text-slate-200"
+          }`}
+        >
+          Dispense Queue
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveSubTab("sell");
+            setMessage({ type: "", text: "" });
+          }}
+          className={`text-sm font-bold pb-2 transition border-b-2 cursor-pointer ${
+            activeSubTab === "sell"
+              ? "text-teal-400 border-teal-400 font-extrabold"
+              : "text-slate-400 border-transparent hover:text-slate-200"
+          }`}
+        >
+          Sell Drug(s)
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveSubTab("modify");
+            setMessage({ type: "", text: "" });
+          }}
+          className={`text-sm font-bold pb-2 transition border-b-2 cursor-pointer ${
+            activeSubTab === "modify"
+              ? "text-teal-400 border-teal-400 font-extrabold"
+              : "text-slate-400 border-transparent hover:text-slate-200"
+          }`}
+        >
+          Modify Sale
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveSubTab("paid");
+            setMessage({ type: "", text: "" });
+          }}
+          className={`text-sm font-bold pb-2 transition border-b-2 cursor-pointer ${
+            activeSubTab === "paid"
+              ? "text-teal-400 border-teal-400 font-extrabold"
+              : "text-slate-400 border-transparent hover:text-slate-200"
+          }`}
+        >
+          Paid Drugs
+        </button>
       </div>
 
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col overflow-y-auto p-6 bg-slate-950">
-        {renderActiveView()}
-      </div>
+      {renderActiveView()}
 
       {/* Restocking Modal */}
       {showRestockModal && (

@@ -171,6 +171,7 @@ export default function App() {
     () => localStorage.getItem("egesa_night_vision") === "true"
   );
   const [menuSearch, setMenuSearch] = useState("");
+  const [activeCategoryDropdown, setActiveCategoryDropdown] = useState(null);
 
   useEffect(() => {
     localStorage.setItem("egesa_active_tab", activeTab);
@@ -780,6 +781,45 @@ export default function App() {
       roles: ["*"],
     },
   ];
+  const MENU_CATEGORIES = [
+    {
+      id: "overview",
+      label: "Overview & Schedule",
+      icon: LayoutDashboard,
+      items: ["dashboard", "appointments"]
+    },
+    {
+      id: "patient_flow",
+      label: "Patient Flow",
+      icon: UserPlus,
+      items: ["registration", "queue", "triage", "consultation"]
+    },
+    {
+      id: "departments",
+      label: "Clinical Departments",
+      icon: Bed,
+      items: ["ward", "maternity", "mch", "surgery"]
+    },
+    {
+      id: "diagnostics_rx",
+      label: "Diagnostics & Rx",
+      icon: FlaskConical,
+      items: ["orders", "radiology", "pharmacy"]
+    },
+    {
+      id: "financials",
+      label: "Billing & Reports",
+      icon: DollarSign,
+      items: ["billing", "reports", "patient_dashboard"]
+    },
+    {
+      id: "system",
+      label: "System Control",
+      icon: Settings,
+      items: ["admin", "settings", "support"]
+    }
+  ];
+
   const visibleMenuItems = menuItems.filter((item) => {
     if (user.license_tier === "pharmacy") {
       const allowedPharmacyTabs = [
@@ -857,29 +897,99 @@ export default function App() {
               </button>
             )}
           </div>
-
-          <nav className="flex-1 max-w-4xl mx-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
-            {filteredMenuItems.length === 0 ? (
-              <span className="text-[10px] text-slate-500 italic px-3 py-1">No matching menus found</span>
+          <nav className="flex-1 max-w-4xl mx-2 flex items-center gap-2.5 py-1">
+            {menuSearch ? (
+              // Flat Search Results
+              filteredMenuItems.length === 0 ? (
+                <span className="text-[10px] text-slate-500 italic px-3 py-1">No matching menus found</span>
+              ) : (
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                  {filteredMenuItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                          isActive 
+                            ? "bg-teal-400 text-slate-955 shadow shadow-teal-500/15" 
+                            : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
+                        }`}
+                      >
+                        <Icon size={13} />
+                        <span>{t(item.id) || item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )
             ) : (
-              filteredMenuItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                      isActive 
-                        ? "bg-teal-400 text-slate-950 shadow shadow-teal-500/15" 
-                        : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
-                    }`}
-                  >
-                    <Icon size={13} />
-                    <span>{t(item.id) || item.label}</span>
-                  </button>
-                );
-              })
+              // Categorized Dropdowns
+              <div className="flex items-center gap-1.5 z-50">
+                {MENU_CATEGORIES.map((cat) => {
+                  const catItems = filteredMenuItems.filter((item) => cat.items.includes(item.id));
+                  if (catItems.length === 0) return null;
+                  
+                  const isCatActive = catItems.some((item) => item.id === activeTab);
+                  const isDropdownOpen = activeCategoryDropdown === cat.id;
+                  const CatIcon = cat.icon;
+
+                  return (
+                    <div 
+                      key={cat.id} 
+                      className="relative"
+                      onMouseLeave={() => setActiveCategoryDropdown(null)}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setActiveCategoryDropdown(isDropdownOpen ? null : cat.id)}
+                        onMouseEnter={() => setActiveCategoryDropdown(cat.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold tracking-wide transition-all duration-200 cursor-pointer select-none ${
+                          isCatActive 
+                            ? "text-teal-450 bg-slate-800/90 shadow-sm shadow-teal-500/5" 
+                            : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+                        }`}
+                      >
+                        <CatIcon size={13.5} className={isCatActive ? "text-teal-450" : "text-slate-400"} />
+                        <span>{t(cat.id) || cat.label}</span>
+                        <span className="text-[7.5px] opacity-60 ml-0.5 select-none transition-transform duration-200">
+                          {isDropdownOpen ? "▲" : "▼"}
+                        </span>
+                      </button>
+
+                      {isDropdownOpen && (
+                        <div 
+                          className="absolute top-full left-0 mt-1.5 w-60 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-xl shadow-2xl p-1.5 z-50 flex flex-col gap-0.5"
+                          onMouseEnter={() => setActiveCategoryDropdown(cat.id)}
+                        >
+                          {catItems.map((item) => {
+                            const Icon = item.icon;
+                            const isActive = activeTab === item.id;
+                            return (
+                              <button
+                                key={item.id}
+                                onClick={() => {
+                                  setActiveTab(item.id);
+                                  setActiveCategoryDropdown(null);
+                                }}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-semibold text-left transition-all duration-150 cursor-pointer ${
+                                  isActive
+                                    ? "bg-teal-400 text-slate-950 font-bold"
+                                    : "text-slate-400 hover:bg-slate-800/80 hover:text-slate-100"
+                                }`}
+                              >
+                                <Icon size={13} className={isActive ? "text-slate-955" : "text-slate-400"} />
+                                <span className="flex-1 truncate">{t(item.id) || item.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </nav>
 
@@ -1000,66 +1110,144 @@ export default function App() {
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {filteredMenuItems.length === 0 ? (
-            <div className="p-4 text-center text-slate-500 text-[11px] font-medium italic">
-              No matching menus found
-            </div>
-          ) : (
-            filteredMenuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              const hasSub = item.subItems && item.subItems.length > 0;
-              return (
-                <div key={item.id} className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab(item.id);
-                      setIsSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[12px] font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
-                      isActive 
-                        ? "bg-teal-400 text-slate-950 shadow-md shadow-teal-500/15" 
-                        : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon size={15} />
-                      <span>{t(item.id) || item.label}</span>
+        <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+          {menuSearch ? (
+            // Flat Search Results
+            filteredMenuItems.length === 0 ? (
+              <div className="p-4 text-center text-slate-500 text-[11px] font-medium italic">
+                No matching menus found
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {filteredMenuItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  const hasSub = item.subItems && item.subItems.length > 0;
+                  return (
+                    <div key={item.id} className="space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab(item.id);
+                          setIsSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[12px] font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
+                          isActive 
+                            ? "bg-teal-400 text-slate-950 shadow-md shadow-teal-500/15" 
+                            : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon size={15} />
+                          <span>{t(item.id) || item.label}</span>
+                        </div>
+                        {hasSub && (
+                          <span className="text-[8px] opacity-70">
+                            {isActive ? "▼" : "▶"}
+                          </span>
+                        )}
+                      </button>
+                      
+                      {isActive && hasSub && (
+                        <div className="ml-5 border-l border-slate-800 pl-3.5 py-1 space-y-1 text-left">
+                          {item.subItems.map((sub) => {
+                            const isSubActive = getSubActive(item.id, sub.id);
+                            return (
+                              <button
+                                key={sub.id}
+                                type="button"
+                                onClick={() => {
+                                  handleSubClick(item.id, sub.id);
+                                  setIsSidebarOpen(false);
+                                }}
+                                className={`w-full text-left block py-1.5 px-2 rounded text-[11px] font-bold tracking-wide transition-all cursor-pointer ${
+                                  isSubActive 
+                                    ? "text-teal-400 font-extrabold bg-teal-500/5 shadow-inner" 
+                                    : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/30"
+                                }`}
+                              >
+                                <span className="mr-1.5 text-[8px] text-teal-500/60">✳</span>
+                                {sub.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    {hasSub && (
-                      <span className="text-[8px] opacity-70">
-                        {isActive ? "▼" : "▶"}
-                      </span>
-                    )}
-                  </button>
-                  
-                  {isActive && hasSub && (
-                    <div className="ml-5 border-l border-slate-800 pl-3.5 py-1 space-y-1 text-left">
-                      {item.subItems.map((sub) => {
-                        const isSubActive = getSubActive(item.id, sub.id);
-                        return (
+                  );
+                })}
+              </div>
+            )
+          ) : (
+            // Categorized Sections
+            MENU_CATEGORIES.map((cat) => {
+              const catItems = filteredMenuItems.filter((item) => cat.items.includes(item.id));
+              if (catItems.length === 0) return null;
+
+              return (
+                <div key={cat.id} className="space-y-1.5">
+                  <div className="text-[9.5px] font-black tracking-widest text-teal-400/60 uppercase px-3 pt-1 select-none">
+                    {t(cat.id) || cat.label}
+                  </div>
+                  <div className="space-y-1">
+                    {catItems.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
+                      const hasSub = item.subItems && item.subItems.length > 0;
+                      return (
+                        <div key={item.id} className="space-y-1">
                           <button
-                            key={sub.id}
                             type="button"
                             onClick={() => {
-                              handleSubClick(item.id, sub.id);
+                              setActiveTab(item.id);
                               setIsSidebarOpen(false);
                             }}
-                            className={`w-full text-left block py-1.5 px-2 rounded text-[11px] font-bold tracking-wide transition-all cursor-pointer ${
-                              isSubActive
-                                ? "text-teal-400 font-extrabold bg-teal-500/5 shadow-inner"
-                                : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/30"
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[12px] font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
+                              isActive 
+                                ? "bg-teal-400 text-slate-955 shadow-md shadow-teal-500/15" 
+                                : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
                             }`}
                           >
-                            <span className="mr-1.5 text-[8px] text-teal-500/60">✳</span>
-                            {sub.label}
+                            <div className="flex items-center gap-3">
+                              <Icon size={14.5} className={isActive ? "text-slate-955" : "text-slate-400"} />
+                              <span>{t(item.id) || item.label}</span>
+                            </div>
+                            {hasSub && (
+                              <span className="text-[8px] opacity-70">
+                                {isActive ? "▼" : "▶"}
+                              </span>
+                            )}
                           </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                          
+                          {isActive && hasSub && (
+                            <div className="ml-5 border-l border-slate-800 pl-3.5 py-1 space-y-1 text-left">
+                              {item.subItems.map((sub) => {
+                                const isSubActive = getSubActive(item.id, sub.id);
+                                return (
+                                  <button
+                                    key={sub.id}
+                                    type="button"
+                                    onClick={() => {
+                                      handleSubClick(item.id, sub.id);
+                                      setIsSidebarOpen(false);
+                                    }}
+                                    className={`w-full text-left block py-1.5 px-2 rounded text-[11px] font-bold tracking-wide transition-all cursor-pointer ${
+                                      isSubActive 
+                                        ? "text-teal-400 font-extrabold bg-teal-500/5 shadow-inner" 
+                                        : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/30"
+                                    }`}
+                                  >
+                                    <span className="mr-1.5 text-[8px] text-teal-500/60">✳</span>
+                                    {sub.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })

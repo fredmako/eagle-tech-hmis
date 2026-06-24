@@ -326,20 +326,38 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
             size: ${paperSize.toLowerCase()} ${orientation};
             margin: 0;
           }
-          body, html {
+          /* Reset parent layout containers to allow multi-page printing */
+          html, body {
             background: white !important;
             color: black !important;
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
-            height: 100% !important;
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+          }
+          #root, 
+          #root > div, 
+          #root > div > main, 
+          #root > div > main > div {
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+            display: block !important;
+            position: static !important;
+            background: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
           }
           .print-hidden {
             display: none !important;
           }
           .print-page {
             width: 100% !important;
-            height: 100% !important;
+            height: 100vh !important;
             page-break-after: always !important;
             break-after: page !important;
             box-sizing: border-box !important;

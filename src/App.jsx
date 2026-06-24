@@ -253,6 +253,7 @@ export default function App() {
   const handleMenuLayoutChange = (newLayout) => {
     setMenuLayout(newLayout);
     localStorage.setItem("egesa_menu_layout", newLayout);
+    setIsSidebarOpen(false);
   };
 
   const handleLangChange = (newLang) => {
@@ -614,13 +615,6 @@ export default function App() {
       {menuLayout === 'topbar' && (
         <header className="hidden md:flex items-center justify-between px-6 py-2.5 bg-slate-900 border-b border-teal-500/10 z-30 shrink-0">
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="text-slate-400 hover:text-slate-100 p-1 rounded focus:outline-none"
-              aria-label="Open menu"
-            >
-              <Menu size={20} />
-            </button>
             <div className="flex items-center gap-2.5">
               {renderLogo(user.facility_logo)}
               <div>
@@ -722,7 +716,7 @@ export default function App() {
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-teal-500/10 flex flex-col shrink-0 transition-transform duration-300 transform ${
           menuLayout === 'topbar'
-            ? (isSidebarOpen ? "translate-x-0" : "-translate-x-full")
+            ? `md:hidden ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`
             : `md:translate-x-0 md:static md:flex ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`
         }`}
       >

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, CheckCircle, Send, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Menu, X, CheckCircle, Send, RefreshCw, ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
 import { Hero } from './landing/sections/Hero';
 import { StatsStrip } from './landing/sections/StatsStrip';
 import { ModulesGrid } from './landing/sections/ModulesGrid';
@@ -28,6 +28,14 @@ export default function LandingPage({
   const [supportError, setSupportError] = useState('');
   const [activeFaq, setActiveFaq] = useState(null);
   const [selectedDoc, setSelectedDoc] = useState(null);
+
+  // Chatbot Assistant States
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState([
+    { sender: 'bot', text: 'Hello! I am EagleBot, your virtual HMIS assistant. Ask me anything about our subscription packages, hospital setup, pharmacy configuration, or laboratory serial/COM port syncing!' }
+  ]);
+  const [chatTyping, setChatTyping] = useState(false);
 
   const faqs = [
     {
@@ -117,6 +125,41 @@ export default function LandingPage({
     window.addEventListener('scroll', handler, { passive: true });
     return () => window.removeEventListener('scroll', handler);
   }, []);
+
+  const handleChatSend = (text) => {
+    if (!text.trim()) return;
+
+    // Add user message
+    setChatMessages(prev => [...prev, { sender: 'user', text: text.trim() }]);
+    setChatInput('');
+    setChatTyping(true);
+
+    setTimeout(() => {
+      let reply = '';
+      const query = text.toLowerCase().trim();
+
+      if (query.includes('free') || query.includes('pricing') || query.includes('plan') || query.includes('package') || query.includes('cost') || query.includes('dollar') || query.includes('subscription')) {
+        reply = 'We offer three simple plans:\n- Basic Care (Free): Outpatient EMR, registration/queues, and clinical SOAP notes.\n- Standard Care ($29/mo): Adds pharmacy inventory, cashier billing, and custom subdomains.\n- Enterprise Elite ($89/mo): Adds Kenyan MOH clinical registries, Stripe/M-Pesa STK checkouts, and room ward layout builders.';
+      } else if (query.includes('login') || query.includes('log in') || query.includes('sign in') || query.includes('access') || query.includes('credential')) {
+        reply = 'To log in, click "Sign In" at the top right of the homepage. You can authenticate using your registered email and password, or use Google SSO if configured by your administrator.';
+      } else if (query.includes('register') || query.includes('hospital') || query.includes('sign up') || query.includes('account creation') || query.includes('join')) {
+        reply = 'To set up your hospital, click "Register Hospital" at the top right. Enter your organization name, MFL code, and license number. The first registered user automatically becomes the facility administrator.';
+      } else if (query.includes('pharmacy') || query.includes('drug') || query.includes('dispens') || query.includes('procurement')) {
+        reply = 'Under Standard or Enterprise plans, administrators can configure drug items, set markup multipliers, and track lot expiry dates in Admin Settings > Procurement. Pharmacists dispense medications via the Pharmacy tab.';
+      } else if (query.includes('lab') || query.includes('analyzer') || query.includes('instrument') || query.includes('machine') || query.includes('serial') || query.includes('com')) {
+        reply = 'In the Laboratory module under "Automation Config", technicians can specify RS-232 serial parameters (COM1-COM8, baud rates) or TCP/IP details to retrieve diagnostic data (ASTM/HL7 format) from physical analyzers instantly.';
+      } else if (query.includes('referral') || query.includes('referred')) {
+        reply = 'Our system fully supports referrals! You can specify Referred From details when opening a visit ticket, and Referred To details with required reconciliation check boxes when completing care on the clinical queue.';
+      } else if (query.includes('hello') || query.includes('hi') || query.includes('hey') || query.includes('bot')) {
+        reply = 'Hi there! I am EagleBot, your Eagle Tech HMIS assistant. Ask me anything about our software modules, integration tools, or setups!';
+      } else {
+        reply = 'I am not sure I understand that query fully. Try asking about "pricing plans", "how to log in", "register a hospital", "lab automation", or submit a support ticket in the support form below!';
+      }
+
+      setChatMessages(prev => [...prev, { sender: 'bot', text: reply }]);
+      setChatTyping(false);
+    }, 800);
+  };
 
   const handleSupportSubmit = async (e) => {
     e.preventDefault();
@@ -469,6 +512,121 @@ export default function LandingPage({
         </section>
       </main>
       <Footer />
+
+      {/* Floating Chatbot Widget */}
+      <div className="fixed bottom-6 right-6 z-[9999] font-sans">
+        {/* Toggle Button */}
+        {!chatOpen && (
+          <button
+            onClick={() => setChatOpen(true)}
+            className="h-12 w-12 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full flex items-center justify-center shadow-glow shadow-primary/20 hover:scale-105 active:scale-95 transition cursor-pointer"
+            aria-label="Open helper chat"
+          >
+            <MessageSquare size={22} />
+          </button>
+        )}
+
+        {/* Chat Window */}
+        {chatOpen && (
+          <div className="w-80 sm:w-96 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col h-[450px] animate-fadeIn">
+            {/* Header */}
+            <div className="p-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-primary text-xs font-serif">
+                    EB
+                  </div>
+                  <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 border border-slate-900" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-100 flex items-center gap-1 font-sans">
+                    EagleBot <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-bold">Helper</span>
+                  </h4>
+                  <span className="text-[9px] text-slate-500 block leading-none font-sans">Online & Automated</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setChatOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-850 text-slate-400 hover:text-slate-100 transition cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Chat Messages Logs */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+              {chatMessages.map((m, idx) => (
+                <div
+                  key={idx}
+                  className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[85%] rounded-2xl py-2.5 px-3 text-xs leading-relaxed font-sans ${
+                      m.sender === 'user'
+                        ? 'bg-primary text-primary-foreground font-medium rounded-tr-none'
+                        : 'bg-slate-950/60 border border-slate-855 text-slate-200 rounded-tl-none whitespace-pre-line'
+                    }`}
+                  >
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              {chatTyping && (
+                <div className="flex justify-start">
+                  <div className="bg-slate-955 border border-slate-855 text-slate-450 rounded-2xl rounded-tl-none py-2 px-3 text-[10px] italic flex items-center gap-1.5 font-sans">
+                    <span className="h-1 w-1 bg-slate-400 rounded-full animate-bounce" />
+                    <span className="h-1 w-1 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                    <span className="h-1 w-1 bg-slate-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+                    EagleBot is typing...
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Ask Suggestion Chips */}
+            <div className="px-4 py-2 bg-slate-950/40 border-t border-slate-900 overflow-x-auto whitespace-nowrap scrollbar-none flex gap-1.5 shrink-0">
+              {[
+                { label: 'Pricing Plans', text: 'What plans do you have and how much do they cost?' },
+                { label: 'Register Hospital', text: 'How do I register a hospital?' },
+                { label: 'Pharmacy Setup', text: 'How do I register and configure a pharmacy?' },
+                { label: 'Lab Sync', text: 'How do we hook up lab analyzers for results sync?' }
+              ].map((chip) => (
+                <button
+                  key={chip.label}
+                  type="button"
+                  onClick={() => handleChatSend(chip.text)}
+                  className="bg-slate-950 border border-slate-850 hover:border-primary/30 text-[10px] text-slate-400 hover:text-primary py-1 px-2.5 rounded-full transition cursor-pointer shrink-0 font-sans"
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Input Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleChatSend(chatInput);
+              }}
+              className="p-3 bg-slate-950 border-t border-slate-800 flex gap-2 shrink-0"
+            >
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Ask EagleBot a question..."
+                className="flex-1 bg-slate-900 border border-slate-855 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-sans"
+              />
+              <button
+                type="submit"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs py-1.5 px-4 rounded-lg transition-all cursor-pointer shadow active:scale-[0.98] font-sans"
+              >
+                Send
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

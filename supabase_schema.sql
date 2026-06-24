@@ -48,6 +48,12 @@ CREATE TABLE IF NOT EXISTS public.visits (
     department text NOT NULL,
     priority text NOT NULL,
     status text NOT NULL,
+    referred_from_facility text,
+    referred_from_reason text,
+    referred_to_facility text,
+    referred_to_reason text,
+    reconciled_with_moh boolean DEFAULT false,
+    reconciler_notes text,
     created_at timestamp with time zone DEFAULT now()
 );
 

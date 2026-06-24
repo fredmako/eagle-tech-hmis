@@ -16,7 +16,8 @@ import {
   RefreshCw, 
   Clock, 
   Check, 
-  ArrowRightLeft 
+  ArrowRightLeft,
+  X
 } from 'lucide-react';
 
 const SERVICE_TYPE_META = {
@@ -42,6 +43,23 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
   const [serviceType, setServiceType] = useState('OPD');
   const [department, setDepartment] = useState('triage');
   const [priority, setPriority] = useState('routine');
+  const [isReferral, setIsReferral] = useState(false);
+  const [referredFromFacility, setReferredFromFacility] = useState('');
+  const [referredFromReason, setReferredFromReason] = useState('');
+
+  // Reconciliation states
+  const [reconciliationVisit, setReconciliationVisit] = useState(null);
+  const [complianceChecks, setComplianceChecks] = useState({
+    triage: false,
+    consult: false,
+    specialRegister: false,
+    specialRegisterLabel: ''
+  });
+  const [reconciliationLoading, setReconciliationLoading] = useState(false);
+  const [confirmReconciled, setConfirmReconciled] = useState(false);
+  const [reconcilerNotes, setReconcilerNotes] = useState('');
+  const [referredToFacility, setReferredToFacility] = useState('');
+  const [referredToReason, setReferredToReason] = useState('');
 
   // Auto-route based on service type
   useEffect(() => {
@@ -114,7 +132,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
         department,
         priority,
         status: 'waiting',
-        service_type: serviceType
+        service_type: serviceType,
+        referred_from_facility: isReferral ? referredFromFacility.trim() : null,
+        referred_from_reason: isReferral ? referredFromReason.trim() : null
       };
 
       const { data: insertedVisits, error } = await supabase.from('visits').insert(newVisit).select();
@@ -124,7 +144,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
       const newReg = {
         patient_id: selectedPatientId,
         facility_id: user.facility_id,
-        visit_type: 'walk-in',
+        visit_type: isReferral ? 'referral' : 'walk-in',
         service_type: serviceType,
         status: 'active',
         assigned_clinic: department
@@ -135,6 +155,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
       
       // Clear selection
       setSelectedPatientId('');
+      setIsReferral(false);
+      setReferredFromFacility('');
+      setReferredFromReason('');
       if (clearPreselected) clearPreselected();
 
       // Refresh
@@ -161,16 +184,95 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
     }
   };
 
-  const handleCompleteVisit = async (visitId) => {
+  const handleCompleteVisitClick = async (visitId) => {
+    setReconciliationLoading(true);
     try {
-      const { error } = await supabase.from('visits').update({
-        status: 'completed'
-      }).eq('id', visitId);
+      const visit = activeVisits.find(v => v.id === visitId);
+      if (!visit) return;
 
+      // 1. Check Triage Vitals
+      const { data: triages } = await supabase.from('triages').select('id').eq('visit_id', visitId);
+      const triageCaptured = !!(triages && triages.length > 0);
+
+      // 2. Check Consultation Notes
+      const { data: consults } = await supabase.from('consultations').select('id').eq('visit_id', visitId);
+      const consultCaptured = !!(consults && consults.length > 0);
+
+      // 3. Check Special Registers based on service type
+      let specialRegisterCaptured = true;
+      let registerLabel = '';
+
+      if (visit.service_type === 'FP') {
+        registerLabel = 'Family Planning Register';
+        const { data: fpRecs } = await supabase.from('family_planning_records').select('id').eq('patient_id', visit.patient_id);
+        specialRegisterCaptured = !!(fpRecs && fpRecs.length > 0);
+      } else if (visit.service_type === 'ANC') {
+        registerLabel = 'Antenatal Care Register (Maternal Care)';
+        const { data: ancRecs } = await supabase.from('anc_visits').select('id').eq('patient_id', visit.patient_id);
+        specialRegisterCaptured = !!(ancRecs && ancRecs.length > 0);
+      } else if (visit.service_type === 'IPD') {
+        registerLabel = 'Inpatient Admission Register';
+        const { data: ipdRecs } = await supabase.from('ward_care_records').select('id').eq('visit_id', visitId);
+        specialRegisterCaptured = !!(ipdRecs && ipdRecs.length > 0);
+      }
+
+      setComplianceChecks({
+        triage: triageCaptured,
+        consult: consultCaptured,
+        specialRegister: specialRegisterCaptured,
+        specialRegisterLabel: registerLabel
+      });
+
+      setReconciliationVisit(visit);
+      setConfirmReconciled(false);
+      setReconcilerNotes('');
+      setReferredToFacility('');
+      setReferredToReason('');
+    } catch (err) {
+      console.error('Error during reconciliation check:', err);
+    } finally {
+      setReconciliationLoading(false);
+    }
+  };
+
+  const handleConfirmReconciliation = async () => {
+    if (!reconciliationVisit) return;
+    
+    // Check if user confirmed when there are missing records
+    const isFullyCompliant = complianceChecks.triage && complianceChecks.consult && complianceChecks.specialRegister;
+    if (!isFullyCompliant && !confirmReconciled) {
+      alert('Please check the confirmation checkbox to certify manual MOH reconciliation.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const updateData = {
+        status: 'completed',
+        reconciled_with_moh: true,
+        reconciler_notes: reconcilerNotes.trim() || 'Fully Reconciled.',
+        referred_to_facility: referredToFacility.trim() || null,
+        referred_to_reason: referredToReason.trim() || null
+      };
+
+      const { error } = await supabase.from('visits').update(updateData).eq('id', reconciliationVisit.id);
       if (error) throw error;
+
+      // Create audit log
+      await supabase.from('audit_logs').insert({
+        facility_id: user.facility_id,
+        user_id: user.id || 'system',
+        action: 'MOH Record Reconciled',
+        details: `Visit ID ${reconciliationVisit.id} reconciled. Outbound Referral to: ${referredToFacility || 'None'}. Notes: ${reconcilerNotes}`
+      });
+
+      setReconciliationVisit(null);
       fetchQueueData();
     } catch (err) {
-      console.error('Error completing visit:', err);
+      console.error('Error saving reconciliation:', err);
+      alert('Failed to complete care reconciliation: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -294,6 +396,47 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
               <option value="urgent">Urgent</option>
               <option value="emergency">Emergency</option>
             </select>
+          </div>
+
+          {/* Referral Fields */}
+          <div className="md:col-span-5 border-t border-slate-800/60 pt-4 mt-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-2 h-full pt-6">
+              <input
+                type="checkbox"
+                id="isReferral"
+                checked={isReferral}
+                onChange={(e) => setIsReferral(e.target.checked)}
+                className="rounded border-slate-800 text-teal-500 focus:ring-teal-500 bg-slate-950 h-4 w-4"
+              />
+              <label htmlFor="isReferral" className="text-xs font-semibold text-slate-400 cursor-pointer">
+                Referred from another facility?
+              </label>
+            </div>
+            {isReferral && (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Referred From (Facility)</label>
+                  <input
+                    type="text"
+                    value={referredFromFacility}
+                    onChange={(e) => setReferredFromFacility(e.target.value)}
+                    placeholder="e.g. Pumwani Maternity Hospital"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                    required={isReferral}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Referral Reason</label>
+                  <input
+                    type="text"
+                    value={referredFromReason}
+                    onChange={(e) => setReferredFromReason(e.target.value)}
+                    placeholder="e.g. Specialized delivery care"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {/* Action */}
@@ -423,8 +566,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                         </select>
 
                         <button
-                          onClick={() => handleCompleteVisit(v.id)}
-                          className="w-full flex items-center justify-center gap-1 text-[10px] font-bold bg-teal-500/10 border border-teal-500/20 hover:border-teal-500 hover:bg-teal-500 hover:text-slate-950 text-teal-400 text-center py-1.5 mt-2 rounded-lg transition duration-200"
+                          onClick={() => handleCompleteVisitClick(v.id)}
+                          disabled={reconciliationLoading}
+                          className="w-full flex items-center justify-center gap-1 text-[10px] font-bold bg-teal-500/10 border border-teal-500/20 hover:border-teal-500 hover:bg-teal-500 hover:text-slate-950 text-teal-400 text-center py-1.5 mt-2 rounded-lg transition duration-200 disabled:opacity-50"
                         >
                           <Check size={10} />
                           <span>Complete Care</span>
@@ -447,6 +591,169 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
           })}
         </div>
       </div>
+
+      {/* MOH Reconciliation Modal */}
+      {reconciliationVisit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-sans animate-fadeIn">
+          <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500" />
+            
+            <div className="p-6 border-b border-slate-800 flex justify-between items-start gap-4">
+              <div>
+                <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider block">MOH Compliance Check</span>
+                <h3 className="text-base font-bold text-slate-100 mt-1">
+                  Reconcile Health Records: {getPatientName(reconciliationVisit.patient_id)}
+                </h3>
+                <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                  Visit Code: {reconciliationVisit.id.substring(0, 8).toUpperCase()} | Service Type: {SERVICE_TYPE_META[reconciliationVisit.service_type]?.label || reconciliationVisit.service_type}
+                </p>
+              </div>
+              <button 
+                onClick={() => setReconciliationVisit(null)} 
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition focus:outline-none cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6 text-xs text-slate-300 leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+              {/* Compliance Checklist */}
+              <div className="bg-slate-950/60 border border-slate-850 p-4 rounded-xl space-y-3">
+                <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider border-b border-slate-900 pb-2">
+                  Clinical Registry Check (MOH Reporting Schemes)
+                </h4>
+                <div className="space-y-2.5">
+                  {/* Triage Vitals */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300">1. Outpatient Triage Vital Signs</span>
+                    {complianceChecks.triage ? (
+                      <span className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded text-[10px]">
+                        <Check size={12} /> Captured
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-amber-400 font-bold bg-amber-500/5 border border-amber-500/10 px-2 py-0.5 rounded text-[10px]">
+                        ⚠️ Missing Triage Vitals
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Consultation Notes */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300">2. Clinical Diagnosis & SOAP Note</span>
+                    {complianceChecks.consult ? (
+                      <span className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded text-[10px]">
+                        <Check size={12} /> Captured
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-amber-400 font-bold bg-amber-500/5 border border-amber-500/10 px-2 py-0.5 rounded text-[10px]">
+                        ⚠️ Missing Consult SOAP Notes
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Special Register (if applicable) */}
+                  {complianceChecks.specialRegisterLabel && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-300">3. {complianceChecks.specialRegisterLabel}</span>
+                      {complianceChecks.specialRegister ? (
+                        <span className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded text-[10px]">
+                          <Check size={12} /> Captured
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1.5 text-amber-400 font-bold bg-amber-500/5 border border-amber-500/10 px-2 py-0.5 rounded text-[10px]">
+                          ⚠️ Missing Register Entry
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Warnings / Disclaimer if records are not complete */}
+              {!(complianceChecks.triage && complianceChecks.consult && complianceChecks.specialRegister) && (
+                <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-3.5 text-[11px] text-amber-400 leading-relaxed space-y-2">
+                  <p className="font-bold flex items-center gap-1.5">
+                    ⚠️ Reconciliation Overrides Required
+                  </p>
+                  <p className="text-slate-400 text-[10px] leading-relaxed">
+                    Some clinical records are incomplete in the system database. To complete care, please ensure these records are manually entered in the physical MOH Daily Register Book (e.g. MOH 717 Outpatient Register, MOH 711 Maternity, etc.) and check the declaration below.
+                  </p>
+                  <div className="flex items-start gap-2.5 pt-1">
+                    <input
+                      type="checkbox"
+                      id="confirmReconciled"
+                      checked={confirmReconciled}
+                      onChange={(e) => setConfirmReconciled(e.target.checked)}
+                      className="rounded border-amber-500/30 text-amber-500 focus:ring-amber-500 bg-slate-950 mt-0.5 h-4 w-4"
+                    />
+                    <label htmlFor="confirmReconciled" className="text-slate-300 font-medium select-none cursor-pointer">
+                      I certify that I have manually reconciled and captured these clinical records in the physical MOH Daily Register.
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Refer To Section (Outward Referrals) */}
+              <div className="space-y-3.5 border-t border-slate-800/80 pt-4">
+                <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider flex items-center gap-1.5">
+                  🏥 Outward Referral (Referred To)
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Referred To (Facility)</label>
+                    <input
+                      type="text"
+                      value={referredToFacility}
+                      onChange={(e) => setReferredToFacility(e.target.value)}
+                      placeholder="e.g. Kenyatta National Hospital"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Referral Reason</label>
+                    <input
+                      type="text"
+                      value={referredToReason}
+                      onChange={(e) => setReferredToReason(e.target.value)}
+                      placeholder="e.g. ICU Bed admission needed"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Reconciliation Notes */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reconciliation Notes / Comments</label>
+                <textarea
+                  rows={2}
+                  value={reconcilerNotes}
+                  onChange={(e) => setReconcilerNotes(e.target.value)}
+                  placeholder="Enter any notes about data reconciliation, physical register page numbers, or referral details..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setReconciliationVisit(null)}
+                className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 font-semibold text-xs py-2 px-5 rounded-lg transition cursor-pointer"
+              >
+                Back to Clinical Desk
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReconciliation}
+                className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-xs py-2 px-6 rounded-lg shadow transition active:scale-[0.98] cursor-pointer"
+              >
+                Confirm Reconciliation & Complete Care
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

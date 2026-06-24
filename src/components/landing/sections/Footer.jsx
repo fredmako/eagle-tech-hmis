@@ -119,42 +119,76 @@ export function Footer() {
             <div className="p-6 overflow-y-auto space-y-4 text-xs text-slate-350 leading-relaxed scrollbar-thin scrollbar-thumb-slate-850 scrollbar-track-transparent">
               {activeModal === 'privacy' ? (
                 <>
-                  <p className="font-bold text-slate-200">Last Updated: June 24, 2026</p>
+                  <p className="font-bold text-slate-200">Effective Date: 24 June 2026</p>
                   <p>
-                    Eagle Tech HMIS operates as a white-label, multitenant clinical portal provider. We are committed to safeguarding clinical data and maintaining absolute compliance with global healthcare privacy benchmarks.
+                    <strong>Eagle Tech Solutions</strong> respects your privacy and is committed to protecting your personal data and sensitive personal data (including health records) in strict compliance with the <strong>Kenya Data Protection Act, 2019</strong> (the "Act") and the regulations thereunder.
                   </p>
                   
-                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">1. Scope of Compliance</h4>
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">1. Data Controller and Data Processor</h4>
                   <p>
-                    Our databases are designed to conform strictly to the <strong>Kenyan Data Protection Act (2019)</strong>, the Health Insurance Portability and Accountability Act (HIPAA) standards, and the General Data Protection Regulation (GDPR).
+                    Under the Act, the subscribing healthcare facility (the Hospital or Clinic) acts as the <strong>Data Controller</strong>, retaining primary control and ownership over patient medical records. Eagle Tech Solutions acts as the <strong>Data Processor</strong>, maintaining cloud database infrastructure, backups, and secure synchronization tools.
                   </p>
-                  
-                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">2. Data Processor vs. Data Controller</h4>
+
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">2. Information We Collect</h4>
                   <p>
-                    Under this agreement, the subscribing healthcare facility (Hospital or Clinic) is the <strong>Data Controller</strong> and retains full ownership of patient medical details. Eagle Tech acts as the <strong>Data Processor</strong>, maintaining cloud infrastructure, backup archives, and database synchronization.
-                  </p>
-                  
-                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">3. Medical Records Collection</h4>
-                  <p>
-                    To automate clinical workflows, our databases securely store:
+                    We process both personal data and sensitive personal data (health data) on behalf of the Data Controller:
                   </p>
                   <ul className="list-disc list-inside pl-2 space-y-1">
-                    <li>Demographics (Name, Date of Birth, Gender, National ID, Phone).</li>
-                    <li>Physiological vitals (Temperature, Heart Rate, BP, Blood Glucose, BMI).</li>
-                    <li>Clinical SOAP notes, ICD-10 diagnostic coding, and lab reports.</li>
-                    <li>Dispensing inventory logs and electronic invoice details.</li>
+                    <li><strong>Personal Data:</strong> Names, national ID numbers, email addresses, phone numbers, and profile credentials.</li>
+                    <li><strong>Sensitive Personal Data (Health Data):</strong> Physiological vitals, clinical SOAP notes, laboratory results, prescriptions, and diagnosis records (ICD-10).</li>
                   </ul>
-                  
-                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">4. Technical Security Protocols</h4>
+
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">3. Lawful Basis for Processing</h4>
                   <p>
-                    Data is protected via military-grade safeguards:
+                    Data is processed under the following lawful bases:
                   </p>
                   <ul className="list-disc list-inside pl-2 space-y-1">
-                    <li>Encryption-at-Rest using AES-256 algorithm.</li>
-                    <li>Encryption-in-Transit utilizing TLS 1.3 tunnels.</li>
-                    <li>Role-Based Access Control (RBAC) preventing unauthorized clinical logs.</li>
-                    <li>Automated hourly backup database snapshots.</li>
+                    <li><strong>Consent:</strong> Explicit consent given by patients/staff during registration.</li>
+                    <li><strong>Contract:</strong> Necessary for the performance of the healthcare service agreement.</li>
+                    <li><strong>Vital Interests:</strong> Processing essential for medical emergencies or protecting patient life.</li>
                   </ul>
+
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">4. Technical Security & Protection</h4>
+                  <p>
+                    We implement appropriate technical and organizational safeguards:
+                  </p>
+                  <ul className="list-disc list-inside pl-2 space-y-1">
+                    <li>AES-256 encryption-at-rest and TLS 1.3 encryption-in-transit.</li>
+                    <li>Strict Role-Based Access Control (RBAC) to segment clinical access.</li>
+                    <li>Automatic audit logging of all record modifications.</li>
+                  </ul>
+
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">5. Data Sharing and Transfer</h4>
+                  <p>
+                    We do not sell personal data or health records. Data is shared only with authorized healthcare personnel, when legally compelled by a court of law, or when necessary to protect safety. Any cross-border data transfer is conducted strictly in accordance with Section 48 of the Act.
+                  </p>
+
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">6. Your Rights under the Act</h4>
+                  <p>
+                    Subject to Section 26 of the Act, data subjects have the right to:
+                  </p>
+                  <ul className="list-disc list-inside pl-2 space-y-1">
+                    <li>Be informed of the use to which their personal data is put.</li>
+                    <li>Access, correct, or request the deletion of false or misleading data.</li>
+                    <li>Object to the processing of all or part of their personal data.</li>
+                  </ul>
+
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">7. Data Retention and Deletion</h4>
+                  <p>
+                    Data is retained only as long as necessary to fulfill clinical workflows or legal obligations. Once no longer required, data is securely purged or anonymized.
+                  </p>
+
+                  <h4 className="font-bold text-primary uppercase tracking-wide text-[9.5px] mt-2">8. Complaints and Contact Info</h4>
+                  <p>
+                    If you have questions, or wish to file a complaint regarding how we process data, please contact our Data Protection Officer at:
+                  </p>
+                  <p className="font-semibold text-slate-200 mt-1">
+                    Eagle Tech Solutions<br />
+                    Email: <a href="mailto:info@eagletechsolutions.tech" className="text-teal-400 hover:underline">info@eagletechsolutions.tech</a>
+                  </p>
+                  <p className="mt-2 text-[10px]">
+                    You also have the right to lodge a complaint directly with the <strong>Office of the Data Protection Commissioner (ODPC)</strong> of Kenya.
+                  </p>
                 </>
               ) : (
                 <>

@@ -18,6 +18,7 @@ import AdminDelegation from './admin/AdminDelegation';
 import ModulesConfig from './admin/ModulesConfig';
 import SystemAdministration from './admin/SystemAdministration';
 import LaboratoryManagement from './admin/LaboratoryManagement';
+import AssetsMaintenance from './admin/AssetsMaintenance';
 import { hasAccess } from '../utils/permissions';
 
 import { supabase } from '../supabaseClient';
@@ -66,7 +67,8 @@ import {
   LayoutGrid,
   Calendar,
   Sliders,
-  Bell
+  Bell,
+  Wrench
 } from 'lucide-react';
 
 export default function Admin({ user, initialSubTab }) {
@@ -81,6 +83,7 @@ export default function Admin({ user, initialSubTab }) {
   const [auditLogs, setAuditLogs] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [supportTicketsCount, setSupportTicketsCount] = useState(0);
   const [viewMode, setViewMode] = useState('split'); // 'split' | 'maximize' | 'window' | 'dock'
   const [requestsLoading, setRequestsLoading] = useState(false);
@@ -436,6 +439,29 @@ export default function Admin({ user, initialSubTab }) {
       }
 
       setUsersList(consolidated);
+
+      // Fetch departments
+      try {
+        const res = await fetch(`${apiBase}/db/query`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            table: 'departments',
+            queries: user.facility_id ? [
+              { type: 'equal', column: 'facility_id', value: user.facility_id }
+            ] : []
+          })
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          setDepartments(resData.data || []);
+        }
+      } catch (deptErr) {
+        console.error('Error fetching departments:', deptErr);
+      }
 
       // Fetch staff invitations
       await fetchInvitations();
@@ -1416,6 +1442,19 @@ export default function Admin({ user, initialSubTab }) {
               </button>
             )}
 
+            {hasAccess('maintenance', user.role, adminDelegation) && (
+              <button
+                onClick={() => setActiveSubTab('maintenance')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'maintenance'
+                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Wrench size={13} /> Assets Maintenance
+              </button>
+            )}
+
             {hasAccess('afyalink', user.role, adminDelegation) && (
               <button
                 onClick={() => setActiveSubTab('afyalink')}
@@ -1680,6 +1719,7 @@ export default function Admin({ user, initialSubTab }) {
               invitesLoading={invitesLoading}
               invitationsList={invitationsList}
               handleRevokeInvite={handleRevokeInvite}
+              dbDepartments={departments}
             />
           )}
 
@@ -1732,6 +1772,12 @@ export default function Admin({ user, initialSubTab }) {
 
           {activeSubTab === 'procurement' && (
             <OperationsDesk
+              user={user}
+            />
+          )}
+
+          {activeSubTab === 'maintenance' && (
+            <AssetsMaintenance
               user={user}
             />
           )}
@@ -2128,7 +2174,7 @@ export default function Admin({ user, initialSubTab }) {
           )}
 
           {activeSubTab === 'roster' && (
-            <StaffScheduler user={user} profiles={usersList} fetchAdminData={fetchAdminData} />
+            <StaffScheduler user={user} profiles={usersList} fetchAdminData={fetchAdminData} dbDepartments={departments} />
           )}
 
           {activeSubTab === 'broadcasts' && (

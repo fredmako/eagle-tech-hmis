@@ -14,7 +14,7 @@ import {
   Clock3
 } from 'lucide-react';
 
-export default function StaffScheduler({ user, profiles = [], fetchAdminData }) {
+export default function StaffScheduler({ user, profiles = [], fetchAdminData, dbDepartments = [] }) {
   const [activeSubTab, setActiveSubTab] = useState('roster'); // 'roster', 'attendance_logs', 'clock_widget'
   const [roster, setRoster] = useState([]);
   const [attendance, setAttendance] = useState([]);
@@ -35,11 +35,21 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData }) 
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const shiftTypes = ['Morning', 'Afternoon', 'Night', 'On-Call'];
-  const departments = ['triage', 'consultation', 'lab', 'pharmacy', 'radiology', 'ward'];
+  
+  const departments = dbDepartments.length > 0
+    ? dbDepartments.map(d => d.type || d.name.toLowerCase())
+    : ['triage', 'consultation', 'lab', 'pharmacy', 'radiology', 'ward'];
 
   // Check roles: Duty Roster & Attendance admin tools are only visible to admins, facility_admins, or HR
   const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
   const hasAdminPrivilege = rolesList.includes('admin') || rolesList.includes('facility_admin') || rolesList.includes('hr_manager');
+
+  useEffect(() => {
+    if (dbDepartments.length > 0) {
+      const firstDept = dbDepartments[0].type || dbDepartments[0].name.toLowerCase();
+      setDepartment(firstDept);
+    }
+  }, [dbDepartments]);
 
   useEffect(() => {
     fetchSchedulerData();

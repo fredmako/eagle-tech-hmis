@@ -125,6 +125,7 @@ export default function Dashboard({ user, onNavigate }) {
     appointments: ['receptionist', 'nurse', 'clinician', 'admin'],
     reports: ['admin', 'cashier'],
     admin: ['admin'],
+    maintenance: ['admin', 'operations_manager', 'it_support'],
     support: ['admin', 'platform_support']
   };
 
@@ -176,7 +177,7 @@ export default function Dashboard({ user, onNavigate }) {
     { label: "HR / Employees", desc: "Staff directory, rosters, and attendance logs", icon: Contact, tab: "admin", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80" },
     { label: "Payroll Console", desc: "Employee payslip generation and salary logs", icon: CreditCard, tab: "admin", image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=600&q=80" },
     { label: "Appointments Grid", desc: "Interactive appointment scheduling calendar slots", icon: Calendar, tab: "appointments", image: "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=600&q=80" },
-    { label: "Assets Maintenance", desc: "Medical machinery calibration and repairs logs", icon: Wrench, tab: "admin", image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80" },
+    { label: "Assets Maintenance", desc: "Medical machinery calibration and repairs logs", icon: Wrench, tab: "maintenance", image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80" },
     { label: "Help Desk Support", desc: "Support inquiries, platform client feedback", icon: HelpCircle, tab: "support", image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80" },
     { label: "Finance & Accounting", desc: "Revenue ledgers, tax allocations, and billing reports", icon: TrendingUp, tab: "reports", image: "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=600&q=80" },
     { label: "Management Reports", desc: "Analytics metrics and institutional KPIs", icon: Layers, tab: "reports", image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80" },
@@ -318,11 +319,11 @@ export default function Dashboard({ user, onNavigate }) {
                   <div className={`${baseClass} border-slate-800/40 bg-slate-950/20 opacity-40 select-none cursor-not-allowed`} title="Access restricted by security policy">
                     {m.image && (
                       <div 
-                        className="absolute inset-0 bg-cover bg-center opacity-[0.02] select-none pointer-events-none filter grayscale brightness-50"
+                        className="absolute inset-0 bg-cover bg-center opacity-[0.08] select-none pointer-events-none filter grayscale brightness-50"
                         style={{ backgroundImage: `url(${m.image})` }}
                       />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-955 via-slate-955/90 to-slate-900/60 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/90 to-slate-900/60 pointer-events-none" />
                     
                     <div className="relative z-10 flex justify-between items-start">
                       <div className="space-y-1 pr-2">
@@ -350,12 +351,12 @@ export default function Dashboard({ user, onNavigate }) {
                   {/* Real Image Background Layer */}
                   {m.image && (
                     <div 
-                      className="absolute inset-0 bg-cover bg-center opacity-[0.06] group-hover:opacity-[0.14] transition-all duration-700 scale-100 group-hover:scale-105 select-none pointer-events-none filter saturate-[0.1] group-hover:saturate-50 brightness-75 group-hover:brightness-95"
+                      className="absolute inset-0 bg-cover bg-center opacity-[0.25] group-hover:opacity-[0.45] transition-all duration-700 scale-100 group-hover:scale-105 select-none pointer-events-none filter saturate-[0.5] group-hover:saturate-[0.8] brightness-75 group-hover:brightness-90"
                       style={{ backgroundImage: `url(${m.image})` }}
                     />
                   )}
                   {/* Subtle Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-955 via-slate-950/90 to-slate-900/40 group-hover:from-slate-955 group-hover:via-slate-950/80 group-hover:to-slate-900/30 transition-all duration-500 pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-slate-900/40 group-hover:from-slate-950 group-hover:via-slate-950/50 group-hover:to-slate-900/20 transition-all duration-500 pointer-events-none" />
 
                   <div className="relative z-10 flex justify-between items-start w-full">
                     <div className="space-y-1 pr-2">

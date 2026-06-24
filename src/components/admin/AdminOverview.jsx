@@ -15,7 +15,8 @@ import {
   Bed,
   LayoutGrid,
   Calendar,
-  Bell
+  Bell,
+  Wrench
 } from 'lucide-react';
 import { hasAccess } from '../../utils/permissions';
 
@@ -136,6 +137,14 @@ export default function AdminOverview({
           icon: ShoppingBag,
           color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20 hover:border-cyan-500/40",
           show: hasAccess('procurement', user.role, adminDelegation)
+        },
+        {
+          id: 'maintenance',
+          title: "Assets Maintenance",
+          desc: "Track clinic assets, equipment calibrations, and medical machinery repairs.",
+          icon: Wrench,
+          color: "text-teal-400 bg-teal-500/10 border-teal-500/20 hover:border-teal-500/40",
+          show: hasAccess('maintenance', user.role, adminDelegation)
         },
         {
           id: 'help_desk',

@@ -9,6 +9,7 @@ export const defaultTabPermissions = {
   roster: ['admin', 'facility_admin', 'hr_manager'],
   broadcasts: ['admin', 'facility_admin', 'operations_manager'],
   procurement: ['admin', 'facility_admin', 'operations_manager'],
+  maintenance: ['admin', 'facility_admin', 'operations_manager', 'it_support'],
   help_desk: ['admin', 'facility_admin', 'operations_manager'],
   audit: ['admin', 'facility_admin', 'it_support'],
   email_logs: ['admin', 'facility_admin', 'it_support'],

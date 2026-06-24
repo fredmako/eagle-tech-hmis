@@ -389,6 +389,13 @@ router.post("/query", async (req, res) => {
       }
     }
 
+    const data = await db.getDocuments(
+      table,
+      enrichedQueries,
+      orderByField,
+      orderByAsc
+    );
+
     // Security: redact patient information from appointments table for unauthenticated visitors
     if (table === "appointments" && !req.user) {
       const redactedData = data.map(app => ({

@@ -17,7 +17,8 @@ export default function StaffOnboarding({
   requestsLoading,
   requestsMessage,
   handleApproveRequest,
-  handleRejectRequest
+  handleRejectRequest,
+  dbDepartments = []
 }) {
   return (
     <div className="space-y-4 animate-fadeIn">
@@ -101,13 +102,21 @@ export default function StaffOnboarding({
               onChange={(e) => setInviteDept(e.target.value)}
               className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
             >
-              <option value="triage">Triage</option>
-              <option value="consultation">Consultation</option>
-              <option value="laboratory">Laboratory</option>
-              <option value="pharmacy">Pharmacy</option>
-              <option value="billing">Billing</option>
-              <option value="ward">Ward</option>
-              <option value="admin">Administration</option>
+              {dbDepartments.length > 0 ? (
+                dbDepartments.map(d => (
+                  <option key={d.id} value={d.type || d.name.toLowerCase()}>{d.name}</option>
+                ))
+              ) : (
+                <>
+                  <option value="triage">Triage</option>
+                  <option value="consultation">Consultation</option>
+                  <option value="laboratory">Laboratory</option>
+                  <option value="pharmacy">Pharmacy</option>
+                  <option value="billing">Billing</option>
+                  <option value="ward">Ward</option>
+                  <option value="admin">Administration</option>
+                </>
+              )}
             </select>
           </div>
 

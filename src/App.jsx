@@ -96,6 +96,15 @@ export default function App() {
     if (itemId === "admin") setAdminSubTab(subId);
   };
 
+  const handleNavigate = (tabId) => {
+    if (tabId === "maintenance") {
+      setActiveTab("admin");
+      setAdminSubTab("maintenance");
+    } else {
+      setActiveTab(tabId);
+    }
+  };
+
   const [preselectedPatient, setPreselectedPatient] = useState(null);
   const [pathname, setPathname] = useState(() => window.location.pathname);
   const [publicView, setPublicView] = useState(() => {
@@ -696,6 +705,7 @@ export default function App() {
         { id: "facility_profile", label: "Facility Profile" },
         { id: "hr", label: "Human Resources" },
         { id: "procurement", label: "Procurement Desk" },
+        { id: "maintenance", label: "Assets Maintenance" },
         { id: "afyalink", label: "DHA Kenya HIE" }
       ]
     },
@@ -806,7 +816,7 @@ export default function App() {
               </div>
             </button>
             
-            <NotificationBell user={user} onNavigate={setActiveTab} />
+            <NotificationBell user={user} onNavigate={handleNavigate} />
             <ThemeToggle themeMode={themeMode} onToggle={toggleLightDark} />
 
             {(user.email === "fredrickmakori102@gmail.com" || user.email === "support@egesa.com") && (
@@ -958,7 +968,7 @@ export default function App() {
                 </span>
               </div>
             </button>
-            <NotificationBell user={user} onNavigate={setActiveTab} />
+            <NotificationBell user={user} onNavigate={handleNavigate} />
             <ThemeToggle themeMode={themeMode} onToggle={toggleLightDark} />
           </div>
 
@@ -1018,7 +1028,7 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <NotificationBell user={user} onNavigate={setActiveTab} />
+            <NotificationBell user={user} onNavigate={handleNavigate} />
             <ThemeToggle themeMode={themeMode} onToggle={toggleLightDark} />
             <span className="font-['JetBrains_Mono',monospace] text-[10px] text-teal-400 font-semibold uppercase bg-teal-500/10 px-2 py-0.5 rounded">
               {user.role}
@@ -1029,7 +1039,7 @@ export default function App() {
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className={menuLayout === 'topbar' ? 'max-w-7xl mx-auto w-full' : ''}>
             {activeTab === "dashboard" && (
-              <Dashboard user={user} onNavigate={setActiveTab} />
+              <Dashboard user={user} onNavigate={handleNavigate} />
             )}
             {activeTab === "registration" && (
               <Registration

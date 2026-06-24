@@ -778,7 +778,7 @@ export default function LandingPage({
       <Footer />
 
       {/* Floating Chatbot Widget */}
-      <div className="fixed bottom-6 right-6 z-[9999] font-sans">
+      <div className="fixed bottom-6 left-6 z-[9999] font-sans">
         {/* Toggle Button */}
         {!chatOpen && (
           <button

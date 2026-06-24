@@ -197,6 +197,13 @@ export default function App() {
   }, [theme, themeMode, font]);
 
   useEffect(() => {
+    const filterValue = nightVision
+      ? `sepia(1) saturate(1.8) hue-rotate(80deg) brightness(${brightness}%)`
+      : `brightness(${brightness}%)`;
+    document.documentElement.style.filter = filterValue;
+  }, [nightVision, brightness]);
+
+  useEffect(() => {
     const syncPublicViewFromHash = () => {
       const path = window.location.pathname;
       if (path.includes("auth/callback") || window.location.hash.includes("access_token")) {
@@ -513,11 +520,6 @@ export default function App() {
     return (
       <div
         className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100 overflow-x-hidden`}
-        style={{
-          filter: nightVision 
-            ? `sepia(1) saturate(1.8) hue-rotate(80deg) brightness(${brightness}%)` 
-            : `brightness(${brightness}%)`
-        }}
       >
         {publicContent}
       </div>
@@ -528,11 +530,6 @@ export default function App() {
     return (
       <div
         className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100`}
-        style={{
-          filter: nightVision 
-            ? `sepia(1) saturate(1.8) hue-rotate(80deg) brightness(${brightness}%)` 
-            : `brightness(${brightness}%)`
-        }}
       >
         <SuperAdminDashboard user={user} onSignOut={handleSignOut} onLogoClick={handleLogoClick} />
       </div>
@@ -543,11 +540,6 @@ export default function App() {
     return (
       <div
         className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100 flex flex-col justify-center items-center p-4 font-['DM_Sans',system-ui,sans-serif]`}
-        style={{
-          filter: nightVision 
-            ? `sepia(1) saturate(1.8) hue-rotate(80deg) brightness(${brightness}%)` 
-            : `brightness(${brightness}%)`
-        }}
       >
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -616,11 +608,6 @@ export default function App() {
     return (
       <div
         className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100`}
-        style={{
-          filter: nightVision 
-            ? `sepia(1) saturate(1.8) hue-rotate(80deg) brightness(${brightness}%)` 
-            : `brightness(${brightness}%)`
-        }}
       >
         <PatientPortal />
       </div>
@@ -858,11 +845,6 @@ export default function App() {
   return (
     <div
       className={`flex h-screen bg-slate-950 text-slate-100 overflow-hidden theme-${theme} mode-${themeMode} font-${font} font-['DM_Sans',system-ui,sans-serif] ${menuLayout === 'topbar' ? 'flex-col' : 'flex-row'}`}
-      style={{
-        filter: nightVision 
-          ? `sepia(1) saturate(1.8) hue-rotate(80deg) brightness(${brightness}%)` 
-          : `brightness(${brightness}%)`
-      }}
     >
       {menuLayout === 'topbar' && (
         <header className="hidden md:flex items-center justify-between px-6 py-2.5 bg-slate-900 border-b border-teal-500/10 z-30 shrink-0">

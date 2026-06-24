@@ -252,11 +252,37 @@ function BusinessCardBack({ theme = "teal", formData, isPrintMode = false }) {
   );
 }
 
+const paperSizes = {
+  A4: {
+    name: "A4",
+    widthMm: 297,
+    heightMm: 210,
+    landscape: { cols: 3, rows: 4, cap: 12 },
+    portrait: { cols: 2, rows: 5, cap: 10 }
+  },
+  A5: {
+    name: "A5",
+    widthMm: 210,
+    heightMm: 148.5,
+    landscape: { cols: 2, rows: 2, cap: 4 },
+    portrait: { cols: 1, rows: 4, cap: 4 }
+  },
+  Letter: {
+    name: "Letter",
+    widthMm: 279.4,
+    heightMm: 215.9,
+    landscape: { cols: 3, rows: 4, cap: 12 },
+    portrait: { cols: 2, rows: 5, cap: 10 }
+  }
+};
+
 export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
   const [theme, setTheme] = useState("teal"); // 'teal', 'green', 'blue', 'light'
   const [isPreviewSheet, setIsPreviewSheet] = useState(false);
   const [sheetSide, setSheetSide] = useState("front"); // 'front', 'back'
-  const [copiesPerPage, setCopiesPerPage] = useState(12);
+  const [paperSize, setPaperSize] = useState("A4"); // 'A4', 'A5', 'Letter'
+  const [orientation, setOrientation] = useState("landscape"); // 'landscape', 'portrait'
+  const [totalCards, setTotalCards] = useState(12);
 
   const [formData] = useState({
     name: "Fredrick Makori",
@@ -271,14 +297,33 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
     summary: "Digital health systems for modern hospitals."
   });
 
+  const currentConfig = paperSizes[paperSize]?.[orientation] || paperSizes.A4.landscape;
+  const capacity = currentConfig.cap;
+  const sheetsCount = Math.ceil(totalCards / capacity);
+
+  const handlePaperSizeChange = (size) => {
+    setPaperSize(size);
+    const newConfig = paperSizes[size][orientation];
+    setTotalCards(newConfig.cap);
+  };
+
+  const handleOrientationChange = (orient) => {
+    setOrientation(orient);
+    const newConfig = paperSizes[paperSize][orient];
+    setTotalCards(newConfig.cap);
+  };
+
+  // Preview dimensions calculations
+  const pageW = orientation === "landscape" ? paperSizes[paperSize].widthMm : paperSizes[paperSize].heightMm;
+  const pageH = orientation === "landscape" ? paperSizes[paperSize].heightMm : paperSizes[paperSize].widthMm;
 
   return (
-    <div className="business-cards-page min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="business-cards-page min-h-screen bg-slate-955 text-slate-100 font-sans">
       {/* Dynamic Print stylesheet inject */}
       <style>{`
         @media print {
           @page {
-            size: A4 landscape;
+            size: ${paperSize.toLowerCase()} ${orientation};
             margin: 0;
           }
           body, html {
@@ -286,26 +331,38 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
             color: black !important;
             margin: 0 !important;
             padding: 0 !important;
-            width: 297mm !important;
-            height: 210mm !important;
+            width: 100% !important;
+            height: 100% !important;
           }
           .print-hidden {
             display: none !important;
           }
           .print-page {
-            display: grid !important;
-            grid-template-columns: repeat(3, 3.5in) !important;
-            grid-template-rows: repeat(4, 2in) !important;
-            justify-content: center !important;
-            align-content: center !important;
-            width: 297mm !important;
-            height: 210mm !important;
+            width: 100% !important;
+            height: 100% !important;
             page-break-after: always !important;
             break-after: page !important;
             box-sizing: border-box !important;
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            overflow: hidden !important;
+          }
+          .print-grid {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fill, 3.5in) !important;
+            grid-auto-rows: 2in !important;
+            justify-content: center !important;
+            align-content: center !important;
+            gap: 0 !important;
+            /* round down container width/height to exact multiples of card sizes to prevent half-cards */
+            width: round(down, 100%, 3.5in) !important;
+            height: round(down, 100%, 2in) !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
           }
           .print-card-wrapper {
             width: 3.5in !important;
@@ -315,6 +372,8 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
             padding: 0 !important;
             margin: 0 !important;
             overflow: hidden !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
           }
           .business-card-print {
             width: 3.5in !important;
@@ -329,22 +388,48 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
 
       {/* RENDERED printable sheets during print execution */}
       <div className="hidden print:block">
-        {/* Page 1: Front cards grid */}
-        <div className="print-page">
-          {Array.from({ length: copiesPerPage }).map((_, i) => (
-            <div key={i} className="print-card-wrapper">
-              <BusinessCardFront theme={theme} formData={formData} isPrintMode={true} />
-            </div>
-          ))}
-        </div>
-        {/* Page 2: Back cards grid */}
-        <div className="print-page">
-          {Array.from({ length: copiesPerPage }).map((_, i) => (
-            <div key={i} className="print-card-wrapper">
-              <BusinessCardBack theme={theme} formData={formData} isPrintMode={true} />
-            </div>
-          ))}
-        </div>
+        {Array.from({ length: sheetsCount }).map((_, sheetIdx) => {
+          const startIdx = sheetIdx * capacity;
+          return (
+            <React.Fragment key={sheetIdx}>
+              {/* Front Page of Sheet */}
+              <div className="print-page">
+                <div className="print-grid">
+                  {Array.from({ length: capacity }).map((_, cardIdx) => {
+                    const globalIdx = startIdx + cardIdx;
+                    return (
+                      <div key={cardIdx} className="print-card-wrapper">
+                        {globalIdx < totalCards ? (
+                          <BusinessCardFront theme={theme} formData={formData} isPrintMode={true} />
+                        ) : (
+                          <div className="w-full h-full bg-white border border-dashed border-slate-200" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Back Page of Sheet */}
+              <div className="print-page">
+                <div className="print-grid">
+                  {Array.from({ length: capacity }).map((_, cardIdx) => {
+                    const globalIdx = startIdx + cardIdx;
+                    return (
+                      <div key={cardIdx} className="print-card-wrapper">
+                        {globalIdx < totalCards ? (
+                          <BusinessCardBack theme={theme} formData={formData} isPrintMode={true} />
+                        ) : (
+                          <div className="w-full h-full bg-white border border-dashed border-slate-200" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </React.Fragment>
+          );
+        })}
       </div>
 
       {/* Screen layout UI */}
@@ -368,7 +453,7 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
                 Branded Business Cards
               </h1>
               <p className="text-sm text-slate-400 leading-relaxed max-w-lg">
-                Customize details, pick a theme, and preview the 12-card duplex printable A4 sheet layout before printing.
+                Customize details, pick a theme, and preview the dynamic duplex printable layout before printing.
               </p>
             </div>
           </div>
@@ -383,7 +468,7 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
               }`}
             >
               <LayoutGrid size={14} />
-              <span>{isPreviewSheet ? 'Single Card View' : 'A4 Sheet Layout (12 cards)'}</span>
+              <span>{isPreviewSheet ? 'Single Card View' : `${paperSize} Sheet Layout (${capacity} cards)`}</span>
             </button>
 
             <button
@@ -391,7 +476,7 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
               className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-teal-400 px-4 py-2 text-sm font-black text-slate-950 hover:bg-teal-350 transition cursor-pointer"
             >
               <Printer size={15} />
-              <span>Print A4 Sheet</span>
+              <span>Print {paperSize} Sheets ({sheetsCount})</span>
             </button>
             <button
               onClick={onNavigateToLogin}
@@ -438,29 +523,100 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
               </div>
             </div>
 
-            {/* Copies per page range input */}
-            <div className="space-y-3 pt-2">
-              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block flex justify-between">
-                <span>Copies per Page</span>
-                <span className="text-teal-405 font-mono text-xs">{copiesPerPage} / 12</span>
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="12"
-                value={copiesPerPage}
-                onChange={(e) => setCopiesPerPage(parseInt(e.target.value))}
-                className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-teal-400"
-              />
-              <div className="flex justify-between text-[9px] text-slate-500 font-bold font-mono">
-                <span>1 Copy</span>
-                <span>6 Copies</span>
-                <span>12 Copies</span>
+            {/* Print Settings: Paper Size, Orientation, Card Count */}
+            <div className="space-y-4 pt-4 border-t border-slate-850">
+              <div className="flex items-center gap-2 mb-2">
+                <Printer size={13} className="text-teal-400" />
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Print Layout Settings</label>
+              </div>
+
+              {/* Paper Size */}
+              <div className="space-y-1.5">
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Paper Size</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {['A4', 'A5', 'Letter'].map(size => (
+                    <button
+                      key={size}
+                      onClick={() => handlePaperSizeChange(size)}
+                      className={`py-1.5 px-2 rounded-lg border text-[10.5px] font-bold transition text-center cursor-pointer ${
+                        paperSize === size
+                          ? 'bg-teal-500/10 border-teal-500/30 text-teal-400'
+                          : 'bg-slate-950/40 border-slate-850 text-slate-450 hover:border-slate-800'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Orientation */}
+              <div className="space-y-1.5">
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Orientation</span>
+                <div className="grid grid-cols-2 gap-2">
+                  {['landscape', 'portrait'].map(orient => (
+                    <button
+                      key={orient}
+                      onClick={() => handleOrientationChange(orient)}
+                      className={`py-1.5 px-2 rounded-lg border text-[10.5px] font-bold capitalize transition text-center cursor-pointer ${
+                        orientation === orient
+                          ? 'bg-teal-500/10 border-teal-500/30 text-teal-400'
+                          : 'bg-slate-950/40 border-slate-850 text-slate-450 hover:border-slate-800'
+                      }`}
+                    >
+                      {orient}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Card Count */}
+              <div className="space-y-1.5">
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Total Cards to Print</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setTotalCards(Math.max(1, totalCards - capacity))}
+                    className="h-8 w-8 rounded-lg bg-slate-950 border border-slate-850 hover:bg-slate-900 transition flex items-center justify-center font-bold text-slate-350 cursor-pointer"
+                    title={`Decrease by 1 sheet (${capacity} cards)`}
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max="200"
+                    value={totalCards}
+                    onChange={(e) => setTotalCards(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="flex-1 h-8 rounded-lg bg-slate-950 border border-slate-850 text-center text-xs font-bold text-slate-200 focus:outline-none focus:border-teal-500/50"
+                  />
+                  <button
+                    onClick={() => setTotalCards(totalCards + capacity)}
+                    className="h-8 w-8 rounded-lg bg-slate-950 border border-slate-850 hover:bg-slate-900 transition flex items-center justify-center font-bold text-slate-350 cursor-pointer"
+                    title={`Increase by 1 sheet (${capacity} cards)`}
+                  >
+                    +
+                  </button>
+                </div>
+                <div className="flex justify-between text-[9px] text-slate-550 mt-1">
+                  <span>Fits {capacity} per sheet</span>
+                  <span>Needs {sheetsCount} {sheetsCount === 1 ? 'sheet' : 'sheets'}</span>
+                </div>
               </div>
             </div>
 
-            <div className="bg-teal-500/5 border border-teal-500/10 p-4 rounded-xl text-[10.5px] text-slate-400 leading-relaxed font-sans">
-              <span className="font-bold text-slate-300 block mb-1">ℹ️ Read-Only Contact Details</span>
+            {/* Info Box */}
+            <div className="bg-teal-500/5 border border-teal-500/10 p-3.5 rounded-xl text-[10px] text-slate-400 leading-relaxed font-sans">
+              <span className="font-bold text-slate-300 block mb-1">💡 Professional Printing Tips</span>
+              <ul className="list-disc list-inside space-y-1 text-[9.5px]">
+                <li>Paper size and orientation are set automatically.</li>
+                <li>Set <strong>Margins to None</strong> in the browser print dialog.</li>
+                <li>Enable <strong>Background graphics</strong> to print rich theme colors.</li>
+                <li>Use double-sided (duplex) with <strong>Flip on Long Edge</strong>.</li>
+              </ul>
+            </div>
+
+            <div className="bg-teal-500/5 border border-teal-500/10 p-4 rounded-xl text-[10.5px] text-slate-450 leading-relaxed font-sans">
+              <span className="font-bold text-slate-350 block mb-1">ℹ️ Read-Only Contact Details</span>
               Card contact information (Full Name, Designation, Phone numbers, Email address, Website, Location) is populated automatically from the facility's corporate registry and cannot be modified from this workstation.
             </div>
           </div>
@@ -493,21 +649,21 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
                     To print double-sided card sheets exactly back-to-back:
                   </p>
                   <ol className="list-decimal list-inside text-[10px] pl-1 space-y-1">
-                    <li>Margins are perfectly centered on the horizontal axis (Left & Right 15.15mm margins).</li>
+                    <li>Margins are perfectly centered on the horizontal axis (Left & Right margins are symmetric).</li>
                     <li>Select **Landscape Orientation** and set **Margins to None** (or Default borderless).</li>
                     <li>Choose **Print on Both Sides** (Duplex), selecting **Flip on Long Edge**.</li>
                   </ol>
                 </div>
               </div>
             ) : (
-              /* A4 Sheet Print preview representation */
+              /* Simulated Sheet Print preview representation */
               <div className="space-y-4 flex-1 flex flex-col">
                 <div className="flex justify-between items-center border-b border-slate-850 pb-2">
                   <div>
-                    <h3 className="text-xs uppercase tracking-[0.25em] text-slate-350 font-bold flex items-center gap-1.5">
-                      <LayoutGrid size={13} className="text-teal-400" /> A4 Sheet Print Layout Preview
+                    <h3 className="text-xs uppercase tracking-[0.25em] text-slate-355 font-bold flex items-center gap-1.5">
+                      <LayoutGrid size={13} className="text-teal-400" /> {paperSize} Sheet Print Layout Preview
                     </h3>
-                    <p className="text-[9.5px] text-slate-500 mt-0.5">Miniature landscape sheet layout rendering 12 cards per A4 page</p>
+                    <p className="text-[9.5px] text-slate-500 mt-0.5">Miniature {orientation} sheet layout rendering {capacity} cards per {paperSize} page</p>
                   </div>
 
                   <div className="flex gap-2">
@@ -530,17 +686,29 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
                   </div>
                 </div>
 
-                {/* Simulated A4 Page visual Container */}
+                {/* Simulated Page visual Container */}
                 <div className="flex-1 flex items-center justify-center p-3 bg-slate-950 border border-slate-850 rounded-xl overflow-auto min-h-[300px]">
-                  <div className="bg-slate-900 border border-slate-800 w-[550px] aspect-[297/210] p-[30px] flex items-center justify-center shadow-2xl relative select-none">
-                    <div className="absolute top-2 left-3 text-[9px] text-slate-550 uppercase tracking-widest font-bold">Simulated A4 Landscape Page</div>
+                  <div 
+                    className="bg-slate-900 border border-slate-800 p-[30px] flex items-center justify-center shadow-2xl relative select-none"
+                    style={{
+                      aspectRatio: `${pageW} / ${pageH}`,
+                      width: orientation === 'landscape' ? '460px' : '320px',
+                    }}
+                  >
+                    <div className="absolute top-2 left-3 text-[9px] text-slate-550 uppercase tracking-widest font-bold">Simulated {paperSize} {orientation} Page</div>
                     
                     {/* Grid rendering cards */}
-                    <div className="grid grid-cols-3 grid-rows-4 gap-0 border border-dashed border-slate-700/60 w-full h-full scale-[0.98]">
-                      {Array.from({ length: 12 }).map((_, i) => (
+                    <div 
+                      className="grid gap-0 border border-dashed border-slate-700/60 w-full h-full scale-[0.98]"
+                      style={{
+                        gridTemplateColumns: `repeat(${currentConfig.cols}, 1fr)`,
+                        gridTemplateRows: `repeat(${currentConfig.rows}, 1fr)`,
+                      }}
+                    >
+                      {Array.from({ length: capacity }).map((_, i) => (
                         <div key={i} className="border border-dashed border-slate-700/50 overflow-hidden flex items-center justify-center relative">
                           <div className="absolute inset-0 scale-[0.94]">
-                            {i < copiesPerPage ? (
+                            {i < totalCards ? (
                               sheetSide === 'front' ? (
                                 <BusinessCardFront theme={theme} formData={formData} isPrintMode={true} />
                               ) : (
@@ -560,7 +728,6 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
               </div>
             )}
           </div>
-
         </div>
       </div>
     </div>

@@ -232,10 +232,10 @@ export default function Preferences({
       {/* Header */}
       <div className="border-b border-slate-800/60 pb-3 flex items-center gap-2.5">
         <div className="p-2 rounded-lg bg-teal-500/10 text-teal-400">
-          <Settings size={18} />
+          <User size={18} />
         </div>
         <div>
-          <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wider">Account Preferences & Profile</h2>
+          <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wider">Manage Profile</h2>
           <p className="text-[10.5px] text-slate-500 font-medium">Manage your personal profile details, security credentials, and workspace preferences</p>
         </div>
       </div>

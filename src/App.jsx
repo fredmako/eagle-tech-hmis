@@ -37,6 +37,7 @@ import { motion } from "motion/react";
 import {
   LayoutDashboard,
   UserPlus,
+  User,
   Layers,
   Heart,
   Stethoscope,
@@ -73,6 +74,7 @@ export default function App() {
     return localStorage.getItem("egesa_active_tab") || "dashboard";
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [pharmacySubTab, setPharmacySubTab] = useState("dispensing");
   const [billingSubTab, setBillingSubTab] = useState("desk");
   const [mchSubTab, setMchSubTab] = useState("dashboard");
@@ -770,8 +772,8 @@ export default function App() {
     },
     {
       id: "settings",
-      label: "System Preferences",
-      icon: Sliders,
+      label: "Manage Profile",
+      icon: User,
       roles: ["*"],
     },
     {
@@ -878,22 +880,50 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-450 focus-within:border-teal-500 transition max-w-[180px] mx-2 shrink-0">
-            <Search size={12} className="text-slate-500 shrink-0" />
-            <input
-              type="text"
-              placeholder="Search menus..."
-              value={menuSearch}
-              onChange={(e) => setMenuSearch(e.target.value)}
-              className="w-full bg-transparent border-none text-[10px] text-slate-100 placeholder-slate-500 focus:outline-none"
-            />
-            {menuSearch && (
-              <button 
-                type="button" 
-                onClick={() => setMenuSearch("")}
-                className="text-[9px] text-slate-500 hover:text-slate-200"
+          <div className="flex items-center gap-2 transition-all duration-300 mx-2 shrink-0">
+            {isSearchExpanded ? (
+              <div className="flex items-center gap-2 bg-slate-950 border border-teal-500/30 rounded-lg px-2.5 py-1 text-slate-450 w-[180px] transition-all duration-300 animate-fadeIn">
+                <Search size={12} className="text-teal-450 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search menus..."
+                  value={menuSearch}
+                  autoFocus
+                  onBlur={() => {
+                    if (!menuSearch) setIsSearchExpanded(false);
+                  }}
+                  onChange={(e) => setMenuSearch(e.target.value)}
+                  className="w-full bg-transparent border-none text-[10px] text-slate-100 placeholder-slate-500 focus:outline-none"
+                />
+                {menuSearch ? (
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setMenuSearch("");
+                      setIsSearchExpanded(false);
+                    }}
+                    className="text-[9px] text-slate-500 hover:text-slate-200"
+                  >
+                    ✕
+                  </button>
+                ) : (
+                  <button 
+                    type="button" 
+                    onClick={() => setIsSearchExpanded(false)}
+                    className="text-[9px] text-slate-500 hover:text-slate-200"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsSearchExpanded(true)}
+                title="Search menus..."
+                className="p-1.5 hover:bg-slate-800/80 rounded-lg text-slate-400 hover:text-teal-400 transition cursor-pointer"
               >
-                ✕
+                <Search size={14} />
               </button>
             )}
           </div>
@@ -996,8 +1026,8 @@ export default function App() {
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setActiveTab('settings')}
-              title="View Account Preferences & Profile"
-              className="flex items-center gap-2 border-r border-teal-500/10 pr-3 cursor-pointer hover:opacity-80 transition text-left focus:outline-none"
+              title={`${user.full_name} (${user.role}) - View Account Preferences & Profile`}
+              className="flex items-center border-r border-teal-500/10 pr-3 cursor-pointer hover:opacity-80 transition text-left focus:outline-none"
             >
               <div className="h-7 w-7 rounded-full bg-slate-800 border border-teal-500/15 flex items-center justify-center overflow-hidden font-bold text-teal-400 text-[10px] shadow shrink-0">
                 {user.avatar_url ? (
@@ -1005,14 +1035,6 @@ export default function App() {
                 ) : (
                   user.full_name?.substring(0, 2).toUpperCase()
                 )}
-              </div>
-              <div className="hidden lg:block text-left truncate max-w-[120px]">
-                <span className="text-[11px] font-bold text-slate-200 block leading-tight truncate">
-                  {user.full_name}
-                </span>
-                <span className="font-['JetBrains_Mono',monospace] text-[9px] text-teal-400 font-semibold uppercase block leading-none">
-                  {user.role}
-                </span>
               </div>
             </button>
             

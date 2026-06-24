@@ -46,6 +46,207 @@ export default function FacilityLandingPage() {
   const [supportSuccess, setSupportSuccess] = useState('');
   const [supportError, setSupportError] = useState('');
 
+  // Public Booking Modal States
+  const [showPublicBookingModal, setShowPublicBookingModal] = useState(false);
+  const [facilityDoctors, setFacilityDoctors] = useState([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState('');
+  const [bookingDate, setBookingDate] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  });
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState('');
+  const [bookingNotes, setBookingNotes] = useState('');
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [patientName, setPatientName] = useState('');
+  const [patientPhone, setPatientPhone] = useState('');
+  const [patientEmail, setPatientEmail] = useState('');
+
+  useEffect(() => {
+    if (facility) {
+      fetchFacilityDoctors(facility.id);
+    }
+  }, [facility]);
+
+  useEffect(() => {
+    if (selectedDoctorId && bookingDate && showPublicBookingModal) {
+      fetchAvailableSlots(selectedDoctorId, bookingDate);
+    }
+  }, [selectedDoctorId, bookingDate, showPublicBookingModal]);
+
+  const getDayName = (dateStr) => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const d = new Date(dateStr);
+    return days[d.getDay()];
+  };
+
+  const fetchFacilityDoctors = async (facilityId) => {
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiBase}/db/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: 'profiles',
+          queries: [{ type: 'equal', column: 'facility_id', value: facilityId }]
+        })
+      });
+
+      const body = await res.json();
+      if (res.ok && body.data) {
+        const filteredDocs = body.data.filter(p => {
+          const r = (p.role || '').toLowerCase();
+          return r.includes('clinician') || r.includes('doctor') || r.includes('admin') || r.includes('nurse');
+        }).map(p => ({
+          id: p.id,
+          name: p.full_name || 'Anonymous Doctor',
+          specialty: p.department || 'General Practice'
+        }));
+        setFacilityDoctors(filteredDocs);
+        if (filteredDocs.length > 0) setSelectedDoctorId(filteredDocs[0].id);
+      }
+    } catch (err) {
+      console.error('Error fetching facility doctors:', err);
+    }
+  };
+
+  const fetchAvailableSlots = async (docId, dateStr) => {
+    if (!docId || !dateStr) return;
+    setLoadingSlots(true);
+    try {
+      const dayName = getDayName(dateStr);
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+      // 1. Fetch doctor availability config
+      const availRes = await fetch(`${apiBase}/db/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: 'doctor_availability',
+          queries: [
+            { type: 'equal', column: 'doctor_id', value: docId },
+            { type: 'equal', column: 'day_of_week', value: dayName }
+          ]
+        })
+      });
+      const availBody = await availRes.json();
+      const avail = availBody.data && availBody.data.length > 0 ? availBody.data[0] : null;
+
+      // 2. Fetch existing appointments
+      const apptRes = await fetch(`${apiBase}/db/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: 'appointments',
+          queries: [
+            { type: 'equal', column: 'doctor_id', value: docId },
+            { type: 'equal', column: 'appointment_date', value: dateStr }
+          ]
+        })
+      });
+      const apptBody = await apptRes.json();
+      const booked = apptBody.data || [];
+
+      let startHour = 8;
+      let endHour = 17;
+      let isAvailable = true;
+
+      if (avail) {
+        isAvailable = avail.is_available;
+        try {
+          startHour = parseInt(avail.start_time.split(':')[0], 10);
+          endHour = parseInt(avail.end_time.split(':')[0], 10);
+        } catch(e) {}
+      } else {
+        if (dayName === 'Saturday' || dayName === 'Sunday') {
+          isAvailable = false;
+        }
+      }
+
+      if (!isAvailable) {
+        setAvailableSlots([]);
+        setLoadingSlots(false);
+        return;
+      }
+
+      const slots = [];
+      const bookedTimes = booked
+        .filter(b => b.status !== 'cancelled')
+        .map(b => b.start_time.substring(0, 5));
+
+      for (let h = startHour; h < endHour; h++) {
+        const hh = h < 10 ? `0${h}:00` : `${h}:00`;
+        if (!bookedTimes.includes(hh)) {
+          slots.push(hh);
+        }
+      }
+
+      setAvailableSlots(slots);
+      if (slots.length > 0) setSelectedSlot(slots[0]);
+    } catch (err) {
+      console.error('Error fetching slots:', err);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const handleBookAppointment = async (e) => {
+    e.preventDefault();
+    if (!selectedSlot) return;
+
+    setBookingLoading(true);
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const newApp = {
+        id: `app_${Date.now()}`,
+        facility_id: facility.id,
+        patient_name: patientName.trim(),
+        patient_phone: patientPhone.trim(),
+        doctor_id: selectedDoctorId,
+        appointment_date: bookingDate,
+        start_time: selectedSlot,
+        notes: bookingNotes.trim(),
+        status: 'booked'
+      };
+
+      if (patientEmail.trim()) {
+        newApp.notes = `[Email: ${patientEmail.trim()}] ${bookingNotes.trim()}`;
+      }
+
+      const res = await fetch(`${apiBase}/db/insert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: 'appointments',
+          rows: newApp
+        })
+      });
+
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Failed to request appointment.');
+
+      setAuthSuccess(`Slot reserved! Your appointment has been booked for ${bookingDate} at ${selectedSlot}.`);
+      setShowPublicBookingModal(false);
+      setPatientName('');
+      setPatientPhone('');
+      setPatientEmail('');
+      setBookingNotes('');
+      setTimeout(() => {
+        setAuthSuccess('');
+      }, 5000);
+    } catch (err) {
+      console.error('Error booking appointment:', err);
+      setAuthError(err.message || 'Failed to request appointment.');
+      setTimeout(() => {
+        setAuthError('');
+      }, 5000);
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchFacilityDetails();
   }, [subdomain]);
@@ -284,10 +485,20 @@ export default function FacilityLandingPage() {
         </div>
       </div>
       <div className="flex items-center gap-4 text-xs font-semibold">
-        <span className="text-slate-400 flex items-center gap-1.5">
+        <span className="text-slate-400 flex items-center gap-1.5 hidden sm:flex">
           <MapPin size={14} className={template === 'wellness' ? 'text-purple-400' : 'text-teal-400'} /> 
           {facility.address}
         </span>
+        <button
+          onClick={() => setShowPublicBookingModal(true)}
+          className={`font-black text-[10px] py-1.5 px-3.5 rounded-lg border cursor-pointer active:scale-[0.98] transition ${
+            template === 'wellness'
+              ? 'bg-purple-500 hover:bg-purple-650 text-white border-purple-500/20 shadow-lg shadow-purple-500/10'
+              : 'bg-teal-500 hover:bg-teal-600 text-slate-950 border-teal-500/20 shadow-lg shadow-teal-500/10'
+          }`}
+        >
+          📅 Book Appointment
+        </button>
       </div>
     </header>
   );
@@ -454,6 +665,18 @@ export default function FacilityLandingPage() {
           </button>
         </form>
       )}
+
+      <div className="border-t border-slate-800 pt-4 text-center">
+        <button
+          type="button"
+          onClick={() => setShowPublicBookingModal(true)}
+          className={`text-[10px] font-bold uppercase tracking-wider underline hover:text-white transition cursor-pointer ${
+            template === 'wellness' ? 'text-purple-400' : 'text-teal-400'
+          }`}
+        >
+          📅 Book appointment without an account
+        </button>
+      </div>
     </div>
   );
 
@@ -565,8 +788,18 @@ export default function FacilityLandingPage() {
       <div className="lg:col-span-2 space-y-8 animate-slideUp">
         {/* Welcome Card */}
         <div className="bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-4">
-          <h2 className="text-xl font-black text-white font-sans tracking-tight">Our Services & Specialities</h2>
-          <p className="text-xs text-slate-400 leading-relaxed font-sans">{facility.about_us}</p>
+          <div className="flex justify-between items-start flex-wrap gap-4">
+            <div className="space-y-2 flex-1 min-w-[250px]">
+              <h2 className="text-xl font-black text-white font-sans tracking-tight">Our Services & Specialities</h2>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans">{facility.about_us}</p>
+            </div>
+            <button
+              onClick={() => setShowPublicBookingModal(true)}
+              className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-black text-xs px-6 py-3 rounded-xl shadow-lg hover:scale-[1.02] transition active:scale-[0.98] cursor-pointer shrink-0 mt-1"
+            >
+              📅 Book Appointment
+            </button>
+          </div>
         </div>
 
         {/* Pricing Catalog */}
@@ -630,11 +863,17 @@ export default function FacilityLandingPage() {
               {facility.about_us} Eagle Tech HMIS enables direct laboratory integrations, electronic medical records, digital pharmacies, and seamless real-time notifications.
             </p>
             <div className="flex flex-wrap gap-4 pt-2">
+              <button 
+                onClick={() => setShowPublicBookingModal(true)}
+                className="bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-black text-xs px-6 py-3 rounded-xl shadow-lg hover:shadow-teal-500/10 hover:scale-[1.02] transition active:scale-[0.98] cursor-pointer"
+              >
+                📅 Book Appointment
+              </button>
               <a 
                 href="#portal-access" 
-                className="bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-black text-xs px-6 py-3 rounded-xl shadow-lg hover:shadow-teal-500/10 hover:scale-[1.02] transition active:scale-[0.98]"
+                className="bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-bold text-xs px-6 py-3 rounded-xl hover:bg-slate-850 transition"
               >
-                Access Patient Portal
+                Patient Portal
               </a>
               <a 
                 href="#pricing-catalog" 
@@ -798,15 +1037,15 @@ export default function FacilityLandingPage() {
             {facility.about_us} Our clinic prioritizes a calm patient experience, certified laboratory parameters, and instant digital check-ins to make your health journey stress-free.
           </p>
           <div className="flex flex-wrap gap-4 pt-2">
-            <a 
-              href="#appointment-desk" 
-              className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xs px-6 py-3 rounded-xl shadow-lg hover:shadow-purple-500/10 hover:scale-[1.02] transition active:scale-[0.98]"
+            <button 
+              onClick={() => setShowPublicBookingModal(true)}
+              className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xs px-6 py-3 rounded-xl shadow-lg hover:shadow-purple-500/10 hover:scale-[1.02] transition active:scale-[0.98] cursor-pointer"
             >
-              Book Inquiries / Appointment
-            </a>
+              📅 Book Appointment
+            </button>
             <a 
               href="#portal-widget" 
-              className="bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-bold text-xs px-6 py-3 rounded-xl hover:bg-slate-850 transition"
+              className="bg-slate-900 border border-slate-850 text-slate-300 hover:text-white font-bold text-xs px-6 py-3 rounded-xl hover:bg-slate-850 transition"
             >
               Patient Sign In
             </a>
@@ -963,6 +1202,162 @@ export default function FacilityLandingPage() {
 
       {/* Footer */}
       {renderFooter()}
+
+      {/* Public Booking Modal */}
+      {showPublicBookingModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start pb-2 border-b border-slate-800">
+              <div>
+                <h3 className="text-sm font-black text-white">Schedule an Appointment</h3>
+                <span className="text-[9px] text-slate-500 font-bold block">No account required to reserve a slot</span>
+              </div>
+              <button 
+                onClick={() => setShowPublicBookingModal(false)}
+                className="text-slate-500 hover:text-slate-350 text-xs font-bold border border-slate-800 hover:border-slate-700 px-2 py-1 rounded cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleBookAppointment} className="space-y-4">
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Your Full Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Jane Doe"
+                  value={patientName}
+                  onChange={(e) => setPatientName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 0712345678"
+                    value={patientPhone}
+                    onChange={(e) => setPatientPhone(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="e.g. jane@example.com"
+                    value={patientEmail}
+                    onChange={(e) => setPatientEmail(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Select Doctor / Clinician</label>
+                <select
+                  value={selectedDoctorId}
+                  onChange={(e) => setSelectedDoctorId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition font-semibold"
+                  required
+                >
+                  {facilityDoctors.map(doc => (
+                    <option key={doc.id} value={doc.id}>
+                      Dr. {doc.name} ({doc.specialty})
+                    </option>
+                  ))}
+                  {facilityDoctors.length === 0 && (
+                    <option value="">No doctors available</option>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Appointment Date</label>
+                <input
+                  type="date"
+                  value={bookingDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setBookingDate(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-semibold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Available Time Slots
+                </label>
+                {loadingSlots ? (
+                  <div className="py-2 text-center text-[10px] text-slate-500 flex items-center justify-center gap-1.5">
+                    <div className="h-3 w-3 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Checking availability...</span>
+                  </div>
+                ) : availableSlots.length > 0 ? (
+                  <div className="grid grid-cols-4 gap-1.5 max-h-[120px] overflow-y-auto pr-1">
+                    {availableSlots.map(slot => (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => setSelectedSlot(slot)}
+                        className={`py-1 text-[10px] font-bold font-mono border rounded transition ${
+                          selectedSlot === slot
+                            ? template === 'wellness' 
+                              ? 'bg-purple-500/10 border-purple-500 text-purple-400'
+                              : 'bg-teal-500/10 border-teal-500 text-teal-400'
+                            : 'border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {slot}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-amber-400 italic bg-amber-500/5 border border-amber-550/15 p-2 rounded text-center">
+                    No available time slots on this date.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reason for Visit / Symptoms</label>
+                <textarea
+                  value={bookingNotes}
+                  onChange={(e) => setBookingNotes(e.target.value)}
+                  rows={2}
+                  placeholder="Tell us briefly how we can help you..."
+                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-250 placeholder:text-slate-700 focus:outline-none focus:border-teal-500 transition resize-none leading-relaxed"
+                />
+              </div>
+
+              <div className="flex gap-2.5 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowPublicBookingModal(false)}
+                  className="w-1/2 py-2 border border-slate-800 hover:border-slate-700 text-slate-450 hover:text-slate-350 rounded-lg text-xs font-bold transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={bookingLoading || !selectedSlot}
+                  className={`w-1/2 py-2 font-black rounded-lg text-xs transition ${
+                    template === 'wellness'
+                      ? 'bg-purple-500 hover:bg-purple-650 text-white disabled:opacity-40'
+                      : 'bg-teal-500 hover:bg-teal-600 text-slate-950 disabled:opacity-40'
+                  }`}
+                >
+                  {bookingLoading ? 'Requesting...' : 'Request Slot'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

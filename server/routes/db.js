@@ -330,20 +330,21 @@ router.post("/query", async (req, res) => {
   } = req.body;
   if (!table) return res.status(400).json({ error: "Table name is required" });
 
-  // Security: only allow unauthenticated requests for 'facilities' table
-  if (table !== "facilities") {
-    // Authenticate token manually
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
-    if (!token) return res.status(401).json({ error: "Access token required" });
-
+  // Security: only allow unauthenticated requests for 'facilities', 'doctor_availability', 'profiles', and 'appointments' tables
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (token) {
     try {
       const decodedUser = jwt.verify(token, JWT_SECRET);
       req.user = decodedUser;
     } catch (err) {
-      return res
-        .status(403)
-        .json({ error: "Invalid or expired session token" });
+      if (table !== "facilities" && table !== "doctor_availability" && table !== "profiles" && table !== "appointments") {
+        return res.status(403).json({ error: "Invalid or expired session token" });
+      }
+    }
+  } else {
+    if (table !== "facilities" && table !== "doctor_availability" && table !== "profiles" && table !== "appointments") {
+      return res.status(401).json({ error: "Access token required" });
     }
   }
 
@@ -388,12 +389,17 @@ router.post("/query", async (req, res) => {
       }
     }
 
-    const data = await db.getDocuments(
-      table,
-      enrichedQueries,
-      orderByField,
-      orderByAsc
-    );
+    // Security: redact patient information from appointments table for unauthenticated visitors
+    if (table === "appointments" && !req.user) {
+      const redactedData = data.map(app => ({
+        doctor_id: app.doctor_id,
+        appointment_date: app.appointment_date,
+        start_time: app.start_time,
+        status: app.status
+      }));
+      return res.json({ success: true, data: redactedData });
+    }
+
     res.json({ success: true, data });
   } catch (err) {
     console.error(`DB Query Proxy failed for table ${table}:`, err);
@@ -407,8 +413,8 @@ router.post("/insert", async (req, res) => {
   if (!table || !rows)
     return res.status(400).json({ error: "Table and rows are required" });
 
-  // Security: only allow unauthenticated requests for 'facilities' and 'profiles' (needed during onboarding)
-  if (table !== "facilities" && table !== "profiles" && table !== "support_tickets") {
+  // Security: only allow unauthenticated requests for 'facilities', 'profiles', 'support_tickets', and 'appointments'
+  if (table !== "facilities" && table !== "profiles" && table !== "support_tickets" && table !== "appointments") {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
     if (!token) return res.status(401).json({ error: "Access token required" });

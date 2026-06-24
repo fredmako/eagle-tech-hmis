@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
-import { User, Clipboard, DollarSign, Activity, FileText, Pill, LogOut, CheckCircle, AlertTriangle, ShieldCheck, CreditCard, PhoneCall } from 'lucide-react';
+import { User, Clipboard, DollarSign, Activity, FileText, Pill, LogOut, CheckCircle, AlertTriangle, ShieldCheck, CreditCard, PhoneCall, Calendar } from 'lucide-react';
 
 export default function PatientPortal() {
   const { user, logout } = useAuth();
@@ -38,11 +38,135 @@ export default function PatientPortal() {
   const [supportSubmitting, setSupportSubmitting] = useState(false);
   const [supportStatus, setSupportStatus] = useState(null); // { type: 'success' | 'error', text: '' }
 
+  // Appointment Booking States
+  const [facilityDoctors, setFacilityDoctors] = useState([]);
+  const [patientAppointments, setPatientAppointments] = useState([]);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [selectedDoctorId, setSelectedDoctorId] = useState('');
+  const [bookingDate, setBookingDate] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  });
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState('');
+  const [bookingNotes, setBookingNotes] = useState('');
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+
   useEffect(() => {
     if (user && user.email) {
       loadPatientDetails();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (selectedDoctorId && bookingDate && showBookingModal) {
+      fetchAvailableSlots(selectedDoctorId, bookingDate);
+    }
+  }, [selectedDoctorId, bookingDate, showBookingModal]);
+
+  const getDayName = (dateStr) => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const d = new Date(dateStr);
+    return days[d.getDay()];
+  };
+
+  const fetchAvailableSlots = async (docId, dateStr) => {
+    if (!docId || !dateStr) return;
+    setLoadingSlots(true);
+    try {
+      const dayName = getDayName(dateStr);
+      const { data: avail } = await supabase
+        .from('doctor_availability')
+        .select('*')
+        .eq('doctor_id', docId)
+        .eq('day_of_week', dayName)
+        .maybeSingle();
+
+      const { data: booked } = await supabase
+        .from('appointments')
+        .select('start_time')
+        .eq('doctor_id', docId)
+        .eq('appointment_date', dateStr)
+        .neq('status', 'cancelled');
+
+      let startHour = 8;
+      let endHour = 17;
+      let isAvailable = true;
+
+      if (avail) {
+        isAvailable = avail.is_available;
+        try {
+          startHour = parseInt(avail.start_time.split(':')[0], 10);
+          endHour = parseInt(avail.end_time.split(':')[0], 10);
+        } catch(e) {}
+      } else {
+        if (dayName === 'Saturday' || dayName === 'Sunday') {
+          isAvailable = false;
+        }
+      }
+
+      if (!isAvailable) {
+        setAvailableSlots([]);
+        setLoadingSlots(false);
+        return;
+      }
+
+      const slots = [];
+      const bookedTimes = (booked || []).map(b => b.start_time.substring(0, 5));
+
+      for (let h = startHour; h < endHour; h++) {
+        const hh = h < 10 ? `0${h}:00` : `${h}:00`;
+        if (!bookedTimes.includes(hh)) {
+          slots.push(hh);
+        }
+      }
+
+      setAvailableSlots(slots);
+      if (slots.length > 0) setSelectedSlot(slots[0]);
+    } catch (err) {
+      console.error('Error fetching slots:', err);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const handleBookAppointment = async (e) => {
+    e.preventDefault();
+    if (!selectedSlot) return;
+
+    setBookingLoading(true);
+    try {
+      const newApp = {
+        id: `app_${Date.now()}`,
+        facility_id: patient.facility_id,
+        patient_name: patient.name,
+        patient_phone: JSON.parse(patient.phone)?.phone || patient.phone || '',
+        doctor_id: selectedDoctorId,
+        appointment_date: bookingDate,
+        start_time: selectedSlot,
+        notes: bookingNotes,
+        status: 'booked'
+      };
+
+      const { error } = await supabase
+        .from('appointments')
+        .insert([newApp]);
+
+      if (error) throw error;
+
+      setMessage({ type: 'success', text: `Appointment scheduled successfully for ${bookingDate} at ${selectedSlot}.` });
+      setShowBookingModal(false);
+      setBookingNotes('');
+      loadPatientDetails();
+    } catch (err) {
+      console.error('Error booking appointment:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to request appointment.' });
+    } finally {
+      setBookingLoading(false);
+    }
+  };
 
   const loadPatientDetails = async () => {
     setLoading(true);
@@ -75,6 +199,34 @@ export default function PatientPortal() {
         setFacilityWhatsApp(fac.whatsapp_number || '');
         setFacilityEmail(fac.contact_email || '');
       }
+
+      // Load Facility Doctors
+      const { data: docs, error: docsErr } = await supabase
+        .from('profiles')
+        .select('id, full_name, role, department')
+        .eq('facility_id', matchingPt.facility_id);
+      
+      if (!docsErr && docs) {
+        const filteredDocs = docs.filter(p => {
+          const r = (p.role || '').toLowerCase();
+          return r.includes('clinician') || r.includes('doctor') || r.includes('admin') || r.includes('nurse');
+        }).map(p => ({
+          id: p.id,
+          name: p.full_name || 'Anonymous Doctor',
+          specialty: p.department || 'General Practice'
+        }));
+        setFacilityDoctors(filteredDocs);
+        if (filteredDocs.length > 0) setSelectedDoctorId(filteredDocs[0].id);
+      }
+
+      // Load patient appointments
+      const ptPhone = JSON.parse(matchingPt.phone)?.phone || matchingPt.phone || '';
+      const { data: appts } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('patient_phone', ptPhone)
+        .order('appointment_date', { ascending: false });
+      setPatientAppointments(appts || []);
 
       // 2. Fetch Patient Visits
       const { data: vsts } = await supabase
@@ -466,6 +618,58 @@ export default function PatientPortal() {
 
         {/* Right Column: Billing Drawer / Payments widget */}
         <div className="space-y-6">
+          {/* Appointments Widget */}
+          <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xs font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Calendar size={14} /> My Appointments
+              </h2>
+              <button
+                onClick={() => setShowBookingModal(true)}
+                className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-black text-[10px] py-1 px-2.5 rounded shadow-lg flex items-center gap-1 transition"
+              >
+                📅 Book Slot
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
+              {patientAppointments.map(app => {
+                const doc = facilityDoctors.find(d => d.id === app.doctor_id);
+                return (
+                  <div key={app.id} className="bg-slate-950 border border-slate-850 p-3 rounded-xl space-y-2 shadow-lg">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-200 block">
+                          {doc ? `Dr. ${doc.name}` : 'Clinician'}
+                        </span>
+                        <span className="text-[9px] text-slate-500 font-bold block font-mono">
+                          {app.appointment_date} @ {app.start_time}
+                        </span>
+                      </div>
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
+                        app.status === 'booked' || app.status === 'approved' 
+                          ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' 
+                          : app.status === 'pending'
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          : 'bg-red-500/10 text-red-400 border-red-500/20'
+                      }`}>
+                        {app.status}
+                      </span>
+                    </div>
+                    {app.notes && (
+                      <p className="text-[9px] text-slate-400 italic border-t border-slate-900 pt-1.5 leading-relaxed font-sans">
+                        Reason: {app.notes}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+              {patientAppointments.length === 0 && (
+                <p className="text-xs text-slate-500 italic text-center py-4">No appointments scheduled.</p>
+              )}
+            </div>
+          </div>
+
           <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl space-y-4">
             <h2 className="text-xs font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
               <DollarSign size={14} /> My Bills & Invoices
@@ -681,6 +885,120 @@ export default function PatientPortal() {
                   className="w-1/2 py-2 bg-teal-500 hover:bg-teal-600 disabled:opacity-40 text-slate-950 font-black rounded-lg text-xs transition"
                 >
                   {paymentLoading ? 'Processing...' : 'Authorize Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Appointment Booking Modal */}
+      {showBookingModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-880 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-start pb-2 border-b border-slate-800">
+              <div>
+                <h3 className="text-sm font-black text-white">Schedule Appointment</h3>
+                <span className="text-[9px] text-slate-500 font-bold block">Reserve a clinical consultation slot</span>
+              </div>
+              <button 
+                onClick={() => setShowBookingModal(false)}
+                className="text-slate-500 hover:text-slate-350 text-xs font-bold border border-slate-800 hover:border-slate-700 px-2 py-1 rounded"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleBookAppointment} className="space-y-4">
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Select Doctor / Clinician</label>
+                <select
+                  value={selectedDoctorId}
+                  onChange={(e) => setSelectedDoctorId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition font-semibold"
+                  required
+                >
+                  {facilityDoctors.map(doc => (
+                    <option key={doc.id} value={doc.id}>
+                      Dr. {doc.name} ({doc.specialty})
+                    </option>
+                  ))}
+                  {facilityDoctors.length === 0 && (
+                    <option value="">No doctors available</option>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Appointment Date</label>
+                <input
+                  type="date"
+                  value={bookingDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setBookingDate(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-semibold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Available Time Slots
+                </label>
+                {loadingSlots ? (
+                  <div className="py-2 text-center text-[10px] text-slate-500 flex items-center justify-center gap-1.5">
+                    <div className="h-3 w-3 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Checking availability...</span>
+                  </div>
+                ) : availableSlots.length > 0 ? (
+                  <div className="grid grid-cols-4 gap-1.5 max-h-[120px] overflow-y-auto pr-1">
+                    {availableSlots.map(slot => (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => setSelectedSlot(slot)}
+                        className={`py-1 text-[10px] font-bold font-mono border rounded transition ${
+                          selectedSlot === slot
+                            ? 'bg-teal-500/10 border-teal-500 text-teal-400'
+                            : 'border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {slot}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-amber-400 italic bg-amber-500/5 border border-amber-550/15 p-2 rounded text-center">
+                    No available time slots on this date.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reason for Visit / Notes</label>
+                <textarea
+                  value={bookingNotes}
+                  onChange={(e) => setBookingNotes(e.target.value)}
+                  rows={2}
+                  placeholder="e.g. Regular checkup, headache, medication refill..."
+                  className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-250 placeholder:text-slate-700 focus:outline-none focus:border-teal-500 transition resize-none leading-relaxed font-medium"
+                />
+              </div>
+
+              <div className="flex gap-2.5 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowBookingModal(false)}
+                  className="w-1/2 py-2 border border-slate-800 hover:border-slate-700 text-slate-450 hover:text-slate-300 rounded-lg text-xs font-bold transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={bookingLoading || !selectedSlot}
+                  className="w-1/2 py-2 bg-teal-500 hover:bg-teal-600 disabled:opacity-40 text-slate-950 font-black rounded-lg text-xs transition"
+                >
+                  {bookingLoading ? 'Requesting...' : 'Request Slot'}
                 </button>
               </div>
             </form>

@@ -60,6 +60,7 @@ import {
   ShieldAlert,
   Calendar,
   Baby,
+  Search,
 } from "lucide-react";
 
 export default function App() {
@@ -160,6 +161,7 @@ export default function App() {
   const [nightVision, setNightVision] = useState(
     () => localStorage.getItem("egesa_night_vision") === "true"
   );
+  const [menuSearch, setMenuSearch] = useState("");
 
   useEffect(() => {
     localStorage.setItem("egesa_active_tab", activeTab);
@@ -790,6 +792,11 @@ export default function App() {
     return item.roles.includes("*") || item.roles.some(r => rolesList.includes(r)) || isAdmin;
   });
 
+  const filteredMenuItems = visibleMenuItems.filter((item) => 
+    item.label.toLowerCase().includes(menuSearch.toLowerCase()) ||
+    (t && t(item.id) ? t(item.id).toLowerCase().includes(menuSearch.toLowerCase()) : false)
+  );
+
   return (
     <div
       className={`flex h-screen bg-slate-950 text-slate-100 overflow-hidden theme-${theme} mode-${themeMode} font-${font} font-['DM_Sans',system-ui,sans-serif] ${menuLayout === 'topbar' ? 'flex-col' : 'flex-row'}`}
@@ -815,25 +822,49 @@ export default function App() {
             </div>
           </div>
 
-          <nav className="flex-1 max-w-4xl mx-6 flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
-            {visibleMenuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                    isActive 
-                      ? "bg-teal-400 text-slate-950 shadow shadow-teal-500/15" 
-                      : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
-                  }`}
-                >
-                  <Icon size={13} />
-                  <span>{t(item.id) || item.label}</span>
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-450 focus-within:border-teal-500 transition max-w-[180px] mx-2 shrink-0">
+            <Search size={12} className="text-slate-500 shrink-0" />
+            <input
+              type="text"
+              placeholder="Search menus..."
+              value={menuSearch}
+              onChange={(e) => setMenuSearch(e.target.value)}
+              className="w-full bg-transparent border-none text-[10px] text-slate-100 placeholder-slate-500 focus:outline-none"
+            />
+            {menuSearch && (
+              <button 
+                type="button" 
+                onClick={() => setMenuSearch("")}
+                className="text-[9px] text-slate-500 hover:text-slate-200"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <nav className="flex-1 max-w-4xl mx-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
+            {filteredMenuItems.length === 0 ? (
+              <span className="text-[10px] text-slate-500 italic px-3 py-1">No matching menus found</span>
+            ) : (
+              filteredMenuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                      isActive 
+                        ? "bg-teal-400 text-slate-950 shadow shadow-teal-500/15" 
+                        : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
+                    }`}
+                  >
+                    <Icon size={13} />
+                    <span>{t(item.id) || item.label}</span>
+                  </button>
+                );
+              })
+            )}
           </nav>
 
           <div className="flex items-center gap-3">
@@ -927,65 +958,92 @@ export default function App() {
             <X size={18} />
           </button>
         </div>
+        <div className="px-3 pt-2 pb-1.5 border-b border-teal-500/5">
+          <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-455 focus-within:border-teal-500 transition">
+            <Search size={12} className="text-slate-505 shrink-0" />
+            <input
+              type="text"
+              placeholder="Search menus..."
+              value={menuSearch}
+              onChange={(e) => setMenuSearch(e.target.value)}
+              className="w-full bg-transparent border-none text-[11px] text-slate-100 placeholder-slate-500 focus:outline-none"
+            />
+            {menuSearch && (
+              <button 
+                type="button" 
+                onClick={() => setMenuSearch("")}
+                className="text-[9px] hover:text-slate-205"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {visibleMenuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            const hasSub = item.subItems && item.subItems.length > 0;
-            return (
-              <div key={item.id} className="space-y-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    setIsSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[12px] font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
-                    isActive 
-                      ? "bg-teal-400 text-slate-950 shadow-md shadow-teal-500/15" 
-                      : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon size={15} />
-                    <span>{t(item.id) || item.label}</span>
-                  </div>
-                  {hasSub && (
-                    <span className="text-[8px] opacity-70">
-                      {isActive ? "▼" : "▶"}
-                    </span>
+          {filteredMenuItems.length === 0 ? (
+            <div className="p-4 text-center text-slate-500 text-[11px] font-medium italic">
+              No matching menus found
+            </div>
+          ) : (
+            filteredMenuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              const hasSub = item.subItems && item.subItems.length > 0;
+              return (
+                <div key={item.id} className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      setIsSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[12px] font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
+                      isActive 
+                        ? "bg-teal-400 text-slate-950 shadow-md shadow-teal-500/15" 
+                        : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon size={15} />
+                      <span>{t(item.id) || item.label}</span>
+                    </div>
+                    {hasSub && (
+                      <span className="text-[8px] opacity-70">
+                        {isActive ? "▼" : "▶"}
+                      </span>
+                    )}
+                  </button>
+                  
+                  {isActive && hasSub && (
+                    <div className="ml-5 border-l border-slate-800 pl-3.5 py-1 space-y-1 text-left">
+                      {item.subItems.map((sub) => {
+                        const isSubActive = getSubActive(item.id, sub.id);
+                        return (
+                          <button
+                            key={sub.id}
+                            type="button"
+                            onClick={() => {
+                              handleSubClick(item.id, sub.id);
+                              setIsSidebarOpen(false);
+                            }}
+                            className={`w-full text-left block py-1.5 px-2 rounded text-[11px] font-bold tracking-wide transition-all cursor-pointer ${
+                              isSubActive
+                                ? "text-teal-400 font-extrabold bg-teal-500/5 shadow-inner"
+                                : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/30"
+                            }`}
+                          >
+                            <span className="mr-1.5 text-[8px] text-teal-500/60">✳</span>
+                            {sub.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
-                </button>
-                
-                {isActive && hasSub && (
-                  <div className="ml-5 border-l border-slate-800 pl-3.5 py-1 space-y-1 text-left">
-                    {item.subItems.map((sub) => {
-                      const isSubActive = getSubActive(item.id, sub.id);
-                      return (
-                        <button
-                          key={sub.id}
-                          type="button"
-                          onClick={() => {
-                            handleSubClick(item.id, sub.id);
-                            setIsSidebarOpen(false);
-                          }}
-                          className={`w-full text-left block py-1.5 px-2 rounded text-[11px] font-bold tracking-wide transition-all cursor-pointer ${
-                            isSubActive
-                              ? "text-teal-400 font-extrabold bg-teal-500/5 shadow-inner"
-                              : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/30"
-                          }`}
-                        >
-                          <span className="mr-1.5 text-[8px] text-teal-500/60">✳</span>
-                          {sub.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                </div>
+              );
+            })
+          )}
         </nav>
 
         <div className="p-4 border-t border-teal-500/10 bg-slate-950/40 space-y-3">

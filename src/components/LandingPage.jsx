@@ -99,6 +99,21 @@ export default function LandingPage({
       q: "How does the lobby queue board and ticket calling system work?",
       a: "Staff members can call patient tickets directly from the Queue Management panel by clicking the megaphone icon (📣) next to their name. This inserts the ticket code, name, and destination desk into the database. A public lobby display screen at `/queue-board` (e.g. `/hospital/egesa/queue-board`) will instantly play a synthesizer chime tone and announce the ticket number using voice synthesis while flashing the details on screen.",
       category: "clinical"
+    },
+    {
+      q: "How do I schedule and manage patient appointments?",
+      a: "Select the Appointments Schedule module. Choose a date and doctor to load the timeline slot grid. Click on any vacant slot, search for a patient, and book the slot. You can update appointment status (booked, checked in, completed, cancelled) or check-in patients to push them automatically into the clinical triage queue.",
+      category: "clinical"
+    },
+    {
+      q: "How does the system ensure compliance with the Kenya Data Protection Act, 2019?",
+      a: "Eagle Tech HMIS separates personal and sensitive data (health logs), enforces Role-Based Access Controls (RBAC), logs all audit trails of data edits, and supports data subject rights (access, correction, deletion) under the Act. Subscribing hospitals act as the Data Controllers, while Eagle Tech Solutions acts as the Data Processor.",
+      category: "clinical"
+    },
+    {
+      q: "Can I customize the visual theme and branding of my facility portal?",
+      a: "Yes. Facility admins can upload custom logos and configure theme modes (Midnight Navy, Royal Purple, Emerald, Teal, Warm Amber) and slate shades under System Settings. The entire interface—including dashboards, icons, buttons, and custom subdomains—will automatically inherit your selected branding colors.",
+      category: "setup"
     }
   ];
 
@@ -203,10 +218,18 @@ export default function LandingPage({
         reply = 'In the Laboratory module under "Automation Config", technicians can specify RS-232 serial parameters (COM1-COM8, baud rates) or TCP/IP details to retrieve diagnostic data (ASTM/HL7 format) from physical analyzers instantly.';
       } else if (query.includes('referral') || query.includes('referred')) {
         reply = 'Our system fully supports referrals! You can specify Referred From details when opening a visit ticket, and Referred To details with required reconciliation check boxes when completing care on the clinical queue.';
+      } else if (query.includes('appointment') || query.includes('schedul') || query.includes('calendar') || query.includes('slot')) {
+        reply = 'The Appointments Schedule module features an interactive hourly grid where you can search for patients and book slots under specific doctors. You can update statuses (booked, checked_in, completed, cancelled). Checking in a patient automatically routes them to the active triage queue.';
+      } else if (query.includes('policy') || query.includes('privacy') || query.includes('agreement') || query.includes('sla') || query.includes('gdpr') || query.includes('protection') || query.includes('act') || query.includes('odpc')) {
+        reply = 'Our platform is fully aligned with the Kenya Data Protection Act, 2019. Subscribing facilities act as Data Controllers, and Eagle Tech acts as the Data Processor. We guarantee a 99.9% uptime SLA with a 7-day payment grace period before read-only lock. You can access the full Privacy Policy and Service Agreement modals in the page footer.';
+      } else if (query.includes('theme') || query.includes('color') || query.includes('font') || query.includes('personalization') || query.includes('accent') || query.includes('slate')) {
+        reply = 'Eagle Tech HMIS supports deep branding personalization. You can toggle between Teal, Midnight Navy, Emerald, Royal Purple, and Warm Amber themes, adjust light/dark modes, select fonts, and customize slate readability under System Settings.';
+      } else if (query.includes('card') || query.includes('qr') || query.includes('business card') || query.includes('website')) {
+        reply = 'You can generate professional, white-labeled hospital staff business cards under the Admin settings. The cards default to our website www.eagletechsolutions.tech and feature a dynamic scan-ready QR code that routes scanners to the portal website.';
       } else if (query.includes('hello') || query.includes('hi') || query.includes('hey') || query.includes('bot')) {
         reply = 'Hi there! I am EagleBot, your Eagle Tech HMIS assistant. Ask me anything about our software modules, integration tools, or setups!';
       } else {
-        reply = 'I am not sure I understand that query fully. Try asking about "pricing plans", "how to log in", "register a hospital", "lab automation", or submit a support ticket in the support form below!';
+        reply = 'I am not sure I understand that query fully. Try asking about "pricing plans", "how to log in", "register a hospital", "lab automation", "appointments scheduler", "data protection policy", or submit a support ticket in the support form below!';
       }
 
       setChatMessages(prev => [...prev, { sender: 'bot', text: reply }]);

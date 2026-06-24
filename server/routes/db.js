@@ -362,7 +362,7 @@ router.post("/query", async (req, res) => {
         });
         enrichedQueries.length = 0;
         enrichedQueries.push(...cleanQueries);
-      } else if (req.user.role !== "super_admin") {
+      } else if (req.user.role !== "super_admin" && req.user.role !== "platform_support") {
         const cleanQueries = enrichedQueries.filter((q) => q && q.column !== "user_email");
         cleanQueries.push({
           type: "equal",
@@ -492,7 +492,7 @@ router.post("/update", authenticateToken, async (req, res) => {
   }
 
   if (table === "support_tickets") {
-    if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+    if (req.user.role !== "super_admin" && req.user.role !== "platform_support" && req.user.role !== "admin") {
       return res.status(403).json({ error: "Only platform or facility administrators can modify support tickets." });
     }
   }
@@ -501,7 +501,7 @@ router.post("/update", authenticateToken, async (req, res) => {
     // 1. Find matching documents
     const queries = [{ type: "equal", column, value }];
     const globalTables = ["facilities", "profiles", "support_tickets"];
-    if (!globalTables.includes(table) && req.user.role !== "super_admin") {
+    if (!globalTables.includes(table) && req.user.role !== "super_admin" && req.user.role !== "platform_support") {
       queries.push({
         type: "equal",
         column: "facility_id",
@@ -565,7 +565,7 @@ router.post("/delete", authenticateToken, async (req, res) => {
   }
 
   if (table === "support_tickets") {
-    if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+    if (req.user.role !== "super_admin" && req.user.role !== "platform_support" && req.user.role !== "admin") {
       return res.status(403).json({ error: "Only platform or facility administrators can delete support tickets." });
     }
   }
@@ -574,7 +574,7 @@ router.post("/delete", authenticateToken, async (req, res) => {
     // 1. Find matching documents
     const queries = [{ type: "equal", column, value }];
     const globalTables = ["facilities", "profiles", "support_tickets"];
-    if (!globalTables.includes(table) && req.user.role !== "super_admin") {
+    if (!globalTables.includes(table) && req.user.role !== "super_admin" && req.user.role !== "platform_support") {
       queries.push({
         type: "equal",
         column: "facility_id",

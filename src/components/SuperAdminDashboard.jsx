@@ -17,7 +17,13 @@ import {
   Mail,
   Send,
   User,
-  Inbox
+  Inbox,
+  TrendingUp,
+  Users,
+  CreditCard,
+  Layers,
+  Sparkles,
+  Percent
 } from 'lucide-react';
 
 export default function SuperAdminDashboard({ user, onSignOut }) {
@@ -35,6 +41,13 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
   const [replyLoading, setReplyLoading] = useState(false);
   const [supportFilter, setSupportFilter] = useState('all');
   const [supportSearch, setSupportSearch] = useState('');
+  const [systemStats, setSystemStats] = useState({
+    profiles: [],
+    patients: [],
+    visits: [],
+    orders: [],
+    invoices: []
+  });
 
   const handleResolveSupportTicket = async (ticketId) => {
     if (!responseText.trim()) return;
@@ -154,7 +167,21 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
       if (ticketErr) throw ticketErr;
       setSupportTickets(tickets || []);
 
-      // Role requests shifted to facility admins
+      // Fetch platform usage statistics
+      const { data: profiles } = await supabase.from('profiles').select('*');
+      const { data: patients } = await supabase.from('patients').select('*');
+      const { data: visits } = await supabase.from('visits').select('*');
+      const { data: orders } = await supabase.from('orders').select('*');
+      const { data: invoices } = await supabase.from('invoices').select('*');
+
+      setSystemStats({
+        profiles: profiles || [],
+        patients: patients || [],
+        visits: visits || [],
+        orders: orders || [],
+        invoices: invoices || []
+      });
+
     } catch (err) {
       console.error('[SuperAdminDashboard] Error loading data:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to load system control records.' });
@@ -162,6 +189,75 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  const getDiagnosticRecommendations = () => {
+    const recs = [];
+    
+    // Rule 1: Triage vs Consultation ratio (are doctors bypassing triage?)
+    const triageCount = systemStats.visits.filter(v => v.department?.toLowerCase() === 'triage').length;
+    const consultCount = systemStats.visits.filter(v => v.department?.toLowerCase().includes('consult')).length;
+    if (consultCount > 0 && triageCount / consultCount < 0.5) {
+      recs.push({
+        id: 'triage_bypass',
+        title: 'High Triage Bypass Pattern Detected',
+        severity: 'warning',
+        description: 'Fewer triage records than clinical consultation logs are registered. Facilities may be bypassing nurse vitals. Suggest sending a recommendation to enforce triage entry before consultation routing.',
+        action: 'Notify Facility Admins'
+      });
+    }
+
+    // Rule 2: Automatic lab pathology verification
+    const labOrders = systemStats.orders.filter(o => o.type?.toLowerCase() === 'lab' || o.type?.toLowerCase() === 'laboratory');
+    const pathVerified = labOrders.filter(o => o.status === 'authorized' || o.status === 'verified').length;
+    if (labOrders.length > 5 && pathVerified / labOrders.length < 0.4) {
+      recs.push({
+        id: 'lab_pathology_pending',
+        title: 'Laboratory Pathologist Backlog Alert',
+        severity: 'danger',
+        description: 'More than 60% of laboratory test runs remain in "technician draft" state without Pathologist authorization sign-off. Recommend contacting facility admins to verify pathology delegation roles.',
+        action: 'Review Lab Staff Roles'
+      });
+    }
+
+    // Rule 3: Subdomain & White-Label Setup
+    const standardOrElite = facilities.filter(f => f.license_tier === 'standard' || f.license_tier === 'extensive');
+    const unconfiguredSubdomains = standardOrElite.filter(f => !f.code || f.code.includes('EMC')); 
+    if (unconfiguredSubdomains.length > 0) {
+      recs.push({
+        id: 'dns_unconfigured',
+        title: 'Pending White-Label Subdomain Setups',
+        severity: 'info',
+        description: `${unconfiguredSubdomains.length} premium client facilities have not finalized custom DNS subdomain mappings. Suggest emailing configuration templates to facility IT leads.`,
+        action: 'Send DNS Guide'
+      });
+    }
+
+    // Rule 4: STK Push Payment volume vs Cash
+    const mobilePayments = systemStats.invoices.filter(i => i.payment_method?.toLowerCase() === 'mpesa' || i.payment_method?.toLowerCase() === 'stk').length;
+    const totalInvPaid = systemStats.invoices.filter(i => i.status === 'paid').length;
+    if (totalInvPaid > 0 && mobilePayments / totalInvPaid < 0.2) {
+      recs.push({
+        id: 'stk_promotion',
+        title: 'Low Digital Payment Adoption Rate',
+        severity: 'info',
+        description: 'Cash accounts for over 80% of settled patient checkout invoices. Recommend promoting mobile payment integrations (M-Pesa STK Push / PayPal checkout portals) to reduce clinic cashier overhead.',
+        action: 'Suggest Payment Promo'
+      });
+    }
+
+    // Default fallback recommendation
+    if (recs.length === 0) {
+      recs.push({
+        id: 'all_good',
+        title: 'All Operations Standardized',
+        severity: 'success',
+        description: 'All system metrics (triage compliance, billing cycles, pathologist verifications, and custom subdomains) fall within optimal parameters.',
+        action: 'System Healthy'
+      });
+    }
+
+    return recs;
   };
 
   const handleToggleVerification = async (facilityId, currentStatus) => {
@@ -398,6 +494,15 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
               </span>
             )}
           </button>
+          <button
+            onClick={() => setActiveTab('insights')}
+            className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${
+              activeTab === 'insights' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Sparkles size={12} className={activeTab === 'insights' ? 'text-teal-400' : 'text-slate-400'} />
+            <span>Usage Insights & Analytics</span>
+          </button>
         </div>
 
         {/* Console loading state */}
@@ -567,7 +672,7 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
               </div>
             )}
           </div>
-        ) : (
+        ) : activeTab === 'support' ? (
           /* SUPPORT QUERIES PANEL */
           <div className="space-y-4 animate-fadeIn font-sans">
             {/* Filter and Search actions */}
@@ -755,6 +860,281 @@ export default function SuperAdminDashboard({ user, onSignOut }) {
                 </div>
               );
             })()}
+          </div>
+        ) : (
+          /* INSIGHTS & ANALYTICS PANEL */
+          <div className="space-y-6 animate-fadeIn font-sans">
+            {/* Top row: Clinical Volumes & Business Revenue */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* Card 1: Clinical Volumes */}
+              <div className="bg-slate-900/60 border border-slate-850/80 backdrop-blur-md p-6 rounded-2xl space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-850/60">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Clinical Volume Metrics</h4>
+                    <p className="text-[10px] text-slate-550">Global clinical events across all clinic systems</p>
+                  </div>
+                  <div className="p-2.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl">
+                    <Activity size={18} />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-slate-950/40 border border-slate-900 rounded-xl">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase block">Registered Patients</span>
+                    <span className="text-lg font-black text-white font-mono block mt-1">{systemStats.patients.length}</span>
+                  </div>
+                  <div className="p-3 bg-slate-950/40 border border-slate-900 rounded-xl">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase block">Consultations Logged</span>
+                    <span className="text-lg font-black text-white font-mono block mt-1">{systemStats.visits.length}</span>
+                  </div>
+                  <div className="p-3 bg-slate-950/40 border border-slate-900 rounded-xl col-span-2 flex justify-between items-center">
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase block">Lab & Pharmacy Orders</span>
+                      <span className="text-lg font-black text-white font-mono block mt-1">{systemStats.orders.length}</span>
+                    </div>
+                    <span className="text-[10px] bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full font-bold">
+                      {systemStats.orders.filter(o => o.status === 'completed' || o.status === 'dispensed' || o.status === 'verified' || o.status === 'authorized').length} Filled
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Business & Revenue Processed */}
+              <div className="bg-slate-900/60 border border-slate-850/80 backdrop-blur-md p-6 rounded-2xl space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-850/60">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-205 uppercase tracking-wider">Revenue & Settlements</h4>
+                    <p className="text-[10px] text-slate-500">Consolidated checkout billing invoices stats</p>
+                  </div>
+                  <div className="p-2.5 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-xl">
+                    <CreditCard size={18} />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 bg-teal-500/5 border border-teal-500/10 rounded-xl">
+                    <div>
+                      <span className="text-[9px] font-bold text-teal-500/70 uppercase block">Total Settled Revenue</span>
+                      <span className="text-base font-black text-teal-400 font-mono block mt-1">
+                        Ksh {systemStats.invoices
+                          .filter(inv => inv.status === 'paid')
+                          .reduce((sum, inv) => sum + (parseFloat(inv.amount_paid) || 0), 0)
+                          .toLocaleString()}
+                      </span>
+                    </div>
+                    <TrendingUp size={16} className="text-teal-400 animate-pulse" />
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 bg-slate-950/40 border border-slate-900 rounded-xl">
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase block">Pending Invoiced Receivables</span>
+                      <span className="text-base font-black text-slate-300 font-mono block mt-1">
+                        Ksh {systemStats.invoices
+                          .filter(inv => inv.status === 'unpaid' || inv.status === 'partially_paid')
+                          .reduce((sum, inv) => sum + ((parseFloat(inv.total_amount) || 0) - (parseFloat(inv.amount_paid) || 0)), 0)
+                          .toLocaleString()}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded font-bold uppercase">
+                      {systemStats.invoices.filter(inv => inv.status === 'unpaid').length} Unpaid
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Subscription & White-Label Setup */}
+              <div className="bg-slate-900/60 border border-slate-850/80 backdrop-blur-md p-6 rounded-2xl space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-850/60">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-205 uppercase tracking-wider">Tenant Subscription Tiers</h4>
+                    <p className="text-[10px] text-slate-500">Distribution of package licensing</p>
+                  </div>
+                  <div className="p-2.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-xl">
+                    <Layers size={18} />
+                  </div>
+                </div>
+
+                <div className="space-y-2.5 text-xs">
+                  {/* Basic Care */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px] font-bold text-slate-400">
+                      <span>Basic Care (Free Tier)</span>
+                      <span>{facilities.filter(f => f.license_tier === 'basic' || !f.license_tier).length} ({Math.round((facilities.filter(f => f.license_tier === 'basic' || !f.license_tier).length / (facilities.length || 1)) * 100)}%)</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-500 rounded-full" 
+                        style={{ width: `${(facilities.filter(f => f.license_tier === 'basic' || !f.license_tier).length / (facilities.length || 1)) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Standard Care */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px] font-bold text-slate-350">
+                      <span>Standard Care ($29/mo)</span>
+                      <span>{facilities.filter(f => f.license_tier === 'standard').length} ({Math.round((facilities.filter(f => f.license_tier === 'standard').length / (facilities.length || 1)) * 100)}%)</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-teal-500 rounded-full" 
+                        style={{ width: `${(facilities.filter(f => f.license_tier === 'standard').length / (facilities.length || 1)) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Enterprise Elite */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px] font-bold text-purple-400">
+                      <span>Enterprise Elite ($89/mo)</span>
+                      <span>{facilities.filter(f => f.license_tier === 'extensive').length} ({Math.round((facilities.filter(f => f.license_tier === 'extensive').length / (facilities.length || 1)) * 100)}%)</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-purple-500 rounded-full" 
+                        style={{ width: `${(facilities.filter(f => f.license_tier === 'extensive').length / (facilities.length || 1)) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Bottom Row: System Diagnostic Insights & User base Roles */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Left Column (2/3 width): Diagnostic recommendations */}
+              <div className="lg:col-span-2 bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-4">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-205 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-teal-400" />
+                    Diagnostic Improvement Recommendations
+                  </h4>
+                  <p className="text-[10px] text-slate-550 mt-1">Rule-based optimization checks suggesting features or training clinics need to maximize value.</p>
+                </div>
+
+                <div className="space-y-3">
+                  {getDiagnosticRecommendations().map((rec, idx) => (
+                    <div 
+                      key={rec.id || idx} 
+                      className={`p-4 rounded-xl border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${
+                        rec.severity === 'danger'
+                          ? 'bg-red-500/5 border-red-500/20 text-red-400'
+                          : rec.severity === 'warning'
+                          ? 'bg-amber-500/5 border-amber-500/20 text-amber-400'
+                          : rec.severity === 'info'
+                          ? 'bg-blue-500/5 border-blue-500/20 text-blue-400'
+                          : 'bg-teal-500/5 border-teal-500/25 text-teal-450'
+                      }`}
+                    >
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`h-1.5 w-1.5 rounded-full ${
+                            rec.severity === 'danger' ? 'bg-red-400' : rec.severity === 'warning' ? 'bg-amber-400' : rec.severity === 'info' ? 'bg-blue-400' : 'bg-teal-400'
+                          }`} />
+                          <h5 className="text-xs font-bold text-slate-200">{rec.title}</h5>
+                        </div>
+                        <p className="text-[10.5px] text-slate-400 leading-relaxed pl-3.5">{rec.description}</p>
+                      </div>
+                      
+                      <span className={`text-[9px] font-bold px-2.5 py-1 rounded-lg shrink-0 ${
+                        rec.severity === 'danger'
+                          ? 'bg-red-500/20 text-red-400'
+                          : rec.severity === 'warning'
+                          ? 'bg-amber-500/20 text-amber-400'
+                          : rec.severity === 'info'
+                          ? 'bg-blue-500/20 text-blue-400'
+                          : 'bg-teal-500/20 text-teal-400'
+                      }`}>
+                        {rec.action}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Column (1/3 width): User Base Role Distribution */}
+              <div className="bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-4">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <Users size={13} className="text-teal-400" />
+                    Global User Base Profile Roles
+                  </h4>
+                  <p className="text-[10px] text-slate-550 mt-1">Staff accounts registered across clinics</p>
+                </div>
+
+                <div className="space-y-3.5 text-xs text-slate-300 font-semibold max-h-[300px] overflow-y-auto pr-1">
+                  {/* Admin Roles */}
+                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-850/60">
+                    <div className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                      <span>Facility Administrators</span>
+                    </div>
+                    <span className="font-mono text-white text-xs font-bold bg-slate-950 px-2 py-0.5 rounded">
+                      {systemStats.profiles.filter(p => p.role === 'admin' || p.role === 'facility_admin').length}
+                    </span>
+                  </div>
+
+                  {/* Clinician Roles */}
+                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-850/60">
+                    <div className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
+                      <span>Doctors & Clinicians</span>
+                    </div>
+                    <span className="font-mono text-white text-xs font-bold bg-slate-950 px-2 py-0.5 rounded">
+                      {systemStats.profiles.filter(p => p.role === 'clinician').length}
+                    </span>
+                  </div>
+
+                  {/* Nurse Roles */}
+                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-850/60">
+                    <div className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      <span>Nurses</span>
+                    </div>
+                    <span className="font-mono text-white text-xs font-bold bg-slate-955 px-2 py-0.5 rounded">
+                      {systemStats.profiles.filter(p => p.role === 'nurse').length}
+                    </span>
+                  </div>
+
+                  {/* Pharmacist Roles */}
+                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-850/60">
+                    <div className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      <span>Pharmacists</span>
+                    </div>
+                    <span className="font-mono text-white text-xs font-bold bg-slate-955 px-2 py-0.5 rounded">
+                      {systemStats.profiles.filter(p => p.role === 'pharmacist').length}
+                    </span>
+                  </div>
+
+                  {/* Lab pathology Roles */}
+                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-850/60">
+                    <div className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                      <span>Lab Pathologists</span>
+                    </div>
+                    <span className="font-mono text-white text-xs font-bold bg-slate-955 px-2 py-0.5 rounded">
+                      {systemStats.profiles.filter(p => p.role === 'lab_tech').length}
+                    </span>
+                  </div>
+
+                  {/* Cashier Roles */}
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                      <span>Cashiers</span>
+                    </div>
+                    <span className="font-mono text-white text-xs font-bold bg-slate-955 px-2 py-0.5 rounded">
+                      {systemStats.profiles.filter(p => p.role === 'cashier').length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
         )}
       </main>

@@ -230,7 +230,7 @@ export default function App() {
   }, [checkSession, user]);
 
   useEffect(() => {
-    if (user && user.role === "super_admin") {
+    if (user && (user.role === "super_admin" || user.role === "platform_support")) {
       const params = new URLSearchParams(window.location.search);
       const action = params.get("action");
       const facId = params.get("facility_id");
@@ -414,7 +414,7 @@ export default function App() {
     );
   }
 
-  if (user.role === "super_admin") {
+  if (user.role === "super_admin" || user.role === "platform_support") {
     return (
       <div
         className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100`}
@@ -679,12 +679,12 @@ export default function App() {
             <NotificationBell user={user} onNavigate={setActiveTab} />
             <ThemeToggle themeMode={themeMode} onToggle={toggleLightDark} />
 
-            {user.email === "fredrickmakori102@gmail.com" && (
+            {(user.email === "fredrickmakori102@gmail.com" || user.email === "support@egesa.com") && (
               <button
                 onClick={() => {
                   const updatedUser = {
                     ...user,
-                    role: "super_admin",
+                    role: user.email === "support@egesa.com" ? "platform_support" : "super_admin",
                     facility_id: null,
                     facility_name: "Eagle Tech Systems Control",
                     facility_logo: null,
@@ -792,12 +792,12 @@ export default function App() {
             <ThemeToggle themeMode={themeMode} onToggle={toggleLightDark} />
           </div>
 
-          {user.email === "fredrickmakori102@gmail.com" && (
+          {(user.email === "fredrickmakori102@gmail.com" || user.email === "support@egesa.com") && (
             <button
               onClick={() => {
                 const updatedUser = {
                   ...user,
-                  role: "super_admin",
+                  role: user.email === "support@egesa.com" ? "platform_support" : "super_admin",
                   facility_id: null,
                   facility_name: "Eagle Tech Systems Control",
                   facility_logo: null,

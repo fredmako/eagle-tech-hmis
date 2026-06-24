@@ -174,6 +174,13 @@ const getInitialSandboxData = () => {
         facility_id: null,
         email: "fredrickmakori102@gmail.com",
       },
+      {
+        id: "u_support_agent",
+        full_name: "Sarah Connor (Support Agent)",
+        role: "platform_support",
+        facility_id: null,
+        email: "support@egesa.com",
+      },
     ],
     users: [
       {
@@ -223,6 +230,12 @@ const getInitialSandboxData = () => {
         email: "fredrickmakori102@gmail.com",
         passwordHash: defaultHash,
         name: "Fredrick Makori (Super Admin)",
+      },
+      {
+        id: "u_support_agent",
+        email: "support@egesa.com",
+        passwordHash: defaultHash,
+        name: "Sarah Connor (Support Agent)",
       },
     ],
     role_requests: [
@@ -632,6 +645,22 @@ const loadSandboxDB = () => {
         updated = true;
       }
     }
+
+    // Ensure all seed profiles and users are present
+    initial.profiles.forEach(p => {
+      const exists = data.profiles.some(existing => existing.id === p.id);
+      if (!exists) {
+        data.profiles.push(p);
+        updated = true;
+      }
+    });
+    initial.users.forEach(u => {
+      const exists = data.users.some(existing => existing.id === u.id);
+      if (!exists) {
+        data.users.push(u);
+        updated = true;
+      }
+    });
 
     if (updated) {
       fs.writeFileSync(SANDBOX_DB_PATH, JSON.stringify(data, null, 2));

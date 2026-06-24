@@ -65,12 +65,19 @@ import {
   Layout,
   LayoutGrid,
   Calendar,
+  Sliders,
   Bell
 } from 'lucide-react';
 
-export default function Admin({ user }) {
+export default function Admin({ user, initialSubTab }) {
   const { authFetch, inviteStaff, getInvitations, revokeInvite, setUser } = useAuth();
   const [activeSubTab, setActiveSubTab] = useState(() => localStorage.getItem('egesa_active_admin_subtab') || 'overview'); // 'overview', 'audit', 'smtp_settings', 'email_logs', 'licensing', 'staff_onboarding', 'role_requests', 'help_desk', 'facility_profile', 'hr', 'procurement', 'ward_settings', 'payment_settings'
+  
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);

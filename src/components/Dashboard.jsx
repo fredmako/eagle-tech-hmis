@@ -131,7 +131,21 @@ export default function Dashboard({ user, onNavigate }) {
   const checkAccess = (tab) => {
     if (!user || !user.role) return false;
     const rolesList = user.role.split(',').map(r => r.trim().toLowerCase());
-    if (rolesList.includes('admin') || rolesList.includes('super_admin')) return true;
+    const isAdmin = rolesList.includes('admin') || rolesList.includes('super_admin');
+    
+    if (tab === 'maternity') {
+      const userDept = user.department?.toLowerCase() || '';
+      const isMaternityDept = userDept.includes('maternity');
+      return isAdmin || isMaternityDept;
+    }
+    
+    if (tab === 'mch') {
+      const userDept = user.department?.toLowerCase() || '';
+      const isMchDept = userDept.includes('mch') || userDept.includes('anc') || userDept.includes('antenatal');
+      return isAdmin || isMchDept;
+    }
+    
+    if (isAdmin) return true;
     return roleAccess[tab]?.some(r => rolesList.includes(r)) || false;
   };
 
@@ -145,28 +159,28 @@ export default function Dashboard({ user, onNavigate }) {
   ];
 
   const moduleHubCards = [
-    { label: "Reception Desk", desc: "Patient registration, SHA verification, and check-ins", icon: Users, tab: "registration" },
-    { label: "OPD / Triage", desc: "Vitals recording, screening, and priority queue sorting", icon: Hourglass, tab: "triage" },
-    { label: "Consultation / EMR", desc: "SOAP EMR forms, clinical history, and prescription tools", icon: Activity, tab: "consultation" },
-    { label: "Billing & Cashier", desc: "Invoicing, co-pays, pre-auths, reversals, and refunds", icon: DollarSign, tab: "billing" },
-    { label: "POS Sales Entry", desc: "Direct cash sales, stock checks, and billing routing", icon: ShoppingCart, tab: "pos" },
-    { label: "Laboratory", desc: "Pathology orders, results logging, and machine config", icon: RefreshCw, tab: "orders" },
-    { label: "Radiology / Imaging", desc: "X-Ray/Ultrasound visual records and diagnostic logs", icon: Camera, tab: "radiology" },
-    { label: "Pharmacy Dispensing", desc: "Prescription queuing, stock validation, and drug payouts", icon: Pill, tab: "pharmacy" },
-    { label: "In-Patient Ward", desc: "Admissions census, bed layout editor, and ward rounds", icon: Home, tab: "ward" },
-    { label: "MCH Clinic", desc: "Mother and Child health specialty records registry", icon: Heart, tab: "consultation" },
-    { label: "Maternity Care", desc: "Delivery summary reports and prenatal registries", icon: Baby, tab: "ward" },
-    { label: "Theatre / ICU / HDU", desc: "Surgery schedule, pre-op lists, and anesthesiologist logs", icon: Activity, tab: "surgery" },
-    { label: "Procurement Desk", desc: "Purchase order logging and supplier catalouges", icon: Package, tab: "admin" },
-    { label: "Supplier Management", desc: "Supplier directory and active SLA agreements", icon: Truck, tab: "admin" },
-    { label: "HR / Employees", desc: "Staff directory, rosters, and attendance logs", icon: Contact, tab: "admin" },
-    { label: "Payroll Console", desc: "Employee payslip generation and salary logs", icon: CreditCard, tab: "admin" },
-    { label: "Appointments Grid", desc: "Interactive appointment scheduling calendar slots", icon: Calendar, tab: "appointments" },
-    { label: "Assets Maintenance", desc: "Medical machinery calibration and repairs logs", icon: Wrench, tab: "admin" },
-    { label: "Help Desk Support", desc: "Support inquiries, platform client feedback", icon: HelpCircle, tab: "support" },
-    { label: "Finance & Accounting", desc: "Revenue ledgers, tax allocations, and billing reports", icon: TrendingUp, tab: "reports" },
-    { label: "Management Reports", desc: "Analytics metrics and institutional KPIs", icon: Layers, tab: "reports" },
-    { label: "System Administration", desc: "White-label custom domains, SMTP configuration", icon: Sliders, tab: "admin" }
+    { label: "Reception Desk", desc: "Patient registration, SHA verification, and check-ins", icon: Users, tab: "registration", image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80" },
+    { label: "OPD / Triage", desc: "Vitals recording, screening, and priority queue sorting", icon: Hourglass, tab: "triage", image: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=600&q=80" },
+    { label: "Consultation / EMR", desc: "SOAP EMR forms, clinical history, and prescription tools", icon: Activity, tab: "consultation", image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=600&q=80" },
+    { label: "Billing & Cashier", desc: "Invoicing, co-pays, pre-auths, reversals, and refunds", icon: DollarSign, tab: "billing", image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80" },
+    { label: "POS Sales Entry", desc: "Direct cash sales, stock checks, and billing routing", icon: ShoppingCart, tab: "pos", image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=600&q=80" },
+    { label: "Laboratory", desc: "Pathology orders, results logging, and machine config", icon: RefreshCw, tab: "orders", image: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80" },
+    { label: "Radiology / Imaging", desc: "X-Ray/Ultrasound visual records and diagnostic logs", icon: Camera, tab: "radiology", image: "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=600&q=80" },
+    { label: "Pharmacy Dispensing", desc: "Prescription queuing, stock validation, and drug payouts", icon: Pill, tab: "pharmacy", image: "https://images.unsplash.com/photo-1607619056574-7b8d304a3b13?auto=format&fit=crop&w=600&q=80" },
+    { label: "In-Patient Ward", desc: "Admissions census, bed layout editor, and ward rounds", icon: Home, tab: "ward", image: "https://images.unsplash.com/photo-1538108176447-28d90c497f10?auto=format&fit=crop&w=600&q=80" },
+    { label: "MCH Clinic", desc: "Mother and Child health specialty records registry", icon: Heart, tab: "mch", image: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=600&q=80" },
+    { label: "Maternity Care", desc: "Delivery summary reports and prenatal registries", icon: Baby, tab: "maternity", image: "https://images.unsplash.com/photo-1518104593124-ac2e82a5eb9d?auto=format&fit=crop&w=600&q=80" },
+    { label: "Theatre / ICU / HDU", desc: "Surgery schedule, pre-op lists, and anesthesiologist logs", icon: Activity, tab: "surgery", image: "https://images.unsplash.com/photo-1551601651-2a8555f1a136?auto=format&fit=crop&w=600&q=80" },
+    { label: "Procurement Desk", desc: "Purchase order logging and supplier catalouges", icon: Package, tab: "admin", image: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80" },
+    { label: "Supplier Management", desc: "Supplier directory and active SLA agreements", icon: Truck, tab: "admin", image: "https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=600&q=80" },
+    { label: "HR / Employees", desc: "Staff directory, rosters, and attendance logs", icon: Contact, tab: "admin", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80" },
+    { label: "Payroll Console", desc: "Employee payslip generation and salary logs", icon: CreditCard, tab: "admin", image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=600&q=80" },
+    { label: "Appointments Grid", desc: "Interactive appointment scheduling calendar slots", icon: Calendar, tab: "appointments", image: "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=600&q=80" },
+    { label: "Assets Maintenance", desc: "Medical machinery calibration and repairs logs", icon: Wrench, tab: "admin", image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80" },
+    { label: "Help Desk Support", desc: "Support inquiries, platform client feedback", icon: HelpCircle, tab: "support", image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80" },
+    { label: "Finance & Accounting", desc: "Revenue ledgers, tax allocations, and billing reports", icon: TrendingUp, tab: "reports", image: "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=600&q=80" },
+    { label: "Management Reports", desc: "Analytics metrics and institutional KPIs", icon: Layers, tab: "reports", image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80" },
+    { label: "System Administration", desc: "White-label custom domains, SMTP configuration", icon: Sliders, tab: "admin", image: "https://images.unsplash.com/photo-1600132806370-bf17e65e942f?auto=format&fit=crop&w=600&q=80" }
   ];
 
   const accentMap = {
@@ -296,20 +310,28 @@ export default function Dashboard({ user, onNavigate }) {
           }).map((m) => {
             const Icon = m.icon;
             const hasAccess = checkAccess(m.tab);
-            const baseClass = "relative overflow-hidden rounded-xl border p-5 flex flex-col justify-between h-[155px] text-left transition-all duration-300";
+            const baseClass = "relative overflow-hidden rounded-xl border p-5 flex flex-col justify-between h-[155px] text-left transition-all duration-300 group";
             
             if (!hasAccess) {
               return (
                 <StaggerItem key={m.label}>
                   <div className={`${baseClass} border-slate-800/40 bg-slate-950/20 opacity-40 select-none cursor-not-allowed`} title="Access restricted by security policy">
-                    <div className="flex justify-between items-start">
+                    {m.image && (
+                      <div 
+                        className="absolute inset-0 bg-cover bg-center opacity-[0.02] select-none pointer-events-none filter grayscale brightness-50"
+                        style={{ backgroundImage: `url(${m.image})` }}
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-955 via-slate-955/90 to-slate-900/60 pointer-events-none" />
+                    
+                    <div className="relative z-10 flex justify-between items-start">
                       <div className="space-y-1 pr-2">
                         <h3 className="font-bold text-slate-400 text-sm leading-tight">{m.label}</h3>
                         <p className="text-[10px] text-slate-600 leading-normal">{m.desc}</p>
                       </div>
                       <Icon size={18} className="text-slate-600 shrink-0" />
                     </div>
-                    <div className="text-[10px] font-semibold text-slate-600 flex items-center gap-1 mt-3">
+                    <div className="relative z-10 text-[10px] font-semibold text-slate-600 flex items-center gap-1 mt-3">
                       <span>Locked (Restricted)</span>
                     </div>
                   </div>
@@ -321,19 +343,30 @@ export default function Dashboard({ user, onNavigate }) {
               <StaggerItem key={m.label}>
                 <motion.button
                   onClick={() => onNavigate(m.tab)}
-                  whileHover={{ y: -3, borderColor: "rgba(45,212,191,0.4)", backgroundColor: "rgba(45,212,191,0.03)" }}
+                  whileHover={{ y: -4, borderColor: "rgba(45,212,191,0.4)" }}
                   whileTap={{ scale: 0.98 }}
-                  className={`${baseClass} border-teal-500/15 bg-slate-900/60 hover:shadow-[0_0_20px_rgba(45,212,191,0.05)] cursor-pointer w-full`}
+                  className={`${baseClass} border-teal-500/15 bg-slate-900/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.5)] cursor-pointer w-full`}
                 >
-                  <div className="flex justify-between items-start">
+                  {/* Real Image Background Layer */}
+                  {m.image && (
+                    <div 
+                      className="absolute inset-0 bg-cover bg-center opacity-[0.06] group-hover:opacity-[0.14] transition-all duration-700 scale-100 group-hover:scale-105 select-none pointer-events-none filter saturate-[0.1] group-hover:saturate-50 brightness-75 group-hover:brightness-95"
+                      style={{ backgroundImage: `url(${m.image})` }}
+                    />
+                  )}
+                  {/* Subtle Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-955 via-slate-950/90 to-slate-900/40 group-hover:from-slate-955 group-hover:via-slate-950/80 group-hover:to-slate-900/30 transition-all duration-500 pointer-events-none" />
+
+                  <div className="relative z-10 flex justify-between items-start w-full">
                     <div className="space-y-1 pr-2">
-                      <h3 className="font-bold text-slate-200 text-sm leading-tight group-hover:text-teal-300 transition-colors">{m.label}</h3>
-                      <p className="text-[10px] text-slate-400 leading-normal">{m.desc}</p>
+                      <h3 className="font-bold text-slate-200 text-sm leading-tight group-hover:text-teal-400 transition-colors duration-300">{m.label}</h3>
+                      <p className="text-[10px] text-slate-450 leading-normal group-hover:text-slate-300 transition-colors duration-300">{m.desc}</p>
                     </div>
-                    <Icon size={18} className="text-teal-400/80 shrink-0" />
+                    <Icon size={18} className="text-teal-400/80 group-hover:text-teal-300 group-hover:scale-110 transition-all duration-300 shrink-0" />
                   </div>
-                  <div className="text-[10px] font-bold text-teal-400 hover:text-teal-300 flex items-center gap-1.5 mt-3">
-                    Click to Access Module <ArrowRight size={10} />
+                  <div className="relative z-10 text-[10px] font-bold text-teal-400 group-hover:text-teal-300 flex items-center gap-1.5 mt-3 transition-colors duration-300">
+                    <span>Click to Access Module</span>
+                    <ArrowRight size={10} className="group-hover:translate-x-1 transition-transform duration-300" />
                   </div>
                 </motion.button>
               </StaggerItem>

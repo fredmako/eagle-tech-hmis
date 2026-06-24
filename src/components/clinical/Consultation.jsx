@@ -1530,7 +1530,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       {/* Left Column: Waiting Queue (1/4 width) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm space-y-4 h-fit">
+      <div className={`bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm space-y-4 h-fit ${selectedVisit ? 'hidden lg:block' : 'block'}`}>
         <div>
           <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
             <ClipboardList size={14} className="text-teal-400" /> Consult Queue
@@ -1586,7 +1586,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
       </div>
 
       {/* Middle & Right: SOAP notes and vital details (3/4 width) */}
-      <div className="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
+      <div className={`lg:col-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-6 ${!selectedVisit ? 'hidden lg:block' : 'block'}`}>
         {!selectedVisit ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <FileText size={48} className="text-slate-600 mb-2 animate-pulse" />
@@ -1600,6 +1600,14 @@ export default function Consultation({ user, onComplete, showNotification }) {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Mobile View Back Button */}
+            <button
+              type="button"
+              onClick={() => setSelectedVisit(null)}
+              className="lg:hidden w-full mb-4 py-2 px-4 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-100 flex items-center justify-center gap-1.5 text-xs font-bold transition active:scale-[0.98]"
+            >
+              ← Back to Patient Queue
+            </button>
             {/* Session Info & Vitals Header */}
             <div className="bg-slate-950 border border-slate-850/80 p-4 rounded-xl space-y-3">
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">

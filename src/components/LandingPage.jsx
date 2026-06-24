@@ -79,6 +79,26 @@ export default function LandingPage({
       q: "How do we hook up lab analyzers for automatic results sync?",
       a: "In the Laboratory module, select the 'Automation Config' tab. Select the analyzer model and enter communication parameters—serial COM port (COM1–COM8) with baud rates for RS-232, or TCP/IP address and port. Technicians can click 'Retrieve Analyzer Data' to pull ASTM/HL7 test runs, verify parameter bounds, and save diagnostic results instantly.",
       category: "clinical"
+    },
+    {
+      q: "How is the Antenatal Care (ANC) and Family Planning (FP) registry structured?",
+      a: "Antenatal Care (ANC) and Family Planning (FP) are decoupled from the general patient registration to simplify triage. Under MCH Clinic, ANC tracks gestational parameters, blood pressure, fetal heart rates, risk assessments, and EDDs, while FP manages counseling logs and WHO eligibility checks.",
+      category: "clinical"
+    },
+    {
+      q: "Can we dynamically configure inpatient wings and bed capacities?",
+      a: "Yes, facility administrators or HR managers can dynamically organize the facility space under Maternity Setup > Wards. You can add distinct Blocks, Wards, Bed Types, and Bed grids with cash/corporate prices to handle admissions.",
+      category: "clinical"
+    },
+    {
+      q: "How does the unified Pharmacy and POS sales entry work?",
+      a: "The Pharmacy Desk is unified with a POS sales entry workflow. Using the inner secondary sidebar, pharmacists can switch between the EMR Dispense Queue (prescription releases), Sell Drug(s) (with code/description catalogs, cart discounts, and patient search), Modify Sale (to restore held carts), and Paid Drugs (to review completed transactions).",
+      category: "clinical"
+    },
+    {
+      q: "How does the lobby queue board and ticket calling system work?",
+      a: "Staff members can call patient tickets directly from the Queue Management panel by clicking the megaphone icon (📣) next to their name. This inserts the ticket code, name, and destination desk into the database. A public lobby display screen at `/queue-board` (e.g. `/hospital/egesa/queue-board`) will instantly play a synthesizer chime tone and announce the ticket number using voice synthesis while flashing the details on screen.",
+      category: "clinical"
     }
   ];
 
@@ -169,8 +189,16 @@ export default function LandingPage({
         reply = 'To log in, click "Sign In" at the top right of the homepage. You can authenticate using your registered email and password, or use Google SSO if configured by your administrator.';
       } else if (query.includes('register') || query.includes('hospital') || query.includes('sign up') || query.includes('account creation') || query.includes('join')) {
         reply = 'To set up your hospital, click "Register Hospital" at the top right. Enter your organization name, MFL code, and license number. The first registered user automatically becomes the facility administrator.';
-      } else if (query.includes('pharmacy') || query.includes('drug') || query.includes('dispens') || query.includes('procurement')) {
-        reply = 'Under Standard or Enterprise plans, administrators can configure drug items, set markup multipliers, and track lot expiry dates in Admin Settings > Procurement. Pharmacists dispense medications via the Pharmacy tab.';
+      } else if (query.includes('pharmacy') || query.includes('drug') || query.includes('dispens') || query.includes('procurement') || query.includes('pos') || query.includes('sell') || query.includes('held') || query.includes('sale') || query.includes('invoice')) {
+        reply = 'The Pharmacy Desk is unified with a POS sales entry workflow. In addition to processing EMR prescriptions from the Dispense Queue, it supports direct walk-in sales catalog searches, pagination, cart discounts, customer details, held carts management (under Modify Sale), and date-range invoice logs (under Paid Drugs).';
+      } else if (query.includes('mch') || query.includes('anc') || query.includes('pregnancy') || query.includes('contraceptive') || query.includes('family planning') || query.includes('welfare') || query.includes('immunization') || query.includes('vaccine')) {
+        reply = 'Our MCH Clinic module manages maternal and child healthcare programs. It tracks active pregnancies (ANC checkups, risk levels, EDD calculations), contraceptive followups (family planning methods, counseling), and child welfare immunization registries (BCG, Polio, Measles, and Pentavalent doses) decoupled from general triage.';
+      } else if (query.includes('maternity') || query.includes('ward') || query.includes('bed') || query.includes('wing') || query.includes('room')) {
+        reply = 'Under Maternity Setup and Inpatient Wards, administrators can dynamically define Blocks, Wards, Bed Types, and individual beds with custom cash/corporate pricing. A live visual bed grid allows tracking occupied vs vacant vs dirty states in real-time.';
+      } else if (query.includes('access') || query.includes('permission') || query.includes('department') || query.includes('lock') || query.includes('restrict') || query.includes('denied')) {
+        reply = 'Eagle Tech HMIS implements strict role and department-based access controls. Decoupled modules (such as Maternity and MCH) are locked and only accessible if you are a facility administrator, or if you have been specifically assigned to work in those departments (e.g. MCH/ANC/Maternity).';
+      } else if (query.includes('queue') || query.includes('board') || query.includes('ticket') || query.includes('call') || query.includes('lobby') || query.includes('voice') || query.includes('announc')) {
+        reply = 'Eagle Tech HMIS features a bank-like Queue Calling & Lobby Ticket Display system. Staff can click the megaphone icon (📣) in the Queue Management desk to announce patient tickets. The public lobby TV board (at `/queue-board`) automatically flashes the ticket code, chimes, and reads the ticket/patient details out loud using voice synthesis.';
       } else if (query.includes('lab') || query.includes('analyzer') || query.includes('instrument') || query.includes('machine') || query.includes('serial') || query.includes('com')) {
         reply = 'In the Laboratory module under "Automation Config", technicians can specify RS-232 serial parameters (COM1-COM8, baud rates) or TCP/IP details to retrieve diagnostic data (ASTM/HL7 format) from physical analyzers instantly.';
       } else if (query.includes('referral') || query.includes('referred')) {

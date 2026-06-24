@@ -1288,7 +1288,7 @@ export default function Orders({ user, onComplete, showNotification }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       {/* Sidebar: Queue */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 lg:col-span-1">
+      <div className={`bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 lg:col-span-1 ${selectedVisit ? 'hidden lg:block' : 'block'}`}>
         <div className="flex justify-between items-center">
           <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
             <FlaskConical size={14} className="text-teal-400" /> Laboratory Queue
@@ -1414,7 +1414,16 @@ export default function Orders({ user, onComplete, showNotification }) {
       </div>
 
       {/* Main Panel: Interactive Workflow Engine */}
-      <div className="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+      <div className={`lg:col-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col justify-between ${!selectedVisit ? 'hidden lg:block' : 'block'}`}>
+        {selectedVisit && (
+          <button
+            type="button"
+            onClick={() => setSelectedVisit(null)}
+            className="lg:hidden w-full mb-4 py-2 px-4 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-100 flex items-center justify-center gap-1.5 text-xs font-bold transition active:scale-[0.98]"
+          >
+            ← Back to Lab Queue
+          </button>
+        )}
         {activeTab === 'catalog' ? (
           /* LAB CATALOG MANAGEMENT UI */
           <div className="space-y-6 flex-1 flex flex-col">

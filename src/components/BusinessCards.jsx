@@ -211,8 +211,12 @@ function BusinessCardBack({ theme = "teal", formData, isPrintMode = false }) {
               Built for registration, triage, consultation, billing, reporting, and ward operations.
             </p>
           </div>
-          <div className={`rounded-xl border p-2 shrink-0 ${styles.backQrBorder}`}>
-            <QrCode size={30} className={styles.backQrColor} />
+          <div className={`rounded-xl border p-1 shrink-0 ${styles.backQrBorder} bg-white flex items-center justify-center`}>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent('https://www.eagletechsolutions.tech')}&color=000&bgcolor=fff`}
+              alt="Website QR"
+              className="w-8 h-8 object-contain"
+            />
           </div>
         </div>
 
@@ -291,7 +295,7 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
     phone1: "+254 702 423 889",
     phone2: "+254 746 081 588",
     email: "info@eagletechsolutions.tech",
-    website: "eagletechhmis.com",
+    website: "www.eagletechsolutions.tech",
     address: "Nairobi, Kenya",
     tagline: "Trusted clinical software",
     summary: "Digital health systems for modern hospitals."

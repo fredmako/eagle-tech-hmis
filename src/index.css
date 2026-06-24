@@ -48,16 +48,23 @@
     --slate-50: #f8fafc;
     --slate-100: #f1f5f9;
     --slate-200: #e2e8f0;
+    --slate-250: #cbd5e1;
     --slate-300: #cbd5e1;
+    --slate-350: #94a3b8;
     --slate-400: #94a3b8;
+    --slate-450: #64748b;
     --slate-500: #64748b;
+    --slate-550: #475569;
     --slate-600: #475569;
+    --slate-650: #334155;
     --slate-700: #334155;
+    --slate-750: #1e293b;
     --slate-800: var(--secondary);
     --slate-850: var(--secondary);
     --slate-900: var(--card);
     --slate-950: var(--background);
     --slate-955: var(--background);
+    --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
   }
   .mode-light {
     color-scheme: light;
@@ -92,11 +99,17 @@
     --slate-50: #0f172a;
     --slate-100: var(--foreground);
     --slate-200: var(--foreground);
+    --slate-250: var(--foreground);
     --slate-300: var(--foreground);
+    --slate-350: var(--foreground);
     --slate-400: var(--muted-foreground);
+    --slate-450: var(--muted-foreground);
     --slate-500: var(--muted-foreground);
+    --slate-550: var(--muted-foreground);
     --slate-600: var(--muted-foreground);
+    --slate-650: var(--muted-foreground);
     --slate-700: var(--border);
+    --slate-750: var(--border);
     --slate-800: var(--secondary);
     --slate-850: var(--secondary);
     --slate-900: var(--card);
@@ -418,7 +431,7 @@
   --leading-normal: 1.5;
   --leading-relaxed: 1.65;
   --leading-loose: 2;
-  --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-sans);
   --font-serif: 'Instrument Serif', Georgia, serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --font-display: var(--font-serif);
@@ -435,16 +448,33 @@
   --color-slate-50: var(--slate-50);
   --color-slate-100: var(--slate-100);
   --color-slate-200: var(--slate-200);
+  --color-slate-250: var(--slate-250);
   --color-slate-300: var(--slate-300);
+  --color-slate-350: var(--slate-350);
   --color-slate-400: var(--slate-400);
+  --color-slate-450: var(--slate-450);
   --color-slate-500: var(--slate-500);
+  --color-slate-550: var(--slate-550);
   --color-slate-600: var(--slate-600);
+  --color-slate-650: var(--slate-650);
   --color-slate-700: var(--slate-700);
+  --color-slate-750: var(--slate-750);
   --color-slate-800: var(--slate-800);
   --color-slate-850: var(--slate-850);
   --color-slate-900: var(--slate-900);
   --color-slate-950: var(--slate-950);
   --color-slate-955: var(--slate-955);
+  --color-teal-50: color-mix(in srgb, var(--primary) 10%, transparent);
+  --color-teal-100: color-mix(in srgb, var(--primary) 20%, transparent);
+  --color-teal-200: color-mix(in srgb, var(--primary) 40%, transparent);
+  --color-teal-300: color-mix(in srgb, var(--primary) 80%, #fff);
+  --color-teal-400: var(--primary);
+  --color-teal-500: var(--primary);
+  --color-teal-600: color-mix(in srgb, var(--primary) 85%, #000);
+  --color-teal-700: color-mix(in srgb, var(--primary) 70%, #000);
+  --color-teal-800: color-mix(in srgb, var(--primary) 50%, #000);
+  --color-teal-900: color-mix(in srgb, var(--primary) 30%, #000);
+  --color-teal-950: color-mix(in srgb, var(--primary) 15%, #000);
 }
 
 @layer utilities {
@@ -461,8 +491,9 @@
   }
 }
 
-.font-outfit { font-family: 'Outfit', sans-serif !important; }
-.font-roboto { font-family: 'Roboto', sans-serif !important; }
+.font-outfit { --font-sans: 'Outfit', sans-serif !important; }
+.font-roboto { --font-sans: 'Roboto', sans-serif !important; }
+.font-sans { --font-sans: 'DM Sans', sans-serif !important; }
 
 @media print {
   @page {

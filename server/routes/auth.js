@@ -144,17 +144,15 @@ router.post("/login", async (req, res) => {
         activeProfile = await db.createDocument("profiles", verifiedUserId, {
           full_name: "Fredrick Makori (Super Admin)",
           role: "super_admin",
-          facility_id: null,
+          facility_id: isRealSupabase ? "f1" : null,
           email: verifiedEmailClean
         });
-      } else if (activeProfile.role !== "super_admin" || activeProfile.facility_id !== null || activeProfile.email !== verifiedEmailClean) {
+      } else if (activeProfile.role !== "super_admin" || activeProfile.email !== verifiedEmailClean) {
         await db.updateDocument("profiles", activeProfile.id, {
           role: "super_admin",
-          facility_id: null,
           email: verifiedEmailClean
         });
         activeProfile.role = "super_admin";
-        activeProfile.facility_id = null;
         activeProfile.email = verifiedEmailClean;
       }
     } else if (!activeProfile) {
@@ -265,17 +263,15 @@ router.post("/supabase-login", async (req, res) => {
         activeProfile = await db.createDocument("profiles", user.id, {
           full_name: "Fredrick Makori (Super Admin)",
           role: "super_admin",
-          facility_id: null,
+          facility_id: isRealSupabase ? "f1" : null,
           email: userEmailClean
         });
-      } else if (activeProfile.role !== "super_admin" || activeProfile.facility_id !== null || activeProfile.email !== userEmailClean) {
+      } else if (activeProfile.role !== "super_admin" || activeProfile.email !== userEmailClean) {
         await db.updateDocument("profiles", activeProfile.id, {
           role: "super_admin",
-          facility_id: null,
           email: userEmailClean
         });
         activeProfile.role = "super_admin";
-        activeProfile.facility_id = null;
         activeProfile.email = userEmailClean;
       }
     } else {

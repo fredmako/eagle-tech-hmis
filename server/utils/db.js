@@ -373,6 +373,32 @@ const getInitialSandboxData = () => {
     emergency_registrations: [],
     triage_assessments: [],
     emergency_interventions: [],
+    maternity_blocks: [
+      { id: "block_a", facility_id: "f1", name: "Block A", description: "Main Maternity Block", status: "Active", created_at: new Date().toISOString() },
+      { id: "block_b", facility_id: "f1", name: "Block B", description: "Secondary Wing", status: "Active", created_at: new Date().toISOString() }
+    ],
+    maternity_bed_types: [
+      { id: "bt_general", facility_id: "f1", name: "General", description: "General Bed", status: "Active", created_at: new Date().toISOString() },
+      { id: "bt_private", facility_id: "f1", name: "Private Bed", description: "For Private Rooms", status: "Active", created_at: new Date().toISOString() }
+    ],
+    maternity_wards: [
+      { id: "ward_female_m", facility_id: "f1", block_name: "Block A", name: "FEMALE", description: "FEMALE", drug_store: "INPATIENT", consumable_store: "", gender: "Female", visiting_hours: "12PM-2PM", status: "Active", created_at: new Date().toISOString() },
+      { id: "ward_male_m", facility_id: "f1", block_name: "Block A", name: "MALE", description: "MALE", drug_store: "INPATIENT", consumable_store: "", gender: "Male", visiting_hours: "12PM-2PM", status: "Active", created_at: new Date().toISOString() },
+      { id: "ward_maternity_1_m", facility_id: "f1", block_name: "Block A", name: "MATERNITY-1", description: "MATERNITY", drug_store: "INPATIENT", consumable_store: "", gender: "Everyone", visiting_hours: "12PM-2PM", status: "Active", created_at: new Date().toISOString() },
+      { id: "ward_private_m", facility_id: "f1", block_name: "Block A", name: "PRIVATE WARD", description: "PRIVATE WARD", drug_store: "INPATIENT", consumable_store: "", gender: "Everyone", visiting_hours: "1-7", status: "Active", created_at: new Date().toISOString() }
+    ],
+    maternity_beds: [
+      { id: "bed_1", facility_id: "f1", name_code: "110", bed_type: "General", ward_name: "PEADIATRIC", description: "10", availability: "Available", cash_price: 1000, corporate_price: 1000, status: "Active", created_at: new Date().toISOString() },
+      { id: "bed_2", facility_id: "f1", name_code: "110", bed_type: "General", ward_name: "PEADIATRIC", description: "10", availability: "Occupied", cash_price: 1000, corporate_price: 1000, status: "Active", created_at: new Date().toISOString() },
+      { id: "bed_3", facility_id: "f1", name_code: "001", bed_type: "General", ward_name: "MALE", description: "", availability: "Occupied", cash_price: 1000, corporate_price: 1000, status: "Active", created_at: new Date().toISOString() },
+      { id: "bed_4", facility_id: "f1", name_code: "001", bed_type: "General", ward_name: "MALE", description: "", availability: "Occupied", cash_price: 1000, corporate_price: 1000, status: "Active", created_at: new Date().toISOString() },
+      { id: "bed_5", facility_id: "f1", name_code: "00", bed_type: "General", ward_name: "PEADIATRIC", description: "", availability: "Occupied", cash_price: 1000, corporate_price: 1000, status: "Active", created_at: new Date().toISOString() },
+      { id: "bed_6", facility_id: "f1", name_code: "17", bed_type: "General", ward_name: "PEADIATRIC", description: "", availability: "Occupied", cash_price: 1000, corporate_price: 1000, status: "Active", created_at: new Date().toISOString() },
+      { id: "bed_7", facility_id: "f1", name_code: "209", bed_type: "General", ward_name: "MALE", description: "", availability: "Occupied", cash_price: 1000, corporate_price: 1000, status: "Active", created_at: new Date().toISOString() },
+      { id: "bed_8", facility_id: "f1", name_code: "12", bed_type: "General", ward_name: "MALE", description: "", availability: "Occupied", cash_price: 1000, corporate_price: 1000, status: "Active", created_at: new Date().toISOString() },
+      { id: "bed_9", facility_id: "f1", name_code: "22", bed_type: "General", ward_name: "FEMALE", description: "", availability: "Occupied", cash_price: 1000, corporate_price: 1000, status: "Active", created_at: new Date().toISOString() },
+      { id: "bed_10", facility_id: "f1", name_code: "00", bed_type: "General", ward_name: "FEMALE", description: "", availability: "Occupied", cash_price: 1000, corporate_price: 1000, status: "Active", created_at: new Date().toISOString() }
+    ],
     medical_instruments: [
       { id: "inst_ultrasound", facility_id: "f1", name: "Obstetric Ultrasound Machine", type: "ultrasound", category: "ANC", manufacturer: "GE Healthcare", model: "Voluson E8", serial_number: "US-VOL-198273", installation_date: "2025-06-01", calibration_date: "2026-01-10", next_calibration_date: "2026-07-10", location_ward: "ANC Clinic", status: "active", usage_count: 0 },
       { id: "inst_doppler", facility_id: "f1", name: "Fetal Doppler Monitor", type: "doppler", category: "ANC", manufacturer: "Sonoline", model: "Sonoline B", serial_number: "FD-SONO-238472", installation_date: "2025-08-15", calibration_date: "2026-03-15", next_calibration_date: "2026-09-15", location_ward: "ANC Clinic", status: "active", usage_count: 0 },

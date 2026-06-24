@@ -1041,68 +1041,6 @@ export default function Registration({ user, onNavigateToQueue, showNotification
             </div>
           </div>
 
-          {/* Obstetric & ANC details for female patients */}
-          {gender === 'female' && (
-            <div className="bg-slate-950/40 border border-slate-850 p-4 rounded-xl space-y-3 mt-3">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="pregnantCheck"
-                  checked={isPregnant}
-                  onChange={(e) => setIsPregnant(e.target.checked)}
-                  className="accent-teal-500 h-4 w-4 bg-slate-950 border-slate-800 rounded text-teal-500 cursor-pointer"
-                />
-                <label htmlFor="pregnantCheck" className="text-xs font-bold text-slate-350 cursor-pointer select-none">
-                  Obstetric / Antenatal Care (ANC) Details
-                </label>
-              </div>
-
-              {isPregnant && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-850 border-dashed">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Parity</label>
-                    <input
-                      type="number"
-                      value={parity}
-                      onChange={(e) => setParity(e.target.value)}
-                      placeholder="e.g. 0"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Gravidae</label>
-                    <input
-                      type="number"
-                      value={gravidae}
-                      onChange={(e) => setGravidae(e.target.value)}
-                      placeholder="e.g. 1"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">LMP (Last Menstrual Period)</label>
-                    <input
-                      type="date"
-                      value={lmp}
-                      onChange={(e) => setLmp(e.target.value)}
-                      min={new Date(Date.now() - 315 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                      max={new Date().toISOString().split('T')[0]}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">EDD (Estimated Delivery Date)</label>
-                    <input
-                      type="date"
-                      value={edd}
-                      onChange={(e) => setEdd(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Notification Opt-In preferences */}
           <div className="border-t border-slate-800/80 pt-4 mt-2">

@@ -37,6 +37,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [mobileActiveDept, setMobileActiveDept] = useState('triage');
 
   // Queue ticket form states
   const [selectedPatientId, setSelectedPatientId] = useState('');
@@ -181,6 +182,39 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
       fetchQueueData();
     } catch (err) {
       console.error('Error moving patient:', err);
+    }
+  };
+
+  const handleCallTicket = async (visit) => {
+    try {
+      const ticketCode = `${visit.service_type || 'OPD'}-${visit.id.slice(-4).toUpperCase()}`;
+      const patientName = getPatientName(visit.patient_id);
+      
+      const destLabels = {
+        triage: 'Triage Desk',
+        consultation: 'Consultation Desk',
+        lab: 'Laboratory Desk',
+        pharmacy: 'Pharmacy Queue',
+        ward: 'Inpatient Ward',
+        billing: 'Cashier Counter'
+      };
+      const destination = destLabels[visit.department] || 'Reception Desk';
+
+      const { error } = await supabase.from('called_tickets').insert({
+        facility_id: user.facility_id,
+        ticket_code: ticketCode,
+        patient_name: patientName,
+        destination: destination,
+        status: 'called'
+      });
+
+      if (error) throw error;
+      
+      setMessage({ type: 'success', text: `Announced Ticket ${ticketCode} for ${patientName}!` });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (err) {
+      console.error('Error calling ticket:', err);
+      setMessage({ type: 'error', text: 'Failed to announce ticket: ' + err.message });
     }
   };
 
@@ -478,17 +512,50 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
           </button>
         </div>
 
+        {/* Mobile Department Tab Selector */}
+        <div className="md:hidden flex overflow-x-auto gap-2 pb-3.5 pt-1 scrollbar-none">
+          {depts.map((deptName) => {
+            const count = getDeptVisits(deptName).length;
+            const meta = DEPT_META[deptName];
+            const isActive = mobileActiveDept === deptName;
+            return (
+              <button
+                key={deptName}
+                type="button"
+                onClick={() => setMobileActiveDept(deptName)}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer border ${
+                  isActive
+                    ? 'bg-teal-500/10 border-teal-500/30 text-teal-400 font-extrabold'
+                    : 'bg-slate-950/40 border-slate-850 text-slate-450 hover:border-slate-850'
+                }`}
+              >
+                <span>{meta.label}</span>
+                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold border ${
+                  isActive 
+                    ? 'bg-teal-500/10 text-teal-450 border-teal-500/10' 
+                    : 'bg-slate-950 text-slate-500 border-slate-900'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* Horizontal Kanban Scrollable Wrapper */}
-        <div className="flex overflow-x-auto gap-4 pb-6 pt-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+        <div className="flex flex-col md:flex-row md:overflow-x-auto gap-4 pb-6 pt-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
           {depts.map((deptName) => {
             const list = getDeptVisits(deptName);
             const meta = DEPT_META[deptName];
             const IconComponent = meta.icon;
+            const isMobileActive = mobileActiveDept === deptName;
 
             return (
               <div 
                 key={deptName} 
-                className="bg-slate-900 border border-slate-800/80 rounded-xl p-4 flex flex-col h-[520px] w-[290px] shrink-0 shadow-sm"
+                className={`bg-slate-900 border border-slate-800/80 rounded-xl p-4 flex flex-col h-[520px] shrink-0 shadow-sm transition-all duration-350 ${
+                  isMobileActive ? 'flex w-full md:w-[290px]' : 'hidden md:flex md:w-[290px]'
+                }`}
               >
                 {/* Dept Title Header */}
                 <div className="mb-4 pb-2.5 border-b border-slate-800/70 flex justify-between items-center">
@@ -515,15 +582,25 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                       }`}
                     >
                       {/* Patient Details */}
-                      <div>
-                        <span className="font-bold text-slate-200 block truncate leading-snug tracking-wide text-sm">{getPatientName(v.patient_id)}</span>
-                        <span className="text-[10px] text-slate-500 font-mono block mt-0.5">{getPatientCode(v.patient_id)}</span>
-                        {v.service_type && SERVICE_TYPE_META[v.service_type] && (
-                          <span className={`inline-block px-2 py-0.5 mt-2 rounded text-[8px] font-bold uppercase tracking-wider border ${SERVICE_TYPE_META[v.service_type].color}`}>
-                            {SERVICE_TYPE_META[v.service_type].label}
-                          </span>
-                        )}
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="truncate flex-1">
+                          <span className="font-bold text-slate-200 block truncate leading-snug tracking-wide text-sm">{getPatientName(v.patient_id)}</span>
+                          <span className="text-[10px] text-slate-500 font-mono block mt-0.5">{getPatientCode(v.patient_id)}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCallTicket(v)}
+                          title="Call Ticket / Announce in Lobby"
+                          className="p-1.5 bg-slate-900 border border-slate-850 hover:border-slate-700 text-teal-400 hover:text-teal-300 hover:bg-slate-800 rounded-lg transition duration-150 cursor-pointer shrink-0"
+                        >
+                          📣
+                        </button>
                       </div>
+                      {v.service_type && SERVICE_TYPE_META[v.service_type] && (
+                        <span className={`inline-block px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${SERVICE_TYPE_META[v.service_type].color}`}>
+                          {SERVICE_TYPE_META[v.service_type].label}
+                        </span>
+                      )}
                       
                       {/* Priority and Time */}
                       <div className="flex justify-between items-center text-[10px]">
@@ -735,18 +812,18 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
               </div>
             </div>
 
-            <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-end gap-2.5">
+            <div className="p-4 bg-slate-950 border-t border-slate-800 flex flex-col-reverse sm:flex-row justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setReconciliationVisit(null)}
-                className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 font-semibold text-xs py-2 px-5 rounded-lg transition cursor-pointer"
+                className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 font-semibold text-xs py-2 px-5 rounded-lg transition cursor-pointer"
               >
                 Back to Clinical Desk
               </button>
               <button
                 type="button"
                 onClick={handleConfirmReconciliation}
-                className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-xs py-2 px-6 rounded-lg shadow transition active:scale-[0.98] cursor-pointer"
+                className="w-full sm:w-auto bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-xs py-2 px-6 rounded-lg shadow transition active:scale-[0.98] cursor-pointer"
               >
                 Confirm Reconciliation & Complete Care
               </button>

@@ -463,7 +463,7 @@ export default function Triage({ user, onComplete, showNotification }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Left Column: Triage Queue List */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+      <div className={`bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 ${selectedVisit ? 'hidden lg:block' : 'block'}`}>
         <div>
           <h2 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
             <Heart size={16} className="text-teal-400" /> Patients in Triage Queue ({queue.length})
@@ -506,7 +506,7 @@ export default function Triage({ user, onComplete, showNotification }) {
       </div>
 
       {/* Right Column: Vitals Form */}
-      <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm">
+      <div className={`lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm ${!selectedVisit ? 'hidden lg:block' : 'block'}`}>
         {!selectedVisit ? (
           <div className="flex flex-col items-center justify-center py-28 text-center">
             <Thermometer size={48} className="text-slate-600 mb-2 animate-bounce" />
@@ -515,6 +515,14 @@ export default function Triage({ user, onComplete, showNotification }) {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Mobile View Back Button */}
+            <button
+              type="button"
+              onClick={() => setSelectedVisit(null)}
+              className="lg:hidden w-full mb-4 py-2 px-4 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-100 flex items-center justify-center gap-1.5 text-xs font-bold transition active:scale-[0.98]"
+            >
+              ← Back to Triage Queue
+            </button>
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <div>
                 <span className="text-xs text-teal-400 font-bold uppercase tracking-wider">Triage Recording</span>

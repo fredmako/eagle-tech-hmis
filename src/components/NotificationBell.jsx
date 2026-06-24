@@ -61,6 +61,9 @@ export default function NotificationBell({ user, onNavigate }) {
   }, [user]);
 
   const fetchNotifications = async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return;
+    }
     try {
       setLoading(true);
       // Query notifications from database
@@ -90,7 +93,18 @@ export default function NotificationBell({ user, onNavigate }) {
         setUnreadCount(filtered.filter(n => !n.is_read).length);
       }
     } catch (err) {
-      console.error('Error fetching notifications:', err);
+      const isNetworkError = err && (
+        err.message?.includes('Failed to fetch') || 
+        err.message?.includes('network') || 
+        err.message?.includes('NetworkError') ||
+        err.status === 0 ||
+        err.code === 'TypeError'
+      );
+      if (isNetworkError) {
+        console.warn('[NotificationBell] Could not reach Supabase notification database (network offline or connection suspended).');
+      } else {
+        console.error('Error fetching notifications:', err);
+      }
     } finally {
       setLoading(false);
     }

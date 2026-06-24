@@ -14,6 +14,8 @@ import Reports from "./components/Reports";
 import Admin from "./components/Admin";
 import PatientDashboard from "./components/PatientDashboard";
 import Ward from "./components/clinical/Ward";
+import MaternityDashboard from "./components/clinical/MaternityDashboard";
+import MCHDashboard from "./components/clinical/MCHDashboard";
 import Radiology from "./components/clinical/Radiology";
 import Surgery from "./components/clinical/Surgery";
 import SaaSOnboarding from "./components/SaaSOnboarding";
@@ -25,11 +27,11 @@ import Appointments from "./components/Appointments";
 import translations from "./translations";
 import SuperAdminDashboard from "./components/SuperAdminDashboard";
 import FacilityLandingPage from "./components/public/FacilityLandingPage";
+import QueueBoardPublic from "./components/public/QueueBoardPublic";
 import PatientPortal from "./components/PatientPortal";
 import { ThemeToggle } from "./components/ui/ThemeToggle";
 import NotificationBell from "./components/NotificationBell";
 import SupportPanel from "./components/SupportPanel";
-import POS from "./components/clinical/POS";
 import { motion } from "motion/react";
 
 import {
@@ -57,6 +59,7 @@ import {
   CheckCircle,
   ShieldAlert,
   Calendar,
+  Baby,
 } from "lucide-react";
 
 export default function App() {
@@ -69,6 +72,30 @@ export default function App() {
     return localStorage.getItem("egesa_active_tab") || "dashboard";
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [pharmacySubTab, setPharmacySubTab] = useState("dispensing");
+  const [billingSubTab, setBillingSubTab] = useState("desk");
+  const [mchSubTab, setMchSubTab] = useState("dashboard");
+  const [maternitySubTab, setMaternitySubTab] = useState("dashboard");
+  const [adminSubTab, setAdminSubTab] = useState("overview");
+
+  const getSubActive = (itemId, subId) => {
+    if (itemId === "pharmacy") return pharmacySubTab === subId;
+    if (itemId === "billing") return billingSubTab === subId;
+    if (itemId === "mch") return mchSubTab === subId;
+    if (itemId === "maternity") return maternitySubTab === subId;
+    if (itemId === "admin") return adminSubTab === subId;
+    return false;
+  };
+
+  const handleSubClick = (itemId, subId) => {
+    setActiveTab(itemId);
+    if (itemId === "pharmacy") setPharmacySubTab(subId);
+    if (itemId === "billing") setBillingSubTab(subId);
+    if (itemId === "mch") setMchSubTab(subId);
+    if (itemId === "maternity") setMaternitySubTab(subId);
+    if (itemId === "admin") setAdminSubTab(subId);
+  };
+
   const [preselectedPatient, setPreselectedPatient] = useState(null);
   const [pathname, setPathname] = useState(() => window.location.pathname);
   const [publicView, setPublicView] = useState(() => {
@@ -359,10 +386,43 @@ export default function App() {
     );
   }
 
+  if (pathname.endsWith("/queue-board")) {
+    return <QueueBoardPublic />;
+  }
+
   if (!user) {
     const publicContent = (() => {
       const hostnameParts = window.location.hostname.split('.');
       const isSubdomain = hostnameParts.length > 2 && hostnameParts[0] !== 'www' && !window.location.hostname.includes('localhost') && !window.location.hostname.match(/^[0-9.]+$/);
+
+      const isValidPath = 
+        pathname === "/" || 
+        pathname.startsWith("/auth/callback") || 
+        pathname === "/patient-portal" || 
+        pathname.startsWith("/hospital/");
+
+      if (!isValidPath) {
+        return (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-8 text-center font-sans max-w-md mx-auto mt-24 shadow-2xl">
+            <ShieldAlert size={48} className="text-yellow-500 mb-4 animate-bounce" />
+            <h3 className="text-lg font-bold text-slate-100">404 - Page Not Found</h3>
+            <p className="text-xs text-slate-400 mt-2 max-w-sm leading-relaxed">
+              The requested page path "{pathname}" is not registered or is unavailable.
+            </p>
+            <button
+              onClick={() => {
+                window.history.replaceState({}, "", "/");
+                setPathname("/");
+                setPublicView("landing");
+              }}
+              className="mt-6 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold text-xs py-2.5 px-6 rounded-lg transition active:scale-[0.98] cursor-pointer"
+            >
+              Return to Homepage
+            </button>
+          </div>
+        );
+      }
+
       if (pathname.startsWith("/hospital/") || (isSubdomain && pathname === "/")) {
         return <FacilityLandingPage />;
       }
@@ -503,6 +563,9 @@ export default function App() {
     );
   }
 
+  const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
+  const isAdmin = rolesList.includes('admin') || rolesList.includes('super_admin');
+
   const menuItems = [
     {
       id: "dashboard",
@@ -557,12 +620,23 @@ export default function App() {
       label: "Pharmacy Desk",
       icon: Pill,
       roles: ["pharmacist", "admin"],
+      subItems: [
+        { id: "dispensing", label: "Dispense Queue" },
+        { id: "sell", label: "Sell Drug(s)" },
+        { id: "modify", label: "Modify Sale" },
+        { id: "paid", label: "Paid Drugs" }
+      ]
     },
     {
       id: "billing",
       label: "Cashier / Billing",
       icon: DollarSign,
       roles: ["cashier", "admin"],
+      subItems: [
+        { id: "desk", label: "Billing Desk" },
+        { id: "preauth", label: "Pre-Auth Claims" },
+        { id: "setup", label: "Billing Setup" }
+      ]
     },
     {
       id: "reports",
@@ -582,7 +656,49 @@ export default function App() {
       icon: Bed,
       roles: ["nurse", "clinician", "admin"],
     },
-    { id: "admin", label: "Admin Settings", icon: Settings, roles: ["admin", "facility_admin", "hr_manager", "marketing_admin", "operations_manager", "it_support"] },
+    {
+      id: "maternity",
+      label: "Maternity Setup",
+      icon: Baby,
+      roles: ["nurse", "clinician", "admin"],
+      subItems: [
+        { id: "dashboard", label: "Maternity Dashboard" },
+        { id: "blocks", label: "Blocks Setup" },
+        { id: "wards", label: "Wards Setup" },
+        { id: "bed_types", label: "Bed Classifications" },
+        { id: "beds", label: "Beds Setup" },
+        { id: "registration", label: "Patient Register" },
+        { id: "queue", label: "Treatment Queue" },
+        { id: "inventory", label: "Maternal Drugs" },
+        { id: "reports", label: "Outcome Stats" }
+      ]
+    },
+    {
+      id: "mch",
+      label: "MCH Clinic",
+      icon: Heart,
+      roles: ["nurse", "clinician", "admin"],
+      subItems: [
+        { id: "dashboard", label: "MCH Dashboard" },
+        { id: "anc", label: "Antenatal Care" },
+        { id: "fp", label: "Family Planning" },
+        { id: "imm", label: "Child Welfare" },
+        { id: "reports", label: "MCH Reports" }
+      ]
+    },
+    { id: "admin", label: "Admin Settings", icon: Settings, roles: ["admin", "facility_admin", "hr_manager", "marketing_admin", "operations_manager", "it_support"],
+      subItems: [
+        { id: "audit", label: "Audit Logs" },
+        { id: "smtp_settings", label: "SMTP Settings" },
+        { id: "email_logs", label: "Email Logs" },
+        { id: "licensing", label: "Licensing" },
+        { id: "role_requests", label: "Role Requests" },
+        { id: "facility_profile", label: "Facility Profile" },
+        { id: "hr", label: "Human Resources" },
+        { id: "procurement", label: "Procurement Desk" },
+        { id: "afyalink", label: "DHA Kenya HIE" }
+      ]
+    },
     {
       id: "appointments",
       label: "Appointments Schedule",
@@ -613,8 +729,21 @@ export default function App() {
       ];
       if (!allowedPharmacyTabs.includes(item.id)) return false;
     }
-    const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
-    return item.roles.includes("*") || item.roles.some(r => rolesList.includes(r)) || rolesList.includes('admin');
+    
+    // Decoupled modules custom department/admin access control
+    if (item.id === 'maternity') {
+      const userDept = user.department?.toLowerCase() || '';
+      const isMaternityDept = userDept.includes('maternity');
+      return isAdmin || isMaternityDept;
+    }
+    
+    if (item.id === 'mch') {
+      const userDept = user.department?.toLowerCase() || '';
+      const isMchDept = userDept.includes('mch') || userDept.includes('anc') || userDept.includes('antenatal');
+      return isAdmin || isMchDept;
+    }
+    
+    return item.roles.includes("*") || item.roles.some(r => rolesList.includes(r)) || isAdmin;
   });
 
   return (
@@ -754,18 +883,58 @@ export default function App() {
           {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
+            const hasSub = item.subItems && item.subItems.length > 0;
             return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setIsSidebarOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-semibold tracking-wide transition-all duration-200 ${isActive ? "bg-teal-400 text-slate-950 shadow-md shadow-teal-500/15" : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"}`}
-              >
-                <Icon size={15} />
-                <span>{t(item.id) || item.label}</span>
-              </button>
+              <div key={item.id} className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setIsSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[12px] font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
+                    isActive 
+                      ? "bg-teal-400 text-slate-950 shadow-md shadow-teal-500/15" 
+                      : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon size={15} />
+                    <span>{t(item.id) || item.label}</span>
+                  </div>
+                  {hasSub && (
+                    <span className="text-[8px] opacity-70">
+                      {isActive ? "▼" : "▶"}
+                    </span>
+                  )}
+                </button>
+                
+                {isActive && hasSub && (
+                  <div className="ml-5 border-l border-slate-800 pl-3.5 py-1 space-y-1 text-left">
+                    {item.subItems.map((sub) => {
+                      const isSubActive = getSubActive(item.id, sub.id);
+                      return (
+                        <button
+                          key={sub.id}
+                          type="button"
+                          onClick={() => {
+                            handleSubClick(item.id, sub.id);
+                            setIsSidebarOpen(false);
+                          }}
+                          className={`w-full text-left block py-1.5 px-2 rounded text-[11px] font-bold tracking-wide transition-all cursor-pointer ${
+                            isSubActive
+                              ? "text-teal-400 font-extrabold bg-teal-500/5 shadow-inner"
+                              : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/30"
+                          }`}
+                        >
+                          <span className="mr-1.5 text-[8px] text-teal-500/60">✳</span>
+                          {sub.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>
@@ -901,24 +1070,79 @@ export default function App() {
           {activeTab === "pharmacy" && (
             <Pharmacy
               user={user}
+              initialSubTab={pharmacySubTab}
               onComplete={() => setActiveTab("dashboard")}
               showNotification={showNotification}
             />
           )}
           {activeTab === "pos" && (
-            <POS
+            <Pharmacy
               user={user}
+              initialSubTab="sell"
               onComplete={() => setActiveTab("dashboard")}
               showNotification={showNotification}
             />
           )}
           {activeTab === "billing" && (
-            <Billing user={user} onComplete={() => setActiveTab("dashboard")} showNotification={showNotification} />
+            <Billing
+              user={user}
+              initialSubTab={billingSubTab}
+              onComplete={() => setActiveTab("dashboard")}
+              showNotification={showNotification}
+            />
           )}
           {activeTab === "reports" && <Reports user={user} />}
           {activeTab === "patient_dashboard" && <PatientDashboard />}
           {activeTab === "ward" && <Ward user={user} showNotification={showNotification} />}
-          {activeTab === "admin" && <Admin user={user} />}
+          {activeTab === "maternity" && (
+            (isAdmin || (user.department?.toLowerCase() || '').includes('maternity')) ? (
+              <MaternityDashboard
+                user={user}
+                initialSubTab={maternitySubTab}
+                onClose={() => setActiveTab("dashboard")}
+                showNotification={showNotification}
+              />
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
+                <ShieldAlert size={48} className="text-red-500 mb-4 animate-pulse" />
+                <h3 className="text-lg font-semibold text-slate-100">Access Denied</h3>
+                <p className="text-sm text-slate-400 mt-2 max-w-md">
+                  You do not have permission to access the Maternity Setup module. Please verify your department assignment with an administrator.
+                </p>
+                <button
+                  onClick={() => setActiveTab("dashboard")}
+                  className="mt-6 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98]"
+                >
+                  Return to Dashboard
+                </button>
+              </div>
+            )
+          )}
+          {activeTab === "mch" && (
+            (isAdmin || ['mch', 'anc', 'antenatal'].some(keyword => (user.department?.toLowerCase() || '').includes(keyword))) ? (
+              <MCHDashboard
+                user={user}
+                initialSubTab={mchSubTab}
+                onClose={() => setActiveTab("dashboard")}
+                showNotification={showNotification}
+              />
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
+                <ShieldAlert size={48} className="text-red-500 mb-4 animate-pulse" />
+                <h3 className="text-lg font-semibold text-slate-100">Access Denied</h3>
+                <p className="text-sm text-slate-400 mt-2 max-w-md">
+                  You do not have permission to access the MCH Clinic module. Please verify your department assignment with an administrator.
+                </p>
+                <button
+                  onClick={() => setActiveTab("dashboard")}
+                  className="mt-6 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98]"
+                >
+                  Return to Dashboard
+                </button>
+              </div>
+            )
+          )}
+          {activeTab === "admin" && <Admin user={user} initialSubTab={adminSubTab} />}
           {activeTab === "settings" && (
             <Preferences
               currentTheme={theme}
@@ -939,6 +1163,21 @@ export default function App() {
             <Appointments user={user} showNotification={showNotification} />
           )}
           {activeTab === "support" && <SupportPanel />}
+          {!["dashboard", "registration", "queue", "triage", "consultation", "orders", "radiology", "surgery", "pharmacy", "pos", "billing", "reports", "patient_dashboard", "ward", "maternity", "mch", "admin", "settings", "appointments", "support"].includes(activeTab) && (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
+              <ShieldAlert size={48} className="text-yellow-500 mb-4 animate-bounce" />
+              <h3 className="text-lg font-bold text-slate-100">404 - Page Not Found</h3>
+              <p className="text-xs text-slate-400 mt-2 max-w-md">
+                The requested module space or page "{activeTab}" is not registered on this system or is unavailable for your account.
+              </p>
+              <button
+                onClick={() => setActiveTab("dashboard")}
+                className="mt-6 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98] cursor-pointer"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          )}
         </div>
       </main>
 

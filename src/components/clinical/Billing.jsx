@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { CreditCard, DollarSign, Printer, CheckCircle, AlertCircle, Eye, RefreshCw, Upload, Shield, Plus } from 'lucide-react';
 
-export default function Billing({ user, onComplete, showNotification }) {
+export default function Billing({ user, onComplete, showNotification, initialSubTab }) {
   const [billingVisits, setBillingVisits] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [invoice, setInvoice] = useState(null);
@@ -28,6 +28,13 @@ export default function Billing({ user, onComplete, showNotification }) {
 
   // Console Tabs & State
   const [activeConsoleTab, setActiveConsoleTab] = useState('desk'); // 'desk', 'preauth', 'setup'
+  
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveConsoleTab(initialSubTab);
+    }
+  }, [initialSubTab]);
+
   const [billingTab, setBillingTab] = useState('queue'); // 'queue' or 'history'
   const [paidInvoices, setPaidInvoices] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -925,7 +932,7 @@ export default function Billing({ user, onComplete, showNotification }) {
       {activeConsoleTab === 'desk' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Billing queue / History */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className={`bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 ${selectedVisit ? 'hidden lg:block' : 'block'}`}>
             <div className="flex border-b border-slate-800 pb-1.5 gap-3">
               <button
                 type="button"
@@ -1016,7 +1023,7 @@ export default function Billing({ user, onComplete, showNotification }) {
                       }}
                       className={`w-full text-left p-3.5 rounded-xl border transition flex flex-col gap-1.5 ${
                         invoice?.id === inv.id
-                          ? 'border-teal-500/60 bg-teal-505/5'
+                          ? 'border-teal-500/60 bg-slate-950/5'
                           : 'border-slate-800/80 bg-slate-950 hover:bg-slate-800/50'
                       }`}
                     >
@@ -1038,7 +1045,7 @@ export default function Billing({ user, onComplete, showNotification }) {
           </div>
 
           {/* Invoice Viewer / Payment Recorder */}
-          <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+          <div className={`lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col justify-between ${!selectedVisit ? 'hidden lg:block' : 'block'}`}>
             {!selectedVisit ? (
               <div className="flex flex-col items-center justify-center py-28 text-center my-auto">
                 <DollarSign size={48} className="text-slate-600 mb-2 animate-bounce" />
@@ -1047,6 +1054,14 @@ export default function Billing({ user, onComplete, showNotification }) {
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Mobile View Back Button */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedVisit(null)}
+                  className="lg:hidden w-full mb-4 py-2 px-4 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-100 flex items-center justify-center gap-1.5 text-xs font-bold transition active:scale-[0.98]"
+                >
+                  ← Back to Billing Queue
+                </button>
                 <div className="flex items-center justify-between pb-4 border-b border-slate-800">
                   <div>
                     <span className="text-xs text-teal-400 font-bold uppercase tracking-wider">Patient billing invoice</span>

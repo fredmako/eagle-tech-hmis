@@ -15,7 +15,7 @@ import {
   FlaskConical
 } from "lucide-react";
 import { diseaseMaster, medicineMaster, labTestMaster, radiologyTestMaster, surgicalProcedureMaster } from "../../medicalMaster";
-import { parsePatientContact } from "../../notificationService";
+import { parsePatientContact, sendWhatsAppNotification } from "../../notificationService";
 import { Heart, MapPin, Printer } from "lucide-react";
 import DiagnosisAutocomplete from "./DiagnosisAutocomplete";
 import InstrumentTracker from "./InstrumentTracker";
@@ -1497,6 +1497,33 @@ export default function Consultation({ user, onComplete, showNotification }) {
         });
       } catch (afyaErr) {
         console.error('[AfyaLink Sync Trigger Failed]', afyaErr);
+      }
+
+      // WhatsApp Notification for Diagnosis & Prescription
+      if (selectedVisit.patient) {
+        const contactInfo = parsePatientContact(selectedVisit.patient.phone);
+        if (contactInfo && contactInfo.phone) {
+          if (contactInfo.preferences?.pharmacy !== false) {
+            let message = `Hi ${selectedVisit.patient.name},\n\n`;
+            message += `Your consultation at our facility has been completed.\n`;
+            if (diagnosis) {
+              const diagName = diagnosis.split(' (')[0];
+              message += `Diagnosis: ${diagName}\n`;
+            }
+            const activePrescriptions = prescriptions.filter(p => p.name);
+            if (activePrescriptions.length > 0) {
+              message += `\nPrescribed Medications:\n`;
+              activePrescriptions.forEach((p, idx) => {
+                message += `${idx + 1}. ${p.name} - Dosage: ${p.dosage}, Freq: ${p.frequency}, Dur: ${p.duration}\n`;
+              });
+            }
+            message += `\nThank you for choosing our facility!`;
+            
+            sendWhatsAppNotification(contactInfo.phone, message, selectedVisit.patient.facility_id || user.facility_id)
+              .then(res => console.log('[WhatsApp Consultation Alert Sent]', res))
+              .catch(err => console.error('[WhatsApp Consultation Alert Failed]', err));
+          }
+        }
       }
 
       if (showNotification) {

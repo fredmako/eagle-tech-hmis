@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { CreditCard, DollarSign, Printer, CheckCircle, AlertCircle, Eye, RefreshCw, Upload, Shield, Plus } from 'lucide-react';
+import { parsePatientContact, sendWhatsAppNotification } from '../../notificationService';
 
 export default function Billing({ user, onComplete, showNotification, initialSubTab }) {
   const [billingVisits, setBillingVisits] = useState([]);
@@ -426,6 +427,25 @@ export default function Billing({ user, onComplete, showNotification, initialSub
     }
   };
 
+  const dispatchReceiptWhatsApp = async (paidVal, method) => {
+    if (!selectedVisit || !selectedVisit.patient) return;
+    try {
+      const contactInfo = parsePatientContact(selectedVisit.patient.phone);
+      if (contactInfo && contactInfo.phone) {
+        if (contactInfo.preferences?.billing !== false) {
+          const message = `Hi ${selectedVisit.patient.name},\n\n` +
+            `We have successfully received your payment of KES ${parseFloat(paidVal).toFixed(2)} via ${method.toUpperCase()}.\n` +
+            `Thank you for your payment!`;
+          
+          await sendWhatsAppNotification(contactInfo.phone, message, selectedVisit.patient.facility_id || user.facility_id);
+          console.log('[WhatsApp Receipt Alert Sent] Success');
+        }
+      }
+    } catch (err) {
+      console.error('[WhatsApp Receipt Alert Failed]', err);
+    }
+  };
+
   const handlePay = async (e) => {
     e.preventDefault();
     if (!selectedVisit || !invoice) return;
@@ -541,6 +561,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
             setMessage({ type: 'success', text: 'Insurance invoice payment recorded successfully!' });
           }
           setShowReceipt(true);
+          dispatchReceiptWhatsApp(totalPaidVal, methodRecorded);
 
           // Log invoice payment
           await supabase.from('audit_logs').insert({
@@ -582,6 +603,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
           setMessage({ type: 'success', text: 'Invoice payment recorded successfully!' });
         }
         setShowReceipt(true);
+        dispatchReceiptWhatsApp(paidVal, paymentMethod);
 
         // Log invoice payment
         await supabase.from('audit_logs').insert({
@@ -620,6 +642,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
         setTumaStatus('paid');
         setShowReceipt(true);
         setMessage({ type: 'success', text: 'Payment confirmed successfully!' });
+        dispatchReceiptWhatsApp(inv.amount_paid, inv.payment_method || 'mpesa');
       } else {
         setMessage({ type: 'error', text: 'Payment confirmation not found yet. Please try again in a moment.' });
       }

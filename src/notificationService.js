@@ -722,11 +722,11 @@ export const parsePatientContact = (contactString) => {
   return { phone, email, preferences };
 };
 
-// WhatsApp simulated alert dispatcher
+// WhatsApp real alert dispatcher calling backend gateway
 export const sendWhatsAppNotification = async (phone, message, facilityId = null) => {
-  console.log(`[WhatsApp Dispatch Simulation] To: ${phone}`);
-  console.log(`Message: "${message}"`);
-
+  const token = localStorage.getItem('egesa_health_token');
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  
   let finalFacId = facilityId;
   if (!finalFacId) {
     const sessionUser = sessionStorage.getItem('egesa_health_active_user');
@@ -742,16 +742,24 @@ export const sendWhatsAppNotification = async (phone, message, facilityId = null
   }
 
   try {
-    const { error } = await supabase.from('audit_logs').insert({
-      facility_id: finalFacId,
-      user_id: 'system',
-      action: 'WhatsApp Dispatched',
-      details: `WhatsApp simulation sent to ${phone}: ${message}`
+    const res = await fetch(`${apiBase}/payments/whatsapp/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ phone, message, facilityId: finalFacId })
     });
-    if (error) throw error;
-    return { success: true };
+    
+    if (res.ok) {
+      const data = await res.json();
+      return { success: true, data };
+    } else {
+      const errText = await res.text();
+      throw new Error(errText || 'Failed to dispatch WhatsApp message.');
+    }
   } catch (err) {
-    console.error('Failed to log WhatsApp simulation to audit logs:', err);
+    console.error('WhatsApp notification dispatcher failed:', err);
     return { success: false, error: err.message };
   }
 };

@@ -154,6 +154,11 @@ router.post("/whatsapp/send", authenticateToken, async (req, res) => {
 
   try {
     const creds = await getFacilityCredentials(facilityId);
+    
+    // Fallback order: facility credentials -> platform env vars
+    const apiKey = creds?.whatsapp_api_key || process.env.WHATSAPP_API_KEY;
+    const whatsappPhoneId = creds?.whatsapp_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const watiApiEndpoint = creds?.wati_api_endpoint || process.env.WATI_API_ENDPOINT;
     const whatsappSource = creds?.whatsapp_number || "System Central";
 
     console.log(`[WhatsApp API Dispatcher]`);
@@ -161,15 +166,93 @@ router.post("/whatsapp/send", authenticateToken, async (req, res) => {
     console.log(`To: ${phone}`);
     console.log(`Message: "${message}"`);
 
+    let whatsappDispatched = false;
+    let whatsappError = null;
+
+    if (apiKey) {
+      try {
+        if (watiApiEndpoint) {
+          const cleanPhone = phone.trim().replace("+", "");
+          const watiUrl = `${watiApiEndpoint.replace(/\/$/, "")}/api/v1/sendSessionMessage/${cleanPhone}?messageText=${encodeURIComponent(message)}`;
+          
+          console.log(`[WhatsApp Wati] Dispatching message via: ${watiUrl}`);
+          const watiRes = await fetch(watiUrl, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+              "Content-Type": "application/json"
+            }
+          });
+
+          if (watiRes.ok) {
+            whatsappDispatched = true;
+            console.log(`[WhatsApp Wati] Message sent successfully to ${phone}`);
+          } else {
+            const watiErrText = await watiRes.text();
+            throw new Error(`Wati API error ${watiRes.status}: ${watiErrText}`);
+          }
+        } else if (whatsappPhoneId) {
+          const metaUrl = `https://graph.facebook.com/v17.0/${whatsappPhoneId}/messages`;
+          console.log(`[WhatsApp Meta] Dispatching message via: ${metaUrl}`);
+
+          const metaRes = await fetch(metaUrl, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              recipient_type: "individual",
+              to: phone.trim(),
+              type: "text",
+              text: { body: message }
+            })
+          });
+
+          if (metaRes.ok) {
+            whatsappDispatched = true;
+            console.log(`[WhatsApp Meta] Message sent successfully to ${phone}`);
+          } else {
+            const metaErr = await metaRes.json();
+            throw new Error(`Meta API Error: ${JSON.stringify(metaErr)}`);
+          }
+        } else {
+          // Fallback generic webhook
+          console.log(`[WhatsApp Custom] Dispatching message via custom webhook`);
+          const customRes = await fetch("https://api.eagletechsolutions.tech/whatsapp/webhook", {
+            method: "POST",
+            headers: {
+              "X-API-Key": apiKey,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ phone: phone.trim(), message })
+          });
+          whatsappDispatched = customRes.ok;
+        }
+      } catch (wsErr) {
+        console.error(`[WhatsApp API Dispatch Failed]:`, wsErr.message);
+        whatsappError = wsErr.message;
+      }
+    } else {
+      console.log(`[WhatsApp Simulation] No WhatsApp API Key configured. Simulating success.`);
+      whatsappDispatched = true;
+    }
+
     // Log to audit logs for transparency
     await db.createDocument("audit_logs", "log_" + Math.random().toString(36).substring(2, 12), {
       facility_id: facilityId,
       user_id: req.user?.id || "system",
       action: "WhatsApp Dispatched",
-      details: `Sent message to patient ${phone}: ${message}`
+      details: `Sent message to patient ${phone}: ${message}. Status: ${whatsappDispatched ? "Success" : "Failed: " + whatsappError}`
     });
 
-    res.json({ success: true, message: "WhatsApp message dispatched successfully (logged on server)." });
+    res.json({ 
+      success: true, 
+      message: whatsappDispatched ? "WhatsApp message dispatched successfully." : "WhatsApp API call failed, logged in audit trail.",
+      whatsappDispatched,
+      whatsappError
+    });
   } catch (err) {
     console.error("WhatsApp dispatch failed:", err);
     res.status(500).json({ error: err.message || "WhatsApp dispatch failed" });

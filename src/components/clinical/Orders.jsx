@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../supabaseClient';
-import { sendNotification } from '../../notificationService';
+import { sendNotification, parsePatientContact, sendWhatsAppNotification } from '../../notificationService';
 import { 
   FlaskConical, 
   AlertCircle, 
@@ -892,6 +892,27 @@ export default function Orders({ user, onComplete, showNotification }) {
 
       if (error) throw error;
 
+      // WhatsApp Lab Result Notification (Completed/Verified)
+      if (newStatus === 'completed' || newStatus === 'verified') {
+        if (selectedVisit && selectedVisit.patient) {
+          const contactInfo = parsePatientContact(selectedVisit.patient.phone);
+          if (contactInfo && contactInfo.phone) {
+            if (contactInfo.preferences?.lab !== false) {
+              const testName = activeOrder?.item_name || 'Lab Test';
+              const outcome = updatedMeta.values || 'Results pending';
+              const message = `Hi ${selectedVisit.patient.name},\n\n` +
+                `Your laboratory test (${testName}) status has been updated to: ${newStatus.toUpperCase()}.\n` +
+                `Results: ${outcome}\n\n` +
+                `Thank you for choosing our facility!`;
+              
+              sendWhatsAppNotification(contactInfo.phone, message, selectedVisit.patient.facility_id || user.facility_id)
+                .then(res => console.log('[WhatsApp Lab Alert Sent] Status:', newStatus, res))
+                .catch(err => console.error('[WhatsApp Lab Alert Failed] Status:', newStatus, err));
+            }
+          }
+        }
+      }
+
       // Log action to audit trail
       await supabase.from('audit_logs').insert({
         facility_id: user.facility_id,
@@ -1198,6 +1219,25 @@ export default function Orders({ user, onComplete, showNotification }) {
         }, user.facility_id);
       } catch (e) {
         console.error('Lab result email trigger failed:', e);
+      }
+
+      // WhatsApp Lab Result Notification (Released)
+      if (selectedVisit && selectedVisit.patient) {
+        const contactInfo = parsePatientContact(selectedVisit.patient.phone);
+        if (contactInfo && contactInfo.phone) {
+          if (contactInfo.preferences?.lab !== false) {
+            const testName = activeOrder?.item_name || 'Lab Test';
+            const outcome = meta.values || 'Results pending';
+            const message = `Hi ${selectedVisit.patient.name},\n\n` +
+              `Your laboratory test (${testName}) results have been released.\n` +
+              `Results: ${outcome}\n\n` +
+              `Thank you for choosing our facility!`;
+            
+            sendWhatsAppNotification(contactInfo.phone, message, selectedVisit.patient.facility_id || user.facility_id)
+              .then(res => console.log('[WhatsApp Lab Alert Sent] Status: released', res))
+              .catch(err => console.error('[WhatsApp Lab Alert Failed] Status: released', err));
+          }
+        }
       }
 
       // 3. Check if all lab tests for this visit are completed/released

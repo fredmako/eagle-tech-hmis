@@ -22,6 +22,7 @@ const paymentsRouter = require("./routes/payments");
 const domainsRouter = require("./routes/domains");
 const smsRouter = require("./routes/sms");
 const demoRouter = require("./routes/demo");
+const attendanceRouter = require("./routes/attendance");
 
 // Mount routes
 app.use("/api/auth", authRouter);
@@ -36,6 +37,7 @@ app.use("/api/payments", paymentsRouter);
 app.use("/api/domains", domainsRouter);
 app.use("/api/sms", smsRouter);
 app.use("/api/demo", demoRouter);
+app.use("/api/attendance", attendanceRouter);
 
 const { runMigrations } = require("./utils/migrationRunner");
 

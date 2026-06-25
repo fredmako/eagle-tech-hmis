@@ -33,6 +33,96 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
   const [activeAttendanceLog, setActiveAttendanceLog] = useState(null);
   const [clockNotes, setClockNotes] = useState('');
 
+  // Offline Geofenced Caching States
+  const [offlineQueue, setOfflineQueue] = useState(() => {
+    const saved = localStorage.getItem('egesa_offline_attendance');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [syncingOffline, setSyncingOffline] = useState(false);
+
+  // Helper to fetch current location via HTML5 Geolocation API
+  const getCurrentLocation = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported by your browser."));
+      } else {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            });
+          },
+          (err) => {
+            let msg = "Failed to retrieve location. Please enable location permissions.";
+            if (err.code === err.PERMISSION_DENIED) {
+              msg = "Location permission was denied. You must enable location services to check in/out.";
+            } else if (err.code === err.POSITION_UNAVAILABLE) {
+              msg = "Location information is unavailable.";
+            } else if (err.code === err.TIMEOUT) {
+              msg = "Retrieving location timed out.";
+            }
+            reject(new Error(msg));
+          },
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        );
+      }
+    });
+  };
+
+  // Sync offline captured logs back to the server
+  const syncOfflineLogs = async (logsToSync = offlineQueue) => {
+    if (logsToSync.length === 0 || !navigator.onLine) return;
+    setSyncingOffline(true);
+    try {
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      
+      const res = await fetch(`${apiBase}/attendance/sync-offline`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ logs: logsToSync })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const syncedCount = data.results.filter(r => r.status === 'synced').length;
+        const declined = data.results.filter(r => r.status === 'declined');
+        
+        let feedback = `Offline synchronization complete. ${syncedCount} log(s) synced.`;
+        if (declined.length > 0) {
+          feedback += ` ${declined.length} log(s) declined: ${declined.map(d => d.reason).join(', ')}`;
+        }
+        
+        setMessage({ type: declined.length > 0 ? 'error' : 'success', text: feedback });
+        localStorage.removeItem('egesa_offline_attendance');
+        setOfflineQueue([]);
+        fetchSchedulerData();
+      } else {
+        throw new Error("Batch sync failed on server.");
+      }
+    } catch (err) {
+      console.error("Failed to sync offline logs:", err);
+      setMessage({ type: 'error', text: 'Offline sync failed: ' + err.message });
+    } finally {
+      setSyncingOffline(false);
+    }
+  };
+
+  // Trigger offline sync when connection comes back online
+  useEffect(() => {
+    const handleOnline = () => {
+      syncOfflineLogs();
+    };
+    window.addEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [offlineQueue]);
+
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const shiftTypes = ['Morning', 'Afternoon', 'Night', 'On-Call'];
   
@@ -160,58 +250,57 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
     setActionLoading(true);
     setMessage(null);
     try {
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes();
-      
-      // Determine status: Late if clock-in is after 08:00 AM
-      let status = "On-Time";
-      if (hours > 8 || (hours === 8 && minutes > 0)) {
-        status = "Late";
+      let coords = null;
+      try {
+        coords = await getCurrentLocation();
+      } catch (locErr) {
+        throw new Error(locErr.message);
       }
 
-      const logId = 'att_' + Math.random().toString(36).substring(2, 12);
-      const newLog = {
-        id: logId,
-        facility_id: user.facility_id,
-        user_id: user.id,
-        clock_in: now.toISOString(),
-        clock_out: null,
-        status: status,
-        notes: clockNotes.trim() || 'Manual Check-in',
-        created_at: now.toISOString()
-      };
+      // Check if offline
+      if (!navigator.onLine) {
+        const queueId = 'off_in_' + Date.now();
+        const offlineLog = {
+          id: queueId,
+          type: 'in',
+          timestamp: new Date().toISOString(),
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          notes: clockNotes.trim() || 'Offline Clock-In'
+        };
+        const updatedQueue = [...offlineQueue, offlineLog];
+        localStorage.setItem('egesa_offline_attendance', JSON.stringify(updatedQueue));
+        setOfflineQueue(updatedQueue);
+        
+        setClockNotes('');
+        setMessage({ type: 'error', text: 'No internet detected. Location captured. Sync will run automatically when online.' });
+        return;
+      }
 
-      const { error } = await supabase
-        .from('attendance_logs')
-        .insert(newLog);
-
-      if (error) throw error;
-
-      // Log audit
-      await supabase.from('audit_logs').insert({
-        facility_id: user.facility_id,
-        user_id: user.id,
-        action: 'Clock-In',
-        details: `Staff clocked in at ${now.toLocaleTimeString()} with status ${status}. Notes: ${clockNotes}`
+      // Online: call backend endpoint
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      
+      const res = await fetch(`${apiBase}/attendance/clock-in`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          notes: clockNotes.trim() || 'Manual Check-in'
+        })
       });
 
-      // Send alert notification if late
-      if (status === 'Late') {
-        const notifId = 'notif_' + Math.random().toString(36).substring(2, 12);
-        await supabase.from('notifications').insert({
-          id: notifId,
-          facility_id: user.facility_id,
-          title: 'Late Clock-in Flagged',
-          message: `${user.full_name} checked in late today at ${now.toLocaleTimeString()}. Notes: ${clockNotes}`,
-          target_role: 'admin',
-          is_read: false,
-          created_at: now.toISOString()
-        });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to clock in.');
       }
 
       setClockNotes('');
-      setMessage({ type: 'success', text: 'You have clocked in successfully!' });
+      setMessage({ type: 'success', text: 'You have clocked in successfully within facility boundaries!' });
       fetchSchedulerData();
 
     } catch (err) {
@@ -228,36 +317,57 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
     setMessage(null);
 
     try {
-      const now = new Date();
-      const hours = now.getHours();
-      
-      let status = activeAttendanceLog.status;
-      // Early departure if clocked out before 5:00 PM (17:00)
-      if (hours < 17) {
-        status = status + " / Early Departure";
+      let coords = null;
+      try {
+        coords = await getCurrentLocation();
+      } catch (locErr) {
+        throw new Error(locErr.message);
       }
 
-      const { error } = await supabase
-        .from('attendance_logs')
-        .update({
-          clock_out: now.toISOString(),
-          status: status,
-          notes: clockNotes.trim() ? `${activeAttendanceLog.notes} | Out: ${clockNotes.trim()}` : activeAttendanceLog.notes
+      // Check if offline
+      if (!navigator.onLine) {
+        const queueId = 'off_out_' + Date.now();
+        const offlineLog = {
+          id: queueId,
+          type: 'out',
+          timestamp: new Date().toISOString(),
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          notes: clockNotes.trim() || 'Offline Clock-Out'
+        };
+        const updatedQueue = [...offlineQueue, offlineLog];
+        localStorage.setItem('egesa_offline_attendance', JSON.stringify(updatedQueue));
+        setOfflineQueue(updatedQueue);
+
+        setClockNotes('');
+        setMessage({ type: 'error', text: 'No internet detected. Location captured. Sync will run automatically when online.' });
+        return;
+      }
+
+      // Online: call backend endpoint
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      
+      const res = await fetch(`${apiBase}/attendance/clock-out`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          notes: clockNotes.trim() || 'Manual Check-out'
         })
-        .eq('id', activeAttendanceLog.id);
-
-      if (error) throw error;
-
-      // Log audit
-      await supabase.from('audit_logs').insert({
-        facility_id: user.facility_id,
-        user_id: user.id,
-        action: 'Clock-Out',
-        details: `Staff clocked out at ${now.toLocaleTimeString()} with final status ${status}.`
       });
 
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to clock out.');
+      }
+
       setClockNotes('');
-      setMessage({ type: 'success', text: 'You have clocked out successfully!' });
+      setMessage({ type: 'success', text: 'You have clocked out successfully within facility boundaries!' });
       fetchSchedulerData();
 
     } catch (err) {
@@ -543,6 +653,21 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
               <h5 className="text-[12px] font-bold text-slate-200 uppercase tracking-wide">Staff Punch Console</h5>
               <p className="text-[10px] text-slate-500">Record check-in time and checkout departure times</p>
             </div>
+          </div>
+
+          {/* Offline Pending Queue Banner */}
+          {offlineQueue.length > 0 && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-[10px] font-sans leading-relaxed animate-pulse">
+              ⚠️ You have <strong>{offlineQueue.length} offline punch log(s)</strong> waiting for internet connection to sync.
+            </div>
+          )}
+
+          {/* Geofence Status Information */}
+          <div className="bg-slate-950/60 border border-slate-850 p-3.5 rounded-xl space-y-1 text-left">
+            <span className="text-[8px] font-bold text-teal-400 uppercase tracking-wider block">Boundary Verification Active</span>
+            <p className="text-[10px] text-slate-400 font-sans leading-normal">
+              Clocking is geofence-restricted. You must be physically present within 100 meters of the facility to register attendance. Offline clock-ins capture your device coordinates and will be verified by the server upon sync.
+            </p>
           </div>
 
           {/* Current Punch Status indicator */}

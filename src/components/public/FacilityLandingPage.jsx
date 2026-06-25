@@ -342,7 +342,7 @@ export default function FacilityLandingPage() {
       const res = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, requestedFacilityId: facility?.id })
       });
 
       const body = await res.json();
@@ -350,13 +350,21 @@ export default function FacilityLandingPage() {
 
       localStorage.setItem('egesa_health_token', body.token);
       localStorage.setItem('egesa_health_user', JSON.stringify(body.user));
+      localStorage.setItem('egesa_active_facility_id', body.user.facility_id || '');
       sessionStorage.setItem('egesa_health_token', body.token);
       sessionStorage.setItem('egesa_health_active_user', JSON.stringify(body.user));
 
-      setAuthSuccess('Redirecting to Patient Portal...');
-      setTimeout(() => {
-        window.location.href = '/patient-portal';
-      }, 1000);
+      if (body.user.role === 'patient') {
+        setAuthSuccess('Redirecting to Patient Portal...');
+        setTimeout(() => {
+          window.location.href = '/patient-portal';
+        }, 1000);
+      } else {
+        setAuthSuccess('Redirecting to Workspace Dashboard...');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
+      }
     } catch (err) {
       setAuthError(err.message);
     } finally {
@@ -403,17 +411,24 @@ export default function FacilityLandingPage() {
       const loginRes = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, requestedFacilityId: facility.id })
       });
       const loginBody = await loginRes.json();
       localStorage.setItem('egesa_health_token', loginBody.token);
       localStorage.setItem('egesa_health_user', JSON.stringify(loginBody.user));
+      localStorage.setItem('egesa_active_facility_id', loginBody.user.facility_id || '');
       sessionStorage.setItem('egesa_health_token', loginBody.token);
       sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loginBody.user));
 
-      setTimeout(() => {
-        window.location.href = '/patient-portal';
-      }, 1000);
+      if (loginBody.user.role === 'patient') {
+        setTimeout(() => {
+          window.location.href = '/patient-portal';
+        }, 1000);
+      } else {
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
+      }
     } catch (err) {
       setAuthError(err.message);
     } finally {

@@ -157,10 +157,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
+  const login = async (email, password, requestedFacilityId = undefined) => {
     setError('');
     setLoading(true);
-    console.log('[AuthContext:login] ▶ Attempting login with Supabase:', email);
+    console.log('[AuthContext:login] ▶ Attempting login with Supabase:', email, '| Requested Facility:', requestedFacilityId);
     try {
       const { data: { user: authUser, session }, error: authErr } = await supabase.auth.signInWithPassword({
         email,
@@ -190,7 +190,8 @@ export const AuthProvider = ({ children }) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               access_token: session.access_token,
-              facility_id: activeFacilityId || undefined
+              facility_id: requestedFacilityId || activeFacilityId || undefined,
+              requestedFacilityId: requestedFacilityId || undefined
             })
           });
           

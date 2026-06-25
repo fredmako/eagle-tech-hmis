@@ -69,7 +69,7 @@ router.post("/signup", async (req, res) => {
 
 // User Login
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, requestedFacilityId } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required" });
   }
@@ -137,9 +137,13 @@ router.post("/login", async (req, res) => {
       { type: "equal", column: "email", value: verifiedEmailClean },
     ]);
 
-    let activeProfile = profiles && profiles[0];
+    let activeProfile = null;
 
     if (verifiedEmailClean === "fredrickmakori102@gmail.com") {
+      activeProfile = profiles && profiles.find(p => p.role === "super_admin");
+      if (!activeProfile && profiles && profiles.length > 0) {
+        activeProfile = profiles[0];
+      }
       if (!activeProfile) {
         activeProfile = await db.createDocument("profiles", verifiedUserId, {
           full_name: "Fredrick Makori (Super Admin)",
@@ -155,37 +159,97 @@ router.post("/login", async (req, res) => {
         activeProfile.role = "super_admin";
         activeProfile.email = verifiedEmailClean;
       }
-    } else if (!activeProfile) {
-      // Check if this email belongs to a patient
-      const allPatients = await db.getDocuments("patients", []);
-      const matchingPatient = allPatients.find(pt => {
-        try {
-          const contact = JSON.parse(pt.phone);
-          return contact.email && contact.email.toLowerCase().trim() === verifiedEmailClean;
-        } catch (e) {
-          return false;
+    } else {
+      if (requestedFacilityId) {
+        activeProfile = profiles && profiles.find(p => p.facility_id === requestedFacilityId);
+        
+        // If we found profiles but none of them match the requested facility:
+        if (!activeProfile && profiles && profiles.length > 0) {
+          return res.status(401).json({
+            error: "Access Denied: Your account is not registered under this facility subdomain."
+          });
         }
-      });
-
-      if (matchingPatient) {
-        // Automatically create a profile for the patient!
-        activeProfile = await db.createDocument("profiles", verifiedUserId, {
-          full_name: matchingPatient.name,
-          role: "patient",
-          facility_id: matchingPatient.facility_id,
-          email: verifiedEmailClean
-        });
       } else {
-        // Query if there is a pending/rejected role request
-        const requests = await db.getDocuments("role_requests", [
-          { type: "equal", column: "email", value: verifiedEmailClean },
-        ]);
-        const activeRequest = requests && requests[0];
+        activeProfile = profiles && profiles[0];
+      }
 
-        return res.json({
-          status: "no_profile",
-          user: { id: verifiedUserId, email: verifiedEmailClean, name: verifiedName },
-          pendingRequest: activeRequest || null,
+      if (!activeProfile) {
+        // Check if this email belongs to a patient
+        const allPatients = await db.getDocuments("patients", []);
+        let matchingPatient = null;
+        if (requestedFacilityId) {
+          matchingPatient = allPatients.find(pt => {
+            if (pt.facility_id !== requestedFacilityId) return false;
+            try {
+              const contact = JSON.parse(pt.phone);
+              return contact.email && contact.email.toLowerCase().trim() === verifiedEmailClean;
+            } catch (e) {
+              return false;
+            }
+          });
+          
+          // If the patient is found in other facilities but not this requested one, reject
+          if (!matchingPatient) {
+            const anyMatchingPatient = allPatients.find(pt => {
+              try {
+                const contact = JSON.parse(pt.phone);
+                return contact.email && contact.email.toLowerCase().trim() === verifiedEmailClean;
+              } catch (e) {
+                return false;
+              }
+            });
+            if (anyMatchingPatient) {
+              return res.status(401).json({
+                error: "Access Denied: Your account is not registered under this facility subdomain."
+              });
+            }
+          }
+        } else {
+          matchingPatient = allPatients.find(pt => {
+            try {
+              const contact = JSON.parse(pt.phone);
+              return contact.email && contact.email.toLowerCase().trim() === verifiedEmailClean;
+            } catch (e) {
+              return false;
+            }
+          });
+        }
+
+        if (matchingPatient) {
+          // Automatically create a profile for the patient!
+          activeProfile = await db.createDocument("profiles", verifiedUserId, {
+            full_name: matchingPatient.name,
+            role: "patient",
+            facility_id: matchingPatient.facility_id,
+            email: verifiedEmailClean
+          });
+        } else {
+          // Query if there is a pending/rejected role request
+          const requests = await db.getDocuments("role_requests", [
+            { type: "equal", column: "email", value: verifiedEmailClean },
+          ]);
+          const activeRequest = requests && requests[0];
+
+          // If a role request exists, verify it doesn't mismatch the requested facility
+          if (activeRequest && requestedFacilityId && activeRequest.facility_id !== requestedFacilityId) {
+            return res.status(401).json({
+              error: "Access Denied: Your account is not registered under this facility subdomain."
+            });
+          }
+
+          return res.json({
+            status: "no_profile",
+            user: { id: verifiedUserId, email: verifiedEmailClean, name: verifiedName },
+            pendingRequest: activeRequest || null,
+          });
+        }
+      }
+    }
+
+    if (activeProfile && activeProfile.role !== "super_admin" && requestedFacilityId) {
+      if (activeProfile.facility_id && activeProfile.facility_id !== requestedFacilityId) {
+        return res.status(401).json({
+          error: "Access Denied: Your account is not registered under this facility subdomain."
         });
       }
     }
@@ -230,7 +294,7 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/supabase-login", async (req, res) => {
-  const { access_token, facility_id } = req.body;
+  const { access_token, facility_id, requestedFacilityId } = req.body;
 
   try {
     if (!supabaseClient) {
@@ -256,9 +320,13 @@ router.post("/supabase-login", async (req, res) => {
     ]);
 
     let activeProfile = null;
+    const targetFacId = requestedFacilityId || facility_id;
 
     if (userEmailClean === "fredrickmakori102@gmail.com") {
-      activeProfile = profiles && profiles[0];
+      activeProfile = profiles && profiles.find(p => p.role === "super_admin");
+      if (!activeProfile && profiles && profiles.length > 0) {
+        activeProfile = profiles[0];
+      }
       if (!activeProfile) {
         activeProfile = await db.createDocument("profiles", user.id, {
           full_name: "Fredrick Makori (Super Admin)",
@@ -275,8 +343,15 @@ router.post("/supabase-login", async (req, res) => {
         activeProfile.email = userEmailClean;
       }
     } else {
-      if (facility_id) {
-        activeProfile = profiles && profiles.find(p => p.facility_id === facility_id);
+      if (targetFacId) {
+        activeProfile = profiles && profiles.find(p => p.facility_id === targetFacId);
+        
+        // If we found profiles but none of them match the requested facility:
+        if (!activeProfile && profiles && profiles.length > 0) {
+          return res.status(401).json({
+            error: "Access Denied: Your account is not registered under this facility subdomain."
+          });
+        }
       } else if (profiles && profiles.length === 1) {
         activeProfile = profiles[0];
       } else if (profiles && profiles.length > 1) {
@@ -300,16 +375,80 @@ router.post("/supabase-login", async (req, res) => {
       }
 
       if (!activeProfile) {
-        // Query if there is a pending/rejected role request
-        const requests = await db.getDocuments("role_requests", [
-          { type: "equal", column: "email", value: userEmailClean },
-        ]);
-        const activeRequest = requests && requests[0];
+        // Check if this email belongs to a patient
+        const allPatients = await db.getDocuments("patients", []);
+        let matchingPatient = null;
+        if (targetFacId) {
+          matchingPatient = allPatients.find(pt => {
+            if (pt.facility_id !== targetFacId) return false;
+            try {
+              const contact = JSON.parse(pt.phone);
+              return contact.email && contact.email.toLowerCase().trim() === userEmailClean;
+            } catch (e) {
+              return false;
+            }
+          });
 
-        return res.json({
-          status: "no_profile",
-          user: { id: user.id, email: userEmailClean, name: user.user_metadata?.full_name || user.email },
-          pendingRequest: activeRequest || null,
+          // If the patient is found in other facilities but not this requested one, reject
+          if (!matchingPatient) {
+            const anyMatchingPatient = allPatients.find(pt => {
+              try {
+                const contact = JSON.parse(pt.phone);
+                return contact.email && contact.email.toLowerCase().trim() === userEmailClean;
+              } catch (e) {
+                return false;
+              }
+            });
+            if (anyMatchingPatient) {
+              return res.status(401).json({
+                error: "Access Denied: Your account is not registered under this facility subdomain."
+              });
+            }
+          }
+        } else {
+          matchingPatient = allPatients.find(pt => {
+            try {
+              const contact = JSON.parse(pt.phone);
+              return contact.email && contact.email.toLowerCase().trim() === userEmailClean;
+            } catch (e) {
+              return false;
+            }
+          });
+        }
+
+        if (matchingPatient) {
+          activeProfile = await db.createDocument("profiles", user.id, {
+            full_name: matchingPatient.name,
+            role: "patient",
+            facility_id: matchingPatient.facility_id,
+            email: userEmailClean
+          });
+        } else {
+          // Query if there is a pending/rejected role request
+          const requests = await db.getDocuments("role_requests", [
+            { type: "equal", column: "email", value: userEmailClean },
+          ]);
+          const activeRequest = requests && requests[0];
+
+          if (activeRequest && targetFacId && activeRequest.facility_id !== targetFacId) {
+            return res.status(401).json({
+              error: "Access Denied: Your account is not registered under this facility subdomain."
+            });
+          }
+
+          return res.json({
+            status: "no_profile",
+            user: { id: user.id, email: userEmailClean, name: user.user_metadata?.full_name || user.email },
+            pendingRequest: activeRequest || null,
+          });
+        }
+      }
+    }
+
+    if (activeProfile && activeProfile.role !== "super_admin" && targetFacId) {
+      if (activeProfile.facility_id && activeProfile.facility_id !== targetFacId) {
+        return res.status(401).json({
+          error: "Access Denied: Your account is not registered under this facility subdomain."
         });
       }
     }

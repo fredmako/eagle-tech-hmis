@@ -8,9 +8,10 @@ import { useAuth } from '../context/AuthContext';
 import { sendNotification, getSmtpConfig } from '../notificationService';
 import { Activity, ShieldAlert, CheckCircle, UserPlus, Clock, LogOut, UserCheck, ShieldCheck, Heart, ChevronRight } from 'lucide-react';
 
-export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLanding }) {
+export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLanding, lockedFacilityId: propLockedFacilityId }) {
   const { login, signup, logout, submitRoleRequest, resolveTenant, acceptInvite, checkSession } = useAuth();
   const [facilities, setFacilities] = useState([]);
+  const [lockedFacilityId, setLockedFacilityId] = useState(propLockedFacilityId || null);
   const [selectedFacility, setSelectedFacility] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -253,6 +254,31 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       if (data && data.length > 0) {
         setFacilities(data);
 
+        // Subdomain resolution logic
+        let resolvedLockedId = propLockedFacilityId || null;
+        if (!resolvedLockedId) {
+          const hostnameParts = window.location.hostname.split('.');
+          const isSubdomain = hostnameParts.length > 2 && hostnameParts[0] !== 'www' && !window.location.hostname.includes('localhost') && !window.location.hostname.match(/^[0-9.]+$/);
+          let subdomain = null;
+          if (isSubdomain) {
+            subdomain = hostnameParts[0];
+          } else {
+            const pathParts = window.location.pathname.split('/');
+            const hospitalIndex = pathParts.indexOf('hospital');
+            subdomain = hospitalIndex !== -1 && pathParts[hospitalIndex + 1] ? pathParts[hospitalIndex + 1] : null;
+          }
+          if (subdomain) {
+            const matched = data.find(f => f.subdomain_prefix === subdomain || f.id === subdomain);
+            if (matched) {
+              resolvedLockedId = matched.id;
+            }
+          }
+        }
+        if (resolvedLockedId) {
+          setLockedFacilityId(resolvedLockedId);
+          setSelectedFacility(resolvedLockedId);
+        }
+
         // Check for active Supabase session (Google redirect callback)
         let supabaseUser = null;
         if (!supabase.isSandbox) {
@@ -281,7 +307,10 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
               const res = await fetch(`${backendUrl}/auth/supabase-login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ access_token: clientJwt })
+                body: JSON.stringify({ 
+                  access_token: clientJwt,
+                  requestedFacilityId: resolvedLockedId || undefined
+                })
               });
               let resData;
               try {
@@ -403,6 +432,13 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       const res = await resolveTenant(email);
       console.log('[Login:handleResolveEmail] resolved:', res.resolved, 'type:', res.type);
       if (res.resolved) {
+        // If we are on a locked facility subdomain, reject mismatching resolved tenant
+        const activeLockedId = lockedFacilityId || propLockedFacilityId;
+        if (activeLockedId && res.tenant.id !== activeLockedId) {
+          setError(`Access Denied: Your account is registered under ${res.tenant.name}, not this facility.`);
+          setLoading(false);
+          return;
+        }
         setResolvedTenant(res.tenant);
         setSelectedFacility(res.tenant.id);
         if (res.type === 'login') {
@@ -497,8 +533,11 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     setError('');
     console.log('[Login:handleLogin] ▶ Login button clicked. Email:', email, '| Facility:', selectedFacility);
 
+    if (selectedFacility) {
+      localStorage.setItem('egesa_active_facility_id', selectedFacility);
+    }
     try {
-      const result = await login(email, password);
+      const result = await login(email, password, selectedFacility || undefined);
       console.log('[Login:handleLogin] login() resolved with status:', result?.status);
       // Reset failed attempts on success
       setFailedAttempts(0);
@@ -784,6 +823,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       } else {
         // Link directly to Supabase Google Sign-In
         sessionStorage.setItem('egesa_health_pending_facility', selectedFacility);
+        localStorage.setItem('egesa_active_facility_id', selectedFacility);
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -1398,7 +1438,8 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                   <select
                     value={selectedFacility}
                     onChange={(e) => setSelectedFacility(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                    disabled={!!lockedFacilityId}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition disabled:opacity-70 disabled:cursor-not-allowed"
                     required
                   >
                     {facilities.map((fac) => (

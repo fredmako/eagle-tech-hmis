@@ -77,6 +77,54 @@ import {
 
 export default function App() {
   const { user, setUser, logout, loading, checkSession } = useAuth();
+
+  // Extract subdomain and pathname at top level
+  const hostnameParts = window.location.hostname.split('.');
+  const isSubdomain = hostnameParts.length > 2 && hostnameParts[0] !== 'www' && !window.location.hostname.includes('localhost') && !window.location.hostname.match(/^[0-9.]+$/);
+  
+  let subdomain = null;
+  if (isSubdomain) {
+    subdomain = hostnameParts[0];
+  } else {
+    const pathParts = window.location.pathname.split('/');
+    const hospitalIndex = pathParts.indexOf('hospital');
+    subdomain = hospitalIndex !== -1 && pathParts[hospitalIndex + 1] ? pathParts[hospitalIndex + 1] : null;
+  }
+
+  const [subdomainFacility, setSubdomainFacility] = useState(null);
+  const [checkingSubdomain, setCheckingSubdomain] = useState(true);
+
+  useEffect(() => {
+    const fetchSubdomainFacility = async () => {
+      if (!subdomain) {
+        setCheckingSubdomain(false);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('facilities')
+          .select('*')
+          .or(`subdomain_prefix.eq.${subdomain},id.eq.${subdomain}`)
+          .maybeSingle();
+
+        if (data) {
+          setSubdomainFacility(data);
+          // Verify active user facility context
+          if (user && user.role !== 'super_admin' && user.role !== 'platform_support' && user.facility_id !== data.id) {
+            console.warn('[Subdomain Access] Logged-in user belongs to a different facility. Logging out.', user.facility_id, 'vs', data.id);
+            await logout();
+            window.location.reload();
+          }
+        }
+      } catch (err) {
+        console.error('Error loading subdomain facility details:', err);
+      } finally {
+        setCheckingSubdomain(false);
+      }
+    };
+    fetchSubdomainFacility();
+  }, [subdomain, user?.id]);
+
   const [notification, setNotification] = useState(null); // { type: 'success' | 'error', title: string, message: string }
   const showNotification = (type, title, message) => {
     setNotification({ type, title, message });
@@ -569,14 +617,12 @@ export default function App() {
     return <QueueBoardPublic />;
   }
 
-  const isViewingPublic = !user || ["landing", "cards", "callback", "signup", "login"].includes(publicView) || pathname.startsWith("/hospital/");
+  const isViewingPublic = !user || ["landing", "cards", "callback", "signup", "login"].includes(publicView) || (pathname.startsWith("/hospital/") && !pathname.endsWith("/login"));
   if (isViewingPublic) {
     const publicContent = (() => {
-      const hostnameParts = window.location.hostname.split('.');
-      const isSubdomain = hostnameParts.length > 2 && hostnameParts[0] !== 'www' && !window.location.hostname.includes('localhost') && !window.location.hostname.match(/^[0-9.]+$/);
-
       const isValidPath = 
         pathname === "/" || 
+        pathname === "/login" ||
         pathname.startsWith("/auth/callback") || 
         pathname === "/patient-portal" || 
         pathname.startsWith("/hospital/");
@@ -603,7 +649,17 @@ export default function App() {
         );
       }
 
-      if (pathname.startsWith("/hospital/") || (isSubdomain && pathname === "/")) {
+      if (pathname === "/login" || publicView === "login" || (pathname.startsWith("/hospital/") && pathname.endsWith("/login"))) {
+        return (
+          <Login
+            lockedFacilityId={subdomainFacility?.id}
+            onLoginSuccess={handleLoginSuccess}
+            onNavigateToSaaS={() => setPublicView("signup")}
+            onNavigateToLanding={() => setPublicView("landing")}
+          />
+        );
+      }
+      if ((pathname.startsWith("/hospital/") && !pathname.endsWith("/login")) || (isSubdomain && pathname === "/")) {
         return <FacilityLandingPage />;
       }
       if (pathname === "/patient-portal") {
@@ -624,14 +680,6 @@ export default function App() {
       if (publicView === "signup")
         return (
           <SaaSOnboarding onBackToLogin={() => setPublicView("landing")} />
-        );
-      if (publicView === "login")
-        return (
-          <Login
-            onLoginSuccess={handleLoginSuccess}
-            onNavigateToSaaS={() => setPublicView("signup")}
-            onNavigateToLanding={() => setPublicView("landing")}
-          />
         );
       if (publicView === "cards")
       return (

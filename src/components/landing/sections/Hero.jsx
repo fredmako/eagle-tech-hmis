@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, ChevronRight, Activity, ChevronDown, ShieldCheck, Building, LayoutDashboard } from 'lucide-react';
 import { SafeImage } from '../../ui/SafeImage';
 import { PHOTO_HERO } from '../data';
+import DemoRequestModal from './DemoRequestModal';
 
 export function Hero({ 
   user, 
@@ -15,6 +16,7 @@ export function Hero({
 }) {
   const reduced = useReducedMotion();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -159,6 +161,14 @@ export function Hero({
                 >
                   <span>Access Clinical Workspace</span> <ChevronRight size={14} />
                 </motion.button>
+                <motion.button
+                  whileHover={reduced ? {} : { scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsDemoOpen(true)}
+                  className="flex items-center justify-center gap-2 text-sm text-teal-400 hover:text-teal-300 border border-teal-500/20 hover:border-teal-500/40 hover:bg-teal-500/5 px-6 py-3 rounded-xl transition-all duration-medium font-sans font-bold cursor-pointer"
+                >
+                  <span>Request Live Demo</span> <Activity size={14} className="animate-pulse" />
+                </motion.button>
               </>
             )}
           </motion.div>
@@ -278,6 +288,7 @@ export function Hero({
           </motion.div>
         </div>
       </div>
+      <DemoRequestModal isOpen={isDemoOpen} onClose={() => setIsDemoOpen(false)} />
     </section>
   );
 }

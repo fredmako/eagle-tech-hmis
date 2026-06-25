@@ -21,6 +21,7 @@ const workflowsRouter = require("./routes/workflows");
 const paymentsRouter = require("./routes/payments");
 const domainsRouter = require("./routes/domains");
 const smsRouter = require("./routes/sms");
+const demoRouter = require("./routes/demo");
 
 // Mount routes
 app.use("/api/auth", authRouter);
@@ -34,6 +35,7 @@ app.use("/api/workflows", workflowsRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/domains", domainsRouter);
 app.use("/api/sms", smsRouter);
+app.use("/api/demo", demoRouter);
 
 const { runMigrations } = require("./utils/migrationRunner");
 

@@ -330,7 +330,7 @@ router.post("/query", async (req, res) => {
   } = req.body;
   if (!table) return res.status(400).json({ error: "Table name is required" });
 
-  // Security: only allow unauthenticated requests for 'facilities', 'doctor_availability', 'profiles', and 'appointments' tables
+  // Security: only allow unauthenticated requests for 'facilities', 'doctor_availability', 'profiles', 'appointments', and 'demo_requests' tables
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
   if (token) {
@@ -338,19 +338,19 @@ router.post("/query", async (req, res) => {
       const decodedUser = jwt.verify(token, JWT_SECRET);
       req.user = decodedUser;
     } catch (err) {
-      if (table !== "facilities" && table !== "doctor_availability" && table !== "profiles" && table !== "appointments") {
+      if (table !== "facilities" && table !== "doctor_availability" && table !== "profiles" && table !== "appointments" && table !== "demo_requests") {
         return res.status(403).json({ error: "Invalid or expired session token" });
       }
     }
   } else {
-    if (table !== "facilities" && table !== "doctor_availability" && table !== "profiles" && table !== "appointments") {
+    if (table !== "facilities" && table !== "doctor_availability" && table !== "profiles" && table !== "appointments" && table !== "demo_requests") {
       return res.status(401).json({ error: "Access token required" });
     }
   }
 
   try {
     // If table is not a global table, automatically enforce facility filtering
-    const globalTables = ["facilities", "profiles", "support_tickets"];
+    const globalTables = ["facilities", "profiles", "support_tickets", "demo_requests"];
     const enrichedQueries = [...queries];
 
     if (table === "support_tickets" && req.user) {
@@ -420,8 +420,8 @@ router.post("/insert", async (req, res) => {
   if (!table || !rows)
     return res.status(400).json({ error: "Table and rows are required" });
 
-  // Security: only allow unauthenticated requests for 'facilities', 'profiles', 'support_tickets', and 'appointments'
-  if (table !== "facilities" && table !== "profiles" && table !== "support_tickets" && table !== "appointments") {
+  // Security: only allow unauthenticated requests for 'facilities', 'profiles', 'support_tickets', 'appointments', and 'demo_requests'
+  if (table !== "facilities" && table !== "profiles" && table !== "support_tickets" && table !== "appointments" && table !== "demo_requests") {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
     if (!token) return res.status(401).json({ error: "Access token required" });
@@ -443,7 +443,7 @@ router.post("/insert", async (req, res) => {
 
     for (const row of dataRows) {
       const { id, created_at, ...cleanRow } = row;
-      const globalTables = ["facilities", "profiles", "support_tickets"];
+      const globalTables = ["facilities", "profiles", "support_tickets", "demo_requests"];
 
       // Enforce facility_id for tenant tables if authenticated
       if (
@@ -513,7 +513,7 @@ router.post("/update", authenticateToken, async (req, res) => {
   try {
     // 1. Find matching documents
     const queries = [{ type: "equal", column, value }];
-    const globalTables = ["facilities", "profiles", "support_tickets"];
+    const globalTables = ["facilities", "profiles", "support_tickets", "demo_requests"];
     if (!globalTables.includes(table) && req.user.role !== "super_admin" && req.user.role !== "platform_support") {
       queries.push({
         type: "equal",
@@ -586,7 +586,7 @@ router.post("/delete", authenticateToken, async (req, res) => {
   try {
     // 1. Find matching documents
     const queries = [{ type: "equal", column, value }];
-    const globalTables = ["facilities", "profiles", "support_tickets"];
+    const globalTables = ["facilities", "profiles", "support_tickets", "demo_requests"];
     if (!globalTables.includes(table) && req.user.role !== "super_admin" && req.user.role !== "platform_support") {
       queries.push({
         type: "equal",

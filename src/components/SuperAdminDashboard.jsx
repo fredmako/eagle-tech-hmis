@@ -23,7 +23,9 @@ import {
   CreditCard,
   Layers,
   Sparkles,
-  Percent
+  Percent,
+  Phone,
+  ExternalLink
 } from 'lucide-react';
 
 export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
@@ -34,8 +36,9 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // stores facilityId or request ID during action
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [activeTab, setActiveTab] = useState('registry'); // 'registry' | 'audit' | 'requests' | 'support'
+  const [activeTab, setActiveTab] = useState('registry'); // 'registry' | 'audit' | 'requests' | 'support' | 'demo'
   const [supportTickets, setSupportTickets] = useState([]);
+  const [demoRequests, setDemoRequests] = useState([]);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [responseText, setResponseText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
@@ -167,6 +170,23 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
       if (ticketErr) throw ticketErr;
       setSupportTickets(tickets || []);
 
+      // Fetch demo requests
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      let demoList = [];
+      try {
+        const res = await fetch(`${apiBase}/demo/list`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          demoList = resData.data || [];
+        }
+      } catch (err) {
+        console.error('Failed to load demo requests:', err);
+      }
+      setDemoRequests(demoList);
+
       // Fetch platform usage statistics
       const { data: profiles } = await supabase.from('profiles').select('*');
       const { data: patients } = await supabase.from('patients').select('*');
@@ -188,6 +208,37 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleUpdateDemoStatus = async (id, newStatus) => {
+    setActionLoading(id);
+    setMessage({ type: '', text: '' });
+    try {
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      
+      const res = await fetch(`${apiBase}/demo/status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id, status: newStatus })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to update status.');
+      }
+
+      setDemoRequests(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
+      setMessage({ type: 'success', text: `Demo prospect status updated to ${newStatus} successfully!` });
+    } catch (err) {
+      console.error('Failed to update demo status:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to update status.' });
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -494,6 +545,21 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
               </span>
             )}
           </button>
+          
+          <button
+            onClick={() => setActiveTab('demo')}
+            className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${
+              activeTab === 'demo' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span>Demo Prospects</span>
+            {demoRequests.filter(d => d.status === 'pending').length > 0 && (
+              <span className="bg-teal-500/20 text-[10px] text-teal-400 font-bold px-1.5 py-0.5 rounded-full border border-teal-500/25 animate-pulse">
+                {demoRequests.filter(d => d.status === 'pending').length}
+              </span>
+            )}
+          </button>
+
           <button
             onClick={() => setActiveTab('insights')}
             className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${
@@ -860,6 +926,112 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
                 </div>
               );
             })()}
+          </div>
+        ) : activeTab === 'demo' ? (
+          /* DEMO PROSPECTS PANEL */
+          <div className="space-y-4 animate-fadeIn font-sans">
+            <div className="bg-slate-900 border border-slate-850 rounded-2xl shadow-xl overflow-hidden">
+              <div className="p-4 border-b border-slate-850 flex justify-between items-center bg-slate-950/25">
+                <div>
+                  <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider">Demo Prospects & Bookings</h3>
+                  <p className="text-[10px] text-slate-550 mt-0.5">Collect requests from prospective clients, check WhatsApp numbers, and manage follow-ups.</p>
+                </div>
+                <button
+                  onClick={fetchSuperAdminData}
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-400 hover:text-white transition cursor-pointer"
+                  title="Refresh List"
+                >
+                  <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[11px] text-slate-300 font-sans">
+                  <thead className="bg-slate-950/45 text-[9px] uppercase tracking-wider text-slate-455 border-b border-slate-850">
+                    <tr>
+                      <th className="py-3 px-4 font-bold">Prospect Info</th>
+                      <th className="py-3 px-4 font-bold">Contact Details</th>
+                      <th className="py-3 px-4 text-center font-bold">Scheduled Slot</th>
+                      <th className="py-3 px-4 text-center font-bold">Date Booked</th>
+                      <th className="py-3 px-4 text-center font-bold">Status</th>
+                      <th className="py-3 px-4 text-right font-bold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-850/50">
+                    {demoRequests.map((prospect) => (
+                      <tr key={prospect.id} className="hover:bg-slate-955/10 transition">
+                        <td className="py-3 px-4 font-bold text-slate-100">{prospect.name}</td>
+                        <td className="py-3 px-4 space-y-1">
+                          <a href={`mailto:${prospect.email}`} className="flex items-center gap-1 text-teal-400 hover:underline hover:text-teal-355 font-bold">
+                            <Mail size={11} /> {prospect.email}
+                          </a>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-400 font-mono">{prospect.phone}</span>
+                            <a 
+                              href={`https://wa.me/${prospect.phone.replace(/[^0-9]/g, '')}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[9.5px] font-bold text-teal-400 hover:text-teal-355 flex items-center gap-0.5"
+                              title="Chat on WhatsApp"
+                            >
+                              <Phone size={10} /> Chat <ExternalLink size={8} />
+                            </a>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="block font-bold text-slate-205">{prospect.preferred_date}</span>
+                          <span className="text-[10px] text-slate-500 font-medium">{prospect.preferred_time}</span>
+                        </td>
+                        <td className="py-3 px-4 text-center text-[10px] text-slate-550 font-mono">
+                          {new Date(prospect.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${
+                            prospect.status === 'completed' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-450' :
+                            prospect.status === 'confirmed' ? 'bg-blue-500/10 border-blue-500/20 text-blue-450' :
+                            'bg-amber-500/10 border-amber-500/20 text-amber-450 animate-pulse'
+                          }`}>
+                            {prospect.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex justify-end gap-1.5">
+                            {prospect.status === 'pending' && (
+                              <button
+                                onClick={() => handleUpdateDemoStatus(prospect.id, 'confirmed')}
+                                disabled={actionLoading === prospect.id}
+                                className="bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 font-bold text-[9px] uppercase px-2 py-1 rounded transition cursor-pointer"
+                              >
+                                Confirm
+                              </button>
+                            )}
+                            {prospect.status !== 'completed' && (
+                              <button
+                                onClick={() => handleUpdateDemoStatus(prospect.id, 'completed')}
+                                disabled={actionLoading === prospect.id}
+                                className="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 font-bold text-[9px] uppercase px-2 py-1 rounded transition cursor-pointer"
+                              >
+                                Complete
+                              </button>
+                            )}
+                            {prospect.status === 'completed' && (
+                              <span className="text-[10px] text-slate-600 font-semibold italic">Archived</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {demoRequests.length === 0 && (
+                      <tr>
+                        <td colSpan="6" className="text-center py-12 text-slate-500 italic">
+                          No demo bookings registered.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         ) : (
           /* INSIGHTS & ANALYTICS PANEL */

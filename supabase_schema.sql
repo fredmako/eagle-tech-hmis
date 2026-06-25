@@ -359,3 +359,18 @@ CREATE TABLE IF NOT EXISTS public.payrolls (
 ALTER TABLE IF EXISTS public.payrolls DISABLE ROW LEVEL SECURITY;
 
 
+-- 27. Create demo_requests table
+CREATE TABLE IF NOT EXISTS public.demo_requests (
+    id text PRIMARY KEY,
+    name text NOT NULL,
+    email text NOT NULL,
+    phone text NOT NULL,
+    preferred_date text NOT NULL,
+    preferred_time text NOT NULL,
+    status text NOT NULL DEFAULT 'pending',
+    created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE IF EXISTS public.demo_requests DISABLE ROW LEVEL SECURITY;
+
+
+

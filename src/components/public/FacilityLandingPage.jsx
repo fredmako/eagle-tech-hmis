@@ -539,6 +539,31 @@ export default function FacilityLandingPage() {
   const categories = [...new Set(services.map(s => s.category))];
   const template = facility.landing_template || 'classic';
 
+  const getServiceImage = (svc) => {
+    const name = (svc.name || '').toLowerCase();
+    const cat = (svc.category || '').toLowerCase();
+
+    if (cat.includes('consult') || name.includes('consult')) {
+      return 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=400&q=80';
+    }
+    if (cat.includes('lab') || cat.includes('test') || name.includes('lab') || name.includes('blood') || name.includes('stool') || name.includes('urine') || name.includes('widal') || name.includes('hiv') || name.includes('panel')) {
+      return 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=400&q=80';
+    }
+    if (cat.includes('immun') || cat.includes('vaccin') || name.includes('vacc') || name.includes('immun')) {
+      return 'https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?auto=format&fit=crop&w=400&q=80';
+    }
+    if (cat.includes('mch') || cat.includes('maternity') || cat.includes('anc') || name.includes('pregnancy') || name.includes('antenatal') || name.includes('delivery')) {
+      return 'https://images.unsplash.com/photo-1531983412531-1f49a365f693?auto=format&fit=crop&w=400&q=80';
+    }
+    if (cat.includes('radiology') || cat.includes('scan') || name.includes('ct') || name.includes('mri') || name.includes('x-ray')) {
+      return 'https://images.unsplash.com/photo-1504813184591-015556c5c472?auto=format&fit=crop&w=400&q=80';
+    }
+    if (cat.includes('ward') || cat.includes('bed') || cat.includes('icu') || name.includes('admission') || name.includes('ward')) {
+      return 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=400&q=80';
+    }
+    return 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=400&q=80';
+  };
+
   const renderHeader = () => (
     <header className="bg-slate-900/60 backdrop-blur border-b border-slate-900 py-4 px-6 shrink-0 flex justify-between items-center z-50 sticky top-0 animate-slideDown">
       <div className="flex items-center gap-2.5">
@@ -877,16 +902,33 @@ export default function FacilityLandingPage() {
         {/* Pricing Catalog */}
         <div className="space-y-6">
           <h3 className="text-xs font-bold text-teal-400 uppercase tracking-widest">Medical Services Pricing Guide</h3>
-          
           <div className="space-y-6">
             {categories.map(cat => (
-              <div key={cat} className="space-y-2">
+              <div key={cat} className="space-y-3">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 border-l-2 border-teal-500">{cat}</h4>
-                <div className="bg-slate-950 border border-slate-900 rounded-xl divide-y divide-slate-900 overflow-hidden shadow-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {services.filter(s => s.category === cat).map((svc, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-2.5 px-4 text-xs hover:bg-slate-900/10">
-                      <span className="font-semibold text-slate-200">{svc.name}</span>
-                      <span className="font-mono font-bold text-teal-400">{svc.charge}/-</span>
+                    <div key={idx} className="bg-slate-900 border border-slate-850 rounded-2xl overflow-hidden shadow-lg group hover:border-slate-800 transition duration-300 flex flex-col">
+                      <div className="relative h-28 w-full bg-slate-955 overflow-hidden">
+                        <img 
+                          src={getServiceImage(svc)} 
+                          alt={svc.name} 
+                          className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-955/80 to-transparent" />
+                        <span className="absolute bottom-2 left-2 text-[8px] font-bold text-teal-400 bg-teal-950/80 border border-teal-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                          {svc.category}
+                        </span>
+                      </div>
+                      <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+                        <h5 className="font-bold text-slate-100 text-xs leading-snug">{svc.name}</h5>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-[10px] text-slate-400 font-medium">Standard Fee</span>
+                          <span className="font-mono font-bold text-teal-400 bg-teal-500/10 border border-teal-500/10 px-2.5 py-1 rounded-lg">
+                            {svc.charge}/-
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1048,17 +1090,32 @@ export default function FacilityLandingPage() {
           </div>
 
           {/* Catalog grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredServices.map((svc, idx) => (
               <div 
                 key={idx} 
-                className="flex justify-between items-center bg-slate-900/40 border border-slate-855/60 p-4 rounded-xl text-xs hover:border-slate-800 transition shadow-sm hover:shadow"
+                className="bg-slate-900/40 border border-slate-850/60 rounded-2xl overflow-hidden shadow-md hover:shadow-lg hover:border-slate-800 transition duration-300 flex flex-col group"
               >
-                <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-teal-400 uppercase tracking-widest">{svc.category}</span>
-                  <h4 className="font-bold text-slate-200">{svc.name}</h4>
+                <div className="relative h-32 w-full bg-slate-950 overflow-hidden">
+                  <img 
+                    src={getServiceImage(svc)} 
+                    alt={svc.name} 
+                    className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent" />
+                  <span className="absolute bottom-2.5 left-3 text-[8px] font-black text-teal-400 bg-teal-950/85 border border-teal-500/20 px-2 py-0.5 rounded-md uppercase tracking-widest">
+                    {svc.category}
+                  </span>
                 </div>
-                <span className="font-mono font-bold text-teal-400 bg-teal-500/5 border border-teal-500/10 px-3 py-1.5 rounded-lg">{svc.charge}/-</span>
+                <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+                  <h4 className="font-bold text-slate-200 text-xs leading-snug group-hover:text-white transition">{svc.name}</h4>
+                  <div className="flex justify-between items-center mt-1">
+                    <span className="text-[10px] text-slate-455 font-bold uppercase tracking-wider font-sans">Service Fee</span>
+                    <span className="font-mono font-bold text-teal-400 bg-teal-500/5 border border-teal-500/15 px-3 py-1 rounded-lg">
+                      {svc.charge}/-
+                    </span>
+                  </div>
+                </div>
               </div>
             ))}
             {filteredServices.length === 0 && (
@@ -1192,11 +1249,29 @@ export default function FacilityLandingPage() {
           {categories.map(cat => (
             <div key={cat} className="space-y-3">
               <span className="inline-block text-[9px] font-bold text-purple-400 bg-purple-500/10 px-3 py-1 rounded-md uppercase tracking-wider">{cat}</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-1">
                 {services.filter(s => s.category === cat).map((svc, idx) => (
-                  <div key={idx} className="flex justify-between items-center py-2 px-3 bg-slate-950/40 border border-slate-900 rounded-xl text-xs hover:border-slate-850 transition">
-                    <span className="font-semibold text-slate-350">{svc.name}</span>
-                    <span className="font-mono text-purple-400 font-bold">{svc.charge}/-</span>
+                  <div key={idx} className="bg-slate-950/40 border border-slate-900 hover:border-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow transition duration-300 flex flex-col group">
+                    <div className="relative h-28 w-full bg-slate-955 overflow-hidden">
+                      <img 
+                        src={getServiceImage(svc)} 
+                        alt={svc.name} 
+                        className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-955/85 to-transparent" />
+                      <span className="absolute bottom-2 left-2 text-[8px] font-bold text-purple-400 bg-purple-950/80 border border-purple-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                        {svc.category}
+                      </span>
+                    </div>
+                    <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+                      <span className="font-semibold text-slate-300 text-xs leading-normal">{svc.name}</span>
+                      <div className="flex justify-between items-center mt-1">
+                        <span className="text-[10px] text-slate-500 font-medium font-sans">Standard Charge</span>
+                        <span className="font-mono text-purple-400 font-bold bg-purple-500/10 border border-purple-500/10 px-2.5 py-1 rounded-lg">
+                          {svc.charge}/-
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

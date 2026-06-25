@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { 
   Building, CheckCircle, Shield, Upload, RefreshCw, Heart, ShieldCheck, 
-  Activity, Save, Sliders, Smartphone, Mail, Settings, Key, Send, AlertTriangle
+  Activity, Save, Sliders, Smartphone, Mail, Settings, Key, Send, AlertTriangle,
+  MapPin, Compass, ArrowRight
 } from 'lucide-react';
 
 export default function HospitalProfile({ user }) {
@@ -21,7 +22,10 @@ export default function HospitalProfile({ user }) {
     contact_phone: '',
     contact_email: '',
     logo_url: '',
-    facility_images: []
+    facility_images: [],
+    latitude: 0,
+    longitude: 0,
+    geofence_radius_meters: 100
   });
 
   // Logo preset and custom logo variables
@@ -149,7 +153,10 @@ export default function HospitalProfile({ user }) {
           contact_phone: data.contact_phone || '',
           contact_email: data.contact_email || '',
           logo_url: data.logo_url || '',
-          facility_images: data.facility_images || []
+          facility_images: data.facility_images || [],
+          latitude: data.latitude || 0,
+          longitude: data.longitude || 0,
+          geofence_radius_meters: data.geofence_radius_meters || 100
         });
 
         // Resolve logo option
@@ -243,6 +250,9 @@ export default function HospitalProfile({ user }) {
           contact_email: facility.contact_email,
           logo_url: finalLogoUrl,
           facility_images: facility.facility_images || [],
+          latitude: parseFloat(facility.latitude) || 0,
+          longitude: parseFloat(facility.longitude) || 0,
+          geofence_radius_meters: parseInt(facility.geofence_radius_meters) || 100,
           system_admin_config: fullSystemConfig
         })
         .eq('id', user.facility_id);
@@ -593,8 +603,130 @@ export default function HospitalProfile({ user }) {
                       value={facility.tax_id}
                       onChange={(e) => setFacility({ ...facility, tax_id: e.target.value })}
                       placeholder="e.g. PIN-A009876543Z"
-                      className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
                     />
+                  </div>
+
+                  <div className="md:col-span-2 mt-6 border-t border-slate-800 pt-6">
+                    <h3 className="text-sm font-bold text-teal-400 font-serif flex items-center gap-1.5 mb-1">
+                      <MapPin size={16} /> Attendance Geofencing & Location Settings
+                    </h3>
+                    <p className="text-[10px] text-slate-400 mb-4 font-sans">
+                      Configure your facility's exact GPS coordinates and geofencing radius. Staff must be within this boundary to register attendance.
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-900/50 border border-slate-800/60 p-5 rounded-2xl">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Latitude Coordinate</label>
+                          <input
+                            type="number"
+                            step="any"
+                            value={facility.latitude || 0}
+                            onChange={(e) => setFacility({ ...facility, latitude: parseFloat(e.target.value) || 0 })}
+                            placeholder="e.g. -1.286389"
+                            className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Longitude Coordinate</label>
+                          <input
+                            type="number"
+                            step="any"
+                            value={facility.longitude || 0}
+                            onChange={(e) => setFacility({ ...facility, longitude: parseFloat(e.target.value) || 0 })}
+                            placeholder="e.g. 36.817223"
+                            className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Geofence Radius (Meters)</label>
+                          <input
+                            type="number"
+                            value={facility.geofence_radius_meters || 100}
+                            onChange={(e) => setFacility({ ...facility, geofence_radius_meters: parseInt(e.target.value) || 100 })}
+                            placeholder="e.g. 100"
+                            className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-mono"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (navigator.geolocation) {
+                              navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                  setFacility(prev => ({
+                                    ...prev,
+                                    latitude: parseFloat(position.coords.latitude.toFixed(6)),
+                                    longitude: parseFloat(position.coords.longitude.toFixed(6))
+                                  }));
+                                  showMsg('success', 'GPS Coordinates successfully captured!');
+                                },
+                                (err) => {
+                                  showMsg('error', `Failed to get location: ${err.message}`);
+                                }
+                              );
+                            } else {
+                              showMsg('error', 'Geolocation is not supported by your browser.');
+                            }
+                          }}
+                          className="w-full flex items-center justify-center gap-1.5 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/25 text-teal-400 font-bold py-2.5 px-4 rounded-xl text-xs transition active:scale-[0.98] cursor-pointer"
+                        >
+                          <Compass size={14} className="animate-spin" style={{ animationDuration: '6s' }} /> Capture Device GPS Location
+                        </button>
+                      </div>
+
+                      <div className="md:col-span-2 flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-800/80 pt-4 md:pt-0 md:pl-6">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Geofence Boundary Visualization</label>
+                        <div className="relative h-44 bg-slate-950 border border-slate-850 rounded-xl overflow-hidden flex items-center justify-center">
+                          {/* Map Radar Effect */}
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-teal-500/5 via-transparent to-transparent pointer-events-none" />
+                          <div className="absolute h-36 w-36 border border-teal-500/10 rounded-full flex items-center justify-center animate-ping" style={{ animationDuration: '3s' }} />
+                          <div className="absolute h-24 w-24 border border-teal-500/20 rounded-full flex items-center justify-center animate-pulse" />
+                          
+                          {/* Geofence Ring */}
+                          <div className="absolute border border-teal-400/40 bg-teal-400/[0.03] rounded-full flex flex-col items-center justify-center" style={{ 
+                            width: `${Math.min(150, Math.max(60, ((facility.geofence_radius_meters || 100) / 500) * 150))}px`,
+                            height: `${Math.min(150, Math.max(60, ((facility.geofence_radius_meters || 100) / 500) * 150))}px`,
+                            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+                          }}>
+                            <span className="text-[9px] text-teal-400 font-black font-mono bg-slate-900/90 border border-teal-500/20 px-1.5 py-0.5 rounded shadow">
+                              {facility.geofence_radius_meters || 100}m Radius
+                            </span>
+                          </div>
+
+                          {/* Center Clinic Marker */}
+                          <div className="z-10 flex flex-col items-center gap-1">
+                            <div className="bg-teal-400 text-slate-950 p-2 rounded-full shadow-lg border border-teal-300 animate-bounce" style={{ animationDuration: '4s' }}>
+                              <Activity size={18} />
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-200 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800">
+                              {facility.name || 'Hospital Center'}
+                            </span>
+                          </div>
+
+                          {/* Coordinates Overlay */}
+                          <div className="absolute bottom-2 left-2 text-[9px] text-slate-500 font-mono flex flex-col gap-0.5 bg-slate-900/60 p-1.5 rounded border border-slate-800/40">
+                            <span>Lat: {facility.latitude || 0}</span>
+                            <span>Lng: {facility.longitude || 0}</span>
+                          </div>
+
+                          <a
+                            href={`https://www.openstreetmap.org/?mlat=${facility.latitude || 0}&mlon=${facility.longitude || 0}#map=17/${facility.latitude || 0}/${facility.longitude || 0}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="absolute top-2 right-2 flex items-center gap-1 bg-slate-900 border border-slate-800 text-[9px] text-slate-300 hover:text-white px-2 py-1 rounded transition"
+                          >
+                            <span>OpenStreetMap</span>
+                            <ArrowRight size={10} />
+                          </a>
+                        </div>
+
+                        <p className="text-[10px] text-slate-500 italic mt-2 text-center md:text-left font-sans">
+                          * The Geofence boundary is scaled mock representation. Click "OpenStreetMap" to inspect actual coordinates on a satellite maps provider.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

@@ -83,7 +83,7 @@ export default function Admin({ user, initialSubTab }) {
   const [roleRequests, setRoleRequests] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [supportTicketsCount, setSupportTicketsCount] = useState(0);
-  const [viewMode, setViewMode] = useState('split'); // 'split' | 'maximize' | 'window' | 'dock'
+
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestsMessage, setRequestsMessage] = useState('');
   const [facilityDetails, setFacilityDetails] = useState({
@@ -1076,154 +1076,9 @@ export default function Admin({ user, initialSubTab }) {
 
   return (
     <div className="relative">
-      {/* View Mode Background Backdrop */}
-      {(viewMode === 'window' || viewMode === 'dock') && (
-        <div 
-          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 transition-opacity duration-300 animate-fadeIn"
-          onClick={() => setViewMode('split')}
-        />
-      )}
-
-      <div className={viewMode === 'maximize' ? 'w-full animate-fadeIn' : 'grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn'}>
-        {/* Left Columns: Config & Users */}
-        {viewMode !== 'maximize' && (
-          <div className="space-y-6 transition-all duration-300">
-        {/* Facility Info Card */}
-        <div 
-          onClick={() => setActiveSubTab('facility_profile')}
-          className="bg-slate-900 border border-slate-800 hover:border-teal-500/30 rounded-xl p-5 shadow-sm space-y-4 cursor-pointer transition-all duration-300 hover:bg-slate-850/20 hover:shadow-lg group"
-        >
-          <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 pb-2.5 border-b border-slate-800 group-hover:text-teal-400 transition-colors">
-            <Settings size={14} className="text-teal-400" /> Facility Configuration
-          </h3>
-
-          <div className="space-y-3.5 text-xs">
-            <div>
-              <span className="text-slate-500 block font-semibold">Facility Name</span>
-              <span className="font-semibold text-slate-200">{facilityDetails.name || 'Loading...'}</span>
-            </div>
-            <div>
-              <span className="text-slate-500 block font-semibold">MOH Facility Code</span>
-              <span className="font-semibold text-teal-400 font-mono">{facilityDetails.code || 'Loading...'}</span>
-            </div>
-            <div>
-              <span className="text-slate-500 block font-semibold">Active Service Departments</span>
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {['Triage', 'Outpatient Consult', 'Laboratory', 'Pharmacy', 'Billing'].map(d => (
-                  <span key={d} className="bg-slate-950 border border-slate-850 px-2 py-0.5 rounded text-[10px] text-slate-400">
-                    {d}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {user.email === 'fredrickmakori102@gmail.com' && (
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 pb-2.5 border-b border-slate-800">
-              <ShieldCheck size={14} className="text-yellow-400" /> Super Admin Portal
-            </h3>
-            <p className="text-xs text-slate-400 leading-relaxed font-sans">
-              You are currently logged in as a clinic administrator for this tenant. Click below to return to the Systems Control Console.
-            </p>
-            <button
-              onClick={() => {
-                const updatedUser = {
-                  ...user,
-                  role: 'super_admin',
-                  facility_id: null,
-                  facility_name: 'Eagle Tech Systems Control',
-                  facility_logo: null,
-                  facility_is_verified: true
-                };
-                setUser(updatedUser);
-                sessionStorage.setItem('egesa_health_active_user', JSON.stringify(updatedUser));
-              }}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold text-xs py-2 rounded-lg transition active:scale-[0.98] cursor-pointer font-sans"
-            >
-              Go to Super Admin Console
-            </button>
-          </div>
-        )}
-
-        {/* User Configuration */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-          <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 pb-2.5 border-b border-slate-800">
-            <UserPlus size={14} className="text-teal-400" /> Register Healthcare User
-          </h3>
-
-          {userMessage && (
-            <div className="bg-teal-500/5 border border-teal-500/20 text-teal-400 p-2.5 rounded text-xs flex gap-2">
-              <CheckCircle size={14} className="shrink-0 mt-0.5" />
-              <span>{userMessage}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleCreateUser} className="space-y-3">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Full Name</label>
-              <input
-                type="text"
-                value={newUserName}
-                onChange={(e) => setNewUserName(e.target.value)}
-                placeholder="Dr. Jane Doe / Nurse"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
-              <input
-                type="email"
-                value={newUserEmail}
-                onChange={(e) => setNewUserEmail(e.target.value)}
-                placeholder="staff@hospital.com"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Operational Role</label>
-              <select
-                value={newUserRole}
-                onChange={(e) => setNewUserRole(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition"
-              >
-                <option value="receptionist">Receptionist</option>
-                <option value="nurse">Triage Nurse</option>
-                <option value="clinician">Clinician (Doctor)</option>
-                <option value="lab_tech">Lab Technician</option>
-                <option value="pharmacist">Pharmacist</option>
-                <option value="cashier">Billing Cashier</option>
-                <option value="admin">Administrator</option>
-              </select>
-            </div>
-
-            <button
-              type="submit"
-              disabled={userLoading}
-              className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 rounded-lg transition active:scale-[0.98]"
-            >
-              {userLoading ? 'Provisioning Profile...' : 'Configure Profile'}
-            </button>
-          </form>
-        </div>
-      </div>
-      )}
-
-      {/* Right Columns: Tabbed Control Center */}
-      <div className={`transition-all duration-300 flex flex-col justify-start min-w-0 ${
-        viewMode === 'maximize' 
-          ? 'w-full bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-3 min-h-[480px]'
-          : viewMode === 'window'
-          ? 'fixed inset-4 sm:inset-10 z-50 bg-slate-900 border border-slate-700 shadow-2xl rounded-2xl p-6 space-y-3 max-h-[90vh] overflow-y-auto'
-          : viewMode === 'dock'
-          ? 'fixed top-0 right-0 h-screen w-full sm:w-[500px] z-50 bg-slate-900 border-l border-slate-800 shadow-2xl p-5 space-y-3 overflow-y-auto'
-          : 'lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-3 min-h-[480px]'
-      }`}>
+      <div className="w-full animate-fadeIn">
+        {/* Tabbed Control Center */}
+        <div className="w-full bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-3 min-h-[480px] flex flex-col justify-start min-w-0 transition-all duration-300">
         {/* Sub-tab Navigation & View Mode Panel */}
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center border-b border-slate-800 pb-2 gap-3 shrink-0 w-full min-w-0">
           <div className="flex overflow-x-auto gap-2 pb-2 w-full xl:flex-1 min-w-0 pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
@@ -1446,56 +1301,7 @@ export default function Admin({ user, initialSubTab }) {
             )}
           </div>
 
-          {/* Mini Settings Panel for View Modes */}
-          <div className="flex items-center gap-1 bg-slate-950 p-1 border border-slate-850 rounded-lg shrink-0 select-none self-end xl:self-auto shadow-inner">
-            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider px-1.5 border-r border-slate-850">
-              View
-            </span>
-            <button
-              onClick={() => setViewMode('split')}
-              className={`p-1 rounded transition ${
-                viewMode === 'split' 
-                  ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' 
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-              title="Split View"
-            >
-              <Columns size={11} />
-            </button>
-            <button
-              onClick={() => setViewMode('maximize')}
-              className={`p-1 rounded transition ${
-                viewMode === 'maximize' 
-                  ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' 
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-              title="Maximize"
-            >
-              <Maximize2 size={11} />
-            </button>
-            <button
-              onClick={() => setViewMode('window')}
-              className={`p-1 rounded transition ${
-                viewMode === 'window' 
-                  ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' 
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-              title="Window Mode"
-            >
-              <Tv size={11} />
-            </button>
-            <button
-              onClick={() => setViewMode('dock')}
-              className={`p-1 rounded transition ${
-                viewMode === 'dock' 
-                  ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' 
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-              title="Dock Right"
-            >
-              <Layout size={11} />
-            </button>
-          </div>
+
         </div>
 
         {/* Tab Contents */}

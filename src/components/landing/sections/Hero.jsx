@@ -1,10 +1,33 @@
+import { useState, useRef, useEffect } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { ArrowRight, ChevronRight, Activity } from 'lucide-react';
+import { ArrowRight, ChevronRight, Activity, ChevronDown, ShieldCheck, Building, LayoutDashboard } from 'lucide-react';
 import { SafeImage } from '../../ui/SafeImage';
 import { PHOTO_HERO } from '../data';
 
-export function Hero({ user, onPrimary, onSecondary }) {
+export function Hero({ 
+  user, 
+  onPrimary, 
+  onSecondary, 
+  userFacilities = [], 
+  isSuperAdmin = false, 
+  onNavigateToSuperAdminDashboard, 
+  onSwitchFacility 
+}) {
   const reduced = useReducedMotion();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const showDropdown = user && (isSuperAdmin || userFacilities.length > 1);
   return (
     <section className="relative overflow-hidden">
       <div className="absolute inset-0">
@@ -27,23 +50,117 @@ export function Hero({ user, onPrimary, onSecondary }) {
           <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }} className="text-base leading-relaxed max-w-lg text-fg-muted font-sans">
             Eagle Tech HMIS gives Kenyan healthcare facilities a unified digital workspace — from triage to MOH reporting — deployed under your own domain in days.
           </motion.p>
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.55, ease: 'easeOut' }} className="flex flex-col sm:flex-row gap-3 pt-2">
-            <motion.button
-              whileHover={reduced ? {} : { scale: 1.03, y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={onPrimary}
-              className="flex items-center justify-center gap-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-all duration-medium font-sans font-bold shadow-glow cursor-pointer"
-            >
-              {user ? "Access Hospital Dashboard" : "Start Free Hospital Setup"} <ArrowRight size={15} />
-            </motion.button>
-            <motion.button
-              whileHover={reduced ? {} : { scale: 1.03, y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={onSecondary}
-              className="flex items-center justify-center gap-2 text-sm text-fg-body hover:text-fg-strong border border-border-strong hover:border-border-emphasis hover:bg-card px-6 py-3 rounded-xl transition-all duration-medium font-sans font-semibold cursor-pointer"
-            >
-              {user ? "Return to Dashboard" : "Access Clinical Workspace"} <ChevronRight size={14} />
-            </motion.button>
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.55, ease: 'easeOut' }} className="flex flex-col sm:flex-row gap-3 pt-2 items-start relative">
+            {user ? (
+              showDropdown ? (
+                <div className="relative w-full sm:w-auto" ref={dropdownRef}>
+                  <motion.button
+                    whileHover={reduced ? {} : { scale: 1.03, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-all duration-medium font-sans font-bold shadow-glow cursor-pointer"
+                  >
+                    <span>Access My Dashboard</span>
+                    <ChevronDown size={15} className={`transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                  </motion.button>
+                  {dropdownOpen && (
+                    <div className="absolute left-0 mt-2 w-72 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-50 p-2 space-y-1 backdrop-blur-md animate-fadeIn">
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => {
+                            setDropdownOpen(false);
+                            if (onNavigateToSuperAdminDashboard) onNavigateToSuperAdminDashboard();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition text-left cursor-pointer"
+                        >
+                          <ShieldCheck size={16} />
+                          <span>Super Admin Console</span>
+                        </button>
+                      )}
+                      {isSuperAdmin && userFacilities.length > 0 && (
+                        <div className="border-t border-slate-800 my-1" />
+                      )}
+                      {userFacilities.length > 0 ? (
+                        <>
+                          <div className="px-3 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            Hospital Portals
+                          </div>
+                          {userFacilities.map((fac) => (
+                            <button
+                              key={fac.facility_id}
+                              onClick={() => {
+                                setDropdownOpen(false);
+                                if (onSwitchFacility) onSwitchFacility(fac.facility_id);
+                              }}
+                              className="w-full flex items-center justify-between px-3 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-slate-100 rounded-lg transition text-left cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Building size={14} className="text-slate-400" />
+                                <span className="font-medium truncate max-w-[140px]">{fac.facility_name}</span>
+                              </div>
+                              <span className="font-mono text-[9px] bg-slate-955 text-teal-400 px-1.5 py-0.5 rounded border border-slate-850">
+                                {fac.facility_code}
+                              </span>
+                            </button>
+                          ))}
+                        </>
+                      ) : (
+                        !isSuperAdmin && (
+                          <button
+                            onClick={() => {
+                              setDropdownOpen(false);
+                              onPrimary();
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 rounded-lg transition text-left cursor-pointer"
+                          >
+                            <LayoutDashboard size={14} />
+                            <span>My Dashboard</span>
+                          </button>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <motion.button
+                    whileHover={reduced ? {} : { scale: 1.03, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onPrimary}
+                    className="flex items-center justify-center gap-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-all duration-medium font-sans font-bold shadow-glow cursor-pointer"
+                  >
+                    <span>Access Hospital Dashboard</span> <ArrowRight size={15} />
+                  </motion.button>
+                  <motion.button
+                    whileHover={reduced ? {} : { scale: 1.03, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onSecondary}
+                    className="flex items-center justify-center gap-2 text-sm text-fg-body hover:text-fg-strong border border-border-strong hover:border-border-emphasis hover:bg-card px-6 py-3 rounded-xl transition-all duration-medium font-sans font-semibold cursor-pointer"
+                  >
+                    <span>Return to Dashboard</span> <ChevronRight size={14} />
+                  </motion.button>
+                </>
+              )
+            ) : (
+              <>
+                <motion.button
+                  whileHover={reduced ? {} : { scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={onPrimary}
+                  className="flex items-center justify-center gap-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-all duration-medium font-sans font-bold shadow-glow cursor-pointer"
+                >
+                  <span>Start Free Hospital Setup</span> <ArrowRight size={15} />
+                </motion.button>
+                <motion.button
+                  whileHover={reduced ? {} : { scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={onSecondary}
+                  className="flex items-center justify-center gap-2 text-sm text-fg-body hover:text-fg-strong border border-border-strong hover:border-border-emphasis hover:bg-card px-6 py-3 rounded-xl transition-all duration-medium font-sans font-semibold cursor-pointer"
+                >
+                  <span>Access Clinical Workspace</span> <ChevronRight size={14} />
+                </motion.button>
+              </>
+            )}
           </motion.div>
         </div>
         <div className="hidden lg:block lg:col-span-5 relative">

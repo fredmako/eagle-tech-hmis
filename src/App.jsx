@@ -337,6 +337,14 @@ export default function App() {
     }
   }, [user, handleUrlAction]);
 
+  useEffect(() => {
+    if (user && (user.role === "super_admin" || user.role === "platform_support")) {
+      if (publicView === "dashboard" && !user.facility_id) {
+        setPublicView("landing");
+      }
+    }
+  }, [user, publicView]);
+
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme);
     localStorage.setItem("egesa_theme", newTheme);
@@ -422,9 +430,48 @@ export default function App() {
     );
   };
 
-  const handleLoginSuccess = () => {
-    setPublicView("dashboard");
-    setActiveTab("dashboard");
+  const handleLoginSuccess = (loggedInUser) => {
+    if (loggedInUser && (loggedInUser.role === "super_admin" || loggedInUser.role === "platform_support")) {
+      setPublicView("landing");
+    } else {
+      setPublicView("dashboard");
+      setActiveTab("dashboard");
+    }
+  };
+
+  const handleSwitchFacility = async (facilityId) => {
+    try {
+      const sessionRes = await supabase.auth.getSession();
+      const clientJwt = sessionRes?.data?.session?.access_token;
+      if (!clientJwt) {
+        throw new Error('Supabase session not found. Please log in again.');
+      }
+
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${backendUrl}/auth/supabase-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: clientJwt,
+          facility_id: facilityId
+        })
+      });
+
+      const resData = await res.json();
+      if (res.ok && resData.status === 'success') {
+        localStorage.setItem('egesa_active_facility_id', facilityId);
+        localStorage.setItem('egesa_health_token', resData.token);
+        sessionStorage.setItem('egesa_health_active_user', JSON.stringify(resData.user));
+        if (checkSession) await checkSession();
+        setPublicView("dashboard");
+        setActiveTab("dashboard");
+      } else {
+        alert(resData.error || 'Failed to switch facility workspace.');
+      }
+    } catch (err) {
+      console.error('Error switching facility:', err);
+      alert(err.message || 'An error occurred during workspace selection.');
+    }
   };
   const handleSignOut = () => {
     logout();
@@ -547,6 +594,8 @@ export default function App() {
         onNavigateToSignup={() => setPublicView("signup")}
         onNavigateToCards={() => setPublicView("cards")}
         onNavigateToDashboard={() => setPublicView("dashboard")}
+        onNavigateToSuperAdminDashboard={() => setPublicView("super_admin_dashboard")}
+        onSwitchFacility={handleSwitchFacility}
         theme={themeMode}
         onToggleTheme={toggleLightDark}
       />
@@ -561,7 +610,7 @@ export default function App() {
     );
   }
 
-  if (user.role === "super_admin" || user.role === "platform_support") {
+  if ((user.role === "super_admin" || user.role === "platform_support") && publicView === "super_admin_dashboard") {
     return (
       <div
         className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100`}
@@ -1102,6 +1151,7 @@ export default function App() {
                     "egesa_health_active_user",
                     JSON.stringify(updatedUser),
                   );
+                  setPublicView("super_admin_dashboard");
                 }}
                 title="Systems Control Console"
                 className="p-1.5 border border-yellow-500/10 hover:border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10 text-yellow-400 rounded-lg transition duration-150 cursor-pointer shrink-0"
@@ -1364,6 +1414,7 @@ export default function App() {
                   "egesa_health_active_user",
                   JSON.stringify(updatedUser),
                 );
+                setPublicView("super_admin_dashboard");
                 setIsSidebarOpen(false);
               }}
               className="w-full flex items-center justify-center gap-2 border border-yellow-500/10 hover:border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10 text-yellow-400 py-1.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition duration-150 cursor-pointer"

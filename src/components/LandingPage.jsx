@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, X, CheckCircle, Send, RefreshCw, ChevronDown, ChevronRight, MessageSquare, Search, HelpCircle, Activity, DollarSign, Settings, Layers, LayoutDashboard } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Menu, X, CheckCircle, Send, RefreshCw, ChevronDown, ChevronRight, MessageSquare, Search, HelpCircle, Activity, DollarSign, Settings, Layers, LayoutDashboard, ShieldCheck, Building } from 'lucide-react';
 import { Hero } from './landing/sections/Hero';
 import { StatsStrip } from './landing/sections/StatsStrip';
 import { ModulesGrid } from './landing/sections/ModulesGrid';
@@ -7,6 +7,7 @@ import { Pricing } from './landing/sections/Pricing';
 import { About } from './landing/sections/About';
 import { Footer } from './landing/sections/Footer';
 import { ThemeToggle } from './ui/ThemeToggle';
+import { supabase } from '../supabaseClient';
 
 export default function LandingPage({
   user,
@@ -14,6 +15,8 @@ export default function LandingPage({
   onNavigateToSignup,
   onNavigateToCards,
   onNavigateToDashboard,
+  onNavigateToSuperAdminDashboard,
+  onSwitchFacility,
   theme,
   onToggleTheme,
 }) {
@@ -28,6 +31,75 @@ export default function LandingPage({
   const [supportLoading, setSupportLoading] = useState(false);
   const [supportSuccess, setSupportSuccess] = useState(false);
   const [supportError, setSupportError] = useState('');
+
+  const [userFacilities, setUserFacilities] = useState([]);
+  const [loadingFacilities, setLoadingFacilities] = useState(false);
+  const [headerDropdownOpen, setHeaderDropdownOpen] = useState(false);
+  const [mobileDropdownOpen, setMobileDropdownOpen] = useState(false);
+  const headerDropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (user?.email) {
+      const loadUserFacilities = async () => {
+        setLoadingFacilities(true);
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*, facility:facilities(id, name, code, logo_url)')
+            .eq('email', user.email.toLowerCase().trim());
+
+          if (error) throw error;
+          if (data) {
+            const facList = data
+              .map(p => {
+                if (!p.facility) return null;
+                return {
+                  facility_id: p.facility_id,
+                  facility_name: p.facility.name || 'Unknown Hospital',
+                  facility_code: p.facility.code || '',
+                  logo_url: p.facility.logo_url || null,
+                  role: p.role,
+                  department: p.department || ''
+                };
+              })
+              .filter(Boolean);
+            
+            // Remove duplicates (by facility_id)
+            const uniqueFacs = [];
+            const seen = new Set();
+            for (const f of facList) {
+              if (!seen.has(f.facility_id)) {
+                seen.add(f.facility_id);
+                uniqueFacs.push(f);
+              }
+            }
+            setUserFacilities(uniqueFacs);
+          }
+        } catch (err) {
+          console.error('Error fetching user facilities:', err);
+        } finally {
+          setLoadingFacilities(false);
+        }
+      };
+      loadUserFacilities();
+    } else {
+      setUserFacilities([]);
+    }
+  }, [user]);
+
+  // Click outside to close header dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (headerDropdownRef.current && !headerDropdownRef.current.contains(event.target)) {
+        setHeaderDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const isSuperAdmin = user && (user.role === 'super_admin' || user.role === 'platform_support');
+  const showDashboardDropdown = user && (isSuperAdmin || userFacilities.length > 1);
   const [activeFaq, setActiveFaq] = useState(null);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [faqSearch, setFaqSearch] = useState('');
@@ -338,10 +410,80 @@ export default function LandingPage({
           <div className="hidden md:flex items-center gap-3">
             {onToggleTheme && <ThemeToggle theme={theme} onToggle={onToggleTheme} />}
             {user ? (
-              <button onClick={onNavigateToDashboard} className="text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg transition-all duration-medium active:scale-[0.97] cursor-pointer flex items-center gap-1.5">
-                <LayoutDashboard size={14} />
-                <span>Go to Dashboard</span>
-              </button>
+              showDashboardDropdown ? (
+                <div className="relative" ref={headerDropdownRef}>
+                  <button 
+                    onClick={() => setHeaderDropdownOpen(!headerDropdownOpen)} 
+                    className="text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg transition-all duration-medium active:scale-[0.97] cursor-pointer flex items-center gap-1.5"
+                  >
+                    <LayoutDashboard size={14} />
+                    <span>Go to Dashboard</span>
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${headerDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {headerDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-50 p-2 space-y-1 backdrop-blur-md">
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => {
+                            setHeaderDropdownOpen(false);
+                            if (onNavigateToSuperAdminDashboard) onNavigateToSuperAdminDashboard();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition text-left cursor-pointer"
+                        >
+                          <ShieldCheck size={16} />
+                          <span>Super Admin Console</span>
+                        </button>
+                      )}
+                      {isSuperAdmin && userFacilities.length > 0 && (
+                        <div className="border-t border-slate-800 my-1" />
+                      )}
+                      {userFacilities.length > 0 ? (
+                        <>
+                          <div className="px-3 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            Hospital Portals
+                          </div>
+                          {userFacilities.map((fac) => (
+                            <button
+                              key={fac.facility_id}
+                              onClick={() => {
+                                setHeaderDropdownOpen(false);
+                                if (onSwitchFacility) onSwitchFacility(fac.facility_id);
+                              }}
+                              className="w-full flex items-center justify-between px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-slate-100 rounded-lg transition text-left cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Building size={14} className="text-slate-400" />
+                                <span className="font-medium truncate max-w-[130px]">{fac.facility_name}</span>
+                              </div>
+                              <span className="font-mono text-[9px] bg-slate-955 text-teal-400 px-1.5 py-0.5 rounded border border-slate-850">
+                                {fac.facility_code}
+                              </span>
+                            </button>
+                          ))}
+                        </>
+                      ) : (
+                        !isSuperAdmin && (
+                          <button
+                            onClick={() => {
+                              setHeaderDropdownOpen(false);
+                              onNavigateToDashboard();
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 rounded-lg transition text-left cursor-pointer"
+                          >
+                            <LayoutDashboard size={14} />
+                            <span>My Dashboard</span>
+                          </button>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button onClick={onNavigateToDashboard} className="text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg transition-all duration-medium active:scale-[0.97] cursor-pointer flex items-center gap-1.5">
+                  <LayoutDashboard size={14} />
+                  <span>Go to Dashboard</span>
+                </button>
+              )
             ) : (
               <>
                 <button onClick={onNavigateToLogin} className="text-sm font-semibold text-fg-muted hover:text-fg-strong transition-colors px-3 py-1.5 cursor-pointer">Sign In</button>
@@ -369,10 +511,69 @@ export default function LandingPage({
               <a href="#support" className="block text-fg-muted hover:text-fg-strong py-1" onClick={() => setMobileOpen(false)}>Support</a>
               <div className="pt-2 flex flex-col gap-2">
                 {user ? (
-                  <button onClick={() => { onNavigateToDashboard(); setMobileOpen(false); }} className="font-bold bg-primary text-primary-foreground px-4 py-2 rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5">
-                    <LayoutDashboard size={14} />
-                    <span>Go to Dashboard</span>
-                  </button>
+                  showDashboardDropdown ? (
+                    <div className="space-y-1.5">
+                      <button 
+                        onClick={() => setMobileDropdownOpen(!mobileDropdownOpen)} 
+                        className="w-full font-bold bg-primary text-primary-foreground px-4 py-2 rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <LayoutDashboard size={14} />
+                        <span>Go to Dashboard</span>
+                        <ChevronDown size={14} className={`transition-transform duration-200 ${mobileDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {mobileDropdownOpen && (
+                        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-2 space-y-1 animate-fadeIn">
+                          {isSuperAdmin && (
+                            <button
+                              onClick={() => {
+                                setMobileDropdownOpen(false);
+                                setMobileOpen(false);
+                                if (onNavigateToSuperAdminDashboard) onNavigateToSuperAdminDashboard();
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition text-left cursor-pointer"
+                            >
+                              <ShieldCheck size={16} />
+                              <span>Super Admin Console</span>
+                            </button>
+                          )}
+                          {isSuperAdmin && userFacilities.length > 0 && (
+                            <div className="border-t border-slate-800 my-1" />
+                          )}
+                          {userFacilities.length > 0 && (
+                            <>
+                              <div className="px-3 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                Hospital Portals
+                              </div>
+                              {userFacilities.map((fac) => (
+                                <button
+                                  key={fac.facility_id}
+                                  onClick={() => {
+                                    setMobileDropdownOpen(false);
+                                    setMobileOpen(false);
+                                    if (onSwitchFacility) onSwitchFacility(fac.facility_id);
+                                  }}
+                                  className="w-full flex items-center justify-between px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 rounded-lg transition text-left cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Building size={14} className="text-slate-400" />
+                                    <span className="font-medium truncate max-w-[150px]">{fac.facility_name}</span>
+                                  </div>
+                                  <span className="font-mono text-[9px] bg-slate-955 text-teal-400 px-1.5 py-0.5 rounded border border-slate-850">
+                                    {fac.facility_code}
+                                  </span>
+                                </button>
+                              ))}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button onClick={() => { onNavigateToDashboard(); setMobileOpen(false); }} className="font-bold bg-primary text-primary-foreground px-4 py-2 rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5">
+                      <LayoutDashboard size={14} />
+                      <span>Go to Dashboard</span>
+                    </button>
+                  )
                 ) : (
                   <>
                     <button onClick={() => { onNavigateToLogin(); setMobileOpen(false); }} className="text-left text-fg-muted hover:text-fg-strong cursor-pointer">Sign In</button>
@@ -394,6 +595,10 @@ export default function LandingPage({
           user={user}
           onPrimary={user ? onNavigateToDashboard : onNavigateToSignup}
           onSecondary={user ? onNavigateToDashboard : onNavigateToLogin}
+          userFacilities={userFacilities}
+          isSuperAdmin={isSuperAdmin}
+          onNavigateToSuperAdminDashboard={onNavigateToSuperAdminDashboard}
+          onSwitchFacility={onSwitchFacility}
         />
         <StatsStrip />
         <ModulesGrid />

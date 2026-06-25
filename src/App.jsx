@@ -989,10 +989,16 @@ export default function App() {
       items: ["registration", "queue", "triage", "consultation"]
     },
     {
-      id: "departments",
-      label: "Clinical Departments",
+      id: "medical_depts",
+      label: "Medical Departments",
       icon: Bed,
-      items: ["ward", "maternity", "mch", "surgery", "orders", "procurement", "hr", "payroll", "maintenance"]
+      items: ["ward", "maternity", "mch", "surgery", "orders"]
+    },
+    {
+      id: "mgmt_depts",
+      label: "Management Departments",
+      icon: Users,
+      items: ["procurement", "hr", "payroll", "maintenance"]
     },
     {
       id: "diagnostics_rx",

@@ -335,6 +335,7 @@ router.post("/supabase-login", async (req, res) => {
       department: activeProfile.department || "admin",
       license_tier: facility?.license_tier || "free",
       auth_method: "google_oauth",
+      avatar_url: activeProfile.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
       session_expiry: Math.floor(Date.now() / 1000) + 12 * 60 * 60,
     };
 

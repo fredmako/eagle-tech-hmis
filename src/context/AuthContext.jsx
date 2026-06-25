@@ -130,7 +130,8 @@ export const AuthProvider = ({ children }) => {
             name: session.user.user_metadata?.full_name || session.user.email,
             full_name: session.user.user_metadata?.full_name || session.user.email,
             role: isSuperAdmin ? 'super_admin' : (session.user.user_metadata?.role || 'staff'),
-            facility_is_verified: true
+            facility_is_verified: true,
+            avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null
           };
         } else {
           // If not in sandbox and no profile exists, do not log them in
@@ -139,6 +140,10 @@ export const AuthProvider = ({ children }) => {
           setLoading(false);
           return;
         }
+      }
+
+      if (userData && !userData.avatar_url) {
+        userData.avatar_url = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null;
       }
       
       console.log('[AuthContext:checkSession] ✅ Session valid:', userData.email);

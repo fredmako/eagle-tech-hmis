@@ -17,7 +17,6 @@ import BroadcastPanel from './admin/BroadcastPanel';
 import AdminDelegation from './admin/AdminDelegation';
 import ModulesConfig from './admin/ModulesConfig';
 import LaboratoryManagement from './admin/LaboratoryManagement';
-import AssetsMaintenance from './admin/AssetsMaintenance';
 import { hasAccess } from '../utils/permissions';
 
 import { supabase } from '../supabaseClient';
@@ -1355,20 +1354,7 @@ export default function Admin({ user, initialSubTab }) {
               </button>
             )}
 
-            {hasAccess('maintenance', user.role, adminDelegation) && (
-              <button
-                onClick={() => setActiveSubTab('maintenance')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-                  activeSubTab === 'maintenance'
-                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                    : 'text-slate-450 hover:text-slate-200'
-                }`}
-              >
-                <Wrench size={13} /> Assets Maintenance
-              </button>
-            )}
-
-            {hasAccess('afyalink', user.role, adminDelegation) && (
+             {hasAccess('afyalink', user.role, adminDelegation) && (
               <button
                 onClick={() => setActiveSubTab('afyalink')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
@@ -1615,11 +1601,6 @@ export default function Admin({ user, initialSubTab }) {
             />
           )}
 
-          {activeSubTab === 'maintenance' && (
-            <AssetsMaintenance
-              user={user}
-            />
-          )}
 
           {/* TAB 9: AFYALINK HIE INTEGRATION */}
           {activeSubTab === 'afyalink' && (

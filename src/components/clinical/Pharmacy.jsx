@@ -31,6 +31,18 @@ import {
 } from "lucide-react";
 import { medicineMaster } from "../../medicalMaster";
 
+const parseCheckoutItems = (checkoutId) => {
+  if (!checkoutId) return [];
+  try {
+    const parsed = JSON.parse(checkoutId);
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed.items && Array.isArray(parsed.items)) return parsed.items;
+  } catch (e) {
+    // Fallback if not JSON
+  }
+  return [];
+};
+
 export default function Pharmacy({ user, onComplete, showNotification, initialSubTab }) {
   const [pharmVisits, setPharmVisits] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);

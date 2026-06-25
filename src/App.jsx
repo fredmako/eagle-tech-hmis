@@ -20,6 +20,7 @@ import Radiology from "./components/clinical/Radiology";
 import Surgery from "./components/clinical/Surgery";
 import OperationsDesk from "./components/admin/OperationsDesk";
 import HumanResourcesWrapper from "./components/admin/HumanResourcesWrapper";
+import AssetsMaintenance from "./components/admin/AssetsMaintenance";
 import SaaSOnboarding from "./components/SaaSOnboarding";
 import LandingPage from "./components/LandingPage";
 import BusinessCards from "./components/BusinessCards";
@@ -67,6 +68,7 @@ import {
   Search,
   ShoppingBag,
   Users,
+  Wrench
 } from "lucide-react";
 
 export default function App() {
@@ -105,12 +107,7 @@ export default function App() {
   };
 
   const handleNavigate = (tabId) => {
-    if (tabId === "maintenance") {
-      setActiveTab("admin");
-      setAdminSubTab("maintenance");
-    } else {
-      setActiveTab(tabId);
-    }
+    setActiveTab(tabId);
   };
 
   const [preselectedPatient, setPreselectedPatient] = useState(null);
@@ -782,7 +779,6 @@ export default function App() {
         { id: "email_logs", label: "Email Logs" },
         { id: "licensing", label: "Licensing" },
         { id: "facility_profile", label: "Facility Profile" },
-        { id: "maintenance", label: "Assets Maintenance" },
         { id: "afyalink", label: "DHA Kenya HIE" }
       ]
     },
@@ -797,6 +793,12 @@ export default function App() {
       label: "Procurement Desk",
       icon: ShoppingBag,
       roles: ["admin", "facility_admin", "operations_manager"],
+    },
+    {
+      id: "maintenance",
+      label: "Assets Maintenance",
+      icon: Wrench,
+      roles: ["admin", "facility_admin", "operations_manager", "it_support"],
     },
     {
       id: "appointments",
@@ -834,7 +836,7 @@ export default function App() {
       id: "departments",
       label: "Clinical Departments",
       icon: Bed,
-      items: ["ward", "maternity", "mch", "surgery", "orders", "procurement", "hr"]
+      items: ["ward", "maternity", "mch", "surgery", "orders", "procurement", "hr", "maintenance"]
     },
     {
       id: "diagnostics_rx",
@@ -887,6 +889,10 @@ export default function App() {
     
     if (item.id === 'procurement') {
       return isAdmin || hasAccess('procurement', user.role, adminDelegation);
+    }
+
+    if (item.id === 'maintenance') {
+      return isAdmin || hasAccess('maintenance', user.role, adminDelegation);
     }
     
     return item.roles.includes("*") || item.roles.some(r => rolesList.includes(r)) || isAdmin;
@@ -1526,6 +1532,7 @@ export default function App() {
             {activeTab === "admin" && <Admin user={user} initialSubTab={adminSubTab} />}
             {activeTab === "procurement" && <OperationsDesk user={user} />}
             {activeTab === "hr" && <HumanResourcesWrapper user={user} />}
+            {activeTab === "maintenance" && <AssetsMaintenance user={user} />}
             {activeTab === "settings" && (
               <Preferences
                 currentTheme={theme}
@@ -1550,7 +1557,7 @@ export default function App() {
               <Appointments user={user} showNotification={showNotification} />
             )}
             {activeTab === "support" && <SupportPanel />}
-            {!["dashboard", "registration", "queue", "triage", "consultation", "orders", "radiology", "surgery", "pharmacy", "pos", "billing", "reports", "patient_dashboard", "ward", "maternity", "mch", "admin", "settings", "appointments", "support", "procurement", "hr"].includes(activeTab) && (
+            {!["dashboard", "registration", "queue", "triage", "consultation", "orders", "radiology", "surgery", "pharmacy", "pos", "billing", "reports", "patient_dashboard", "ward", "maternity", "mch", "admin", "settings", "appointments", "support", "procurement", "hr", "maintenance"].includes(activeTab) && (
               <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
                 <ShieldAlert size={48} className="text-yellow-500 mb-4 animate-bounce" />
                 <h3 className="text-lg font-bold text-slate-100">404 - Page Not Found</h3>

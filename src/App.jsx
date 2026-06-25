@@ -21,6 +21,7 @@ import Surgery from "./components/clinical/Surgery";
 import OperationsDesk from "./components/admin/OperationsDesk";
 import HumanResourcesWrapper from "./components/admin/HumanResourcesWrapper";
 import AssetsMaintenance from "./components/admin/AssetsMaintenance";
+import Payroll from "./components/admin/Payroll";
 import SaaSOnboarding from "./components/SaaSOnboarding";
 import LandingPage from "./components/LandingPage";
 import BusinessCards from "./components/BusinessCards";
@@ -68,7 +69,8 @@ import {
   Search,
   ShoppingBag,
   Users,
-  Wrench
+  Wrench,
+  CreditCard
 } from "lucide-react";
 
 export default function App() {
@@ -87,6 +89,39 @@ export default function App() {
   const [mchSubTab, setMchSubTab] = useState("dashboard");
   const [maternitySubTab, setMaternitySubTab] = useState("dashboard");
   const [adminSubTab, setAdminSubTab] = useState("overview");
+  const [activeModules, setActiveModules] = useState({});
+
+  const fetchFacilityModules = async () => {
+    if (!user?.facility_id) return;
+    try {
+      const { data, error } = await supabase
+        .from('facilities')
+        .select('active_modules')
+        .eq('id', user.facility_id)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data && data.active_modules) {
+        setActiveModules(data.active_modules);
+      } else {
+        setActiveModules({});
+      }
+    } catch (err) {
+      console.error('Error fetching facility active modules:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchFacilityModules();
+  }, [user?.facility_id]);
+
+  useEffect(() => {
+    const handleModulesUpdate = () => {
+      fetchFacilityModules();
+    };
+    window.addEventListener('egesa_modules_updated', handleModulesUpdate);
+    return () => window.removeEventListener('egesa_modules_updated', handleModulesUpdate);
+  }, [user?.facility_id]);
 
   const getSubActive = (itemId, subId) => {
     if (itemId === "pharmacy") return pharmacySubTab === subId;
@@ -835,6 +870,12 @@ export default function App() {
       id: "hr",
       label: "Human Resources",
       icon: Users,
+      roles: ["*"],
+    },
+    {
+      id: "payroll",
+      label: "Payroll Console",
+      icon: CreditCard,
       roles: ["admin", "facility_admin", "hr_manager"],
     },
     {
@@ -885,7 +926,7 @@ export default function App() {
       id: "departments",
       label: "Clinical Departments",
       icon: Bed,
-      items: ["ward", "maternity", "mch", "surgery", "orders", "procurement", "hr", "maintenance"]
+      items: ["ward", "maternity", "mch", "surgery", "orders", "procurement", "hr", "payroll", "maintenance"]
     },
     {
       id: "diagnostics_rx",
@@ -907,7 +948,35 @@ export default function App() {
     }
   ];
 
+  const menuModuleKeys = {
+    registration: "reception",
+    queue: "reception",
+    triage: "reception",
+    consultation: "doctors",
+    orders: "laboratory",
+    radiology: "radiology",
+    pharmacy: "pharmacy",
+    pos: "pharmacy",
+    billing: "billing",
+    ward: "inpatient",
+    maternity: "maternity",
+    mch: "mch",
+    surgery: "theatre",
+    procurement: "procurement",
+    hr: "hr",
+    payroll: "payroll",
+    maintenance: "maintenance",
+    reports: "reports",
+    support: "help",
+    appointments: "appointments"
+  };
+
   const visibleMenuItems = menuItems.filter((item) => {
+    const moduleKey = menuModuleKeys[item.id];
+    if (moduleKey && activeModules && activeModules[moduleKey] === false) {
+      return false;
+    }
+
     if (user.license_tier === "pharmacy") {
       const allowedPharmacyTabs = [
         "dashboard",
@@ -933,7 +1002,7 @@ export default function App() {
     }
     
     if (item.id === 'hr') {
-      return isAdmin || hasAccess('hr', user.role, adminDelegation);
+      return true;
     }
     
     if (item.id === 'procurement') {
@@ -1465,9 +1534,31 @@ export default function App() {
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className={menuLayout === 'topbar' ? 'max-w-7xl mx-auto w-full' : ''}>
-            {activeTab === "dashboard" && (
-              <Dashboard user={user} onNavigate={handleNavigate} />
-            )}
+            {(() => {
+              const moduleKey = menuModuleKeys[activeTab];
+              const isModuleDisabled = moduleKey && activeModules && activeModules[moduleKey] === false;
+              if (isModuleDisabled) {
+                return (
+                  <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
+                    <ShieldAlert size={48} className="text-red-500 mb-4 animate-pulse" />
+                    <h3 className="text-lg font-semibold text-slate-100">Module Disabled</h3>
+                    <p className="text-sm text-slate-400 mt-2 max-w-md">
+                      This feature module has been disabled in the systems configuration. Please contact the administrator to activate it.
+                    </p>
+                    <button
+                      onClick={() => setActiveTab("dashboard")}
+                      className="mt-6 bg-teal-400 hover:bg-teal-350 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98] cursor-pointer"
+                    >
+                      Return to Dashboard
+                    </button>
+                  </div>
+                );
+              }
+              return (
+                <>
+                  {activeTab === "dashboard" && (
+                    <Dashboard user={user} onNavigate={handleNavigate} />
+                  )}
             {activeTab === "registration" && (
               <Registration
                 user={user}
@@ -1583,6 +1674,7 @@ export default function App() {
             {activeTab === "admin" && <Admin user={user} initialSubTab={adminSubTab} />}
             {activeTab === "procurement" && <OperationsDesk user={user} />}
             {activeTab === "hr" && <HumanResourcesWrapper user={user} />}
+            {activeTab === "payroll" && <Payroll user={user} />}
             {activeTab === "maintenance" && <AssetsMaintenance user={user} />}
             {activeTab === "settings" && (
               <Preferences
@@ -1609,7 +1701,7 @@ export default function App() {
             )}
             {activeTab === "support" && <SupportPanel />}
             {!["dashboard", "registration", "queue", "triage", "consultation", "orders", "radiology", "surgery", "pharmacy", "pos", "billing", "reports", "patient_dashboard", "ward", "maternity", "mch", "admin", "settings", "appointments", "support", "procurement", "hr", "maintenance"].includes(activeTab) && (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
+              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-850 rounded-2xl m-4 text-center">
                 <ShieldAlert size={48} className="text-yellow-500 mb-4 animate-bounce" />
                 <h3 className="text-lg font-bold text-slate-100">404 - Page Not Found</h3>
                 <p className="text-xs text-slate-400 mt-2 max-w-md">
@@ -1617,12 +1709,15 @@ export default function App() {
                 </p>
                 <button
                   onClick={() => setActiveTab("dashboard")}
-                  className="mt-6 bg-teal-400 hover:bg-teal-350 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98] cursor-pointer"
+                  className="mt-6 bg-teal-400 hover:bg-teal-350 text-slate-955 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98] cursor-pointer"
                 >
                   Return to Dashboard
                 </button>
               </div>
             )}
+                </>
+              );
+            })()}
           </div>
         </div>
       </main>

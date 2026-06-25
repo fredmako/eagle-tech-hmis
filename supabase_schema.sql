@@ -231,4 +231,131 @@ CREATE TABLE IF NOT EXISTS public.appointments (
 ALTER TABLE IF EXISTS public.appointments DISABLE ROW LEVEL SECURITY;
 CREATE INDEX IF NOT EXISTS appointments_date_doc_fac_idx ON public.appointments (appointment_date, doctor_id, facility_id);
 
+-- 18. Create lab_test_categories table
+CREATE TABLE IF NOT EXISTS public.lab_test_categories (
+    id text PRIMARY KEY,
+    facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    description text,
+    status text NOT NULL DEFAULT 'Active',
+    created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE IF EXISTS public.lab_test_categories DISABLE ROW LEVEL SECURITY;
+
+-- 19. Create lab_test_units table
+CREATE TABLE IF NOT EXISTS public.lab_test_units (
+    id text PRIMARY KEY,
+    facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    status text NOT NULL DEFAULT 'Active',
+    created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE IF EXISTS public.lab_test_units DISABLE ROW LEVEL SECURITY;
+
+-- 20. Create lab_specimen_tests table
+CREATE TABLE IF NOT EXISTS public.lab_specimen_tests (
+    id text PRIMARY KEY,
+    facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
+    category text NOT NULL,
+    specimen text NOT NULL,
+    procedure_classification text,
+    country text DEFAULT 'Kenya',
+    result_type text NOT NULL DEFAULT 'Quantitative',
+    unit text,
+    name text NOT NULL,
+    is_sha_pay boolean DEFAULT false,
+    sha_test_code text,
+    description text,
+    cash_amount numeric DEFAULT 0,
+    insurance_amount numeric DEFAULT 0,
+    status text NOT NULL DEFAULT 'Active',
+    etims_code text,
+    created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE IF EXISTS public.lab_specimen_tests DISABLE ROW LEVEL SECURITY;
+
+-- 21. Create lab_specimen_sub_tests table
+CREATE TABLE IF NOT EXISTS public.lab_specimen_sub_tests (
+    id text PRIMARY KEY,
+    facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
+    test_id text REFERENCES public.lab_specimen_tests(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    description text,
+    result_type text NOT NULL DEFAULT 'Quantitative',
+    unit text,
+    status text NOT NULL DEFAULT 'Active',
+    created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE IF EXISTS public.lab_specimen_sub_tests DISABLE ROW LEVEL SECURITY;
+
+-- 22. Create lab_reference_ranges table
+CREATE TABLE IF NOT EXISTS public.lab_reference_ranges (
+    id text PRIMARY KEY,
+    facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
+    sub_test_id text REFERENCES public.lab_specimen_sub_tests(id) ON DELETE CASCADE,
+    gender text NOT NULL DEFAULT 'All',
+    age_min numeric DEFAULT 0,
+    age_max numeric DEFAULT 120,
+    min_value numeric,
+    max_value numeric,
+    normal_text text,
+    status text NOT NULL DEFAULT 'Active',
+    created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE IF EXISTS public.lab_reference_ranges DISABLE ROW LEVEL SECURITY;
+
+-- 23. Create payroll_allowances table
+CREATE TABLE IF NOT EXISTS public.payroll_allowances (
+    id text PRIMARY KEY,
+    facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
+    code text NOT NULL,
+    description text NOT NULL,
+    value numeric DEFAULT 0,
+    type text NOT NULL DEFAULT 'Fixed Amount',
+    is_fixed text DEFAULT 'YES',
+    is_taxable text DEFAULT 'YES',
+    is_payable text DEFAULT 'YES',
+    status text NOT NULL DEFAULT 'Active',
+    created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE IF EXISTS public.payroll_allowances DISABLE ROW LEVEL SECURITY;
+
+-- 24. Create payroll_banks table
+CREATE TABLE IF NOT EXISTS public.payroll_banks (
+    id text PRIMARY KEY,
+    facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
+    code text NOT NULL,
+    name text NOT NULL,
+    branch text,
+    account_no text NOT NULL,
+    created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE IF EXISTS public.payroll_banks DISABLE ROW LEVEL SECURITY;
+
+-- 25. Create payroll_deductions table
+CREATE TABLE IF NOT EXISTS public.payroll_deductions (
+    id text PRIMARY KEY,
+    facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
+    code text NOT NULL,
+    description text NOT NULL,
+    value numeric DEFAULT 0,
+    type text NOT NULL DEFAULT 'Percentage of Gross',
+    status text NOT NULL DEFAULT 'Active',
+    created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE IF EXISTS public.payroll_deductions DISABLE ROW LEVEL SECURITY;
+
+-- 26. Create payrolls table
+CREATE TABLE IF NOT EXISTS public.payrolls (
+    id text PRIMARY KEY,
+    facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
+    month text NOT NULL,
+    year text NOT NULL,
+    calculations jsonb NOT NULL,
+    status text NOT NULL DEFAULT 'Draft',
+    total_net numeric DEFAULT 0,
+    created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE IF EXISTS public.payrolls DISABLE ROW LEVEL SECURITY;
+
 

@@ -12,7 +12,7 @@ import WardSettings from './admin/WardSettings';
 import PaymentSettings from './admin/PaymentSettings';
 import FacilityHelpDesk from './admin/FacilityHelpDesk';
 import AdminOverview from './admin/AdminOverview';
-import StaffScheduler from './admin/StaffScheduler';
+
 import BroadcastPanel from './admin/BroadcastPanel';
 import AdminDelegation from './admin/AdminDelegation';
 import ModulesConfig from './admin/ModulesConfig';
@@ -166,7 +166,9 @@ export default function Admin({ user, initialSubTab }) {
 
   useEffect(() => {
     // If activeSubTab is not allowed, fallback to overview
-    if (activeSubTab !== 'overview' && activeSubTab !== 'delegation') {
+    if (activeSubTab === 'modules_config' && !isAdminRole) {
+      setActiveSubTab('overview');
+    } else if (activeSubTab !== 'overview' && activeSubTab !== 'delegation' && activeSubTab !== 'modules_config') {
       if (!hasAccess(activeSubTab, user.role, adminDelegation)) {
         setActiveSubTab('overview');
       }
@@ -1274,18 +1276,7 @@ export default function Admin({ user, initialSubTab }) {
               </button>
             )}
 
-            {hasAccess('roster', user.role, adminDelegation) && (
-              <button
-                onClick={() => setActiveSubTab('roster')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-                  activeSubTab === 'roster'
-                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                    : 'text-slate-450 hover:text-slate-200'
-                }`}
-              >
-                <Calendar size={13} /> Duty Roster & Attendance
-              </button>
-            )}
+
 
             {hasAccess('broadcasts', user.role, adminDelegation) && (
               <button
@@ -1307,7 +1298,7 @@ export default function Admin({ user, initialSubTab }) {
         {/* Tab Contents */}
         <div className="flex-1 overflow-y-auto max-h-[500px] pr-1 space-y-4">
           
-          {activeSubTab !== 'overview' && activeSubTab !== 'delegation' && activeSubTab !== 'modules_config' && activeSubTab !== 'laboratory_management' && !hasAccess(activeSubTab, user.role, adminDelegation) ? (
+          {(activeSubTab === 'modules_config' && !isAdminRole) || (activeSubTab !== 'overview' && activeSubTab !== 'delegation' && activeSubTab !== 'modules_config' && activeSubTab !== 'laboratory_management' && !hasAccess(activeSubTab, user.role, adminDelegation)) ? (
             <div className="p-8 text-center text-slate-500 font-medium bg-slate-950/20 border border-slate-850 rounded-xl space-y-2">
               <Lock className="mx-auto text-slate-600 mb-2" size={24} />
               <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Access Denied</h4>
@@ -1799,9 +1790,7 @@ export default function Admin({ user, initialSubTab }) {
             <PaymentSettings user={user} />
           )}
 
-          {activeSubTab === 'roster' && (
-            <StaffScheduler user={user} profiles={usersList} fetchAdminData={fetchAdminData} dbDepartments={departments} />
-          )}
+
 
           {activeSubTab === 'broadcasts' && (
             <BroadcastPanel user={user} profiles={usersList} fetchAdminData={fetchAdminData} />

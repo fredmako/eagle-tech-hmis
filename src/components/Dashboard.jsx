@@ -31,6 +31,14 @@ export default function Dashboard({ user, onNavigate }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const handleModulesUpdate = () => {
+      fetchDashboardData();
+    };
+    window.addEventListener('egesa_modules_updated', handleModulesUpdate);
+    return () => window.removeEventListener('egesa_modules_updated', handleModulesUpdate);
+  }, []);
+
   const fetchDashboardData = async () => {
     try {
       const [{ data: pts }, { data: vsts }, { data: invs }, { data: tickets }, { data: fac }] = await Promise.all([
@@ -150,6 +158,15 @@ export default function Dashboard({ user, onNavigate }) {
     return roleAccess[tab]?.some(r => rolesList.includes(r)) || false;
   };
 
+  const statsModuleKeys = {
+    registration: 'reception',
+    triage: 'reception',
+    consultation: 'doctors',
+    orders: 'laboratory',
+    pharmacy: 'pharmacy',
+    billing: 'billing'
+  };
+
   const cards = [
     { label: "Today's Registrations", value: stats.todayPatients, accent: 'teal', icon: Users, tab: 'registration' },
     { label: 'Pending Triage', value: stats.pendingTriage, accent: 'orange', icon: Hourglass, tab: 'triage' },
@@ -230,16 +247,23 @@ export default function Dashboard({ user, onNavigate }) {
                 <span className="sm:hidden">Synced</span>
               </motion.div>
             )}
-            <button onClick={() => onNavigate('registration')} className="flex items-center gap-2 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold text-[12px] px-4 py-2 rounded-lg shadow-[0_0_20px_rgba(45,212,191,0.2)] transition active:scale-[0.97]">
-              Register Patient <ArrowRight size={13} />
-            </button>
+            {(!activeModules || activeModules['reception'] !== false) && (
+              <button onClick={() => onNavigate('registration')} className="flex items-center gap-2 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold text-[12px] px-4 py-2 rounded-lg shadow-[0_0_20px_rgba(45,212,191,0.2)] transition active:scale-[0.97]">
+                Register Patient <ArrowRight size={13} />
+              </button>
+            )}
           </div>
         </div>
       </Reveal>
 
       {/* Stat cards */}
       <Stagger className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" stagger={0.06}>
-        {cards.map((c) => {
+        {cards.filter((c) => {
+          if (!activeModules) return true;
+          const key = statsModuleKeys[c.tab];
+          if (!key) return true;
+          return activeModules[key] !== false;
+        }).map((c) => {
           const Icon = c.icon;
           const a = accentMap[c.accent];
           const hasAccess = checkAccess(c.tab);

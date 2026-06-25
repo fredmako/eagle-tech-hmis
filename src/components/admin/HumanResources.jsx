@@ -12,11 +12,13 @@ import {
   Sliders,
   Printer,
   Shield,
-  Mail
+  Mail,
+  Calendar
 } from 'lucide-react';
 import StaffOnboarding from './StaffOnboarding';
 import RoleRequestsList from './RoleRequestsList';
 import AdminDelegation from './AdminDelegation';
+import StaffScheduler from './StaffScheduler';
 
 export default function HumanResources({ 
   user, 
@@ -46,7 +48,10 @@ export default function HumanResources({
   adminDelegation = {},
   onDelegationUpdate
 }) {
-  const [activeTab, setActiveTab] = useState('directory'); // 'directory' | 'onboarding' | 'requests' | 'delegation'
+  const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
+  const isHRManager = rolesList.includes('admin') || rolesList.includes('super_admin') || rolesList.includes('facility_admin') || rolesList.includes('hr_manager');
+
+  const [activeTab, setActiveTab] = useState(isHRManager ? 'directory' : 'roster'); // 'directory' | 'onboarding' | 'requests' | 'delegation' | 'roster'
   
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffEmail, setNewStaffEmail] = useState('');
@@ -387,77 +392,88 @@ export default function HumanResources({
     return ['clinician', 'nurse', 'lab_tech', 'pharmacist'].some(r => rolesList.includes(r));
   }).length;
 
-  const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
   const isAdmin = rolesList.includes('admin') || rolesList.includes('super_admin');
 
   return (
     <div className="space-y-6">
       {/* Upper Navigation Header */}
-      <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow">
-        <div className="space-y-1">
-          <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-            <Users className="text-teal-400" size={20} /> Human Resources Management Desk
-          </h2>
-          <p className="text-xs text-slate-500">
-            {isAdmin ? 'Admin Management: ' : ''}Register staff members, send portal invitations, process role authorization requests, and configure access control delegation.
-          </p>
+      {isHRManager && (
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow">
+          <div className="space-y-1">
+            <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+              <Users className="text-teal-400" size={20} /> Human Resources Management Desk
+            </h2>
+            <p className="text-xs text-slate-500">
+              {isAdmin ? 'Admin Management: ' : ''}Register staff members, send portal invitations, process role authorization requests, and configure access control delegation.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handlePrintHR}
+              className="flex items-center gap-1.5 bg-slate-955 border border-slate-800 hover:border-teal-500/30 text-slate-400 hover:text-teal-400 font-semibold text-[11px] px-3.5 py-2 rounded-lg transition active:scale-[0.97]"
+            >
+              <Printer size={13} />
+              <span>Print Directory</span>
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handlePrintHR}
-            className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 hover:border-teal-500/30 text-slate-400 hover:text-teal-400 font-semibold text-[11px] px-3.5 py-2 rounded-lg transition active:scale-[0.97]"
-          >
-            <Printer size={13} />
-            <span>Print Directory</span>
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Sub Tab Navigation */}
-      <div className="flex border-b border-slate-800 gap-1 overflow-x-auto pb-1">
-        <button
-          onClick={() => setActiveTab('directory')}
-          className={`px-4 py-2 border-b-2 font-bold text-xs whitespace-nowrap transition cursor-pointer ${
-            activeTab === 'directory' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-450 hover:text-white'
-          }`}
-        >
-          Staff Directory & Registration
-        </button>
-        <button
-          onClick={() => setActiveTab('onboarding')}
-          className={`px-4 py-2 border-b-2 font-bold text-xs whitespace-nowrap transition cursor-pointer relative ${
-            activeTab === 'onboarding' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-450 hover:text-white'
-          }`}
-        >
-          Staff On-boarding (Invites)
-          {invitationsList.filter(i => i.status === 'pending').length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-amber-500/20 text-[8px] text-amber-400 font-bold px-1 py-0.5 rounded-full border border-amber-500/25">
-              {invitationsList.filter(i => i.status === 'pending').length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab('requests')}
-          className={`px-4 py-2 border-b-2 font-bold text-xs whitespace-nowrap transition cursor-pointer relative ${
-            activeTab === 'requests' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-450 hover:text-white'
-          }`}
-        >
-          Role Requests
-          {roleRequests.filter(r => r.status === 'pending').length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-amber-500/20 text-[8px] text-amber-400 font-bold px-1 py-0.5 rounded-full border border-amber-500/25">
-              {roleRequests.filter(r => r.status === 'pending').length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab('delegation')}
-          className={`px-4 py-2 border-b-2 font-bold text-xs whitespace-nowrap transition cursor-pointer ${
-            activeTab === 'delegation' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-450 hover:text-white'
-          }`}
-        >
-          Access Delegation Settings
-        </button>
-      </div>
+      {isHRManager && (
+        <div className="flex border-b border-slate-800 gap-1 overflow-x-auto pb-1">
+          <button
+            onClick={() => setActiveTab('directory')}
+            className={`px-4 py-2 border-b-2 font-bold text-xs whitespace-nowrap transition cursor-pointer ${
+              activeTab === 'directory' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-450 hover:text-white'
+            }`}
+          >
+            Staff Directory & Registration
+          </button>
+          <button
+            onClick={() => setActiveTab('roster')}
+            className={`px-4 py-2 border-b-2 font-bold text-xs whitespace-nowrap transition cursor-pointer ${
+              activeTab === 'roster' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-450 hover:text-white'
+            }`}
+          >
+            Duty Roster
+          </button>
+          <button
+            onClick={() => setActiveTab('onboarding')}
+            className={`px-4 py-2 border-b-2 font-bold text-xs whitespace-nowrap transition cursor-pointer relative ${
+              activeTab === 'onboarding' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-450 hover:text-white'
+            }`}
+          >
+            Staff On-boarding (Invites)
+            {invitationsList.filter(i => i.status === 'pending').length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-amber-500/20 text-[8px] text-amber-400 font-bold px-1 py-0.5 rounded-full border border-amber-500/25">
+                {invitationsList.filter(i => i.status === 'pending').length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('requests')}
+            className={`px-4 py-2 border-b-2 font-bold text-xs whitespace-nowrap transition cursor-pointer relative ${
+              activeTab === 'requests' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-450 hover:text-white'
+            }`}
+          >
+            Role Requests
+            {roleRequests.filter(r => r.status === 'pending').length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-amber-500/20 text-[8px] text-amber-400 font-bold px-1 py-0.5 rounded-full border border-amber-500/25">
+                {roleRequests.filter(r => r.status === 'pending').length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('delegation')}
+            className={`px-4 py-2 border-b-2 font-bold text-xs whitespace-nowrap transition cursor-pointer ${
+              activeTab === 'delegation' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-450 hover:text-white'
+            }`}
+          >
+            Access Delegation Settings
+          </button>
+        </div>
+      )}
 
       {message.text && (
         <div className={`p-3.5 rounded-xl text-xs flex gap-2.5 ${
@@ -755,6 +771,16 @@ export default function HumanResources({
           user={user}
           currentDelegation={adminDelegation}
           onUpdate={onDelegationUpdate}
+        />
+      )}
+
+      {/* Duty Roster Tab View */}
+      {activeTab === 'roster' && (
+        <StaffScheduler
+          user={user}
+          profiles={profiles}
+          fetchAdminData={fetchAdminData}
+          dbDepartments={dbDepartments}
         />
       )}
     </div>

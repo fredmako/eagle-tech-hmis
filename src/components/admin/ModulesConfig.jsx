@@ -136,6 +136,7 @@ export default function ModulesConfig({ user, onClose }) {
       });
 
       showToast(`Module "${moduleName}" ${nextState ? 'enabled' : 'disabled'} successfully.`, 'success');
+      window.dispatchEvent(new Event('egesa_modules_updated'));
     } catch (err) {
       console.error('Error toggling module:', err);
       // Revert UI state on failure

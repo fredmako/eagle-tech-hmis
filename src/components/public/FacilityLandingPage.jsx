@@ -3,7 +3,7 @@ import { supabase } from '../../supabaseClient';
 import { 
   PhoneCall, DollarSign, Calendar, ShieldCheck, ArrowRight, UserPlus, 
   LogIn, Award, MapPin, Heart, Activity, Clock, Users, Check, 
-  Sparkles, Stethoscope, Layers, Search, Mail, Key 
+  Sparkles, Stethoscope, Layers, Search, Mail, Key, MessageSquare, X 
 } from 'lucide-react';
 
 export default function FacilityLandingPage() {
@@ -48,6 +48,59 @@ export default function FacilityLandingPage() {
 
   // Public Booking Modal States
   const [showPublicBookingModal, setShowPublicBookingModal] = useState(false);
+
+  // Chatbot states
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatTyping, setChatTyping] = useState(false);
+  const [chatMessages, setChatMessages] = useState([
+    { sender: 'bot', text: `Hi there! I am your automated clinic assistant. Ask me anything about our medical packages, services pricing, opening hours, or appointments!` }
+  ]);
+
+  const handleChatSend = (text) => {
+    if (!text.trim()) return;
+
+    setChatMessages(prev => [...prev, { sender: 'user', text: text.trim() }]);
+    setChatInput('');
+    setChatTyping(true);
+
+    setTimeout(() => {
+      let reply = '';
+      const query = text.toLowerCase().trim();
+
+      const facName = facility?.name || 'our clinic';
+      const address = facility?.address || 'our location';
+      const mflCode = facility?.code || 'EMC-001';
+
+      if (query.includes('services') || query.includes('pricing') || query.includes('cost') || query.includes('charge') || query.includes('price')) {
+        if (services && services.length > 0) {
+          const list = services.slice(0, 5).map(s => `- ${s.name}: KES ${s.charge}`).join('\n');
+          reply = `Here is a sample of our services at ${facName}:\n${list}\n\nYou can view the full catalog and prices on our homepage!`;
+        } else {
+          reply = `At ${facName}, we offer specialized outpatient consultations, diagnostic laboratories, and pharmacy services. Please check our price catalog on the homepage or reach out via our inquiry form.`;
+        }
+      } else if (query.includes('location') || query.includes('address') || query.includes('find') || query.includes('where')) {
+        reply = `${facName} is located at ${address}. Feel free to visit us or call us for direct directions!`;
+      } else if (query.includes('appointment') || query.includes('book') || query.includes('schedul') || query.includes('visit')) {
+        reply = `You can easily book an appointment with our clinicians! Click the "Book Appointment" button on the homepage to choose a doctor, date, and preferred time slot.`;
+      } else if (query.includes('mfl') || query.includes('code') || query.includes('register') || query.includes('verify')) {
+        reply = `Our facility registration code is ${mflCode}. We are a verified healthcare provider under the Kenyan Ministry of Health registries.`;
+      } else if (query.includes('insurance') || query.includes('cover') || query.includes('nhif') || query.includes('sha') || query.includes('pay')) {
+        reply = `We accept primary corporate insurance covers including AAR, Jubilee, Britam, APA, and the National SHA / NHIF. You can manage and update your policy details on your Patient Portal dashboard!`;
+      } else if (query.includes('portal') || query.includes('login') || query.includes('register') || query.includes('signup') || query.includes('sign in')) {
+        reply = `You can join our Digital Patient Portal! Complete the sign-up or login form under the "Join Our Digital Patient Portal" section below. Once logged in, you can view your appointments, prescriptions, and lab reports.`;
+      } else if (query.includes('coin') || query.includes('eagle') || query.includes('egc') || query.includes('wallet') || query.includes('inflation')) {
+        reply = `We support payments in Eagle Coin (EGC)! Eagle Coin is an inflation-proof healthcare token peg-locked to clinical service units. You can manage your wallet, claim faucet rewards, and pay bills under the "Eagle Coin Wallet" tab of your Patient Portal.`;
+      } else if (query.includes('hello') || query.includes('hi') || query.includes('hey') || query.includes('assist')) {
+        reply = `Hello! How can I assist you today at ${facName}? You can ask me about our services, pricing, coordinates, or booking appointments.`;
+      } else {
+        reply = `Thank you for reaching out. I'm your automated helper at ${facName}. You can ask about "services and pricing", "hospital location", "appointment booking", or "insurance and patient portals". Or fill out our inquiry form for manual clinical support!`;
+      }
+
+      setChatMessages(prev => [...prev, { sender: 'bot', text: reply }]);
+      setChatTyping(false);
+    }, 800);
+  };
   const [facilityDoctors, setFacilityDoctors] = useState([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState('');
   const [bookingDate, setBookingDate] = useState(() => {
@@ -297,6 +350,8 @@ export default function FacilityLandingPage() {
 
       localStorage.setItem('egesa_health_token', body.token);
       localStorage.setItem('egesa_health_user', JSON.stringify(body.user));
+      sessionStorage.setItem('egesa_health_token', body.token);
+      sessionStorage.setItem('egesa_health_active_user', JSON.stringify(body.user));
 
       setAuthSuccess('Redirecting to Patient Portal...');
       setTimeout(() => {
@@ -353,6 +408,8 @@ export default function FacilityLandingPage() {
       const loginBody = await loginRes.json();
       localStorage.setItem('egesa_health_token', loginBody.token);
       localStorage.setItem('egesa_health_user', JSON.stringify(loginBody.user));
+      sessionStorage.setItem('egesa_health_token', loginBody.token);
+      sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loginBody.user));
 
       setTimeout(() => {
         window.location.href = '/patient-portal';
@@ -1358,6 +1415,108 @@ export default function FacilityLandingPage() {
           </div>
         </div>
       )}
+      {/* Floating Facility Chatbot Widget */}
+      <div className="fixed bottom-6 left-6 z-[9999] font-sans text-slate-100">
+        {!chatOpen ? (
+          <button
+            onClick={() => setChatOpen(true)}
+            className={`h-12 w-12 rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition cursor-pointer ${
+              template === 'wellness'
+                ? 'bg-purple-500 hover:bg-purple-650 text-white shadow-purple-500/10'
+                : 'bg-teal-400 hover:bg-teal-500 text-slate-950 shadow-teal-500/10'
+            }`}
+            aria-label="Open support chat"
+          >
+            <MessageSquare size={22} />
+          </button>
+        ) : (
+          <div className="w-80 sm:w-96 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col h-[400px] animate-fadeIn">
+            {/* Header */}
+            <div className="p-3 bg-slate-950 border-b border-slate-800 flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs font-serif ${
+                    template === 'wellness' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-teal-400/10 text-teal-400 border border-teal-400/20'
+                  }`}>
+                    {facility?.name?.substring(0, 2).toUpperCase() || 'EP'}
+                  </div>
+                  <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 border border-slate-900" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-100 flex items-center gap-1 font-sans">
+                    {facility?.name || 'Clinic'} Helper
+                  </h4>
+                  <span className="text-[9px] text-slate-500 block leading-none font-sans">Online Assistant</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setChatOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-850 text-slate-400 hover:text-slate-100 transition cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Message logs */}
+            <div className="flex-1 p-3 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+              {chatMessages.map((m, idx) => (
+                <div
+                  key={idx}
+                  className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[85%] rounded-2xl py-2 px-3 text-xs leading-relaxed font-sans ${
+                      m.sender === 'user'
+                        ? template === 'wellness'
+                          ? 'bg-purple-500 text-white font-medium rounded-tr-none'
+                          : 'bg-teal-400 text-slate-950 font-medium rounded-tr-none'
+                        : 'bg-slate-950/60 border border-slate-855 text-slate-200 rounded-tl-none whitespace-pre-line'
+                    }`}
+                  >
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              {chatTyping && (
+                <div className="flex justify-start">
+                  <div className="bg-slate-950/60 border border-slate-855 text-slate-400 rounded-2xl rounded-tl-none py-1.5 px-3 text-xs flex gap-1">
+                    <span className="h-1 w-1 bg-slate-500 rounded-full animate-bounce" />
+                    <span className="h-1 w-1 bg-slate-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                    <span className="h-1 w-1 bg-slate-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleChatSend(chatInput);
+              }}
+              className="p-2.5 bg-slate-950 border-t border-slate-850 flex gap-2 shrink-0"
+            >
+              <input
+                type="text"
+                placeholder="Ask about pricing, services, or location..."
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500/50"
+              />
+              <button
+                type="submit"
+                className={`px-3 py-1.5 font-bold text-xs rounded-xl transition cursor-pointer ${
+                  template === 'wellness'
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-teal-400 text-slate-950'
+                }`}
+              >
+                Send
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

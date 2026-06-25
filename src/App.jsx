@@ -607,6 +607,9 @@ export default function App() {
         return <FacilityLandingPage />;
       }
       if (pathname === "/patient-portal") {
+        if (user && user.role === "patient") {
+          return <PatientDashboard user={user} />;
+        }
         return <FacilityLandingPage />;
       }
       if (publicView === "callback")

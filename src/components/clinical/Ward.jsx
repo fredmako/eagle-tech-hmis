@@ -364,6 +364,172 @@ export default function Ward({ user, showNotification }) {
   // Caretakers and Visitors tracking states
   const [inpatientTab, setInpatientTab] = useState('clinical'); // 'clinical' or 'visitors'
   const [caretakers, setCaretakers] = useState([]);
+
+  const handlePrintInpatientFile = () => {
+    if (!selectedAdmission) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker is active. Please allow popups to print.');
+      return;
+    }
+
+    const patient = selectedAdmission.patient;
+    const age = patient ? new Date().getFullYear() - new Date(patient.dob).getFullYear() : 'N/A';
+    
+    // Build vitals history HTML
+    let vitalsHistoryHtml = '';
+    if (observations.length > 0) {
+      vitalsHistoryHtml = observations.map((obs, idx) => `
+        <tr>
+          <td>#\${idx + 1}</td>
+          <td>\${new Date(obs.created_at).toLocaleString()}</td>
+          <td>\${obs.bp_systolic || '--'}/\${obs.bp_diastolic || '--'} mmHg</td>
+          <td>\${obs.temperature || '--'} °C</td>
+          <td>\${obs.pulse_rate || '--'} bpm</td>
+          <td>\${obs.respiratory_rate || '--'} bpm</td>
+          <td>\${obs.spo2 || '--'} %</td>
+          <td>\${obs.meds_administered || 'None'}</td>
+          <td>\${obs.observations_notes || 'None'}</td>
+        </tr>
+      `).join('');
+    } else {
+      vitalsHistoryHtml = '<tr><td colspan="9" style="text-align: center; font-style: italic;">No rounds logged.</td></tr>';
+    }
+
+    // Build caretakers HTML
+    let caretakersHtml = '';
+    if (caretakers.length > 0) {
+      caretakersHtml = caretakers.map(c => `
+        <li><strong>\${c.full_name}</strong> - \${c.relationship} (\${c.phone || 'No phone'}) - Allowed to visit: \${c.allowed_visitation ? 'Yes' : 'No'}</li>
+      `).join('');
+    } else {
+      caretakersHtml = '<li>No caretakers registered.</li>';
+    }
+
+    // Build visitor log HTML
+    let visitorLogsHtml = '';
+    const activeLogs = visitorLogs.filter(log => log.admission_id === selectedAdmission.id);
+    if (activeLogs.length > 0) {
+      visitorLogsHtml = activeLogs.map((log, idx) => `
+        <tr>
+          <td>#\${idx + 1}</td>
+          <td>\${log.visitor_name} (\${log.visitor_phone || 'N/A'})</td>
+          <td>\${log.relationship_to_patient || log.relationship || 'N/A'}</td>
+          <td>\${log.check_in_time ? new Date(log.check_in_time).toLocaleString() : '--'}</td>
+          <td>\${log.check_out_time ? new Date(log.check_out_time).toLocaleString() : 'Still Checked In'}</td>
+        </tr>
+      `).join('');
+    } else {
+      visitorLogsHtml = '<tr><td colspan="5" style="text-align: center; font-style: italic;">No visitors logged.</td></tr>';
+    }
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Inpatient File - \${patient?.name || 'Inpatient'}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 30px; color: #333; background: #fff; line-height: 1.5; font-size: 12px; }
+            .header { text-align: center; margin-bottom: 25px; border-bottom: 3px double #333; padding-bottom: 15px; }
+            .header h2 { margin: 0 0 5px 0; font-size: 22px; text-transform: uppercase; color: #111; }
+            .header p { margin: 3px 0; font-size: 12px; color: #666; }
+            .section { margin-bottom: 25px; }
+            .section-title { font-weight: bold; border-bottom: 2px solid #333; padding-bottom: 3px; margin-bottom: 10px; text-transform: uppercase; font-size: 13px; color: #111; }
+            .grid { display: grid; grid-template-cols: 1fr 1fr 1fr; gap: 12px; }
+            .field { display: flex; flex-direction: column; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+            .field-label { font-weight: bold; font-size: 10px; color: #555; text-transform: uppercase; }
+            .field-value { font-size: 12px; margin-top: 2px; }
+            .full-width { grid-column: span 3; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
+            table th, table td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+            table th { background-color: #f5f5f5; font-weight: bold; text-transform: uppercase; }
+            .footer { margin-top: 40px; text-align: center; font-size: 10px; border-top: 1px dashed #ccc; padding-top: 15px; color: #666; }
+            ul { padding-left: 20px; margin: 5px 0; }
+            @media print {
+              .print-hidden { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>Egesa Health System</h2>
+            <p>Inpatient File Summary Report</p>
+            <p>Date: \${new Date().toLocaleDateString()} | Time: \${new Date().toLocaleTimeString()}</p>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">Admission & Patient Particulars</div>
+            <div class="grid">
+              <div class="field"><span class="field-label">Patient Name:</span><span class="field-value">\${patient?.name || 'N/A'}</span></div>
+              <div class="field"><span class="field-label">Patient Code:</span><span class="field-value">\${patient?.facility_id_code || 'N/A'}</span></div>
+              <div class="field"><span class="field-label">Age / Gender:</span><span class="field-value">\${age} yrs / \dots \${patient?.gender || 'N/A'}</span></div>
+              <div class="field"><span class="field-label">Allocated Bed:</span><span class="field-value">\${selectedAdmission.bed}</span></div>
+              <div class="field"><span class="field-label">Admission Date:</span><span class="field-value">\${new Date(selectedAdmission.admission_date || selectedAdmission.created_at).toLocaleDateString()}</span></div>
+              <div class="field"><span class="field-label">Admitting Clinician:</span><span class="field-value">\${selectedAdmission.admitting_doctor || 'N/A'}</span></div>
+              <div class="field full-width"><span class="field-label">Diagnosis / Reason for Admission:</span><span class="field-value">\${selectedAdmission.diagnosis || 'None'}</span></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Clinical Chart & Vitals History</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Round</th>
+                  <th>Date/Time</th>
+                  <th>BP</th>
+                  <th>Temp</th>
+                  <th>Pulse</th>
+                  <th>Resp Rate</th>
+                  <th>SPO2</th>
+                  <th>Meds Given</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                \${vitalsHistoryHtml}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Caretakers Profile (Allowed Visitors)</div>
+            <ul>
+              \${caretakersHtml}
+            </ul>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Visitor Entry/Exit logs</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Visitor Name</th>
+                  <th>Relationship</th>
+                  <th>Checked In</th>
+                  <th>Checked Out</th>
+                </tr>
+              </thead>
+              <tbody>
+                \${visitorLogsHtml}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="footer">
+            <p>Report Compiled by: \${user?.full_name || 'Ward Nurse'}</p>
+            <p>Egesa Health System | Electronic Health Record</p>
+            <div class="print-hidden" style="margin-top: 20px;">
+              <button onclick="window.print();" style="padding: 8px 18px; font-weight: bold; background: #000; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-size: 12px;">Print Document</button>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
   const [visitorLogs, setVisitorLogs] = useState([]);
   const [showAddCaretaker, setShowAddCaretaker] = useState(false);
   const [showCheckInVisitor, setShowCheckInVisitor] = useState(false);
@@ -1458,6 +1624,13 @@ export default function Ward({ user, showNotification }) {
                   <h4 className="text-sm font-bold text-slate-100">{selectedAdmission.patient?.name}</h4>
                   <span className="text-[10px] text-slate-500 font-mono">{selectedAdmission.patient?.facility_id_code}</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={handlePrintInpatientFile}
+                  className="flex items-center gap-1.5 bg-slate-950 border border-slate-850 hover:border-teal-500/30 text-slate-400 hover:text-teal-400 font-bold text-[10px] px-3 py-1.5 rounded-lg transition active:scale-[0.97] cursor-pointer"
+                >
+                  Print File
+                </button>
               </div>
 
               {/* Secondary Navigation Tabs for Inpatient File */}

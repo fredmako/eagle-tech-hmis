@@ -314,18 +314,85 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
   const depts = ['triage', 'consultation', 'lab', 'radiology', 'surgery', 'ward', 'pharmacy', 'billing'];
 
   const DEPT_META = {
-    triage: { label: 'Triage (Vitals)', icon: HeartPulse, color: 'text-sky-400', border: 'border-sky-500/20', badge: 'bg-sky-500/10 text-sky-400' },
-    consultation: { label: 'OPD Consult', icon: Stethoscope, color: 'text-teal-400', border: 'border-teal-500/20', badge: 'bg-teal-500/10 text-teal-400' },
-    lab: { label: 'Laboratory', icon: FlaskConical, color: 'text-purple-400', border: 'border-purple-500/20', badge: 'bg-purple-500/10 text-purple-400' },
-    radiology: { label: 'Radiology', icon: Scan, color: 'text-indigo-400', border: 'border-indigo-500/20', badge: 'bg-indigo-500/10 text-indigo-400' },
-    surgery: { label: 'Theatre', icon: Activity, color: 'text-rose-400', border: 'border-rose-500/20', badge: 'bg-rose-500/10 text-rose-400' },
-    ward: { label: 'Inpatient Ward', icon: Bed, color: 'text-fuchsia-400', border: 'border-fuchsia-500/20', badge: 'bg-fuchsia-500/10 text-fuchsia-400' },
-    pharmacy: { label: 'Pharmacy', icon: Pill, color: 'text-amber-400', border: 'border-amber-500/20', badge: 'bg-amber-500/10 text-amber-400' },
-    billing: { label: 'Billing Desk', icon: DollarSign, color: 'text-emerald-400', border: 'border-emerald-500/20', badge: 'bg-emerald-500/10 text-emerald-400' }
+    triage: { label: 'Triage (Vitals)', icon: HeartPulse, color: 'text-sky-400', border: 'border-sky-500/20', badge: 'bg-sky-500/10 text-sky-400', topBorder: 'border-t-2 border-t-sky-500' },
+    consultation: { label: 'OPD Consult', icon: Stethoscope, color: 'text-teal-400', border: 'border-teal-500/20', badge: 'bg-teal-500/10 text-teal-400', topBorder: 'border-t-2 border-t-teal-500' },
+    lab: { label: 'Laboratory', icon: FlaskConical, color: 'text-purple-400', border: 'border-purple-500/20', badge: 'bg-purple-500/10 text-purple-400', topBorder: 'border-t-2 border-t-purple-500' },
+    radiology: { label: 'Radiology', icon: Scan, color: 'text-indigo-400', border: 'border-indigo-500/20', badge: 'bg-indigo-500/10 text-indigo-400', topBorder: 'border-t-2 border-t-indigo-500' },
+    surgery: { label: 'Theatre', icon: Activity, color: 'text-rose-400', border: 'border-rose-500/20', badge: 'bg-rose-500/10 text-rose-400', topBorder: 'border-t-2 border-t-rose-500' },
+    ward: { label: 'Inpatient Ward', icon: Bed, color: 'text-fuchsia-400', border: 'border-fuchsia-500/20', badge: 'bg-fuchsia-500/10 text-fuchsia-400', topBorder: 'border-t-2 border-t-fuchsia-500' },
+    pharmacy: { label: 'Pharmacy', icon: Pill, color: 'text-amber-400', border: 'border-amber-500/20', badge: 'bg-amber-500/10 text-amber-400', topBorder: 'border-t-2 border-t-amber-500' },
+    billing: { label: 'Billing Desk', icon: DollarSign, color: 'text-emerald-400', border: 'border-emerald-500/20', badge: 'bg-emerald-500/10 text-emerald-400', topBorder: 'border-t-2 border-t-emerald-500' }
   };
 
   const getDeptVisits = (deptName) => {
     return activeVisits.filter(v => v.department === deptName && v.status !== 'completed');
+  };
+
+  const sortedDepts = [...depts].sort((a, b) => {
+    return getDeptVisits(b).length - getDeptVisits(a).length;
+  });
+
+  const renderQueueWatermark = (deptName) => {
+    const commonClasses = "absolute -bottom-6 -right-6 w-32 h-32 text-slate-800/30 opacity-[0.04] pointer-events-none select-none z-0";
+    switch (deptName) {
+      case 'triage':
+        return (
+          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h3L9 3l3 18 3-12h3l3 3" />
+          </svg>
+        );
+      case 'consultation':
+        return (
+          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12a3 3 0 106 0 3 3 0 00-6 0z" />
+          </svg>
+        );
+      case 'lab':
+        return (
+          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v13.018a1.982 1.982 0 001.078 1.75l5.586 2.993a.75.75 0 001.086-.66V3.805a.75.75 0 00-1.183-.61l-5.483 3.93a1.982 1.982 0 00-.77 1.543V18.75" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5h15" />
+          </svg>
+        );
+      case 'radiology':
+        return (
+          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 12h10M12 7v10" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        );
+      case 'surgery':
+        return (
+          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l6 6m0-6l-6 6" />
+            <circle cx="12" cy="12" r="9" />
+          </svg>
+        );
+      case 'ward':
+        return (
+          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v14M21 19v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5M3 10h18M7 14h2M12 14h4" />
+          </svg>
+        );
+      case 'pharmacy':
+        return (
+          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <rect x="5" y="5" width="14" height="14" rx="7" transform="rotate(45 12 12)" strokeLinecap="round" strokeLinejoin="round" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v8" />
+          </svg>
+        );
+      case 'billing':
+        return (
+          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v10M9 9h5.5a2.5 2.5 0 010 5H9" />
+          </svg>
+        );
+      default:
+        return null;
+    }
   };
 
   const getPatientName = (patientId) => {
@@ -514,7 +581,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
 
         {/* Mobile Department Tab Selector */}
         <div className="md:hidden flex overflow-x-auto gap-2 pb-3.5 pt-1 scrollbar-none">
-          {depts.map((deptName) => {
+          {sortedDepts.map((deptName) => {
             const count = getDeptVisits(deptName).length;
             const meta = DEPT_META[deptName];
             const isActive = mobileActiveDept === deptName;
@@ -544,7 +611,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
 
         {/* Horizontal Kanban Scrollable Wrapper */}
         <div className="flex flex-col md:flex-row md:overflow-x-auto gap-4 pb-6 pt-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
-          {depts.map((deptName) => {
+          {sortedDepts.map((deptName) => {
             const list = getDeptVisits(deptName);
             const meta = DEPT_META[deptName];
             const IconComponent = meta.icon;
@@ -553,12 +620,14 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
             return (
               <div 
                 key={deptName} 
-                className={`bg-slate-900 border border-slate-800/80 rounded-xl p-4 flex flex-col h-[520px] shrink-0 shadow-sm transition-all duration-350 ${
+                className={`bg-slate-900 border border-slate-800/80 ${meta.topBorder || ''} rounded-xl p-4 flex flex-col h-[520px] shrink-0 shadow-sm transition-all duration-350 relative overflow-hidden ${
                   isMobileActive ? 'flex w-full md:w-[290px]' : 'hidden md:flex md:w-[290px]'
                 }`}
               >
+                {renderQueueWatermark(deptName)}
+
                 {/* Dept Title Header */}
-                <div className="mb-4 pb-2.5 border-b border-slate-800/70 flex justify-between items-center">
+                <div className="mb-4 pb-2.5 border-b border-slate-800/70 flex justify-between items-center relative z-10">
                   <div className="flex items-center gap-2">
                     <div className={`p-1.5 rounded-lg ${meta.badge} bg-opacity-10`}>
                       <IconComponent size={14} />
@@ -571,7 +640,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                 </div>
 
                 {/* Queue Cards */}
-                <div className="flex-1 overflow-y-auto space-y-3 pr-1.5 scrollbar-thin scrollbar-thumb-slate-950 scrollbar-track-transparent">
+                <div className="flex-1 overflow-y-auto space-y-3 pr-1.5 scrollbar-thin scrollbar-thumb-slate-950 scrollbar-track-transparent relative z-10">
                   {list.map((v) => (
                     <div
                       key={v.id}

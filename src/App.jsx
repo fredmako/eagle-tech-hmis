@@ -18,6 +18,8 @@ import MaternityDashboard from "./components/clinical/MaternityDashboard";
 import MCHDashboard from "./components/clinical/MCHDashboard";
 import Radiology from "./components/clinical/Radiology";
 import Surgery from "./components/clinical/Surgery";
+import OperationsDesk from "./components/admin/OperationsDesk";
+import HumanResourcesWrapper from "./components/admin/HumanResourcesWrapper";
 import SaaSOnboarding from "./components/SaaSOnboarding";
 import LandingPage from "./components/LandingPage";
 import BusinessCards from "./components/BusinessCards";
@@ -33,6 +35,7 @@ import { ThemeToggle } from "./components/ui/ThemeToggle";
 import NotificationBell from "./components/NotificationBell";
 import SupportPanel from "./components/SupportPanel";
 import { motion } from "motion/react";
+import { hasAccess } from "./utils/permissions";
 
 import {
   LayoutDashboard,
@@ -62,6 +65,8 @@ import {
   Calendar,
   Baby,
   Search,
+  ShoppingBag,
+  Users,
 } from "lucide-react";
 
 export default function App() {
@@ -174,6 +179,39 @@ export default function App() {
   );
   const [menuSearch, setMenuSearch] = useState("");
   const [activeCategoryDropdown, setActiveCategoryDropdown] = useState(null);
+  const [adminDelegation, setAdminDelegation] = useState({});
+
+  useEffect(() => {
+    if (user?.facility_id) {
+      const fetchDelegation = async () => {
+        try {
+          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          const token = localStorage.getItem('egesa_health_token');
+          const res = await fetch(`${apiBase}/db/query`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              table: 'facilities',
+              queries: [{ type: 'equal', column: 'id', value: user.facility_id }]
+            })
+          });
+          if (res.ok) {
+            const resData = await res.json();
+            const activeFac = resData.data?.find(f => f.id === user.facility_id);
+            if (activeFac) {
+              setAdminDelegation(activeFac.admin_delegation || {});
+            }
+          }
+        } catch (e) {
+          console.error('Error fetching admin delegation in App.jsx:', e);
+        }
+      };
+      fetchDelegation();
+    }
+  }, [user?.facility_id]);
 
   useEffect(() => {
     localStorage.setItem("egesa_active_tab", activeTab);
@@ -743,13 +781,22 @@ export default function App() {
         { id: "smtp_settings", label: "SMTP Settings" },
         { id: "email_logs", label: "Email Logs" },
         { id: "licensing", label: "Licensing" },
-        { id: "role_requests", label: "Role Requests" },
         { id: "facility_profile", label: "Facility Profile" },
-        { id: "hr", label: "Human Resources" },
-        { id: "procurement", label: "Procurement Desk" },
         { id: "maintenance", label: "Assets Maintenance" },
         { id: "afyalink", label: "DHA Kenya HIE" }
       ]
+    },
+    {
+      id: "hr",
+      label: "Human Resources",
+      icon: Users,
+      roles: ["admin", "facility_admin", "hr_manager"],
+    },
+    {
+      id: "procurement",
+      label: "Procurement Desk",
+      icon: ShoppingBag,
+      roles: ["admin", "facility_admin", "operations_manager"],
     },
     {
       id: "appointments",
@@ -787,13 +834,13 @@ export default function App() {
       id: "departments",
       label: "Clinical Departments",
       icon: Bed,
-      items: ["ward", "maternity", "mch", "surgery"]
+      items: ["ward", "maternity", "mch", "surgery", "orders", "procurement", "hr"]
     },
     {
       id: "diagnostics_rx",
       label: "Diagnostics & Rx",
       icon: FlaskConical,
-      items: ["orders", "radiology", "pharmacy"]
+      items: ["radiology", "pharmacy"]
     },
     {
       id: "financials",
@@ -832,6 +879,14 @@ export default function App() {
       const userDept = user.department?.toLowerCase() || '';
       const isMchDept = userDept.includes('mch') || userDept.includes('anc') || userDept.includes('antenatal');
       return isAdmin || isMchDept;
+    }
+    
+    if (item.id === 'hr') {
+      return isAdmin || hasAccess('hr', user.role, adminDelegation);
+    }
+    
+    if (item.id === 'procurement') {
+      return isAdmin || hasAccess('procurement', user.role, adminDelegation);
     }
     
     return item.roles.includes("*") || item.roles.some(r => rolesList.includes(r)) || isAdmin;
@@ -1469,6 +1524,8 @@ export default function App() {
               )
             )}
             {activeTab === "admin" && <Admin user={user} initialSubTab={adminSubTab} />}
+            {activeTab === "procurement" && <OperationsDesk user={user} />}
+            {activeTab === "hr" && <HumanResourcesWrapper user={user} />}
             {activeTab === "settings" && (
               <Preferences
                 currentTheme={theme}
@@ -1493,7 +1550,7 @@ export default function App() {
               <Appointments user={user} showNotification={showNotification} />
             )}
             {activeTab === "support" && <SupportPanel />}
-            {!["dashboard", "registration", "queue", "triage", "consultation", "orders", "radiology", "surgery", "pharmacy", "pos", "billing", "reports", "patient_dashboard", "ward", "maternity", "mch", "admin", "settings", "appointments", "support"].includes(activeTab) && (
+            {!["dashboard", "registration", "queue", "triage", "consultation", "orders", "radiology", "surgery", "pharmacy", "pos", "billing", "reports", "patient_dashboard", "ward", "maternity", "mch", "admin", "settings", "appointments", "support", "procurement", "hr"].includes(activeTab) && (
               <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
                 <ShieldAlert size={48} className="text-yellow-500 mb-4 animate-bounce" />
                 <h3 className="text-lg font-bold text-slate-100">404 - Page Not Found</h3>

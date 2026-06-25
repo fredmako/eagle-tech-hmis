@@ -25,7 +25,8 @@ import {
   Building,
   Plus,
   Eye,
-  ArrowRight
+  ArrowRight,
+  Printer
 } from 'lucide-react';
 
 export default function OperationsDesk({ user }) {
@@ -354,6 +355,423 @@ export default function OperationsDesk({ user }) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handlePrintSuppliers = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker is active. Please allow popups to print.');
+      return;
+    }
+    const rows = suppliers.map(s => `
+      <tr>
+        <td><strong>${s.name}</strong></td>
+        <td>${s.tax_pin || 'N/A'}</td>
+        <td>${s.phone || 'N/A'}<br/><span style="color:#666;font-size:9px;">${s.email || ''}</span></td>
+        <td>${s.address || 'N/A'}</td>
+        <td>${s.is_active ? 'Active' : 'Inactive'}</td>
+      </tr>
+    `).join('');
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Active Suppliers Registry</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 30px; color: #333; background: #fff; line-height: 1.5; font-size: 11px; }
+            .header { text-align: center; margin-bottom: 25px; border-bottom: 3px double #333; padding-bottom: 15px; }
+            .header h2 { margin: 0 0 5px 0; font-size: 20px; text-transform: uppercase; color: #111; }
+            .header p { margin: 3px 0; font-size: 11px; color: #666; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+            th { background-color: #f5f5f5; font-weight: bold; text-transform: uppercase; font-size: 10px; }
+            .footer { margin-top: 40px; text-align: center; font-size: 9px; border-top: 1px dashed #ccc; padding-top: 15px; color: #666; }
+            @media print { .print-hidden { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>Egesa Health System</h2>
+            <p>Procurement & Operations Desk - Active Suppliers Registry</p>
+            <p>Date: ${new Date().toLocaleDateString()} | Time: ${new Date().toLocaleTimeString()}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Supplier Name</th>
+                <th>Tax PIN (eTIMS)</th>
+                <th>Contact Details</th>
+                <th>Physical Address</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows || '<tr><td colspan="5" style="text-align:center;">No suppliers registered.</td></tr>'}
+            </tbody>
+          </table>
+          <div class="footer">
+            <p>Egesa Health System | Operations Management</p>
+            <div class="print-hidden" style="margin-top: 20px;">
+              <button onclick="window.print();" style="padding: 8px 18px; font-weight: bold; background: #000; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-size: 11px;">Print Document</button>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
+  const handlePrintLPO = (po) => {
+    if (!po) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker is active. Please allow popups to print.');
+      return;
+    }
+    const items = selectedPOItems;
+    let grandTotal = 0;
+    const rows = items.map(item => {
+      const subtotal = item.quantity_ordered * item.unit_price;
+      grandTotal += subtotal;
+      return `
+        <tr>
+          <td>${item.item_name}</td>
+          <td style="text-align:center;">${item.quantity_ordered}</td>
+          <td style="text-align:right;">KES ${parseFloat(item.unit_price).toFixed(2)}</td>
+          <td style="text-align:right;">KES ${subtotal.toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Local Purchase Order - LPO #${po.id}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #333; background: #fff; line-height: 1.5; font-size: 11px; }
+            .header-table { width: 100%; border: none; margin-bottom: 30px; }
+            .header-table td { border: none; padding: 0; }
+            .title { font-size: 24px; font-weight: bold; text-transform: uppercase; margin: 0; color: #111; }
+            .lpo-number { font-size: 16px; font-weight: bold; font-family: monospace; margin: 5px 0 0 0; color: #0f766e; }
+            .meta-section { display: grid; grid-template-cols: 1fr 1fr; gap: 40px; margin-bottom: 30px; }
+            .meta-section p { margin: 3px 0; }
+            .meta-block { border: 1px solid #ddd; padding: 15px; border-radius: 6px; }
+            .meta-title { font-weight: bold; text-transform: uppercase; font-size: 10px; color: #777; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+            table.items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            table.items-table th, table.items-table td { border: 1px solid #ddd; padding: 8px 10px; }
+            table.items-table th { background-color: #f5f5f5; font-weight: bold; text-transform: uppercase; font-size: 9px; }
+            .total-row td { font-weight: bold; font-size: 12px; border-top: 2px solid #333 !important; }
+            .signatures { display: grid; grid-template-cols: 1fr 1fr; gap: 60px; margin-top: 50px; }
+            .sig-block { border-top: 1px solid #666; text-align: center; padding-top: 8px; font-size: 10px; }
+            .footer { margin-top: 50px; text-align: center; font-size: 9px; border-top: 1px dashed #ccc; padding-top: 15px; color: #666; }
+            @media print { .print-hidden { display: none; } }
+          </style>
+        </head>
+        <body>
+          <table class="header-table">
+            <tr>
+              <td>
+                <div class="title">EGESA HEALTH SYSTEM</div>
+                <p style="margin:2px 0;">P.O. Box 100-00100, Nairobi, Kenya</p>
+                <p style="margin:2px 0;">Email: procurement@egesahealth.com | Tel: +254 700 000 000</p>
+              </td>
+              <td style="text-align:right; vertical-align:top;">
+                <div class="title" style="color:#0f766e;">PURCHASE ORDER</div>
+                <div class="lpo-number">LPO NO: ${po.id}</div>
+                <p style="margin:5px 0 0 0;"><strong>Date:</strong> ${po.order_date}</p>
+                <p style="margin:2px 0;"><strong>Status:</strong> ${po.status.toUpperCase()}</p>
+              </td>
+            </tr>
+          </table>
+          
+          <div class="meta-section">
+            <div class="meta-block">
+              <div class="meta-title">Supplier Details</div>
+              <p><strong>${po.suppliers?.name || 'N/A'}</strong></p>
+              <p>Tax PIN: ${po.suppliers?.tax_pin || 'N/A'}</p>
+              <p>Phone: ${po.suppliers?.phone || 'N/A'}</p>
+              <p>Email: ${po.suppliers?.email || 'N/A'}</p>
+            </div>
+            <div class="meta-block">
+              <div class="meta-title">Delivery/Billing Address</div>
+              <p><strong>Egesa Health System - Main Store</strong></p>
+              <p>Attn: Head of Procurement</p>
+              <p>Delivery Target Store: ${po.requesting_store || 'MAIN STORE'}</p>
+            </div>
+          </div>
+
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Item Description</th>
+                <th style="text-align:center; width: 100px;">Ordered Qty</th>
+                <th style="text-align:right; width: 120px;">Unit Price</th>
+                <th style="text-align:right; width: 150px;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows || '<tr><td colspan="4" style="text-align:center;">No items found in this LPO.</td></tr>'}
+              <tr class="total-row">
+                <td colspan="3" style="text-align:right;">Grand Total:</td>
+                <td style="text-align:right; color:#0f766e;">KES ${grandTotal.toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="signatures">
+            <div class="sig-block">
+              Prepared By: Procurement Officer
+            </div>
+            <div class="sig-block">
+              Authorized By: Chief Executive / Medical Director<br/>
+              <span style="font-size:8px;color:#888;">(Sign and Rubber Stamp)</span>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>This is a system generated Local Purchase Order of Egesa Health System.</p>
+            <div class="print-hidden" style="margin-top: 20px;">
+              <button onclick="window.print();" style="padding: 8px 18px; font-weight: bold; background: #000; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-size: 11px;">Print LPO Document</button>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
+  const handlePrintRequisition = (req) => {
+    if (!req) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker is active. Please allow popups to print.');
+      return;
+    }
+    const items = selectedRequisitionItems;
+    const rows = items.map(item => `
+      <tr>
+        <td>${item.item_name}</td>
+        <td style="text-align:center;">${item.quantity_requested}</td>
+        <td style="text-align:center;">${req.status === 'pending' ? 'Pending' : item.quantity_approved}</td>
+        <td>${item.notes || 'N/A'}</td>
+      </tr>
+    `).join('');
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Store Requisition Voucher - #${req.id}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #333; background: #fff; line-height: 1.5; font-size: 11px; }
+            .header-table { width: 100%; border: none; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+            .header-table td { border: none; padding: 0; }
+            .title { font-size: 22px; font-weight: bold; text-transform: uppercase; margin: 0; color: #111; }
+            .req-number { font-size: 15px; font-weight: bold; font-family: monospace; color: #0f766e; margin-top: 5px; }
+            .meta-section { display: grid; grid-template-cols: 1fr 1fr; gap: 20px; margin-bottom: 35px; }
+            .meta-block { border: 1px solid #eee; padding: 12px; border-radius: 6px; }
+            .meta-title { font-weight: bold; text-transform: uppercase; font-size: 9px; color: #787878; margin-bottom: 5px; border-bottom: 1px solid #f5f5f5; padding-bottom: 2px; }
+            table.items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            table.items-table th, table.items-table td { border: 1px solid #ddd; padding: 8px 10px; }
+            table.items-table th { background-color: #f5f5f5; font-weight: bold; text-transform: uppercase; font-size: 9px; }
+            .signatures { display: grid; grid-template-cols: 1fr 1fr 1fr; gap: 30px; margin-top: 60px; }
+            .sig-block { border-top: 1px solid #666; text-align: center; padding-top: 8px; font-size: 9px; }
+            .footer { margin-top: 50px; text-align: center; font-size: 9px; border-top: 1px dashed #ccc; padding-top: 15px; color: #666; }
+            @media print { .print-hidden { display: none; } }
+          </style>
+        </head>
+        <body>
+          <table class="header-table">
+            <tr>
+              <td>
+                <div class="title">EGESA HEALTH SYSTEM</div>
+                <p style="margin:2px 0;">Internal Stock Requisition & Transfer Voucher</p>
+              </td>
+              <td style="text-align:right; vertical-align:top;">
+                <div class="req-number">REQUISITION NO: ${req.id}</div>
+                <p style="margin:5px 0 0 0;"><strong>Date:</strong> ${new Date(req.created_at).toLocaleDateString()}</p>
+                <p style="margin:2px 0;"><strong>Status:</strong> ${req.status.toUpperCase()}</p>
+              </td>
+            </tr>
+          </table>
+
+          <div class="meta-section">
+            <div class="meta-block">
+              <div class="meta-title">Requesting Department</div>
+              <p style="margin:3px 0;"><strong>Store: ${req.requesting_store}</strong></p>
+              <p style="margin:2px 0;">Submitted by: Department In-Charge</p>
+            </div>
+            <div class="meta-block">
+              <div class="meta-title">Supplying Department</div>
+              <p style="margin:3px 0;"><strong>Store: ${req.supplying_store}</strong></p>
+              <p style="margin:2px 0;">Target stock level check: Verified</p>
+            </div>
+          </div>
+
+          <p><strong>Comments/Remarks:</strong> ${req.comments || 'No remarks provided'}</p>
+
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Item Description</th>
+                <th style="text-align:center; width: 120px;">Qty Requested</th>
+                <th style="text-align:center; width: 120px;">Qty Approved</th>
+                <th>Remarks/Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows || '<tr><td colspan="4" style="text-align:center;">No requisition items listed.</td></tr>'}
+            </tbody>
+          </table>
+
+          <div class="signatures">
+            <div class="sig-block">
+              Requested By:<br/>
+              Department Head
+            </div>
+            <div class="sig-block">
+              Approved By:<br/>
+              Store Manager
+            </div>
+            <div class="sig-block">
+              Issued By / Received By:<br/>
+              Handover Signature
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>Egesa Health System | Inventory Control System</p>
+            <div class="print-hidden" style="margin-top: 20px;">
+              <button onclick="window.print();" style="padding: 8px 18px; font-weight: bold; background: #000; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-size: 11px;">Print Voucher</button>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
+  const handlePrintReceipt = (receipt) => {
+    if (!receipt) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker is active. Please allow popups to print.');
+      return;
+    }
+    const items = selectedReceiptItems;
+    let grandTotal = 0;
+    const rows = items.map(item => {
+      const subtotal = item.quantity_received * item.buy_price;
+      grandTotal += subtotal;
+      return `
+        <tr>
+          <td>${item.item_name}</td>
+          <td style="text-align:center;">${item.batch_number || 'N/A'}</td>
+          <td style="text-align:center;">${item.expiry_date || 'N/A'}</td>
+          <td style="text-align:center;">${item.quantity_received}</td>
+          <td style="text-align:right;">KES ${parseFloat(item.buy_price).toFixed(2)}</td>
+          <td style="text-align:right;">KES ${subtotal.toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Good Received Note (GRN) - #${receipt.invoice_number}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #333; background: #fff; line-height: 1.5; font-size: 11px; }
+            .header-table { width: 100%; border: none; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+            .header-table td { border: none; padding: 0; }
+            .title { font-size: 22px; font-weight: bold; text-transform: uppercase; margin: 0; color: #111; }
+            .grn-number { font-size: 15px; font-weight: bold; font-family: monospace; color: #0f766e; margin-top: 5px; }
+            .meta-section { display: grid; grid-template-cols: 1fr 1fr; gap: 20px; margin-bottom: 35px; }
+            .meta-block { border: 1px solid #eee; padding: 12px; border-radius: 6px; }
+            .meta-title { font-weight: bold; text-transform: uppercase; font-size: 9px; color: #787878; margin-bottom: 5px; border-bottom: 1px solid #f5f5f5; padding-bottom: 2px; }
+            table.items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            table.items-table th, table.items-table td { border: 1px solid #ddd; padding: 8px 10px; }
+            table.items-table th { background-color: #f5f5f5; font-weight: bold; text-transform: uppercase; font-size: 9px; }
+            .total-row td { font-weight: bold; font-size: 12px; border-top: 2px solid #333 !important; }
+            .signatures { display: grid; grid-template-cols: 1fr 1fr; gap: 50px; margin-top: 60px; }
+            .sig-block { border-top: 1px solid #666; text-align: center; padding-top: 8px; font-size: 9px; }
+            .footer { margin-top: 50px; text-align: center; font-size: 9px; border-top: 1px dashed #ccc; padding-top: 15px; color: #666; }
+            @media print { .print-hidden { display: none; } }
+          </style>
+        </head>
+        <body>
+          <table class="header-table">
+            <tr>
+              <td>
+                <div class="title">EGESA HEALTH SYSTEM</div>
+                <p style="margin:2px 0;">Goods Received Note (GRN) / Delivery Intake</p>
+              </td>
+              <td style="text-align:right; vertical-align:top;">
+                <div class="grn-number">INVOICE/DO NO: ${receipt.invoice_number}</div>
+                <p style="margin:5px 0 0 0;"><strong>Received Date:</strong> ${receipt.received_date}</p>
+                <p style="margin:2px 0;"><strong>Supplier:</strong> ${receipt.suppliers?.name || 'N/A'}</p>
+              </td>
+            </tr>
+          </table>
+
+          <div class="meta-section">
+            <div class="meta-block">
+              <div class="meta-title">Supplier Information</div>
+              <p style="margin:3px 0;"><strong>${receipt.suppliers?.name || 'N/A'}</strong></p>
+              <p style="margin:2px 0;">Tax Pin: ${receipt.suppliers?.tax_pin || 'N/A'}</p>
+            </div>
+            <div class="meta-block">
+              <div class="meta-title">Receiver details</div>
+              <p style="margin:3px 0;"><strong>Egesa Health System - Main Store</strong></p>
+              <p style="margin:2px 0;">Received by: Store In-Charge / Staff Admin</p>
+            </div>
+          </div>
+
+          <p><strong>Comments/Remarks:</strong> ${receipt.comments || 'No comments recorded'}</p>
+
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Item Description</th>
+                <th style="text-align:center;">Batch No</th>
+                <th style="text-align:center;">Expiry Date</th>
+                <th style="text-align:center;">Qty Received</th>
+                <th style="text-align:right;">Buy Price</th>
+                <th style="text-align:right;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows || '<tr><td colspan="6" style="text-align:center;">No items recorded in this intake.</td></tr>'}
+              <tr class="total-row">
+                <td colspan="5" style="text-align:right;">Total Intake Value:</td>
+                <td style="text-align:right; color:#0f766e;">KES ${grandTotal.toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="signatures">
+            <div class="sig-block">
+              Received and Inspected By:<br/>
+              Store Clerk / Officer
+            </div>
+            <div class="sig-block">
+              Authorized Intake Stamp:<br/>
+              Internal Audit / Head of Stores
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>Egesa Health System | Goods Intake Registry</p>
+            <div class="print-hidden" style="margin-top: 20px;">
+              <button onclick="window.print();" style="padding: 8px 18px; font-weight: bold; background: #000; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-size: 11px;">Print GRN Document</button>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   const showMsg = (type, text) => {
@@ -1576,9 +1994,17 @@ export default function OperationsDesk({ user }) {
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                   {/* List of Suppliers */}
                   <div className="xl:col-span-2 bg-slate-955 border border-slate-855 rounded-xl p-5 space-y-4 shadow-md">
-                    <h5 className="text-[11px] font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-900 pb-2">
-                      <Users size={12} className="text-teal-400" /> Active Suppliers Registry
-                    </h5>
+                    <div className="flex justify-between items-center border-b border-slate-900 pb-2">
+                      <h5 className="text-[11px] font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5">
+                        <Users size={12} className="text-teal-400" /> Active Suppliers Registry
+                      </h5>
+                      <button
+                        onClick={handlePrintSuppliers}
+                        className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-bold text-slate-300 transition-all flex items-center gap-1 cursor-pointer"
+                      >
+                        <Printer size={10} /> Print Suppliers
+                      </button>
+                    </div>
                     {suppliers.length === 0 ? (
                       <div className="p-10 text-center text-slate-500 text-xs font-sans">No suppliers registered yet. Register a supplier on the right.</div>
                     ) : (
@@ -1914,12 +2340,20 @@ export default function OperationsDesk({ user }) {
                       <h4 className="text-xs font-black text-slate-200">LPO DETAILS: <span className="font-mono text-teal-400">{selectedPO.id}</span></h4>
                       <p className="text-[10px] text-slate-500 font-sans">Raised Date: {selectedPO.order_date} | Supplier: {selectedPO.suppliers?.name || 'N/A'}</p>
                     </div>
-                    <button
-                      onClick={() => { setSelectedPO(null); setSelectedPOItems([]); }}
-                      className="text-xs text-slate-500 hover:text-white transition cursor-pointer"
-                    >
-                      Close Details
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handlePrintLPO(selectedPO)}
+                        className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-700 text-[10px] text-white font-bold flex items-center gap-1 cursor-pointer transition-all"
+                      >
+                        <Printer size={10} /> Print LPO
+                      </button>
+                      <button
+                        onClick={() => { setSelectedPO(null); setSelectedPOItems([]); }}
+                        className="text-xs text-slate-500 hover:text-white transition cursor-pointer"
+                      >
+                        Close Details
+                      </button>
+                    </div>
                   </div>
 
                   {selectedPOItems.length === 0 ? (
@@ -2263,12 +2697,20 @@ export default function OperationsDesk({ user }) {
                       <h4 className="text-xs font-black text-slate-200">RECEIPT ITEMS LOGS: INVOICE <span className="font-mono text-teal-400">{selectedReceipt.invoice_number}</span></h4>
                       <p className="text-[10px] text-slate-500 font-sans">Supplier: {selectedReceipt.suppliers?.name} | Confirmed Date: {selectedReceipt.received_date}</p>
                     </div>
-                    <button
-                      onClick={() => { setSelectedReceipt(null); setSelectedReceiptItems([]); }}
-                      className="text-xs text-slate-500 hover:text-white transition cursor-pointer"
-                    >
-                      Close Details
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handlePrintReceipt(selectedReceipt)}
+                        className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-700 text-[10px] text-white font-bold flex items-center gap-1 cursor-pointer transition-all"
+                      >
+                        <Printer size={10} /> Print Receipt
+                      </button>
+                      <button
+                        onClick={() => { setSelectedReceipt(null); setSelectedReceiptItems([]); }}
+                        className="text-xs text-slate-500 hover:text-white transition cursor-pointer"
+                      >
+                        Close Details
+                      </button>
+                    </div>
                   </div>
                   {selectedReceiptItems.length === 0 ? (
                     <div className="p-5 text-center text-slate-500 text-xs">Loading items details...</div>
@@ -2491,12 +2933,20 @@ export default function OperationsDesk({ user }) {
                       <h4 className="text-xs font-black text-slate-200">REQUISITION DETAIL: <span className="font-mono text-teal-400">{selectedRequisition.id}</span></h4>
                       <p className="text-[10px] text-slate-500">Requesting Dept: {selectedRequisition.requesting_store} | Supplying Store: {selectedRequisition.supplying_store}</p>
                     </div>
-                    <button
-                      onClick={() => { setSelectedRequisition(null); setSelectedRequisitionItems([]); }}
-                      className="text-xs text-slate-500 hover:text-white transition cursor-pointer"
-                    >
-                      Close Details
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handlePrintRequisition(selectedRequisition)}
+                        className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-700 text-[10px] text-white font-bold flex items-center gap-1 cursor-pointer transition-all"
+                      >
+                        <Printer size={10} /> Print Voucher
+                      </button>
+                      <button
+                        onClick={() => { setSelectedRequisition(null); setSelectedRequisitionItems([]); }}
+                        className="text-xs text-slate-500 hover:text-white transition cursor-pointer"
+                      >
+                        Close Details
+                      </button>
+                    </div>
                   </div>
                   {selectedRequisitionItems.length === 0 ? (
                     <div className="p-5 text-center text-slate-500 text-xs">Loading items details...</div>

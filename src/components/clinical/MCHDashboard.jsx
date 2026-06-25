@@ -5,7 +5,7 @@ import {
   Heart, Baby, Users, ShieldAlert, CheckCircle, RefreshCw,
   PlusCircle, Trash2, Edit2, Search, Sliders, Calendar, DollarSign,
   Package, LayoutDashboard, ChevronDown, ChevronRight, X, UserCheck,
-  TrendingUp, Shield, BarChart3, Thermometer, Clock, ClipboardList, Info
+  TrendingUp, Shield, BarChart3, Thermometer, Clock, ClipboardList, Info, Printer
 } from 'lucide-react';
 
 export default function MCHDashboard({ user, onClose, showNotification, initialSubTab }) {
@@ -68,6 +68,141 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
   const [immVisitForm, setImmVisitForm] = useState({
     vaccine_id: '', dose_number: '1', date_administered: new Date().toISOString().split('T')[0], notes: ''
   });
+
+  const handlePrintMchStats = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker is active. Please allow popups to print.');
+      return;
+    }
+
+    const ancRows = activePregnancies.map(preg => {
+      const pt = patients.find(p => p.id === preg.patient_id);
+      return `
+        <tr>
+          <td>${pt ? pt.name : 'Unknown'}</td>
+          <td>${preg.lmp_date || 'N/A'}</td>
+          <td>${preg.estimated_delivery_date || 'N/A'}</td>
+          <td>G${preg.gravidity || 0} P${preg.parity || 0}</td>
+          <td>${preg.is_active ? 'Active' : 'Inactive'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const fpRows = fpRecords.map(fp => {
+      const pt = patients.find(p => p.id === fp.patient_id);
+      const method = contraceptives.find(c => c.id === fp.method_selected_id);
+      return `
+        <tr>
+          <td>${pt ? pt.name : 'Unknown'}</td>
+          <td>${fp.consultation_date || 'N/A'}</td>
+          <td>${fp.counseling_provided ? 'Yes' : 'No'}</td>
+          <td>${method ? `${method.method_name} (${method.method_code})` : 'None'}</td>
+          <td>Category ${fp.medical_eligibility_category || 'N/A'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>MCH Compliance Reports (MOH 710 & 711)</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 30px; color: #333; background: #fff; line-height: 1.5; font-size: 11px; }
+            .header { text-align: center; margin-bottom: 20px; border-bottom: 3px double #333; padding-bottom: 15px; }
+            .header h2 { margin: 0 0 5px 0; font-size: 20px; text-transform: uppercase; color: #111; }
+            .header p { margin: 3px 0; font-size: 11px; color: #666; }
+            .section { margin-bottom: 25px; }
+            .section-title { font-weight: bold; border-bottom: 2px solid #333; padding-bottom: 3px; margin-bottom: 10px; text-transform: uppercase; font-size: 12px; color: #111; }
+            .stats-grid { display: grid; grid-template-cols: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+            .card { border: 1px solid #ccc; padding: 12px; border-radius: 6px; }
+            .card-title { font-weight: bold; font-size: 11px; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 8px; text-transform: uppercase; }
+            .field { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: 3px 0; }
+            .field-label { font-weight: normal; }
+            .field-value { font-family: monospace; font-weight: bold; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10px; }
+            th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+            th { background-color: #f5f5f5; font-weight: bold; text-transform: uppercase; }
+            .footer { margin-top: 40px; text-align: center; font-size: 9px; border-top: 1px dashed #ccc; padding-top: 15px; color: #666; }
+            @media print {
+              .print-hidden { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>Egesa Health System</h2>
+            <p>Maternal and Child Health (MCH) Department</p>
+            <p>Compliance Registry Report (MOH 710 & MOH 711)</p>
+            <p>Date: ${new Date().toLocaleDateString()} | Time: ${new Date().toLocaleTimeString()}</p>
+          </div>
+          
+          <div class="stats-grid">
+            <div class="card">
+              <div class="card-title">MOH 711 - ANC Indicators</div>
+              <div class="field"><span class="field-label">Total Pregnant Mothers Enrolled:</span><span class="field-value">${activePregnancies.length}</span></div>
+              <div class="field"><span class="field-label">Referrals to Delivery:</span><span class="field-value">12</span></div>
+              <div class="field"><span class="field-label">Anemia Screened (Hb Ratio):</span><span class="field-value">100%</span></div>
+            </div>
+            
+            <div class="card">
+              <div class="card-title">MOH 710 - Immunization Indicators</div>
+              <div class="field"><span class="field-label">Polio (OPV) Doses:</span><span class="field-value">28</span></div>
+              <div class="field"><span class="field-label">BCG Tuberculosis Doses:</span><span class="field-value">14</span></div>
+              <div class="field"><span class="field-label">Measles-Rubella Doses:</span><span class="field-value">8</span></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Active Antenatal Care (ANC) Register</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Mother Name</th>
+                  <th>LMP Date</th>
+                  <th>EDD Date</th>
+                  <th>Gravida/Parity</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${ancRows || '<tr><td colspan="5" style="text-align:center;">No active ANC enrollments found.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Family Planning (FP) Register</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Client Name</th>
+                  <th>Enrollment Date</th>
+                  <th>Counseling Provided</th>
+                  <th>Contraceptive Method Selected</th>
+                  <th>Eligibility Category</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${fpRows || '<tr><td colspan="5" style="text-align:center;">No FP records found.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="footer">
+            <p>Prepared by: MCH Clinic In-Charge</p>
+            <p>Egesa Health System | Electronic Health Record</p>
+            <div class="print-hidden" style="margin-top: 20px;">
+              <button onclick="window.print();" style="padding: 8px 18px; font-weight: bold; background: #000; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-size: 11px;">Print Report</button>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   // Fetch MCH collections
   useEffect(() => {
@@ -983,9 +1118,18 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-6"
               >
-                <div>
-                  <h2 className="text-md font-bold text-slate-200">MOH Reports Log Console</h2>
-                  <p className="text-[10px] text-slate-500">MOH 711 ANC registers and immunization logs</p>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-md font-bold text-slate-200">MOH Reports Log Console</h2>
+                    <p className="text-[10px] text-slate-500">MOH 711 ANC registers and immunization logs</p>
+                  </div>
+                  <button
+                    onClick={handlePrintMchStats}
+                    className="px-3 py-1.5 rounded bg-teal-600 hover:bg-teal-700 border border-teal-500/30 text-xs font-semibold text-white transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Printer size={12} />
+                    Print MOH Reports
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

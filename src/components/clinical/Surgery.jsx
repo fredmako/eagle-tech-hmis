@@ -266,6 +266,97 @@ export default function Surgery({ user, onComplete }) {
 
   const params = evaluateClearanceParameters();
 
+  const handlePrintSurgeryReport = () => {
+    if (!selectedVisit || !selectedOrder) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker is active. Please allow popups to print.');
+      return;
+    }
+
+    const patient = selectedVisit.patient;
+    const age = patient ? new Date().getFullYear() - new Date(patient.dob).getFullYear() : 'N/A';
+    
+    const surgeryHtml = `
+      <html>
+        <head>
+          <title>Surgical Procedure Report - \${patient?.name || 'Patient'}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 30px; color: #333; background: #fff; line-height: 1.5; font-size: 13px; }
+            .header { text-align: center; margin-bottom: 25px; border-bottom: 3px double #333; padding-bottom: 15px; }
+            .header h2 { margin: 0 0 5px 0; font-size: 22px; text-transform: uppercase; color: #111; }
+            .header p { margin: 3px 0; font-size: 12px; color: #666; }
+            .section { margin-bottom: 20px; }
+            .section-title { font-weight: bold; border-bottom: 2px solid #333; padding-bottom: 3px; margin-bottom: 10px; text-transform: uppercase; font-size: 13px; color: #111; }
+            .grid { display: grid; grid-template-cols: 1fr 1fr; gap: 12px; }
+            .field { display: flex; flex-direction: column; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+            .field-label { font-weight: bold; font-size: 11px; color: #555; text-transform: uppercase; }
+            .field-value { font-size: 13px; margin-top: 2px; }
+            .full-width { grid-column: span 2; }
+            .footer { margin-top: 40px; text-align: center; font-size: 11px; border-top: 1px dashed #ccc; padding-top: 15px; color: #666; }
+            @media print {
+              .print-hidden { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>Egesa Health System</h2>
+            <p>Operating Theatre & Surgical Procedure Report</p>
+            <p>Date: \${new Date().toLocaleDateString()} | Time: \${new Date().toLocaleTimeString()}</p>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">Patient Particulars</div>
+            <div class="grid">
+              <div class="field"><span class="field-label">Name:</span><span class="field-value">\${patient?.name || 'N/A'}</span></div>
+              <div class="field"><span class="field-label">ID Code:</span><span class="field-value">\${patient?.facility_id_code || 'N/A'}</span></div>
+              <div class="field"><span class="field-label">Gender / Age:</span><span class="field-value">\${patient?.gender || 'N/A'} / \${age} yrs</span></div>
+              <div class="field"><span class="field-label">Procedure Ordered:</span><span class="field-value">\${selectedOrder.item_name}</span></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Pre-Operative Evaluation & Booking</div>
+            <div class="grid">
+              <div class="field"><span class="field-label">Consent Form Signed:</span><span class="field-value">\${consentSigned ? 'Yes' : 'No'}</span></div>
+              <div class="field"><span class="field-label">Anesthetic Clearance:</span><span class="field-value">\${anesthesiaCleared ? 'Cleared' : 'Pending'}</span></div>
+              <div class="field full-width"><span class="field-label">Anesthetic Notes:</span><span class="field-value">\${anestheticNotes || 'None'}</span></div>
+              <div class="field"><span class="field-label">Surgeon:</span><span class="field-value">\${surgeonName || 'N/A'}</span></div>
+              <div class="field"><span class="field-label">Anesthetist:</span><span class="field-value">\${anesthetistName || 'N/A'}</span></div>
+              <div class="field"><span class="field-label">Theatre Room:</span><span class="field-value">\${theaterRoom}</span></div>
+              <div class="field"><span class="field-label">Scheduled Time:</span><span class="field-value">\${scheduledTime || 'N/A'}</span></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Intra-Operative & Post-Operative Notes</div>
+            <div class="grid">
+              <div class="field"><span class="field-label">Incision Style:</span><span class="field-value">\${incisionStyle}</span></div>
+              <div class="field"><span class="field-label">Closure / Suture details:</span><span class="field-value">\${closureDetail || 'N/A'}</span></div>
+              <div class="field"><span class="field-label">Estimated Blood Loss:</span><span class="field-value">\${bloodLoss || '0'} mL</span></div>
+              <div class="field"><span class="field-label">Surgical Outcome:</span><span class="field-value">\${surgeryOutcome}</span></div>
+              <div class="field full-width"><span class="field-label">Intra-Operative Findings:</span><span class="field-value">\${intraopFindings || 'N/A'}</span></div>
+              <div class="field full-width"><span class="field-label">Complications Recorded:</span><span class="field-value">\${complications}</span></div>
+              <div class="field full-width"><span class="field-label">Post-Operative Management Plan:</span><span class="field-value">\${postopPlan || 'N/A'}</span></div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>Report Compiled by: \${user?.full_name || 'System Practitioner'}</p>
+            <p>Egesa Health System | Electronic Health Record</p>
+            <div class="print-hidden" style="margin-top: 20px;">
+              <button onclick="window.print();" style="padding: 8px 18px; font-weight: bold; background: #000; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-size: 12px;">Print Document</button>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(surgeryHtml);
+    printWindow.document.close();
+  };
+
   const handleCompleteSurgery = async (e) => {
     e.preventDefault();
     if (!selectedVisit || !selectedOrder) return;
@@ -718,14 +809,23 @@ export default function Surgery({ user, onComplete }) {
                         </select>
                       </div>
 
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full flex items-center justify-center gap-2 bg-teal-500 text-slate-950 hover:bg-teal-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed font-bold py-2.5 px-4 rounded-lg text-xs uppercase tracking-wider transition shadow-lg shadow-teal-500/10"
-                      >
-                        {loading ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-                        Complete Surgery & Log to Timeline
-                      </button>
+                      <div className="flex gap-2 w-full">
+                        <button
+                          type="button"
+                          onClick={handlePrintSurgeryReport}
+                          className="flex-1 bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold py-2.5 px-4 rounded-lg text-xs uppercase tracking-wider transition text-center"
+                        >
+                          Print Summary
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="flex-[2] flex items-center justify-center gap-2 bg-teal-500 text-slate-950 hover:bg-teal-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed font-bold py-2.5 px-4 rounded-lg text-xs uppercase tracking-wider transition shadow-lg shadow-teal-500/10"
+                        >
+                          {loading ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+                          Complete Care
+                        </button>
+                      </div>
                     </div>
                   </form>
                 </div>

@@ -265,6 +265,98 @@ export default function Triage({ user, onComplete, showNotification }) {
     setMessage({ type: '', text: '' });
   };
 
+  const handlePrintTriage = () => {
+    if (!selectedVisit || !patient) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker is active. Please allow popups to print.');
+      return;
+    }
+    
+    const age = new Date().getFullYear() - new Date(patient.dob).getFullYear();
+    const vitalsHtml = `
+      <html>
+        <head>
+          <title>Triage Vitals Card - ${patient.name}</title>
+          <style>
+            body { font-family: 'Courier New', Courier, monospace; padding: 20px; color: #000; background: #fff; line-height: 1.4; font-size: 13px; }
+            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #000; padding-bottom: 10px; }
+            .header h2 { margin: 0 0 5px 0; font-size: 18px; text-transform: uppercase; }
+            .header p { margin: 2px 0; font-size: 11px; }
+            .section { margin-bottom: 15px; }
+            .section-title { font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px; text-transform: uppercase; font-size: 12px; }
+            .grid { display: grid; grid-template-cols: 1fr 1fr; gap: 10px; }
+            .field { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding-bottom: 2px; }
+            .field-label { font-weight: bold; }
+            .field-value { font-family: monospace; }
+            .full-width { grid-column: span 2; }
+            .priority-box { display: inline-block; padding: 4px 10px; font-weight: bold; border: 1px solid #000; margin-top: 5px; text-transform: uppercase; }
+            .footer { margin-top: 30px; text-align: center; font-size: 10px; border-top: 1px dashed #000; padding-top: 10px; }
+            @media print {
+              .print-hidden { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>Egesa Health HMIS</h2>
+            <p>Patient Outpatient Triage Slip</p>
+            <p>Date: \${new Date().toLocaleDateString()} | Time: \${new Date().toLocaleTimeString()}</p>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">Patient Identification</div>
+            <div class="grid">
+              <div class="field"><span class="field-label">Name:</span><span class="field-value">\${patient.name}</span></div>
+              <div class="field"><span class="field-label">ID Code:</span><span class="field-value">\${patient.facility_id_code}</span></div>
+              <div class="field"><span class="field-label">Gender:</span><span class="field-value">\${patient.gender || 'N/A'}</span></div>
+              <div class="field"><span class="field-label">Age:</span><span class="field-value">\${age} yrs</span></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Vital Signs & Measurements</div>
+            <div class="grid">
+              <div class="field"><span class="field-label">Blood Pressure:</span><span class="field-value">\${systolic || '--'}/\${diastolic || '--'} mmHg</span></div>
+              <div class="field"><span class="field-label">Heart Rate:</span><span class="field-value">\${heartRate || '--'} bpm</span></div>
+              <div class="field"><span class="field-label">Temperature:</span><span class="field-value">\${temp || '--'} &deg;C</span></div>
+              <div class="field"><span class="field-label">Resp Rate:</span><span class="field-value">\${respRate || '--'} bpm</span></div>
+              <div class="field"><span class="field-label">SPO2:</span><span class="field-value">\${spo2 || '--'} %</span></div>
+              <div class="field"><span class="field-label">Weight/Height:</span><span class="field-value">\${weight || '--'} kg / \${height || '--'} m</span></div>
+              <div class="field"><span class="field-label">BMI:</span><span class="field-value">\${bmi || '--'}</span></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Clinical Assessment</div>
+            <div class="grid">
+              <div class="field full-width"><span class="field-label">Chief Complaint:</span><span class="field-value">\${chiefComplaint || 'None'}</span></div>
+              <div class="field full-width"><span class="field-label">Risk Indicators:</span><span class="field-value">\${riskIndicators || 'None'}</span></div>
+              <div class="field"><span class="field-label">Airway Status:</span><span class="field-value">\${airwayStatus}</span></div>
+              <div class="field"><span class="field-label">Breathing:</span><span class="field-value">\${breathingStatus}</span></div>
+              <div class="field"><span class="field-label">Circulation:</span><span class="field-value">\${circulationStatus}</span></div>
+              <div class="field"><span class="field-label">Consciousness:</span><span class="field-value">\${consciousnessLevel}</span></div>
+            </div>
+            <div style="text-align: center; margin-top: 10px;">
+              <span class="priority-box">Triage Flag: \${priorityFlag}</span>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>Prepared by: \${user?.full_name || 'System Nurse'}</p>
+            <p>Egesa Health System | Electronic Health Record</p>
+            <div class="print-hidden" style="margin-top: 15px;">
+              <button onclick="window.print();" style="padding: 8px 16px; font-weight: bold; background: #000; color: #fff; border: none; cursor: pointer; border-radius: 4px;">Print Now</button>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(vitalsHtml);
+    printWindow.document.close();
+  };
+
   const handleSaveTriage = async (e) => {
     e.preventDefault();
     if (!selectedVisit) return;
@@ -967,6 +1059,13 @@ export default function Triage({ user, onComplete, showNotification }) {
 
               {/* Action */}
               <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handlePrintTriage}
+                  className="bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-xs py-2.5 px-4 rounded-lg transition active:scale-[0.98]"
+                >
+                  Print Vitals Card
+                </button>
                 <button
                   type="submit"
                   disabled={loading}

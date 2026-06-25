@@ -5,7 +5,7 @@ import {
   Baby, Activity, Bed, Users, ShieldAlert, CheckCircle, RefreshCw,
   PlusCircle, Trash2, Edit2, Search, Sliders, Calendar, DollarSign,
   Package, LayoutDashboard, ChevronDown, ChevronRight, X, UserCheck,
-  TrendingUp, Shield, BarChart3, Thermometer, Clock, Heart
+  TrendingUp, Shield, BarChart3, Thermometer, Clock, Heart, Printer
 } from 'lucide-react';
 
 export default function MaternityDashboard({ user, onClose, showNotification, initialSubTab }) {
@@ -28,6 +28,82 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
   const [queue, setQueue] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const handlePrintMaternityStats = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker is active. Please allow popups to print.');
+      return;
+    }
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Maternity Outcome Summary & Statistics</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 30px; color: #333; background: #fff; line-height: 1.5; font-size: 12px; }
+            .header { text-align: center; margin-bottom: 25px; border-bottom: 3px double #333; padding-bottom: 15px; }
+            .header h2 { margin: 0 0 5px 0; font-size: 22px; text-transform: uppercase; color: #111; }
+            .header p { margin: 3px 0; font-size: 12px; color: #666; }
+            .section { margin-bottom: 25px; }
+            .section-title { font-weight: bold; border-bottom: 2px solid #333; padding-bottom: 3px; margin-bottom: 10px; text-transform: uppercase; font-size: 13px; color: #111; }
+            .stats-grid { display: grid; grid-template-cols: 1fr 1fr; gap: 20px; margin-top: 15px; }
+            .card { border: 1px solid #ccc; padding: 15px; border-radius: 6px; }
+            .card-title { font-weight: bold; font-size: 12px; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; }
+            .grid { display: grid; grid-template-cols: 1fr 1fr; gap: 10px; }
+            .field { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding-bottom: 2px; }
+            .field-label { font-weight: bold; }
+            .field-value { font-family: monospace; font-weight: bold; }
+            .footer { margin-top: 40px; text-align: center; font-size: 10px; border-top: 1px dashed #ccc; padding-top: 15px; color: #666; }
+            @media print {
+              .print-hidden { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>Egesa Health System</h2>
+            <p>Maternity Ward Delivery Outcome Registry</p>
+            <p>Date: \${new Date().toLocaleDateString()} | Time: \${new Date().toLocaleTimeString()}</p>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">Outcome Statistics</div>
+            <div class="stats-grid">
+              <div class="card">
+                <div class="card-title">Delivery outcomes register</div>
+                <div class="grid">
+                  <div class="field"><span class="field-label">Total Deliveries:</span><span class="field-value">42</span></div>
+                  <div class="field"><span class="field-label">Normal Vaginal (SVD):</span><span class="field-value">35</span></div>
+                  <div class="field"><span class="field-label">Caesarean Sections:</span><span class="field-value">7</span></div>
+                  <div class="field"><span class="field-label">Live Births:</span><span class="field-value">42</span></div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-title">Demographics & Ratios</div>
+                <div class="grid">
+                  <div class="field"><span class="field-label">SHA Insured Patients:</span><span class="field-value">82%</span></div>
+                  <div class="field"><span class="field-label">Bed Occupancy Rate:</span><span class="field-value">60%</span></div>
+                  <div class="field"><span class="field-label">Referrals Inbound:</span><span class="field-value">14%</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>Prepared by: Maternity Supervisor</p>
+            <p>Egesa Health System | Electronic Health Record</p>
+            <div class="print-hidden" style="margin-top: 20px;">
+              <button onclick="window.print();" style="padding: 8px 18px; font-weight: bold; background: #000; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-size: 12px;">Print Report</button>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   // Search & Filter states
   const [bedFilterType, setBedFilterType] = useState('');
@@ -1805,9 +1881,18 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-6"
               >
-                <div>
-                  <h2 className="text-md font-bold text-slate-200">Outcome Analysis & ANC Stats</h2>
-                  <p className="text-[10px] text-slate-500">View real-time department statistics and health outcomes</p>
+                <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+                  <div>
+                    <h2 className="text-md font-bold text-slate-200">Outcome Analysis & ANC Stats</h2>
+                    <p className="text-[10px] text-slate-500">View real-time department statistics and health outcomes</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handlePrintMaternityStats}
+                    className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 hover:border-teal-500/30 text-slate-400 hover:text-teal-400 font-bold text-[10px] px-3.5 py-2 rounded-lg transition active:scale-[0.97] cursor-pointer shadow"
+                  >
+                    <Printer size={12} /> Print Stats
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

@@ -1267,19 +1267,6 @@ export default function Admin({ user, initialSubTab }) {
               </button>
             )}
 
-            {isAdminRole && (
-              <button
-                onClick={() => setActiveSubTab('delegation')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-                  activeSubTab === 'delegation'
-                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                    : 'text-slate-450 hover:text-slate-200'
-                }`}
-              >
-                <ShieldCheck size={13} /> Role Delegation
-              </button>
-            )}
-
             {hasAccess('audit', user.role, adminDelegation) && (
               <button
                 onClick={() => setActiveSubTab('audit')}
@@ -1350,42 +1337,6 @@ export default function Admin({ user, initialSubTab }) {
               </button>
             )}
 
-            {hasAccess('staff_onboarding', user.role, adminDelegation) && (
-              <button
-                onClick={() => setActiveSubTab('staff_onboarding')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-                  activeSubTab === 'staff_onboarding'
-                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                    : 'text-slate-450 hover:text-slate-200'
-                }`}
-              >
-                <UserPlus size={13} /> Staff Onboarding
-                {invitationsList.filter(i => i.status === 'pending').length > 0 && (
-                  <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
-                    {invitationsList.filter(i => i.status === 'pending').length}
-                  </span>
-                )}
-              </button>
-            )}
-
-            {hasAccess('role_requests', user.role, adminDelegation) && (
-              <button
-                onClick={() => setActiveSubTab('role_requests')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-                  activeSubTab === 'role_requests'
-                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                    : 'text-slate-450 hover:text-slate-200'
-                }`}
-              >
-                <UserCheck size={13} /> Role Requests
-                {roleRequests.filter(r => r.status === 'pending').length > 0 && (
-                  <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
-                    {roleRequests.filter(r => r.status === 'pending').length}
-                  </span>
-                )}
-              </button>
-            )}
-
             {hasAccess('help_desk', user.role, adminDelegation) && (
               <button
                 onClick={() => setActiveSubTab('help_desk')}
@@ -1401,32 +1352,6 @@ export default function Admin({ user, initialSubTab }) {
                     {supportTicketsCount}
                   </span>
                 )}
-              </button>
-            )}
-
-            {hasAccess('hr', user.role, adminDelegation) && (
-              <button
-                onClick={() => setActiveSubTab('hr')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-                  activeSubTab === 'hr'
-                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                    : 'text-slate-450 hover:text-slate-200'
-                }`}
-              >
-                <Users size={13} /> Human Resources
-              </button>
-            )}
-
-            {hasAccess('procurement', user.role, adminDelegation) && (
-              <button
-                onClick={() => setActiveSubTab('procurement')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
-                  activeSubTab === 'procurement'
-                    ? 'bg-slate-850 border border-slate-700 text-teal-400'
-                    : 'text-slate-450 hover:text-slate-200'
-                }`}
-              >
-                <ShoppingBag size={13} /> Procurement Desk
               </button>
             )}
 
@@ -1629,15 +1554,6 @@ export default function Admin({ user, initialSubTab }) {
                   adminDelegation={adminDelegation}
                 />
               )}
-
-              {/* TAB: ROLE DELEGATION */}
-              {activeSubTab === 'delegation' && isAdminRole && (
-                <AdminDelegation
-                  user={user}
-                  currentDelegation={adminDelegation}
-                  onUpdate={handleDelegationUpdate}
-                />
-              )}
           
           {/* TAB 1: AUDIT TRAIL */}
           {activeSubTab === 'audit' && (
@@ -1687,36 +1603,6 @@ export default function Admin({ user, initialSubTab }) {
             />
           )}
 
-          {/* TAB 5: STAFF ONBOARDING & INVITATIONS PORTAL */}
-          {activeSubTab === 'staff_onboarding' && (
-            <StaffOnboarding
-              inviteMessage={inviteMessage}
-              handleSendInvite={handleSendInvite}
-              inviteEmail={inviteEmail}
-              setInviteEmail={setInviteEmail}
-              inviteRole={inviteRole}
-              setInviteRole={setInviteRole}
-              inviteDept={inviteDept}
-              setInviteDept={setInviteDept}
-              invitesLoading={invitesLoading}
-              invitationsList={invitationsList}
-              handleRevokeInvite={handleRevokeInvite}
-              dbDepartments={departments}
-            />
-          )}
-
-          {/* TAB 5b: STAFF ROLE APPROVAL REQUESTS */}
-          {activeSubTab === 'role_requests' && (
-            <RoleRequestsList
-              roleRequests={roleRequests}
-              requestsLoading={requestsLoading}
-              requestsMessage={requestsMessage}
-              handleApproveRequest={handleApproveRequest}
-              handleRejectRequest={handleRejectRequest}
-              fetchAdminData={fetchAdminData}
-            />
-          )}
-
           {/* TAB 5c: FACILITY HELP DESK & PATIENT INQUIRIES */}
           {activeSubTab === 'help_desk' && (
             <FacilityHelpDesk user={user} />
@@ -1725,26 +1611,6 @@ export default function Admin({ user, initialSubTab }) {
           {/* TAB 6: HOSPITAL PROFILE PARTICULARS */}
           {activeSubTab === 'facility_profile' && (
             <HospitalProfile
-              user={user}
-            />
-          )}
-
-          {/* TAB 7: HUMAN RESOURCES */}
-          {activeSubTab === 'hr' && (
-            <HumanResources
-              user={user}
-              profiles={usersList}
-              fetchAdminData={fetchAdminData}
-              roleRequests={roleRequests}
-              requestsLoading={requestsLoading}
-              requestsMessage={requestsMessage}
-              handleApproveRequest={handleApproveRequest}
-              handleRejectRequest={handleRejectRequest}
-            />
-          )}
-
-          {activeSubTab === 'procurement' && (
-            <OperationsDesk
               user={user}
             />
           )}

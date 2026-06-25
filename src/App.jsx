@@ -23,6 +23,7 @@ import HumanResourcesWrapper from "./components/admin/HumanResourcesWrapper";
 import AssetsMaintenance from "./components/admin/AssetsMaintenance";
 import Payroll from "./components/admin/Payroll";
 import SaaSOnboarding from "./components/SaaSOnboarding";
+import OnboardingTour from "./components/OnboardingTour";
 import LandingPage from "./components/LandingPage";
 import BusinessCards from "./components/BusinessCards";
 import Preferences from "./components/Preferences";
@@ -70,7 +71,8 @@ import {
   ShoppingBag,
   Users,
   Wrench,
-  CreditCard
+  CreditCard,
+  Compass
 } from "lucide-react";
 
 export default function App() {
@@ -90,6 +92,7 @@ export default function App() {
   const [maternitySubTab, setMaternitySubTab] = useState("dashboard");
   const [adminSubTab, setAdminSubTab] = useState("overview");
   const [activeModules, setActiveModules] = useState({});
+  const [showTour, setShowTour] = useState(false);
 
   const fetchFacilityModules = async () => {
     if (!user?.facility_id) return;
@@ -244,6 +247,18 @@ export default function App() {
       fetchDelegation();
     }
   }, [user?.facility_id]);
+
+  useEffect(() => {
+    if (user && user.role) {
+      const tourCompleted = localStorage.getItem(`egesa_tour_completed_${user.id}`);
+      if (!tourCompleted) {
+        const timer = setTimeout(() => {
+          setShowTour(true);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     localStorage.setItem("egesa_active_tab", activeTab);
@@ -1203,6 +1218,14 @@ export default function App() {
             
             <NotificationBell user={user} onNavigate={handleNavigate} />
             <ThemeToggle themeMode={themeMode} onToggle={toggleLightDark} />
+            
+            <button
+              onClick={() => setShowTour(true)}
+              className="p-1.5 rounded-lg bg-slate-900 border border-slate-800/80 text-slate-400 hover:text-teal-450 hover:border-teal-500/30 transition cursor-pointer"
+              title="System Onboarding Tour"
+            >
+              <Compass className="h-4 w-4" />
+            </button>
 
             {(user.email === "fredrickmakori102@gmail.com" || user.email === "support@egesa.com") && (
               <button
@@ -1751,6 +1774,15 @@ export default function App() {
             </button>
           </div>
         </div>
+      )}
+
+      {showTour && (
+        <OnboardingTour
+          user={user}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onClose={() => setShowTour(false)}
+        />
       )}
     </div>
   );

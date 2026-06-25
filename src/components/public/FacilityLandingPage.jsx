@@ -27,6 +27,7 @@ export default function FacilityLandingPage() {
 
   // Patient Login & Register Card States
   const [isLoginTab, setIsLoginTab] = useState(true);
+  const [isStaffLogin, setIsStaffLogin] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -331,6 +332,168 @@ export default function FacilityLandingPage() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setAuthLoading(true);
+    setAuthError('');
+    setAuthSuccess('');
+    try {
+      if (supabase.isSandbox) {
+        const simulateExists = window.confirm(
+          "Sandbox Mock Google Login:\n\nClick [OK] to simulate a Patient login.\nClick [Cancel] to simulate a Staff login."
+        );
+        if (simulateExists) {
+          const mockUser = {
+            id: 'u_mock_google_patient',
+            email: 'patient.google@eagletechsolutions.tech',
+            name: 'Google Patient User',
+            role: 'patient',
+            facility_id: facility.id
+          };
+          localStorage.setItem('egesa_health_token', 'mock_google_token');
+          localStorage.setItem('egesa_health_user', JSON.stringify(mockUser));
+          localStorage.setItem('egesa_active_facility_id', facility.id);
+          sessionStorage.setItem('egesa_health_token', 'mock_google_token');
+          sessionStorage.setItem('egesa_health_active_user', JSON.stringify(mockUser));
+          setAuthSuccess('Redirecting to Patient Portal...');
+          setTimeout(() => {
+            window.location.href = '/patient-portal';
+          }, 1000);
+        } else {
+          const mockUser = {
+            id: 'u_mock_google_staff',
+            email: 'staff.google@eagletechsolutions.tech',
+            name: 'Google Staff User',
+            role: 'doctor',
+            facility_id: facility.id
+          };
+          localStorage.setItem('egesa_health_token', 'mock_google_token');
+          localStorage.setItem('egesa_health_user', JSON.stringify(mockUser));
+          localStorage.setItem('egesa_active_facility_id', facility.id);
+          sessionStorage.setItem('egesa_health_token', 'mock_google_token');
+          sessionStorage.setItem('egesa_health_active_user', JSON.stringify(mockUser));
+          setAuthSuccess('Redirecting to Staff Workspace...');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1000);
+        }
+      } else {
+        sessionStorage.setItem('egesa_health_pending_facility', facility.id);
+        localStorage.setItem('egesa_active_facility_id', facility.id);
+        sessionStorage.setItem('egesa_google_auth_facility_redirect', 'true');
+        
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+        if (error) throw error;
+      }
+    } catch (err) {
+      setAuthError(err.message || 'Google Login failed.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const checkGoogleSession = async () => {
+      if (facility?.id) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && session.user) {
+          const localUserStr = localStorage.getItem('egesa_health_user');
+          if (!localUserStr) {
+            setAuthLoading(true);
+            try {
+              const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+              const res = await fetch(`${apiBase}/auth/supabase-login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  access_token: session.access_token,
+                  requestedFacilityId: facility.id
+                })
+              });
+              
+              const resData = await res.json();
+              if (res.ok) {
+                if (resData.status === 'success') {
+                  localStorage.setItem('egesa_health_token', resData.token);
+                  localStorage.setItem('egesa_health_user', JSON.stringify(resData.user));
+                  localStorage.setItem('egesa_active_facility_id', resData.user.facility_id || '');
+                  sessionStorage.setItem('egesa_health_token', resData.token);
+                  sessionStorage.setItem('egesa_health_active_user', JSON.stringify(resData.user));
+                  
+                  setAuthSuccess('Logged in successfully!');
+                  setTimeout(() => {
+                    if (resData.user.role === 'patient') {
+                      window.location.href = '/patient-portal';
+                    } else {
+                      window.location.href = '/';
+                    }
+                  }, 1000);
+                } else if (resData.status === 'no_profile') {
+                  try {
+                    const patientRes = await fetch(`${apiBase}/auth/patient/signup`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        email: session.user.email,
+                        password: 'google_oauth_bypass_pass_' + Math.random().toString(36),
+                        name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+                        dob: '2000-01-01',
+                        gender: 'female',
+                        facilityId: facility.id,
+                        phone: ''
+                      })
+                    });
+                    
+                    const signUpBody = await patientRes.json();
+                    if (!patientRes.ok) throw new Error(signUpBody.error || 'Auto-signup failed.');
+                    
+                    const retryRes = await fetch(`${apiBase}/auth/supabase-login`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        access_token: session.access_token,
+                        requestedFacilityId: facility.id
+                      })
+                    });
+                    const retryData = await retryRes.json();
+                    if (retryRes.ok && retryData.status === 'success') {
+                      localStorage.setItem('egesa_health_token', retryData.token);
+                      localStorage.setItem('egesa_health_user', JSON.stringify(retryData.user));
+                      localStorage.setItem('egesa_active_facility_id', retryData.user.facility_id || '');
+                      sessionStorage.setItem('egesa_health_token', retryData.token);
+                      sessionStorage.setItem('egesa_health_active_user', JSON.stringify(retryData.user));
+                      
+                      setAuthSuccess('Account registered successfully with Google!');
+                      setTimeout(() => {
+                        window.location.href = '/patient-portal';
+                      }, 1000);
+                    } else {
+                      throw new Error(retryData.error || 'Failed to initialize session.');
+                    }
+                  } catch (err) {
+                    setAuthError('Google registration failed: ' + err.message);
+                  }
+                }
+              } else {
+                setAuthError(resData.error || 'OAuth session initialization failed.');
+              }
+            } catch (err) {
+              setAuthError(err.message);
+            } finally {
+              setAuthLoading(false);
+            }
+          }
+        }
+      }
+    };
+    
+    checkGoogleSession();
+  }, [facility]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -544,24 +707,24 @@ export default function FacilityLandingPage() {
     const cat = (svc.category || '').toLowerCase();
 
     if (cat.includes('consult') || name.includes('consult')) {
-      return 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=400&q=80';
+      return '/medical_consultation.png';
     }
     if (cat.includes('lab') || cat.includes('test') || name.includes('lab') || name.includes('blood') || name.includes('stool') || name.includes('urine') || name.includes('widal') || name.includes('hiv') || name.includes('panel')) {
-      return 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=400&q=80';
+      return '/laboratory_diagnostics.png';
     }
     if (cat.includes('immun') || cat.includes('vaccin') || name.includes('vacc') || name.includes('immun')) {
-      return 'https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?auto=format&fit=crop&w=400&q=80';
+      return 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=500&q=80';
     }
     if (cat.includes('mch') || cat.includes('maternity') || cat.includes('anc') || name.includes('pregnancy') || name.includes('antenatal') || name.includes('delivery')) {
-      return 'https://images.unsplash.com/photo-1531983412531-1f49a365f693?auto=format&fit=crop&w=400&q=80';
+      return 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=500&q=80';
     }
     if (cat.includes('radiology') || cat.includes('scan') || name.includes('ct') || name.includes('mri') || name.includes('x-ray')) {
-      return 'https://images.unsplash.com/photo-1504813184591-015556c5c472?auto=format&fit=crop&w=400&q=80';
+      return 'https://images.unsplash.com/photo-1516549838248-7452393c0807?auto=format&fit=crop&w=500&q=80';
     }
     if (cat.includes('ward') || cat.includes('bed') || cat.includes('icu') || name.includes('admission') || name.includes('ward')) {
-      return 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=400&q=80';
+      return 'https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=500&q=80';
     }
-    return 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=400&q=80';
+    return 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80';
   };
 
   const renderHeader = () => (
@@ -606,24 +769,34 @@ export default function FacilityLandingPage() {
     }`}>
       <div className="flex border-b border-slate-800">
         <button
-          onClick={() => { setIsLoginTab(true); setAuthError(''); }}
-          className={`flex-1 pb-3 text-center text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-            isLoginTab 
+          onClick={() => { setIsLoginTab(true); setIsStaffLogin(false); setAuthError(''); }}
+          className={`flex-1 pb-3 text-center text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+            isLoginTab && !isStaffLogin
               ? `border-b-2 ${template === 'wellness' ? 'border-purple-500 text-purple-400' : 'border-teal-500 text-teal-400'}` 
               : 'text-slate-500 hover:text-slate-300'
           }`}
         >
-          <LogIn size={14} /> Patient Login
+          <LogIn size={13} /> Patient Login
         </button>
         <button
-          onClick={() => { setIsLoginTab(false); setAuthError(''); }}
-          className={`flex-1 pb-3 text-center text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-            !isLoginTab 
+          onClick={() => { setIsLoginTab(false); setIsStaffLogin(false); setAuthError(''); }}
+          className={`flex-1 pb-3 text-center text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+            !isLoginTab && !isStaffLogin
               ? `border-b-2 ${template === 'wellness' ? 'border-purple-500 text-purple-400' : 'border-teal-500 text-teal-400'}` 
               : 'text-slate-500 hover:text-slate-300'
           }`}
         >
-          <UserPlus size={14} /> Patient Sign Up
+          <UserPlus size={13} /> Patient Sign Up
+        </button>
+        <button
+          onClick={() => { setIsStaffLogin(true); setAuthError(''); }}
+          className={`flex-1 pb-3 text-center text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+            isStaffLogin
+              ? `border-b-2 ${template === 'wellness' ? 'border-purple-500 text-purple-400' : 'border-teal-500 text-teal-400'}` 
+              : 'text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          <ShieldCheck size={13} /> Staff Login
         </button>
       </div>
 
@@ -638,7 +811,82 @@ export default function FacilityLandingPage() {
         </div>
       )}
 
-      {isLoginTab ? (
+      {isStaffLogin ? (
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Staff Email Address</label>
+            <div className="flex bg-slate-950 border border-slate-850 rounded-lg focus-within:border-teal-500/60 transition overflow-hidden">
+              <span className="pl-3 py-2 text-slate-550 flex items-center justify-center"><Mail size={13} /></span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="staff@eagletechsolutions.tech"
+                className="flex-1 bg-transparent py-2 px-2 text-xs text-slate-100 focus:outline-none"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
+            <div className="flex bg-slate-950 border border-slate-850 rounded-lg focus-within:border-teal-500/60 transition overflow-hidden">
+              <span className="pl-3 py-2 text-slate-550 flex items-center justify-center"><Key size={13} /></span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="flex-1 bg-transparent py-2 px-2 text-xs text-slate-100 focus:outline-none"
+                required
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            disabled={authLoading}
+            className={`w-full font-black py-2 rounded-lg text-xs transition flex items-center justify-center gap-1 active:scale-[0.97] cursor-pointer ${
+              template === 'wellness' 
+                ? 'bg-purple-500 hover:bg-purple-650 text-white shadow-lg shadow-purple-500/10' 
+                : 'bg-teal-500 hover:bg-teal-600 text-slate-955 shadow-lg shadow-teal-500/10'
+            }`}
+          >
+            Sign In as Staff <ArrowRight size={14} />
+          </button>
+
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-slate-800"></div>
+            <span className="flex-shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">or</span>
+            <div className="flex-grow border-t border-slate-800"></div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={authLoading}
+            className="w-full bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-800 text-slate-200 font-bold py-2 rounded-lg text-xs transition flex items-center justify-center gap-2 active:scale-[0.97] cursor-pointer"
+          >
+            <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24">
+              <path
+                fill="#EA4335"
+                d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582l3.51-3.51C17.642 1.09 14.974 0 12 0 7.354 0 3.307 2.68 1.285 6.567l3.98 3.198Z"
+              />
+              <path
+                fill="#4285F4"
+                d="M16.04 15.348c-1.07.728-2.42 1.16-4.04 1.16a5.084 5.084 0 0 1-4.834-3.498l-4.02 3.125C5.176 20.354 8.356 22 12 22c3.218 0 6.143-1.127 8.318-3.055l-4.278-3.597Z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M7.166 13.01a4.9 4.9 0 0 1-.257-1.01c0-.35.035-.69.097-1.01l-3.98-3.197A9.034 9.034 0 0 0 2 12c0 1.564.4 3.037 1.097 4.328l4.069-3.318Z"
+              />
+              <path
+                fill="#34A853"
+                d="M23.49 12.275c0-.82-.074-1.604-.21-2.364H12v4.51h6.46A5.523 5.523 0 0 1 16.04 15.35l4.278 3.596c2.502-2.31 3.938-5.71 3.938-9.67Z"
+              />
+            </svg>
+            Continue with Google
+          </button>
+        </form>
+      ) : isLoginTab ? (
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
@@ -674,10 +922,43 @@ export default function FacilityLandingPage() {
             className={`w-full font-black py-2 rounded-lg text-xs transition flex items-center justify-center gap-1 active:scale-[0.97] cursor-pointer ${
               template === 'wellness' 
                 ? 'bg-purple-500 hover:bg-purple-650 text-white shadow-lg shadow-purple-500/10' 
-                : 'bg-teal-500 hover:bg-teal-600 text-slate-950 shadow-lg shadow-teal-500/10'
+                : 'bg-teal-500 hover:bg-teal-600 text-slate-955 shadow-lg shadow-teal-500/10'
             }`}
           >
             Sign In <ArrowRight size={14} />
+          </button>
+
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-slate-800"></div>
+            <span className="flex-shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">or</span>
+            <div className="flex-grow border-t border-slate-800"></div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={authLoading}
+            className="w-full bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-800 text-slate-200 font-bold py-2 rounded-lg text-xs transition flex items-center justify-center gap-2 active:scale-[0.97] cursor-pointer"
+          >
+            <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24">
+              <path
+                fill="#EA4335"
+                d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582l3.51-3.51C17.642 1.09 14.974 0 12 0 7.354 0 3.307 2.68 1.285 6.567l3.98 3.198Z"
+              />
+              <path
+                fill="#4285F4"
+                d="M16.04 15.348c-1.07.728-2.42 1.16-4.04 1.16a5.084 5.084 0 0 1-4.834-3.498l-4.02 3.125C5.176 20.354 8.356 22 12 22c3.218 0 6.143-1.127 8.318-3.055l-4.278-3.597Z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M7.166 13.01a4.9 4.9 0 0 1-.257-1.01c0-.35.035-.69.097-1.01l-3.98-3.197A9.034 9.034 0 0 0 2 12c0 1.564.4 3.037 1.097 4.328l4.069-3.318Z"
+              />
+              <path
+                fill="#34A853"
+                d="M23.49 12.275c0-.82-.074-1.604-.21-2.364H12v4.51h6.46A5.523 5.523 0 0 1 16.04 15.35l4.278 3.596c2.502-2.31 3.938-5.71 3.938-9.67Z"
+              />
+            </svg>
+            Continue with Google
           </button>
         </form>
       ) : (
@@ -755,10 +1036,43 @@ export default function FacilityLandingPage() {
             className={`w-full font-black py-2 rounded-lg text-xs transition flex items-center justify-center gap-1 active:scale-[0.97] cursor-pointer ${
               template === 'wellness' 
                 ? 'bg-purple-500 hover:bg-purple-650 text-white shadow-lg' 
-                : 'bg-teal-500 hover:bg-teal-600 text-slate-950 shadow-lg'
+                : 'bg-teal-500 hover:bg-teal-600 text-slate-955 shadow-lg'
             }`}
           >
             Register Account <ArrowRight size={14} />
+          </button>
+
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-slate-800"></div>
+            <span className="flex-shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">or</span>
+            <div className="flex-grow border-t border-slate-800"></div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={authLoading}
+            className="w-full bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-800 text-slate-200 font-bold py-2 rounded-lg text-xs transition flex items-center justify-center gap-2 active:scale-[0.97] cursor-pointer"
+          >
+            <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24">
+              <path
+                fill="#EA4335"
+                d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582l3.51-3.51C17.642 1.09 14.974 0 12 0 7.354 0 3.307 2.68 1.285 6.567l3.98 3.198Z"
+              />
+              <path
+                fill="#4285F4"
+                d="M16.04 15.348c-1.07.728-2.42 1.16-4.04 1.16a5.084 5.084 0 0 1-4.834-3.498l-4.02 3.125C5.176 20.354 8.356 22 12 22c3.218 0 6.143-1.127 8.318-3.055l-4.278-3.597Z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M7.166 13.01a4.9 4.9 0 0 1-.257-1.01c0-.35.035-.69.097-1.01l-3.98-3.197A9.034 9.034 0 0 0 2 12c0 1.564.4 3.037 1.097 4.328l4.069-3.318Z"
+              />
+              <path
+                fill="#34A853"
+                d="M23.49 12.275c0-.82-.074-1.604-.21-2.364H12v4.51h6.46A5.523 5.523 0 0 1 16.04 15.35l4.278 3.596c2.502-2.31 3.938-5.71 3.938-9.67Z"
+              />
+            </svg>
+            Continue with Google
           </button>
         </form>
       )}

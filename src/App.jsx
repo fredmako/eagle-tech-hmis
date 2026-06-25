@@ -972,30 +972,32 @@ export default function App() {
 
                       {isDropdownOpen && (
                         <div 
-                          className="absolute top-full left-0 mt-1.5 w-60 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-xl shadow-2xl p-1.5 z-50 flex flex-col gap-0.5"
+                          className="absolute top-full left-0 pt-1.5 z-50"
                           onMouseEnter={() => setActiveCategoryDropdown(cat.id)}
                         >
-                          {catItems.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = activeTab === item.id;
-                            return (
-                              <button
-                                key={item.id}
-                                onClick={() => {
-                                  setActiveTab(item.id);
-                                  setActiveCategoryDropdown(null);
-                                }}
-                                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-semibold text-left transition-all duration-150 cursor-pointer ${
-                                  isActive
-                                    ? "bg-teal-400 text-slate-950 font-bold"
-                                    : "text-slate-400 hover:bg-slate-800/80 hover:text-slate-100"
-                                }`}
-                              >
-                                <Icon size={13} className={isActive ? "text-slate-955" : "text-slate-400"} />
-                                <span className="flex-1 truncate">{t(item.id) || item.label}</span>
-                              </button>
-                            );
-                          })}
+                          <div className="w-60 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-xl shadow-2xl p-1.5 flex flex-col gap-0.5">
+                            {catItems.map((item) => {
+                              const Icon = item.icon;
+                              const isActive = activeTab === item.id;
+                              return (
+                                <button
+                                  key={item.id}
+                                  onClick={() => {
+                                    setActiveTab(item.id);
+                                    setActiveCategoryDropdown(null);
+                                  }}
+                                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-semibold text-left transition-all duration-150 cursor-pointer ${
+                                    isActive
+                                      ? "bg-teal-400 text-slate-955 font-bold"
+                                      : "text-slate-400 hover:bg-slate-800/80 hover:text-slate-100"
+                                  }`}
+                                >
+                                  <Icon size={13} className={isActive ? "text-slate-955" : "text-slate-400"} />
+                                  <span className="flex-1 truncate">{t(item.id) || item.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>

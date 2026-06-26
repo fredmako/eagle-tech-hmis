@@ -34,7 +34,7 @@ supabase.from = function (table) {
   const tenantTables = [
     'patients', 'visits', 'invoices', 'orders', 'bed_allocations', 
     'admissions', 'appointments', 'support_tickets', 'audit_logs',
-    'lab_test_categories', 'lab_test_units', 'lab_specimen_tests', 
+    'lab_test_categories', 'sample_specimens', 'lab_test_units', 'lab_specimen_tests',
     'lab_specimen_sub_tests', 'lab_reference_ranges',
     'payroll_allowances', 'payroll_banks', 'payroll_deductions', 'payrolls',
     'patient_registrations', 'medication_stock', 'prescriptions',

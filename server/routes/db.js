@@ -11,6 +11,12 @@ const OPTIONAL_EMPTY_QUERY_TABLES = new Set([
   "attendance_logs",
   "staff_access_archives",
   "notifications",
+  "lab_test_categories",
+  "sample_specimens",
+  "lab_test_units",
+  "lab_specimen_tests",
+  "lab_specimen_sub_tests",
+  "lab_reference_ranges",
 ]);
 
 function isMissingOptionalTableError(err) {
@@ -443,8 +449,9 @@ router.post("/query", async (req, res) => {
 
 // DB Proxy: Insert documents
 router.post("/insert", async (req, res) => {
-  const { table, rows } = req.body;
-  if (!table || !rows)
+  const { table, rows, row, docId } = req.body;
+  const requestedRows = rows ?? row;
+  if (!table || !requestedRows)
     return res.status(400).json({ error: "Table and rows are required" });
 
   // Security: only allow unauthenticated inserts for public onboarding/support tables.
@@ -464,7 +471,7 @@ router.post("/insert", async (req, res) => {
   }
 
   try {
-    const dataRows = Array.isArray(rows) ? rows : [rows];
+    const dataRows = Array.isArray(requestedRows) ? requestedRows : [requestedRows];
     const results = [];
     const activeFacId = req.user ? req.user.facility_id : null;
 
@@ -484,8 +491,8 @@ router.post("/insert", async (req, res) => {
       // Backend Input Buffer Validation
       validateRowData(table, cleanRow);
 
-      const docId = id || "doc_" + Math.random().toString(36).substring(2, 15);
-      const newDoc = await db.createDocument(table, docId, cleanRow);
+      const resolvedDocId = id || docId || "doc_" + Math.random().toString(36).substring(2, 15);
+      const newDoc = await db.createDocument(table, resolvedDocId, cleanRow);
       results.push(newDoc);
     }
 
@@ -508,7 +515,7 @@ router.post("/insert", async (req, res) => {
 
     res.json({
       success: true,
-      data: Array.isArray(rows) ? results : results[0],
+      data: Array.isArray(requestedRows) ? results : results[0],
     });
   } catch (err) {
     console.error(`DB Insert Proxy failed for table ${table}:`, err);

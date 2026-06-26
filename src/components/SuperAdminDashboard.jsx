@@ -1,14 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from 'recharts';
 import { 
   Building2, 
   CheckCircle2, 
-  XCircle, 
-  Activity, 
   RefreshCw, 
   LogOut, 
-  Sliders, 
   Clock, 
   Lock, 
   Unlock,
@@ -17,26 +26,172 @@ import {
   Mail,
   Send,
   User,
-  Inbox,
   TrendingUp,
-  Users,
   CreditCard,
   Layers,
   Sparkles,
-  Percent,
   Phone,
-  ExternalLink
+  ExternalLink,
+  Search,
+  ArrowUpDown,
+  BarChart3,
+  ShieldAlert
 } from 'lucide-react';
 
+const HEALTH_COLORS = {
+  strong: '#2dd4bf',
+  watch: '#38bdf8',
+  warning: '#fb923c',
+  critical: '#ef4444'
+};
+
+const getUrlOperationsState = () => {
+  if (typeof window === 'undefined') {
+    return {
+      range: '30d',
+      metric: 'health',
+      tier: 'all',
+      status: 'all',
+      sort: 'risk_desc',
+      search: '',
+      facility: ''
+    };
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  return {
+    range: params.get('range') || '30d',
+    metric: params.get('metric') || 'health',
+    tier: params.get('tier') || 'all',
+    status: params.get('status') || 'all',
+    sort: params.get('sort') || 'risk_desc',
+    search: params.get('q') || '',
+    facility: params.get('facility') || ''
+  };
+};
+
+const parseAmount = (value) => Number.parseFloat(value || 0) || 0;
+const normalizeTier = (tier) => tier || 'basic';
+const isWithinDays = (dateValue, days) => {
+  if (!dateValue) return false;
+  const time = new Date(dateValue).getTime();
+  if (Number.isNaN(time)) return false;
+  return Date.now() - time <= days * 24 * 60 * 60 * 1000;
+};
+
+const getHealthTone = (score) => {
+  if (score < 45) return 'critical';
+  if (score < 65) return 'warning';
+  if (score < 80) return 'watch';
+  return 'strong';
+};
+
+const getRiskLabel = (row) => {
+  if (!row.verified) return 'Verification lock';
+  if (row.openSupport > 0) return 'Support backlog';
+  if (row.pendingReceivables > 0) return 'Receivables delay';
+  if (row.labVerificationRate < 50 && row.labOrders > 0) return 'Lab sign-off';
+  if (row.triageComplianceRate < 60 && row.consultVisits > 0) return 'Triage bypass';
+  if (row.digitalPaymentRate < 25 && row.paidInvoices > 0) return 'Low digital pay';
+  return 'Stable operations';
+};
+
+const makeSparklinePoints = (items, days) => {
+  const bucketCount = days <= 7 ? 7 : 6;
+  const bucketSize = Math.ceil(days / bucketCount);
+  return Array.from({ length: bucketCount }, (_, index) => {
+    const start = days - bucketSize * (bucketCount - index);
+    const end = days - bucketSize * (bucketCount - index - 1);
+    const count = items.filter((item) => {
+      if (!item.created_at) return false;
+      const age = (Date.now() - new Date(item.created_at).getTime()) / (24 * 60 * 60 * 1000);
+      return age >= Math.max(0, start) && age < end;
+    }).length;
+    return { label: `${Math.max(0, start)}-${end}d`, visits: count };
+  });
+};
+
+const buildClientOperationsRows = ({ facilities, supportTickets, systemStats, rangeDays }) => {
+  return facilities.map((facility) => {
+    const facilityId = facility.id;
+    const visits = systemStats.visits.filter((v) => v.facility_id === facilityId && isWithinDays(v.created_at, rangeDays));
+    const allVisits = systemStats.visits.filter((v) => v.facility_id === facilityId);
+    const orders = systemStats.orders.filter((o) => o.facility_id === facilityId && isWithinDays(o.created_at, rangeDays));
+    const invoices = systemStats.invoices.filter((i) => i.facility_id === facilityId && isWithinDays(i.created_at, rangeDays));
+    const profiles = systemStats.profiles.filter((p) => p.facility_id === facilityId);
+    const tickets = supportTickets.filter((t) => t.facility_id === facilityId);
+    const consultVisits = visits.filter((v) => v.department?.toLowerCase().includes('consult')).length;
+    const triageVisits = visits.filter((v) => v.department?.toLowerCase() === 'triage').length;
+    const labOrders = orders.filter((o) => o.type?.toLowerCase() === 'lab' || o.type?.toLowerCase() === 'laboratory');
+    const verifiedLabOrders = labOrders.filter((o) => ['authorized', 'verified', 'completed'].includes(o.status));
+    const paidInvoices = invoices.filter((i) => i.status === 'paid');
+    const digitalPayments = paidInvoices.filter((i) => ['mpesa', 'stk', 'paypal', 'card'].includes(i.payment_method?.toLowerCase()));
+    const pendingOrders = orders.filter((o) => !['completed', 'dispensed', 'verified', 'authorized'].includes(o.status)).length;
+    const pendingReceivables = invoices
+      .filter((i) => i.status === 'unpaid' || i.status === 'partially_paid')
+      .reduce((sum, invoice) => sum + Math.max(0, parseAmount(invoice.total_amount) - parseAmount(invoice.amount_paid)), 0);
+    const settledRevenue = paidInvoices.reduce((sum, invoice) => sum + parseAmount(invoice.amount_paid), 0);
+    const openSupport = tickets.filter((t) => t.status === 'pending').length;
+    const triageComplianceRate = consultVisits > 0 ? Math.min(100, Math.round((triageVisits / consultVisits) * 100)) : 100;
+    const labVerificationRate = labOrders.length > 0 ? Math.round((verifiedLabOrders.length / labOrders.length) * 100) : 100;
+    const digitalPaymentRate = paidInvoices.length > 0 ? Math.round((digitalPayments.length / paidInvoices.length) * 100) : 100;
+    const receivablePenalty = pendingReceivables > 0 ? Math.min(20, Math.log10(pendingReceivables + 1) * 4) : 0;
+    const healthScore = Math.max(0, Math.round(
+      100
+      - (facility.is_verified ? 0 : 25)
+      - Math.min(24, openSupport * 8)
+      - Math.min(18, pendingOrders * 3)
+      - receivablePenalty
+      - Math.max(0, (70 - triageComplianceRate) * 0.25)
+      - Math.max(0, (70 - labVerificationRate) * 0.25)
+      - Math.max(0, (40 - digitalPaymentRate) * 0.2)
+    ));
+
+    const row = {
+      facilityId,
+      facilityName: facility.name,
+      code: facility.code,
+      licenseTier: normalizeTier(facility.license_tier),
+      verified: Boolean(facility.is_verified),
+      createdAt: facility.created_at,
+      visits: visits.length,
+      lifetimeVisits: allVisits.length,
+      orders: orders.length,
+      pendingOrders,
+      invoices: invoices.length,
+      paidInvoices: paidInvoices.length,
+      pendingReceivables,
+      settledRevenue,
+      openSupport,
+      staff: profiles.length,
+      triageComplianceRate,
+      labVerificationRate,
+      labOrders: labOrders.length,
+      digitalPaymentRate,
+      healthScore,
+      trend: makeSparklinePoints(visits, rangeDays)
+    };
+
+    return {
+      ...row,
+      healthTone: getHealthTone(healthScore),
+      topRisk: getRiskLabel(row)
+    };
+  });
+};
+
 export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
-  const { setUser, authFetch } = useAuth();
+  const { setUser } = useAuth();
   const [facilities, setFacilities] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // stores facilityId or request ID during action
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [activeTab, setActiveTab] = useState('registry'); // 'registry' | 'audit' | 'requests' | 'support' | 'demo'
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === 'undefined') return 'registry';
+    return new URLSearchParams(window.location.search).get('tab') || 'registry';
+  }); // 'registry' | 'audit' | 'requests' | 'support' | 'demo' | 'insights'
   const [supportTickets, setSupportTickets] = useState([]);
   const [demoRequests, setDemoRequests] = useState([]);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
@@ -51,6 +206,7 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
     orders: [],
     invoices: []
   });
+  const [operationsState, setOperationsState] = useState(getUrlOperationsState);
 
   const handleResolveSupportTicket = async (ticketId) => {
     if (!responseText.trim()) return;
@@ -125,8 +281,12 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
 
       setResponseText('');
       setSelectedTicketId(null);
+      setSupportTickets(prev => prev.map(t => (
+        t.id === ticketId
+          ? { ...t, status: 'addressed', response: responseText.trim() }
+          : t
+      )));
       setMessage({ type: 'success', text: `Support ticket #${ticketId.substring(7, 13)} resolved and response sent successfully!` });
-      await fetchSuperAdminData();
     } catch (err) {
       console.error('Resolve ticket failed:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to resolve support ticket.' });
@@ -139,7 +299,100 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
     fetchSuperAdminData();
   }, []);
 
-  const fetchSuperAdminData = async () => {
+  const rangeDays = operationsState.range === '7d' ? 7 : operationsState.range === '90d' ? 90 : 30;
+
+  const clientOperationsRows = useMemo(() => buildClientOperationsRows({
+    facilities,
+    supportTickets,
+    systemStats,
+    rangeDays
+  }), [facilities, supportTickets, systemStats, rangeDays]);
+
+  const filteredClientOperationsRows = useMemo(() => {
+    const query = operationsState.search.trim().toLowerCase();
+    return clientOperationsRows
+      .filter((row) => operationsState.tier === 'all' || row.licenseTier === operationsState.tier)
+      .filter((row) => {
+        if (operationsState.status === 'all') return true;
+        if (operationsState.status === 'verified') return row.verified;
+        if (operationsState.status === 'locked') return !row.verified;
+        if (operationsState.status === 'risk') return row.healthScore < 65 || row.openSupport > 0;
+        return true;
+      })
+      .filter((row) => !query || row.facilityName.toLowerCase().includes(query) || row.code?.toLowerCase().includes(query))
+      .sort((a, b) => {
+        if (operationsState.sort === 'revenue_desc') return b.settledRevenue - a.settledRevenue;
+        if (operationsState.sort === 'visits_desc') return b.visits - a.visits;
+        if (operationsState.sort === 'support_desc') return b.openSupport - a.openSupport;
+        if (operationsState.sort === 'name_asc') return a.facilityName.localeCompare(b.facilityName);
+        return a.healthScore - b.healthScore;
+      });
+  }, [clientOperationsRows, operationsState]);
+
+  const selectedOperationsRow = useMemo(() => (
+    clientOperationsRows.find((row) => row.facilityId === operationsState.facility)
+    || filteredClientOperationsRows[0]
+    || null
+  ), [clientOperationsRows, filteredClientOperationsRows, operationsState.facility]);
+
+  const tierVerificationChart = useMemo(() => {
+    const tiers = ['basic', 'standard', 'extensive'];
+    return tiers.map((tier) => {
+      const rows = clientOperationsRows.filter((row) => row.licenseTier === tier);
+      return {
+        tier: tier === 'extensive' ? 'elite' : tier,
+        verified: rows.filter((row) => row.verified).length,
+        locked: rows.filter((row) => !row.verified).length
+      };
+    });
+  }, [clientOperationsRows]);
+
+  const riskChartData = useMemo(() => (
+    [...clientOperationsRows]
+      .sort((a, b) => a.healthScore - b.healthScore)
+      .slice(0, 8)
+      .map((row) => ({
+        name: row.facilityName?.length > 18 ? `${row.facilityName.slice(0, 18)}...` : row.facilityName,
+        score: row.healthScore,
+        tone: row.healthTone
+      }))
+  ), [clientOperationsRows]);
+
+  const operationsSummary = useMemo(() => ({
+    atRisk: clientOperationsRows.filter((row) => row.healthScore < 65 || row.openSupport > 0).length,
+    openSupport: clientOperationsRows.reduce((sum, row) => sum + row.openSupport, 0),
+    pendingReceivables: clientOperationsRows.reduce((sum, row) => sum + row.pendingReceivables, 0),
+    settledRevenue: clientOperationsRows.reduce((sum, row) => sum + row.settledRevenue, 0)
+  }), [clientOperationsRows]);
+
+  const updateOperationsState = (updates) => {
+    setOperationsState((prev) => ({ ...prev, ...updates }));
+  };
+
+  const switchTab = (tab) => {
+    setActiveTab(tab);
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', activeTab);
+    if (activeTab === 'insights') {
+      params.set('range', operationsState.range);
+      params.set('metric', operationsState.metric);
+      params.set('tier', operationsState.tier);
+      params.set('status', operationsState.status);
+      params.set('sort', operationsState.sort);
+      if (operationsState.search) params.set('q', operationsState.search);
+      else params.delete('q');
+      if (operationsState.facility) params.set('facility', operationsState.facility);
+      else params.delete('facility');
+    }
+    const nextUrl = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+    window.history.replaceState(null, '', nextUrl);
+  }, [activeTab, operationsState]);
+
+  async function fetchSuperAdminData() {
     setLoading(true);
     try {
       // Fetch all facilities
@@ -209,7 +462,7 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }
 
   const handleUpdateDemoStatus = async (id, newStatus) => {
     setActionLoading(id);
@@ -462,7 +715,7 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
         {/* Global Statistics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <button 
-            onClick={() => setActiveTab('registry')}
+            onClick={() => switchTab('registry')}
             className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex items-center justify-between shadow-md transition cursor-pointer hover:bg-slate-850 hover:border-slate-700/80 active:scale-[0.98] w-full text-left"
           >
             <div>
@@ -475,7 +728,7 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
           </button>
 
           <button 
-            onClick={() => setActiveTab('registry')}
+            onClick={() => switchTab('registry')}
             className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex items-center justify-between shadow-md transition cursor-pointer hover:bg-slate-850 hover:border-slate-700/80 active:scale-[0.98] w-full text-left"
           >
             <div>
@@ -488,7 +741,7 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
           </button>
 
           <button 
-            onClick={() => setActiveTab('registry')}
+            onClick={() => switchTab('registry')}
             className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex items-center justify-between shadow-md transition cursor-pointer hover:bg-slate-850 hover:border-slate-700/80 active:scale-[0.98] w-full text-left"
           >
             <div>
@@ -501,7 +754,7 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
           </button>
 
           <button 
-            onClick={() => setActiveTab('support')}
+            onClick={() => switchTab('support')}
             className="bg-slate-900 border border-slate-850 p-5 rounded-2xl flex items-center justify-between shadow-md transition cursor-pointer hover:bg-slate-850 hover:border-slate-700/80 active:scale-[0.98] w-full text-left"
           >
             <div>
@@ -517,7 +770,7 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
         {/* Navigation Tabs */}
         <div className="flex border-b border-slate-850">
           <button
-            onClick={() => setActiveTab('registry')}
+            onClick={() => switchTab('registry')}
             className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition ${
               activeTab === 'registry' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
@@ -525,7 +778,7 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
             Facility Onboarding Registry
           </button>
           <button
-            onClick={() => setActiveTab('audit')}
+            onClick={() => switchTab('audit')}
             className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition ${
               activeTab === 'audit' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
@@ -533,7 +786,7 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
             System Security Audit Trail
           </button>
           <button
-            onClick={() => setActiveTab('support')}
+            onClick={() => switchTab('support')}
             className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${
               activeTab === 'support' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
@@ -547,7 +800,7 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
           </button>
           
           <button
-            onClick={() => setActiveTab('demo')}
+            onClick={() => switchTab('demo')}
             className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${
               activeTab === 'demo' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
@@ -561,13 +814,13 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
           </button>
 
           <button
-            onClick={() => setActiveTab('insights')}
+            onClick={() => switchTab('insights')}
             className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${
               activeTab === 'insights' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <Sparkles size={12} className={activeTab === 'insights' ? 'text-teal-400' : 'text-slate-400'} />
-            <span>Usage Insights & Analytics</span>
+            <span>Client Operations</span>
           </button>
         </div>
 
@@ -1034,278 +1287,364 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
             </div>
           </div>
         ) : (
-          /* INSIGHTS & ANALYTICS PANEL */
-          <div className="space-y-6 animate-fadeIn font-sans">
-            {/* Top row: Clinical Volumes & Business Revenue */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
-              {/* Card 1: Clinical Volumes */}
-              <div className="bg-slate-900/60 border border-slate-850/80 backdrop-blur-md p-6 rounded-2xl space-y-4">
-                <div className="flex justify-between items-center pb-3 border-b border-slate-850/60">
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Clinical Volume Metrics</h4>
-                    <p className="text-[10px] text-slate-550">Global clinical events across all clinic systems</p>
-                  </div>
-                  <div className="p-2.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl">
-                    <Activity size={18} />
-                  </div>
+          /* CLIENT OPERATIONS WORKSPACE */
+          <div className="space-y-5 animate-fadeIn font-sans">
+            <div className="bg-slate-900 border border-slate-850 rounded-2xl overflow-hidden">
+              <div className="p-5 border-b border-slate-850 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <BarChart3 size={14} className="text-teal-400" />
+                    Client Operations Command Board
+                  </h4>
+                  <p className="text-[10px] text-slate-500">Ranked facility health, support pressure, clinical workflow gaps, and billing exposure across active clients.</p>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-slate-950/40 border border-slate-900 rounded-xl">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase block">Registered Patients</span>
-                    <span className="text-lg font-black text-white font-mono block mt-1">{systemStats.patients.length}</span>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative">
+                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                      value={operationsState.search}
+                      onChange={(e) => updateOperationsState({ search: e.target.value })}
+                      placeholder="Search client"
+                      className="bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-2 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-teal-500 min-w-[190px]"
+                    />
                   </div>
-                  <div className="p-3 bg-slate-950/40 border border-slate-900 rounded-xl">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase block">Consultations Logged</span>
-                    <span className="text-lg font-black text-white font-mono block mt-1">{systemStats.visits.length}</span>
-                  </div>
-                  <div className="p-3 bg-slate-950/40 border border-slate-900 rounded-xl col-span-2 flex justify-between items-center">
-                    <div>
-                      <span className="text-[9px] font-bold text-slate-500 uppercase block">Lab & Pharmacy Orders</span>
-                      <span className="text-lg font-black text-white font-mono block mt-1">{systemStats.orders.length}</span>
-                    </div>
-                    <span className="text-[10px] bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full font-bold">
-                      {systemStats.orders.filter(o => o.status === 'completed' || o.status === 'dispensed' || o.status === 'verified' || o.status === 'authorized').length} Filled
-                    </span>
-                  </div>
+
+                  <select
+                    value={operationsState.range}
+                    onChange={(e) => updateOperationsState({ range: e.target.value })}
+                    className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-bold text-slate-300 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  >
+                    <option value="7d">7 days</option>
+                    <option value="30d">30 days</option>
+                    <option value="90d">90 days</option>
+                  </select>
+
+                  <select
+                    value={operationsState.tier}
+                    onChange={(e) => updateOperationsState({ tier: e.target.value })}
+                    className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-bold text-slate-300 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  >
+                    <option value="all">All tiers</option>
+                    <option value="basic">Basic</option>
+                    <option value="standard">Standard</option>
+                    <option value="extensive">Elite</option>
+                  </select>
+
+                  <select
+                    value={operationsState.status}
+                    onChange={(e) => updateOperationsState({ status: e.target.value })}
+                    className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-bold text-slate-300 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  >
+                    <option value="all">All status</option>
+                    <option value="verified">Verified</option>
+                    <option value="locked">Locked</option>
+                    <option value="risk">At risk</option>
+                  </select>
+
+                  <select
+                    value={operationsState.sort}
+                    onChange={(e) => updateOperationsState({ sort: e.target.value })}
+                    className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-bold text-slate-300 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  >
+                    <option value="risk_desc">Risk first</option>
+                    <option value="support_desc">Support first</option>
+                    <option value="revenue_desc">Revenue first</option>
+                    <option value="visits_desc">Visits first</option>
+                    <option value="name_asc">Name A-Z</option>
+                  </select>
                 </div>
               </div>
 
-              {/* Card 2: Business & Revenue Processed */}
-              <div className="bg-slate-900/60 border border-slate-850/80 backdrop-blur-md p-6 rounded-2xl space-y-4">
-                <div className="flex justify-between items-center pb-3 border-b border-slate-850/60">
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-205 uppercase tracking-wider">Revenue & Settlements</h4>
-                    <p className="text-[10px] text-slate-500">Consolidated checkout billing invoices stats</p>
-                  </div>
-                  <div className="p-2.5 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-xl">
-                    <CreditCard size={18} />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-teal-500/5 border border-teal-500/10 rounded-xl">
-                    <div>
-                      <span className="text-[9px] font-bold text-teal-500/70 uppercase block">Total Settled Revenue</span>
-                      <span className="text-base font-black text-teal-400 font-mono block mt-1">
-                        Ksh {systemStats.invoices
-                          .filter(inv => inv.status === 'paid')
-                          .reduce((sum, inv) => sum + (parseFloat(inv.amount_paid) || 0), 0)
-                          .toLocaleString()}
+              <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-slate-850">
+                {[
+                  { label: 'At-Risk Clients', value: operationsSummary.atRisk, icon: ShieldAlert, color: 'text-amber-400' },
+                  { label: 'Open Support', value: operationsSummary.openSupport, icon: MessageSquare, color: 'text-blue-400' },
+                  { label: 'Pending Receivables', value: `Ksh ${Math.round(operationsSummary.pendingReceivables).toLocaleString()}`, icon: CreditCard, color: 'text-orange-400' },
+                  { label: 'Settled Revenue', value: `Ksh ${Math.round(operationsSummary.settledRevenue).toLocaleString()}`, icon: TrendingUp, color: 'text-teal-400' }
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={item.label} className="p-4 border-r border-b lg:border-b-0 border-slate-850 last:border-r-0">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <Icon size={12} className={item.color} />
+                        {item.label}
                       </span>
+                      <span className="text-xl font-black text-white font-mono block mt-1">{item.value}</span>
                     </div>
-                    <TrendingUp size={16} className="text-teal-400 animate-pulse" />
-                  </div>
-
-                  <div className="flex justify-between items-center p-3 bg-slate-950/40 border border-slate-900 rounded-xl">
-                    <div>
-                      <span className="text-[9px] font-bold text-slate-500 uppercase block">Pending Invoiced Receivables</span>
-                      <span className="text-base font-black text-slate-300 font-mono block mt-1">
-                        Ksh {systemStats.invoices
-                          .filter(inv => inv.status === 'unpaid' || inv.status === 'partially_paid')
-                          .reduce((sum, inv) => sum + ((parseFloat(inv.total_amount) || 0) - (parseFloat(inv.amount_paid) || 0)), 0)
-                          .toLocaleString()}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded font-bold uppercase">
-                      {systemStats.invoices.filter(inv => inv.status === 'unpaid').length} Unpaid
-                    </span>
-                  </div>
-                </div>
+                  );
+                })}
               </div>
 
-              {/* Card 3: Subscription & White-Label Setup */}
-              <div className="bg-slate-900/60 border border-slate-850/80 backdrop-blur-md p-6 rounded-2xl space-y-4">
-                <div className="flex justify-between items-center pb-3 border-b border-slate-850/60">
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-205 uppercase tracking-wider">Tenant Subscription Tiers</h4>
-                    <p className="text-[10px] text-slate-500">Distribution of package licensing</p>
-                  </div>
-                  <div className="p-2.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-xl">
-                    <Layers size={18} />
+              <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_minmax(340px,0.9fr)]">
+                <div className="min-w-0 border-r border-slate-850">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[960px] text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-950/50 text-slate-450 font-bold border-b border-slate-850 text-[10px] uppercase">
+                          <th className="py-3 px-4">Client</th>
+                          <th className="py-3 px-4">Health</th>
+                          <th className="py-3 px-4">Visits Trend</th>
+                          <th className="py-3 px-4 text-right">Orders</th>
+                          <th className="py-3 px-4 text-right">Receivables</th>
+                          <th className="py-3 px-4 text-right">Support</th>
+                          <th className="py-3 px-4">Top Risk</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-850">
+                        {filteredClientOperationsRows.map((row) => (
+                          <tr
+                            key={row.facilityId}
+                            onClick={() => updateOperationsState({ facility: row.facilityId })}
+                            className={`cursor-pointer transition ${
+                              selectedOperationsRow?.facilityId === row.facilityId
+                                ? 'bg-teal-500/10'
+                                : 'hover:bg-slate-850/40'
+                            }`}
+                          >
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className={`h-8 w-8 rounded-lg border flex items-center justify-center ${
+                                  row.verified ? 'border-teal-500/25 bg-teal-500/10 text-teal-400' : 'border-red-500/25 bg-red-500/10 text-red-400'
+                                }`}>
+                                  {row.verified ? <Unlock size={14} /> : <Lock size={14} />}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="font-bold text-slate-200 block truncate max-w-[220px]">{row.facilityName}</span>
+                                  <span className="text-[10px] text-slate-500 uppercase font-bold">{row.code || row.facilityId} · {row.licenseTier}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-black text-white">{row.healthScore}</span>
+                                <div className="h-2 w-20 bg-slate-800 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${
+                                      row.healthTone === 'critical' ? 'bg-red-500' : row.healthTone === 'warning' ? 'bg-orange-500' : row.healthTone === 'watch' ? 'bg-blue-500' : 'bg-teal-500'
+                                    }`}
+                                    style={{ width: `${row.healthScore}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 w-[150px]">
+                              <div className="h-10">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <LineChart data={row.trend}>
+                                    <Line type="monotone" dataKey="visits" stroke={HEALTH_COLORS[row.healthTone]} strokeWidth={2} dot={false} />
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </div>
+                              <span className="text-[9px] text-slate-550">{row.visits} visits in range</span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <span className="font-mono text-slate-200 font-bold">{row.pendingOrders}</span>
+                              <span className="text-[10px] text-slate-550 block">pending / {row.orders}</span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <span className="font-mono text-slate-200 font-bold">Ksh {Math.round(row.pendingReceivables).toLocaleString()}</span>
+                              <span className="text-[10px] text-slate-550 block">settled {Math.round(row.settledRevenue).toLocaleString()}</span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <span className={`font-mono font-bold ${row.openSupport > 0 ? 'text-amber-400' : 'text-slate-300'}`}>{row.openSupport}</span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`inline-flex px-2 py-1 rounded-lg border text-[10px] font-bold ${
+                                row.healthTone === 'critical'
+                                  ? 'bg-red-500/10 border-red-500/20 text-red-400'
+                                  : row.healthTone === 'warning'
+                                  ? 'bg-orange-500/10 border-orange-500/20 text-orange-400'
+                                  : row.healthTone === 'watch'
+                                  ? 'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                                  : 'bg-teal-500/10 border-teal-500/20 text-teal-400'
+                              }`}>
+                                {row.topRisk}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                        {filteredClientOperationsRows.length === 0 && (
+                          <tr>
+                            <td colSpan="7" className="py-12 text-center text-slate-500">
+                              No clients match the current operations filters.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
-                <div className="space-y-2.5 text-xs">
-                  {/* Basic Care */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[11px] font-bold text-slate-400">
-                      <span>Basic Care (Free Tier)</span>
-                      <span>{facilities.filter(f => f.license_tier === 'basic' || !f.license_tier).length} ({Math.round((facilities.filter(f => f.license_tier === 'basic' || !f.license_tier).length / (facilities.length || 1)) * 100)}%)</span>
-                    </div>
-                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-blue-500 rounded-full" 
-                        style={{ width: `${(facilities.filter(f => f.license_tier === 'basic' || !f.license_tier).length / (facilities.length || 1)) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+                <aside className="p-5 space-y-5 bg-slate-950/25">
+                  {selectedOperationsRow ? (
+                    <>
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Selected Client</span>
+                            <h4 className="text-base font-black text-white mt-1">{selectedOperationsRow.facilityName}</h4>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase mt-0.5">{selectedOperationsRow.licenseTier} · {selectedOperationsRow.verified ? 'Verified' : 'Locked'}</p>
+                          </div>
+                          <span className={`text-2xl font-black font-mono ${
+                            selectedOperationsRow.healthTone === 'critical' ? 'text-red-400' : selectedOperationsRow.healthTone === 'warning' ? 'text-orange-400' : selectedOperationsRow.healthTone === 'watch' ? 'text-blue-400' : 'text-teal-400'
+                          }`}>
+                            {selectedOperationsRow.healthScore}
+                          </span>
+                        </div>
 
-                  {/* Standard Care */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[11px] font-bold text-slate-350">
-                      <span>Standard Care ($29/mo)</span>
-                      <span>{facilities.filter(f => f.license_tier === 'standard').length} ({Math.round((facilities.filter(f => f.license_tier === 'standard').length / (facilities.length || 1)) * 100)}%)</span>
-                    </div>
-                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-teal-500 rounded-full" 
-                        style={{ width: `${(facilities.filter(f => f.license_tier === 'standard').length / (facilities.length || 1)) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          {[
+                            ['Visits', selectedOperationsRow.visits],
+                            ['Staff', selectedOperationsRow.staff],
+                            ['Open Support', selectedOperationsRow.openSupport],
+                            ['Pending Orders', selectedOperationsRow.pendingOrders]
+                          ].map(([label, value]) => (
+                            <div key={label} className="bg-slate-900 border border-slate-850 rounded-xl p-3">
+                              <span className="text-[9px] text-slate-500 font-bold uppercase block">{label}</span>
+                              <span className="text-lg font-black text-white font-mono">{value}</span>
+                            </div>
+                          ))}
+                        </div>
 
-                  {/* Enterprise Elite */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[11px] font-bold text-purple-400">
-                      <span>Enterprise Elite ($89/mo)</span>
-                      <span>{facilities.filter(f => f.license_tier === 'extensive').length} ({Math.round((facilities.filter(f => f.license_tier === 'extensive').length / (facilities.length || 1)) * 100)}%)</span>
+                        <div className="bg-slate-900 border border-slate-850 rounded-xl p-4 space-y-3">
+                          {[
+                            ['Triage compliance', selectedOperationsRow.triageComplianceRate],
+                            ['Lab verification', selectedOperationsRow.labVerificationRate],
+                            ['Digital payments', selectedOperationsRow.digitalPaymentRate]
+                          ].map(([label, value]) => (
+                            <div key={label} className="space-y-1">
+                              <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase">
+                                <span>{label}</span>
+                                <span>{value}%</span>
+                              </div>
+                              <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                                <div className="h-full bg-teal-500 rounded-full" style={{ width: `${value}%` }} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-900 border border-slate-850 rounded-xl p-4 space-y-3">
+                        <h5 className="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <ArrowUpDown size={12} className="text-teal-400" />
+                          Facility Visit Trend
+                        </h5>
+                        <div className="h-44">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={selectedOperationsRow.trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                              <CartesianGrid stroke="#1e293b" vertical={false} />
+                              <XAxis dataKey="label" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
+                              <YAxis tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                              <Tooltip
+                                contentStyle={{ background: '#0d1523', border: '1px solid #1e293b', borderRadius: 8, color: '#e2e8f0', fontSize: 11 }}
+                              />
+                              <Line type="monotone" dataKey="visits" stroke="#2dd4bf" strokeWidth={2.5} dot={{ r: 3 }} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-12 text-slate-500 text-xs">
+                      Select a facility to inspect operating signals.
                     </div>
-                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-purple-500 rounded-full" 
-                        style={{ width: `${(facilities.filter(f => f.license_tier === 'extensive').length / (facilities.length || 1)) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
+                  )}
+                </aside>
               </div>
-
             </div>
 
-            {/* Bottom Row: System Diagnostic Insights & User base Roles */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Left Column (2/3 width): Diagnostic recommendations */}
-              <div className="lg:col-span-2 bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-4">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-205 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles size={13} className="text-teal-400" />
-                    Diagnostic Improvement Recommendations
-                  </h4>
-                  <p className="text-[10px] text-slate-550 mt-1">Rule-based optimization checks suggesting features or training clinics need to maximize value.</p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <div className="bg-slate-900 border border-slate-850 rounded-2xl p-5 space-y-4 lg:col-span-2">
+                <h4 className="text-xs font-bold text-slate-205 uppercase tracking-wider flex items-center gap-1.5">
+                  <BarChart3 size={13} className="text-teal-400" />
+                  Lowest Health Clients
+                </h4>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={riskChartData} margin={{ top: 10, right: 20, left: -20, bottom: 20 }}>
+                      <CartesianGrid stroke="#1e293b" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} interval={0} angle={-12} textAnchor="end" height={48} />
+                      <YAxis tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 100]} />
+                      <Tooltip contentStyle={{ background: '#0d1523', border: '1px solid #1e293b', borderRadius: 8, color: '#e2e8f0', fontSize: 11 }} />
+                      <Bar dataKey="score" radius={[5, 5, 0, 0]}>
+                        {riskChartData.map((entry) => (
+                          <Cell key={entry.name} fill={HEALTH_COLORS[entry.tone]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
+              </div>
 
-                <div className="space-y-3">
-                  {getDiagnosticRecommendations().map((rec, idx) => (
-                    <div 
-                      key={rec.id || idx} 
-                      className={`p-4 rounded-xl border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${
-                        rec.severity === 'danger'
-                          ? 'bg-red-500/5 border-red-500/20 text-red-400'
-                          : rec.severity === 'warning'
-                          ? 'bg-amber-500/5 border-amber-500/20 text-amber-400'
-                          : rec.severity === 'info'
-                          ? 'bg-blue-500/5 border-blue-500/20 text-blue-400'
-                          : 'bg-teal-500/5 border-teal-500/25 text-teal-450'
-                      }`}
-                    >
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className={`h-1.5 w-1.5 rounded-full ${
-                            rec.severity === 'danger' ? 'bg-red-400' : rec.severity === 'warning' ? 'bg-amber-400' : rec.severity === 'info' ? 'bg-blue-400' : 'bg-teal-400'
-                          }`} />
-                          <h5 className="text-xs font-bold text-slate-200">{rec.title}</h5>
-                        </div>
-                        <p className="text-[10.5px] text-slate-400 leading-relaxed pl-3.5">{rec.description}</p>
+              <div className="bg-slate-900 border border-slate-850 rounded-2xl p-5 space-y-4">
+                <h4 className="text-xs font-bold text-slate-205 uppercase tracking-wider flex items-center gap-1.5">
+                  <Layers size={13} className="text-teal-400" />
+                  Tier Verification Mix
+                </h4>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={tierVerificationChart} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
+                      <CartesianGrid stroke="#1e293b" vertical={false} />
+                      <XAxis dataKey="tier" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                      <Tooltip contentStyle={{ background: '#0d1523', border: '1px solid #1e293b', borderRadius: 8, color: '#e2e8f0', fontSize: 11 }} />
+                      <Bar dataKey="verified" stackId="a" fill="#2dd4bf" radius={[0, 0, 4, 4]} />
+                      <Bar dataKey="locked" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-4">
+              <div>
+                <h4 className="text-xs font-bold text-slate-205 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles size={13} className="text-teal-400" />
+                  Diagnostic Improvement Recommendations
+                </h4>
+                <p className="text-[10px] text-slate-550 mt-1">Rule-based checks suggesting training, setup, or workflow interventions across clients.</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {getDiagnosticRecommendations().map((rec, idx) => (
+                  <div
+                    key={rec.id || idx}
+                    className={`p-4 rounded-xl border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${
+                      rec.severity === 'danger'
+                        ? 'bg-red-500/5 border-red-500/20 text-red-400'
+                        : rec.severity === 'warning'
+                        ? 'bg-amber-500/5 border-amber-500/20 text-amber-400'
+                        : rec.severity === 'info'
+                        ? 'bg-blue-500/5 border-blue-500/20 text-blue-400'
+                        : 'bg-teal-500/5 border-teal-500/25 text-teal-450'
+                    }`}
+                  >
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          rec.severity === 'danger' ? 'bg-red-400' : rec.severity === 'warning' ? 'bg-amber-400' : rec.severity === 'info' ? 'bg-blue-400' : 'bg-teal-400'
+                        }`} />
+                        <h5 className="text-xs font-bold text-slate-200">{rec.title}</h5>
                       </div>
-                      
-                      <span className={`text-[9px] font-bold px-2.5 py-1 rounded-lg shrink-0 ${
-                        rec.severity === 'danger'
-                          ? 'bg-red-500/20 text-red-400'
-                          : rec.severity === 'warning'
-                          ? 'bg-amber-500/20 text-amber-400'
-                          : rec.severity === 'info'
-                          ? 'bg-blue-500/20 text-blue-400'
-                          : 'bg-teal-500/20 text-teal-400'
-                      }`}>
-                        {rec.action}
-                      </span>
+                      <p className="text-[10.5px] text-slate-400 leading-relaxed pl-3.5">{rec.description}</p>
                     </div>
-                  ))}
-                </div>
+
+                    <span className={`text-[9px] font-bold px-2.5 py-1 rounded-lg shrink-0 ${
+                      rec.severity === 'danger'
+                        ? 'bg-red-500/20 text-red-400'
+                        : rec.severity === 'warning'
+                        ? 'bg-amber-500/20 text-amber-400'
+                        : rec.severity === 'info'
+                        ? 'bg-blue-500/20 text-blue-400'
+                        : 'bg-teal-500/20 text-teal-400'
+                    }`}>
+                      {rec.action}
+                    </span>
+                  </div>
+                ))}
               </div>
-
-              {/* Right Column (1/3 width): User Base Role Distribution */}
-              <div className="bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-4">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                    <Users size={13} className="text-teal-400" />
-                    Global User Base Profile Roles
-                  </h4>
-                  <p className="text-[10px] text-slate-550 mt-1">Staff accounts registered across clinics</p>
-                </div>
-
-                <div className="space-y-3.5 text-xs text-slate-300 font-semibold max-h-[300px] overflow-y-auto pr-1">
-                  {/* Admin Roles */}
-                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-850/60">
-                    <div className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                      <span>Facility Administrators</span>
-                    </div>
-                    <span className="font-mono text-white text-xs font-bold bg-slate-950 px-2 py-0.5 rounded">
-                      {systemStats.profiles.filter(p => p.role === 'admin' || p.role === 'facility_admin').length}
-                    </span>
-                  </div>
-
-                  {/* Clinician Roles */}
-                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-850/60">
-                    <div className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
-                      <span>Doctors & Clinicians</span>
-                    </div>
-                    <span className="font-mono text-white text-xs font-bold bg-slate-950 px-2 py-0.5 rounded">
-                      {systemStats.profiles.filter(p => p.role === 'clinician').length}
-                    </span>
-                  </div>
-
-                  {/* Nurse Roles */}
-                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-850/60">
-                    <div className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      <span>Nurses</span>
-                    </div>
-                    <span className="font-mono text-white text-xs font-bold bg-slate-955 px-2 py-0.5 rounded">
-                      {systemStats.profiles.filter(p => p.role === 'nurse').length}
-                    </span>
-                  </div>
-
-                  {/* Pharmacist Roles */}
-                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-850/60">
-                    <div className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                      <span>Pharmacists</span>
-                    </div>
-                    <span className="font-mono text-white text-xs font-bold bg-slate-955 px-2 py-0.5 rounded">
-                      {systemStats.profiles.filter(p => p.role === 'pharmacist').length}
-                    </span>
-                  </div>
-
-                  {/* Lab pathology Roles */}
-                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-850/60">
-                    <div className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
-                      <span>Lab Pathologists</span>
-                    </div>
-                    <span className="font-mono text-white text-xs font-bold bg-slate-955 px-2 py-0.5 rounded">
-                      {systemStats.profiles.filter(p => p.role === 'lab_tech').length}
-                    </span>
-                  </div>
-
-                  {/* Cashier Roles */}
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                      <span>Cashiers</span>
-                    </div>
-                    <span className="font-mono text-white text-xs font-bold bg-slate-955 px-2 py-0.5 rounded">
-                      {systemStats.profiles.filter(p => p.role === 'cashier').length}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
         )}

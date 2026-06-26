@@ -408,6 +408,53 @@ export default function LaboratoryManagement({ user, onClose }) {
     }
   };
 
+  const handleSaveSpecimen = async (e) => {
+    e.preventDefault();
+    if (!specName.trim()) return showToast('Specimen Name is required.', 'error');
+    setSaving(true);
+    const { token, apiBase } = getApiContext();
+
+    try {
+      const values = {
+        category: specCategory,
+        name: specName,
+        description: specDesc,
+        status: specStatus
+      };
+
+      if (editingId) {
+        await fetch(`${apiBase}/db/update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            table: 'sample_specimens',
+            column: 'id',
+            value: editingId,
+            values
+          })
+        });
+        showToast('Sample specimen updated.');
+      } else {
+        await fetch(`${apiBase}/db/insert`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            table: 'sample_specimens',
+            docId: `spec_${Date.now()}`,
+            row: { facility_id: user.facility_id, ...values }
+          })
+        });
+        showToast('Sample specimen registered.');
+      }
+      clearFormFields();
+      fetchTabData();
+    } catch (err) {
+      showToast(`Save failed: ${err.message}`, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSaveLabTest = async (e) => {
     e.preventDefault();
     if (!testName.trim()) return showToast('Lab Test Name is required.', 'error');
@@ -522,6 +569,11 @@ export default function LaboratoryManagement({ user, onClose }) {
       setCatName(record.name);
       setCatDesc(record.description || '');
       setCatStatus(record.status);
+    } else if (activeTab === 'Sample Specimen') {
+      setSpecCategory(record.category || categories[0]?.name || 'MICROBIOLOGY');
+      setSpecName(record.name || '');
+      setSpecDesc(record.description || '');
+      setSpecStatus(record.status || 'Active');
     } else if (activeTab === 'Test Units') {
       setUnitName(record.name);
       setUnitStatus(record.status);
@@ -1148,8 +1200,8 @@ export default function LaboratoryManagement({ user, onClose }) {
                   <div>
                     <label className="block text-[9.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">Test Category</label>
                     <select
-                      value={formCategory}
-                      onChange={(e) => setFormCategory(e.target.value)}
+                      value={specCategory}
+                      onChange={(e) => setSpecCategory(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition"
                     >
                       {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
@@ -1161,8 +1213,8 @@ export default function LaboratoryManagement({ user, onClose }) {
                     <input 
                       type="text" 
                       placeholder="Whole Blood, Urine..."
-                      value={formName}
-                      onChange={(e) => setFormName(e.target.value)}
+                      value={specName}
+                      onChange={(e) => setSpecName(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-200 focus:outline-none" 
                     />
                   </div>
@@ -1170,8 +1222,8 @@ export default function LaboratoryManagement({ user, onClose }) {
                     <label className="block text-[9.5px] font-bold text-slate-550 uppercase tracking-wider mb-1">Specimen Description</label>
                     <textarea 
                       placeholder="Details..."
-                      value={formDescription}
-                      onChange={(e) => setFormDescription(e.target.value)}
+                      value={specDesc}
+                      onChange={(e) => setSpecDesc(e.target.value)}
                       rows={4}
                       className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-200 focus:outline-none resize-none" 
                     />

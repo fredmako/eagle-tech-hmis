@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { parsePatientContact } from '../../notificationService';
 import { Search, UserPlus, CheckCircle2, AlertCircle, Activity } from 'lucide-react';
@@ -364,7 +364,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
         setMessage({ type: 'error', text: 'Phone number must be between 8 and 15 characters long.' });
         return;
       }
-      const phoneRegex = /^[0-9+\-\(\)\s]+$/;
+      const phoneRegex = /^[0-9+()\s-]+$/;
       if (!phoneRegex.test(cleanPhone)) {
         setMessage({ type: 'error', text: 'Phone number contains invalid characters.' });
         return;
@@ -525,9 +525,9 @@ export default function Registration({ user, onNavigateToQueue, showNotification
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="grid grid-cols-1 xl:grid-cols-[minmax(360px,0.88fr)_minmax(620px,1.12fr)] gap-6 2xl:gap-8 items-start">
       {/* Left Column: Search & Quick Actions / Patients in Wards */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-6 h-fit">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 2xl:p-6 shadow-sm space-y-6 h-fit min-w-0">
         <div className="flex border-b border-slate-800 pb-2 gap-4">
           <button
             type="button"
@@ -797,7 +797,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
       </div>
 
       {/* Right Column: Register New Patient Form */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 2xl:p-6 shadow-sm space-y-6 min-w-0">
         <div>
           <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
             <UserPlus size={18} className="text-teal-400" /> Patient Registration
@@ -816,17 +816,17 @@ export default function Registration({ user, onNavigateToQueue, showNotification
           </div>
         )}
 
-        <form onSubmit={handleRegister} className="space-y-4">
+        <form onSubmit={handleRegister} className="space-y-5">
           {/* Service Classification */}
           <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-xl space-y-3">
-            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider">Service Classification</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            <h3 className="text-[11px] font-bold text-teal-400 uppercase tracking-wider">Service Classification</h3>
+            <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_240px] gap-4 items-end">
+              <div className="min-w-0">
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Service Type</label>
                 <select
                   value={regServiceType}
                   onChange={(e) => setRegServiceType(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-105 focus:outline-none focus:border-teal-500 transition"
+                  className="w-full min-w-0 bg-slate-900 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                 >
                   <option value="OPD">General OPD (Normal Consultation)</option>
                   <option value="ANC">Antenatal Care (ANC)</option>
@@ -838,15 +838,15 @@ export default function Registration({ user, onNavigateToQueue, showNotification
                   <option value="EMR">Emergency/Triage</option>
                 </select>
               </div>
-              <div className="flex items-center pt-6">
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 cursor-pointer select-none hover:text-white transition">
+              <div className="flex items-center min-h-[42px]">
+                <label className="flex items-start gap-2 text-xs font-bold text-slate-400 cursor-pointer select-none hover:text-white transition leading-snug">
                   <input
                     type="checkbox"
                     checked={autoCheckin}
                     onChange={(e) => setAutoCheckin(e.target.checked)}
-                    className="accent-teal-500 h-4 w-4 bg-slate-900 border-slate-800 rounded text-teal-505"
+                    className="accent-teal-500 h-4 w-4 bg-slate-900 border-slate-800 rounded text-teal-505 shrink-0 mt-0.5"
                   />
-                  Check-in patient to queue immediately
+                  <span>Check-in patient to queue immediately</span>
                 </label>
               </div>
             </div>
@@ -854,11 +854,11 @@ export default function Registration({ user, onNavigateToQueue, showNotification
 
           {/* Social Health Authority (SHA) Insurance Verification */}
           <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-xl space-y-3">
-            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider">Social Health Authority (SHA) Insurance</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            <h3 className="text-[11px] font-bold text-teal-400 uppercase tracking-wider">Social Health Authority (SHA) Insurance</h3>
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(220px,0.72fr)] gap-4 items-start">
+              <div className="min-w-0">
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">SHA Member Number</label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2">
                   <input
                     type="text"
                     value={shaNumber}
@@ -867,7 +867,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
                       setShaStatus('unverified');
                     }}
                     placeholder="e.g. SHA-12345678"
-                    className="flex-1 bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-teal-500 transition font-mono"
+                    className="w-full min-w-0 bg-slate-900 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-teal-500 transition font-mono"
                   />
                   <button
                     type="button"
@@ -883,18 +883,18 @@ export default function Registration({ user, onNavigateToQueue, showNotification
                       }
                       setVerifyingSha(false);
                     }}
-                    className="bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/20 text-teal-400 font-bold text-xs px-4 py-2 rounded-lg transition active:scale-[0.98] disabled:opacity-50"
+                    className="bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/20 text-teal-400 font-bold text-xs px-4 py-2.5 rounded-lg transition active:scale-[0.98] disabled:opacity-50 whitespace-nowrap"
                   >
                     {verifyingSha ? 'Verifying...' : 'Verify Eligibility'}
                   </button>
                 </div>
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">SHA Dependent Type</label>
                 <select
                   value={shaDependentType}
                   onChange={(e) => setShaDependentType(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                  className="w-full min-w-0 bg-slate-900 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                 >
                   <option value="self">Principal Member (Self)</option>
                   <option value="spouse">Spouse</option>
@@ -918,7 +918,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             {/* Full Name */}
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Full Name *</label>
@@ -927,7 +927,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="First and last name"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                 required
               />
             </div>
@@ -941,7 +941,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
                 onChange={(e) => setDob(e.target.value)}
                 min="1900-01-01"
                 max={new Date().toISOString().split('T')[0]}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                 required
               />
             </div>
@@ -952,7 +952,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                 required
               >
                 <option value="male">Male</option>
@@ -969,7 +969,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
                 value={nationalId}
                 onChange={(e) => setNationalId(e.target.value)}
                 placeholder="ID Number"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
               />
             </div>
 
@@ -981,7 +981,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="e.g. 0712345678"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                 required
               />
             </div>
@@ -994,7 +994,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="patient@eagletechsolutions.tech"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
               />
             </div>
 
@@ -1006,7 +1006,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
                 value={village}
                 onChange={(e) => setVillage(e.target.value)}
                 placeholder="e.g. Kawangware"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                 required
               />
             </div>
@@ -1019,7 +1019,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
                 value={landmark}
                 onChange={(e) => setLandmark(e.target.value)}
                 placeholder="e.g. Near Market / Church"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
               />
             </div>
 
@@ -1029,7 +1029,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
               <select
                 value={maritalStatus}
                 onChange={(e) => setMaritalStatus(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                 required
               >
                 <option value="single">Single</option>
@@ -1079,7 +1079,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
           {/* Next of Kin Details */}
           <div className="border-t border-slate-800/80 pt-4 mt-2">
             <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-3">Next of Kin details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">NOK Name</label>
                 <input

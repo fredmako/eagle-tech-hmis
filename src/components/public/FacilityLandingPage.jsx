@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
+import { visibleOfferedServices } from '../../utils/facilityServices';
 import { 
-  PhoneCall, DollarSign, Calendar, ShieldCheck, ArrowRight, UserPlus, 
-  LogIn, Award, MapPin, Heart, Activity, Clock, Users, Check, 
-  Sparkles, Stethoscope, Layers, Search, Mail, Key, MessageSquare, X 
+  PhoneCall, ShieldCheck, ArrowRight, UserPlus,
+  LogIn, Award, MapPin, Heart, Activity,
+  Sparkles, Stethoscope, Search, Mail, Key, MessageSquare, X
 } from 'lucide-react';
 
 export default function FacilityLandingPage() {
@@ -706,9 +707,9 @@ export default function FacilityLandingPage() {
     );
   }
 
-  // Group services by category
-  const services = facility.services_list || [];
-  const categories = [...new Set(services.map(s => s.category))];
+  // Group services by category. Entries explicitly marked offered=false are hidden.
+  const services = visibleOfferedServices(facility.services_list || []);
+  const categories = [...new Set(services.map(s => s.category || 'Other'))];
   const template = facility.landing_template || 'classic';
 
   const getServiceImage = (svc) => {

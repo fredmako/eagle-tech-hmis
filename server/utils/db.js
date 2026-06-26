@@ -26,34 +26,6 @@ if (isRealSupabase) {
 
 const SANDBOX_DB_PATH = path.join(__dirname, "../sandbox_db.json");
 
-const DEFAULT_LAB_SERVICES = [
-  { name: "Malaria BS/RDT", category: "Lab", charge: 150 },
-  { name: "Full Blood Count (FBC)", category: "Lab", charge: 400 },
-  { name: "Urinalysis Dipstick", category: "Lab", charge: 200 },
-  { name: "Widal Agglutination Test", category: "Lab", charge: 300 },
-  { name: "Blood Sugar (Fasting/Random)", category: "Lab", charge: 150 },
-  { name: "Lipid Profile", category: "Lab", charge: 800 },
-  { name: "H. pylori Stool Antigen", category: "Lab", charge: 500 },
-  { name: "Liver Function Tests (LFT)", category: "Lab", charge: 1200 },
-  { name: "Renal Function Tests (RFT)", category: "Lab", charge: 1200 },
-  { name: "Blood Grouping & Rh", category: "Lab", charge: 250 },
-  { name: "HIV 1/2 Screening Test", category: "Lab", charge: 200 },
-  { name: "Syphilis VDRL / RPR", category: "Lab", charge: 250 },
-  { name: "HBsAg (Hepatitis B)", category: "Lab", charge: 350 },
-  { name: "HCV Ab (Hepatitis C)", category: "Lab", charge: 400 },
-  { name: "Serum Pregnancy (hCG)", category: "Lab", charge: 450 },
-  { name: "Thyroid Profile (TSH Only)", category: "Lab", charge: 1000 },
-  { name: "PSA (Prostate Specific Antigen)", category: "Lab", charge: 1500 },
-  { name: "Glycated Hemoglobin (HbA1c)", category: "Lab", charge: 1200 },
-  { name: "Serum Uric Acid", category: "Lab", charge: 400 },
-  { name: "ESR (Erythrocyte Sedimentation Rate)", category: "Lab", charge: 300 },
-  { name: "Stool Microscopy", category: "Lab", charge: 250 },
-  { name: "Sputum GeneXpert (TB PCR)", category: "Lab", charge: 2500 },
-  { name: "Brucella Slide Antigen", category: "Lab", charge: 350 },
-  { name: "Typhoid Antigen Test", category: "Lab", charge: 400 },
-  { name: "High Vaginal Swab (HVS) Wet Mount", category: "Lab", charge: 300 }
-];
-
 const DEFAULT_ACTIVE_MODULES = {
   kitchen: true,
   reception: true,
@@ -118,8 +90,7 @@ const getInitialSandboxData = () => {
 
           { name: "Pediatric Vaccination Package", category: "Immunization", charge: 1500 },
           { name: "Standard ANC Antenatal Care Checkup", category: "ANC", charge: 2000 },
-          { name: "Inpatient Admission Ward Bed (Daily)", category: "Ward", charge: 4000 },
-          ...DEFAULT_LAB_SERVICES
+          { name: "Inpatient Admission Ward Bed (Daily)", category: "Ward", charge: 4000 }
         ]
       },
       {
@@ -149,8 +120,7 @@ const getInitialSandboxData = () => {
         services_list: [
           { name: "Specialist Consultation", category: "Consultation", charge: 2500 },
           { name: "CT Scan / MRI Panel", category: "Radiology", charge: 12000 },
-          { name: "ICU Admission Ward Bed (Daily)", category: "Ward", charge: 15000 },
-          ...DEFAULT_LAB_SERVICES
+          { name: "ICU Admission Ward Bed (Daily)", category: "Ward", charge: 15000 }
         ]
       },
       {
@@ -633,19 +603,12 @@ const loadSandboxDB = () => {
       data.facilities = initial.facilities;
       updated = true;
     } else {
-      // Ensure DEFAULT_LAB_SERVICES are present in all existing facilities
+      // Keep services_list facility-specific; admins add offered services from the catalog UI.
       data.facilities.forEach(fac => {
         if (!fac.services_list) {
           fac.services_list = [];
         }
         let facilityUpdated = false;
-        DEFAULT_LAB_SERVICES.forEach(svc => {
-          const exists = fac.services_list.some(s => s.name.toLowerCase() === svc.name.toLowerCase());
-          if (!exists) {
-            fac.services_list.push(svc);
-            facilityUpdated = true;
-          }
-        });
         if (!fac.admin_delegation) {
           fac.admin_delegation = {};
           facilityUpdated = true;

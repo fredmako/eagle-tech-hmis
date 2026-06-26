@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../../supabaseClient';
-import { CreditCard, Save, Plus, Trash2, HelpCircle, PhoneCall, DollarSign, Layers } from 'lucide-react';
+import { CreditCard, Save, Plus, Trash2, PhoneCall, DollarSign, Layers, Search, CheckCircle2 } from 'lucide-react';
+import { facilityServiceCatalog, mergeServiceIntoCatalog, normalizeFacilityServices, serviceKey } from '../../utils/facilityServices';
 
 export default function PaymentSettings({ user }) {
   const [loading, setLoading] = useState(false);
@@ -21,12 +22,9 @@ export default function PaymentSettings({ user }) {
   const [newServiceName, setNewServiceName] = useState('');
   const [newServiceCategory, setNewServiceCategory] = useState('Consultation');
   const [newServiceCharge, setNewServiceCharge] = useState('');
+  const [serviceSearch, setServiceSearch] = useState('');
 
-  useEffect(() => {
-    fetchFacilitySettings();
-  }, []);
-
-  const fetchFacilitySettings = async () => {
+  const fetchFacilitySettings = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -46,7 +44,7 @@ export default function PaymentSettings({ user }) {
         setWhatsappWelcomeMessage(data.whatsapp_welcome_message || 'Hello, welcome to our facility!');
         setAboutUs(data.about_us || '');
         setSubdomainPrefix(data.subdomain_prefix || '');
-        setServicesList(data.services_list || []);
+        setServicesList(normalizeFacilityServices(data.services_list || []));
       }
     } catch (err) {
       console.error('Error fetching payment settings:', err);
@@ -54,7 +52,14 @@ export default function PaymentSettings({ user }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.facility_id]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      fetchFacilitySettings();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchFacilitySettings]);
 
   const handleAddService = (e) => {
     e.preventDefault();
@@ -63,16 +68,32 @@ export default function PaymentSettings({ user }) {
     const newService = {
       name: newServiceName.trim(),
       category: newServiceCategory,
-      charge: parseFloat(newServiceCharge)
+      charge: parseFloat(newServiceCharge),
+      offered: true
     };
 
-    setServicesList([...servicesList, newService]);
+    setServicesList(prev => mergeServiceIntoCatalog(prev, newService));
     setNewServiceName('');
     setNewServiceCharge('');
   };
 
+  const handleAddCatalogService = (service) => {
+    setServicesList(prev => mergeServiceIntoCatalog(prev, service));
+    setServiceSearch('');
+  };
+
   const handleDeleteService = (indexToDelete) => {
     setServicesList(servicesList.filter((_, idx) => idx !== indexToDelete));
+  };
+
+  const handleServiceChargeChange = (index, value) => {
+    const updated = [...servicesList];
+    updated[index] = {
+      ...updated[index],
+      charge: parseFloat(value) || 0,
+      offered: true
+    };
+    setServicesList(updated);
   };
 
   const handleSaveSettings = async (e) => {
@@ -89,8 +110,8 @@ export default function PaymentSettings({ user }) {
         whatsapp_number: whatsappNumber.trim(),
         whatsapp_welcome_message: whatsappWelcomeMessage.trim(),
         about_us: aboutUs.trim(),
-        subdomain_prefix: subdomainPrefix.trim().toLowerCase().replace(/[^a-z0-9\-]/g, ''),
-        services_list: servicesList
+        subdomain_prefix: subdomainPrefix.trim().toLowerCase().replace(/[^a-z0-9-]/g, ''),
+        services_list: normalizeFacilityServices(servicesList).filter(service => service.offered)
       };
 
       // Perform update via proxy API to ensure sandbox syncing
@@ -130,6 +151,22 @@ export default function PaymentSettings({ user }) {
       setLoading(false);
     }
   };
+
+  const offeredServiceKeys = useMemo(() => new Set(servicesList.map(serviceKey)), [servicesList]);
+  const filteredCatalogServices = useMemo(() => {
+    const query = serviceSearch.trim().toLowerCase();
+    return facilityServiceCatalog
+      .filter(service => !offeredServiceKeys.has(serviceKey(service)))
+      .filter(service => {
+        if (!query) return true;
+        return (
+          service.name.toLowerCase().includes(query)
+          || service.category.toLowerCase().includes(query)
+          || service.description?.toLowerCase().includes(query)
+        );
+      })
+      .slice(0, 12);
+  }, [offeredServiceKeys, serviceSearch]);
 
   return (
     <div className="space-y-6">
@@ -269,56 +306,113 @@ export default function PaymentSettings({ user }) {
 
         {/* Card 4: Services pricing list builder */}
         <div className="bg-slate-950 border border-slate-850 p-4 rounded-xl space-y-4">
-          <h5 className="text-[11px] font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Layers size={13} /> Service Charges & Specialties Catalog
-          </h5>
+          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+            <div>
+              <h5 className="text-[11px] font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Layers size={13} /> Offered Facility Services
+              </h5>
+              <p className="text-[10px] text-slate-500 mt-1 max-w-2xl">
+                Add only the services this facility actually offers. These are the services shown on the public facility landing page.
+              </p>
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 bg-slate-900 border border-slate-850 px-3 py-1.5 rounded-lg">
+              {servicesList.length} offered
+            </span>
+          </div>
 
-          {/* Add Service Catalog Row Form */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/40 p-3 rounded-lg border border-slate-900">
-            <div>
-              <label className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-1">Service / Spec Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Standard Consultation"
-                value={newServiceName}
-                onChange={(e) => setNewServiceName(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
-              />
-            </div>
-            <div>
-              <label className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-1">Category</label>
-              <select
-                value={newServiceCategory}
-                onChange={(e) => setNewServiceCategory(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
-              >
-                <option value="Consultation">Consultation</option>
-                <option value="Lab">Laboratory / Test</option>
-                <option value="Pharmacy">Pharmacy / Meds</option>
-                <option value="Radiology">Radiology / Imaging</option>
-                <option value="ANC">Maternal ANC</option>
-                <option value="Ward">Inpatient Ward</option>
-                <option value="Other">Other Specialty</option>
-              </select>
-            </div>
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <label className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-1">Charge Fee (KES)</label>
-                <input
-                  type="number"
-                  placeholder="e.g. 1000"
-                  value={newServiceCharge}
-                  onChange={(e) => setNewServiceCharge(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-850 rounded py-1 px-2.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
-                />
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div className="bg-slate-900/40 p-3 rounded-lg border border-slate-900 space-y-3">
+              <div>
+                <label className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-1">Search master services</label>
+                <div className="flex items-center bg-slate-950 border border-slate-850 rounded-lg px-2.5 focus-within:border-teal-500 transition">
+                  <Search size={13} className="text-slate-500 shrink-0 mr-2" />
+                  <input
+                    type="text"
+                    placeholder="Search lab, radiology, consultation, ward..."
+                    value={serviceSearch}
+                    onChange={(e) => setServiceSearch(e.target.value)}
+                    className="w-full bg-transparent py-2 text-xs text-slate-200 focus:outline-none"
+                  />
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={handleAddService}
-                className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1.5 px-3 rounded flex items-center gap-1 transition"
-              >
-                <Plus size={12} /> Add
-              </button>
+
+              <div className="max-h-[280px] overflow-y-auto space-y-2 pr-1">
+                {filteredCatalogServices.map((svc) => (
+                  <div key={svc.id || svc.name} className="bg-slate-950 border border-slate-850 rounded-lg p-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="font-bold text-slate-200 text-xs block">{svc.name}</span>
+                      <span className="text-[9px] text-slate-500 uppercase tracking-wider font-bold">{svc.category} · KES {svc.charge}/-</span>
+                      {svc.description && <p className="text-[9.5px] text-slate-550 mt-1 leading-relaxed">{svc.description}</p>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleAddCatalogService(svc)}
+                      className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1.5 px-3 rounded flex items-center gap-1 transition shrink-0"
+                    >
+                      <Plus size={12} /> Add
+                    </button>
+                  </div>
+                ))}
+                {filteredCatalogServices.length === 0 && (
+                  <div className="text-center py-8 text-xs text-slate-500 italic">
+                    No more matching master services. Use the custom service form below if needed.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-slate-900/40 p-3 rounded-lg border border-slate-900 space-y-3">
+              <h6 className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Add a custom offered service</h6>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-1">Service Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Dental Scaling"
+                    value={newServiceName}
+                    onChange={(e) => setNewServiceName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-850 rounded py-2 px-2.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-1">Category</label>
+                  <select
+                    value={newServiceCategory}
+                    onChange={(e) => setNewServiceCategory(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-850 rounded py-2 px-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                  >
+                    <option value="Consultation">Consultation</option>
+                    <option value="Lab">Laboratory / Test</option>
+                    <option value="Pharmacy">Pharmacy / Meds</option>
+                    <option value="Radiology">Radiology / Imaging</option>
+                    <option value="ANC">Maternal ANC</option>
+                    <option value="MCH">MCH / Immunization</option>
+                    <option value="Maternity">Maternity</option>
+                    <option value="Ward">Inpatient Ward</option>
+                    <option value="Dental">Dental</option>
+                    <option value="Other">Other Specialty</option>
+                  </select>
+                </div>
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <label className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fee (KES)</label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 1000"
+                      value={newServiceCharge}
+                      onChange={(e) => setNewServiceCharge(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-850 rounded py-2 px-2.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddService}
+                    className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-2 px-3 rounded flex items-center gap-1 transition"
+                  >
+                    <Plus size={12} /> Add
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -327,7 +421,7 @@ export default function PaymentSettings({ user }) {
             <table className="w-full text-left text-[10px] border-collapse font-sans">
               <thead>
                 <tr className="bg-slate-900/60 text-slate-400 font-bold border-b border-slate-900 text-[8px] uppercase">
-                  <th className="py-2 px-3">Service Name</th>
+                  <th className="py-2 px-3">Offered Service</th>
                   <th className="py-2 px-3">Category</th>
                   <th className="py-2 px-3 text-right">Fee (KES)</th>
                   <th className="py-2 px-3 text-center w-16">Remove</th>
@@ -335,15 +429,28 @@ export default function PaymentSettings({ user }) {
               </thead>
               <tbody className="divide-y divide-slate-900">
                 {servicesList.map((svc, idx) => (
-                  <tr key={idx} className="hover:bg-slate-900/30">
-                    <td className="py-2 px-3 font-semibold text-slate-200">{svc.name}</td>
+                  <tr key={`${svc.name}-${idx}`} className="hover:bg-slate-900/30">
+                    <td className="py-2 px-3 font-semibold text-slate-200">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircle2 size={11} className="text-teal-400" />
+                        {svc.name}
+                      </span>
+                    </td>
                     <td className="py-2 px-3 font-medium text-slate-500">{svc.category}</td>
-                    <td className="py-2 px-3 text-right font-mono font-bold text-teal-400">{svc.charge}/-</td>
+                    <td className="py-2 px-3 text-right">
+                      <input
+                        type="number"
+                        value={svc.charge}
+                        onChange={(e) => handleServiceChargeChange(idx, e.target.value)}
+                        className="bg-slate-950 border border-slate-850 rounded py-1 px-2 text-xs text-teal-400 font-mono font-bold text-right w-24 focus:outline-none focus:border-teal-500"
+                      />
+                    </td>
                     <td className="py-2 px-3 text-center">
                       <button
                         type="button"
                         onClick={() => handleDeleteService(idx)}
                         className="text-red-450 hover:text-red-400 transition"
+                        title="Remove from offered services"
                       >
                         <Trash2 size={12} />
                       </button>
@@ -352,7 +459,9 @@ export default function PaymentSettings({ user }) {
                 ))}
                 {servicesList.length === 0 && (
                   <tr>
-                    <td colSpan="4" className="text-center py-4 text-slate-500 italic">No services configured yet. Add services using the row builder above.</td>
+                    <td colSpan="4" className="text-center py-6 text-slate-500 italic">
+                      No offered services configured yet. Search and add the services this facility offers.
+                    </td>
                   </tr>
                 )}
               </tbody>

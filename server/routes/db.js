@@ -5,6 +5,24 @@ const jwt = require("jsonwebtoken");
 const { db } = require("../utils/db");
 const { authenticateToken, JWT_SECRET } = require("../middleware/auth");
 
+const OPTIONAL_EMPTY_QUERY_TABLES = new Set([
+  "sha_claim_documents",
+  "duty_rosters",
+  "attendance_logs",
+  "staff_access_archives",
+  "notifications",
+]);
+
+function isMissingOptionalTableError(err) {
+  const message = String(err?.message || err || "").toLowerCase();
+  return (
+    message.includes("could not find the table") ||
+    message.includes("schema cache") ||
+    message.includes("does not exist") ||
+    (message.includes("relation") && message.includes("not exist"))
+  );
+}
+
 function validateRowData(table, row) {
   if (!row) return;
 
@@ -409,6 +427,15 @@ router.post("/query", async (req, res) => {
 
     res.json({ success: true, data });
   } catch (err) {
+    if (OPTIONAL_EMPTY_QUERY_TABLES.has(table) && isMissingOptionalTableError(err)) {
+      console.warn(`Optional DB query table ${table} is unavailable; returning an empty result set.`);
+      return res.json({
+        success: true,
+        data: [],
+        warning: `Optional table ${table} is not available in this environment.`,
+      });
+    }
+
     console.error(`DB Query Proxy failed for table ${table}:`, err);
     res.status(500).json({ error: err.message || "Database query failed" });
   }

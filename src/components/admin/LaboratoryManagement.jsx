@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
+import { useState, useEffect } from 'react';
 import { 
-  Search, Edit, Save, Plus, Trash2, Sliders, ShieldAlert, Check, X, RefreshCw, DollarSign, Database, Tag, ShieldCheck
+  Search, Edit, Save, Plus, Trash2, Sliders, ShieldAlert, Check, X, RefreshCw, Database
 } from 'lucide-react';
 
 export default function LaboratoryManagement({ user, onClose }) {
@@ -20,7 +19,7 @@ export default function LaboratoryManagement({ user, onClose }) {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowCount, setRowCount] = useState(10);
+  const [rowCount] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
 
   // Form Editing states
@@ -79,15 +78,19 @@ export default function LaboratoryManagement({ user, onClose }) {
   // Syncing loaders
   const [syncingEtims, setSyncingEtims] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setCurrentPage(1);
     setSearchQuery('');
     setEditingId(null);
     clearFormFields();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     fetchTabData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, currentPage, rowCount, searchQuery]);
 
   const showToast = (message, type = 'success') => {
@@ -103,7 +106,7 @@ export default function LaboratoryManagement({ user, onClose }) {
     return { token, apiBase };
   };
 
-  const clearFormFields = () => {
+  function clearFormFields() {
     setEditingId(null);
     // Categories
     setCatName('');
@@ -141,7 +144,7 @@ export default function LaboratoryManagement({ user, onClose }) {
     setSubStatus('Active');
   };
 
-  const fetchTabData = async () => {
+  async function fetchTabData() {
     setLoading(true);
     const { token, apiBase } = getApiContext();
 
@@ -707,7 +710,8 @@ export default function LaboratoryManagement({ user, onClose }) {
       });
       showToast('Reference range deleted.');
       openReferenceRangeDrawer(selectedSubTest);
-    } catch (e) {
+    } catch (err) {
+      console.error(err);
       showToast('Failed to delete.', 'error');
     }
   };
@@ -727,6 +731,9 @@ export default function LaboratoryManagement({ user, onClose }) {
             Configure lab services, specimens, sub-tests, eTIMS pricing tariffs, and physiological reference ranges.
           </p>
         </div>
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-200 transition p-1 cursor-pointer">
+          <X size={16} />
+        </button>
       </div>
 
       {/* Sub-tab Navigation */}
@@ -826,6 +833,7 @@ export default function LaboratoryManagement({ user, onClose }) {
                         <th className="py-2.5 px-3">Category</th>
                         <th className="py-2.5 px-3">Specimen Name</th>
                         <th className="py-2.5 px-3">Description</th>
+                        <th className="py-2.5 px-3">Status</th>
                         <th className="py-2.5 px-3 text-right">Actions</th>
                       </tr>
                     </thead>
@@ -835,6 +843,11 @@ export default function LaboratoryManagement({ user, onClose }) {
                           <td className="py-2.5 px-3 text-teal-400 font-semibold">{spec.category}</td>
                           <td className="py-2.5 px-3 font-bold text-slate-200">{spec.name}</td>
                           <td className="py-2.5 px-3 text-slate-400">{spec.description || '—'}</td>
+                          <td className="py-2.5 px-3">
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${spec.status === 'Active' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                              {spec.status || 'Active'}
+                            </span>
+                          </td>
                           <td className="py-2.5 px-3 text-right space-x-1">
                             <button onClick={() => handleEdit(spec)} className="text-slate-400 hover:text-teal-400 p-1 rounded hover:bg-slate-800/50"><Edit size={12} /></button>
                             <button onClick={() => handleDelete('sample_specimens', spec.id, spec.name)} className="text-slate-400 hover:text-red-400 p-1 rounded hover:bg-slate-800/50"><Trash2 size={12} /></button>
@@ -1225,8 +1238,19 @@ export default function LaboratoryManagement({ user, onClose }) {
                       value={specDesc}
                       onChange={(e) => setSpecDesc(e.target.value)}
                       rows={4}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-200 focus:outline-none resize-none" 
+                      className="w-full bg-slate-955 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-200 focus:outline-none resize-none" 
                     />
+                  </div>
+                  <div>
+                    <label className="block text-[9.5px] font-bold text-slate-550 uppercase tracking-wider mb-1">Status</label>
+                    <select
+                      value={specStatus}
+                      onChange={(e) => setSpecStatus(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-200 focus:outline-none"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="In-Active">In-Active</option>
+                    </select>
                   </div>
                   <div className="flex gap-2 pt-1.5">
                     <button type="submit" disabled={saving} className="flex-grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 transition active:scale-[0.98] cursor-pointer shadow-md">

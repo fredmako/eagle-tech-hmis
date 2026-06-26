@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     role text NOT NULL,
     facility_id text REFERENCES public.facilities(id) ON DELETE SET NULL,
     email text UNIQUE,
+    access_status text NOT NULL DEFAULT 'active',
+    suspended_at timestamp with time zone,
+    suspension_reason text,
+    deleted_at timestamp with time zone,
+    blockchain_wallet_address text,
     autologin_token text,
     created_at timestamp with time zone DEFAULT now()
 );
@@ -153,11 +158,53 @@ CREATE TABLE IF NOT EXISTS public.invitations (
     facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
     invited_by text,
     status text NOT NULL,
+    mail_status text NOT NULL DEFAULT 'queued',
+    mail_error text,
+    mail_sent_at timestamp with time zone,
     expires_at timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now()
 );
 
--- 12. Disable Row Level Security (RLS) on all tables to allow client-side access
+-- 12. Create staff access archive table
+CREATE TABLE IF NOT EXISTS public.staff_access_archives (
+    id text PRIMARY KEY,
+    facility_id text REFERENCES public.facilities(id) ON DELETE SET NULL,
+    profile_id text NOT NULL,
+    email text,
+    full_name text,
+    role text,
+    department text,
+    phone text,
+    blockchain_wallet_address text,
+    archived_by text,
+    archive_reason text,
+    archived_at timestamp with time zone DEFAULT now(),
+    created_at timestamp with time zone DEFAULT now(),
+    snapshot jsonb DEFAULT '{}'::jsonb
+);
+
+-- 13. Create SHA claim document table
+CREATE TABLE IF NOT EXISTS public.sha_claim_documents (
+    id text PRIMARY KEY,
+    facility_id text REFERENCES public.facilities(id) ON DELETE CASCADE,
+    patient_id text REFERENCES public.patients(id) ON DELETE SET NULL,
+    visit_id text REFERENCES public.visits(id) ON DELETE SET NULL,
+    invoice_id text REFERENCES public.invoices(id) ON DELETE SET NULL,
+    claim_reference text,
+    sha_member_number text,
+    claim_form_url text,
+    diagnosis_report_url text,
+    invoice_url text,
+    discharge_summary_url text,
+    status text NOT NULL DEFAULT 'draft',
+    payload jsonb DEFAULT '{}'::jsonb,
+    submitted_by text,
+    submitted_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- 14. Disable Row Level Security (RLS) on all tables to allow client-side access
 ALTER TABLE IF EXISTS public.facilities DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.profiles DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.patients DISABLE ROW LEVEL SECURITY;
@@ -169,23 +216,31 @@ ALTER TABLE IF EXISTS public.invoices DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.audit_logs DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.role_requests DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.invitations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.staff_access_archives DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.sha_claim_documents DISABLE ROW LEVEL SECURITY;
 
--- 13. Seed default clinic facility
+-- 15. Seed default clinic facility
 INSERT INTO public.facilities (id, name, code, logo_url, address)
 VALUES ('f1', 'Eagle Tech Medical Clinic', 'EMC-001', 'preset:shield', 'Nairobi, Kenya')
-ON CONFLICT (id) DO UPDATE 
+ON CONFLICT (id) DO UPDATE
 SET name = EXCLUDED.name, code = EXCLUDED.code;
 
--- 14. Seed default clinic staff profiles
-INSERT INTO public.profiles (id, full_name, role, facility_id, email)
+INSERT INTO public.facilities (id, name, code, logo_url, address)
+VALUES ('f3', 'EGS Medical Clinic', 'EGS-003', 'preset:shield', 'Nairobi, Kenya')
+ON CONFLICT (id) DO UPDATE
+SET name = EXCLUDED.name, code = EXCLUDED.code;
+
+-- 16. Seed default clinic staff profiles
+INSERT INTO public.profiles (id, full_name, role, facility_id, email, access_status, blockchain_wallet_address)
 VALUES 
-('u1', 'Dr. Arthur Conan', 'clinician', 'f1', 'clinician@egesa.com'),
-('u2', 'Nurse Jane Doe', 'nurse', 'f1', 'nurse@egesa.com'),
-('u3', 'Alice Cooper (Receptionist)', 'receptionist', 'f1', 'receptionist@egesa.com'),
-('u4', 'Dr. Lab Tech Terry', 'lab_tech', 'f1', 'lab_tech@egesa.com'),
-('u5', 'Pharmacist Bob', 'pharmacist', 'f1', 'pharmacist@egesa.com'),
-('u6', 'Cashier Mary', 'cashier', 'f1', 'cashier@egesa.com'),
-('u7', 'Admin Grace', 'admin', 'f1', 'admin@egesa.com')
+('u1', 'Dr. Arthur Conan', 'clinician', 'f1', 'clinician@egesa.com', 'active', ''),
+('u2', 'Nurse Jane Doe', 'nurse', 'f1', 'nurse@egesa.com', 'active', ''),
+('u3', 'Alice Cooper (Receptionist)', 'receptionist', 'f1', 'receptionist@egesa.com', 'active', ''),
+('u4', 'Dr. Lab Tech Terry', 'lab_tech', 'f1', 'lab_tech@egesa.com', 'active', ''),
+('u5', 'Pharmacist Bob', 'pharmacist', 'f1', 'pharmacist@egesa.com', 'active', ''),
+('u6', 'Cashier Mary', 'cashier', 'f1', 'cashier@egesa.com', 'active', ''),
+('u7', 'Admin Grace', 'admin', 'f1', 'admin@egesa.com', 'active', ''),
+('u8', 'EGS Admin', 'admin', 'f3', 'admin@egsmedical.co.ke', 'active', '')
 ON CONFLICT (id) DO NOTHING;
 
 -- 15. Create sample_specimens table
@@ -371,6 +426,3 @@ CREATE TABLE IF NOT EXISTS public.demo_requests (
     created_at timestamp with time zone DEFAULT now()
 );
 ALTER TABLE IF EXISTS public.demo_requests DISABLE ROW LEVEL SECURITY;
-
-
-

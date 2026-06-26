@@ -1,7 +1,10 @@
 import React, { useEffect } from "react";
 import { supabase } from "../supabaseClient";
+import { useAuth } from "../context/AuthContext";
 
 export default function AuthCallback({ onCallbackComplete }) {
+  const { setUser } = useAuth();
+
   useEffect(() => {
     const handleCallback = async () => {
       try {
@@ -53,6 +56,43 @@ export default function AuthCallback({ onCallbackComplete }) {
             );
           }
 
+          if (!isOnboarding && !isRecovery && !supabase.isSandbox) {
+            try {
+              const pendingFacilityId =
+                sessionStorage.getItem("egesa_health_pending_facility") ||
+                searchParams.get("facility_id") ||
+                searchParams.get("state");
+              const activeFacilityId = pendingFacilityId || localStorage.getItem("egesa_active_facility_id");
+              const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+              const res = await fetch(`${apiBase}/auth/supabase-login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  access_token: data.session.access_token,
+                  facility_id: activeFacilityId || undefined,
+                  requestedFacilityId: activeFacilityId || undefined,
+                }),
+              });
+              const resData = await res.json().catch(() => ({}));
+              if (res.ok && resData.status === "success" && resData.user) {
+                localStorage.setItem("egesa_health_token", resData.token);
+                localStorage.setItem("egesa_active_facility_id", resData.user.facility_id || "");
+                sessionStorage.removeItem("egesa_health_pending_facility");
+                sessionStorage.removeItem("egesa_health_google_global_login");
+                sessionStorage.setItem("egesa_health_active_user", JSON.stringify(resData.user));
+                setUser?.(resData.user);
+                window.history.replaceState({}, document.title, "/");
+                setTimeout(() => onCallbackComplete?.(resData.user.role === "patient" ? "patient_dashboard" : "dashboard"), 500);
+                return;
+              }
+              if (res.ok && resData.status === "select_facility") {
+                sessionStorage.setItem("egesa_oauth_facility_selection", JSON.stringify(resData));
+              }
+            } catch (profileErr) {
+              console.error("[AuthCallback] Staff profile enrichment failed:", profileErr);
+            }
+          }
+
           // Clear access token hash and reset pathname to '/'
           window.history.replaceState({}, document.title, "/");
 
@@ -73,7 +113,7 @@ export default function AuthCallback({ onCallbackComplete }) {
     };
 
     handleCallback();
-  }, [onCallbackComplete]);
+  }, [onCallbackComplete, setUser]);
 
   return (
     <div

@@ -120,21 +120,25 @@ export default function Dashboard({ user, onNavigate }) {
   };
 
   const roleAccess = {
-    registration: ['receptionist', 'admin'],
-    triage: ['nurse', 'admin'],
-    consultation: ['clinician', 'admin'],
-    orders: ['lab_tech', 'admin'],
-    radiology: ['lab_tech', 'admin'],
-    pharmacy: ['pharmacist', 'admin'],
-    billing: ['cashier', 'admin'],
-    pos: ['pharmacist', 'cashier', 'admin'],
-    ward: ['nurse', 'admin'],
-    surgery: ['clinician', 'admin'],
-    appointments: ['receptionist', 'nurse', 'clinician', 'admin'],
-    reports: ['admin', 'cashier'],
-    admin: ['admin'],
-    maintenance: ['admin', 'operations_manager', 'it_support'],
-    support: ['admin', 'platform_support']
+    registration: ['receptionist', 'admin', 'facility_admin'],
+    queue: ['receptionist', 'nurse', 'clinician', 'admin', 'facility_admin'],
+    triage: ['nurse', 'admin', 'facility_admin'],
+    consultation: ['clinician', 'admin', 'facility_admin'],
+    orders: ['lab_tech', 'admin', 'facility_admin'],
+    radiology: ['lab_tech', 'clinician', 'admin', 'facility_admin'],
+    pharmacy: ['pharmacist', 'admin', 'facility_admin'],
+    billing: ['cashier', 'admin', 'facility_admin'],
+    pos: ['pharmacist', 'cashier', 'admin', 'facility_admin'],
+    ward: ['nurse', 'clinician', 'admin', 'facility_admin'],
+    surgery: ['clinician', 'admin', 'facility_admin'],
+    appointments: ['receptionist', 'nurse', 'clinician', 'admin', 'facility_admin'],
+    reports: ['admin', 'facility_admin', 'cashier', 'reporting_officer'],
+    admin: ['admin', 'facility_admin', 'hr_manager', 'marketing_admin', 'operations_manager', 'it_support'],
+    procurement: ['admin', 'facility_admin', 'operations_manager'],
+    hr: ['admin', 'facility_admin', 'hr_manager'],
+    payroll: ['admin', 'facility_admin', 'hr_manager'],
+    maintenance: ['admin', 'facility_admin', 'operations_manager', 'it_support'],
+    support: ['*']
   };
 
   const checkAccess = (tab) => {
@@ -155,7 +159,9 @@ export default function Dashboard({ user, onNavigate }) {
     }
     
     if (isAdmin) return true;
-    return roleAccess[tab]?.some(r => rolesList.includes(r)) || false;
+    const allowedRoles = roleAccess[tab] || [];
+    if (allowedRoles.includes('*')) return true;
+    return allowedRoles.some(r => rolesList.includes(r)) || false;
   };
 
   const statsModuleKeys = {
@@ -167,38 +173,42 @@ export default function Dashboard({ user, onNavigate }) {
     billing: 'billing'
   };
 
+  const navigateToCard = (card) => {
+    onNavigate(card.tab, card.subTab || null);
+  };
+
   const cards = [
     { label: "Today's Registrations", value: stats.todayPatients, accent: 'teal', icon: Users, tab: 'registration' },
     { label: 'Pending Triage', value: stats.pendingTriage, accent: 'orange', icon: Hourglass, tab: 'triage' },
     { label: 'Pending Consultation', value: stats.pendingConsultation, accent: 'blue', icon: Activity, tab: 'consultation' },
     { label: 'Pending Lab', value: stats.pendingLab, accent: 'purple', icon: RefreshCw, tab: 'orders' },
-    { label: 'Pending Pharmacy', value: stats.pendingPharmacy, accent: 'emerald', icon: CheckCircle, tab: 'pharmacy' },
-    { label: 'Pending Invoices', value: stats.unpaidBilling, accent: 'rose', icon: ShieldAlert, tab: 'billing' },
+    { label: 'Pending Pharmacy', value: stats.pendingPharmacy, accent: 'emerald', icon: CheckCircle, tab: 'pharmacy', subTab: 'dispensing' },
+    { label: 'Pending Invoices', value: stats.unpaidBilling, accent: 'rose', icon: ShieldAlert, tab: 'billing', subTab: 'desk' },
   ];
 
   const moduleHubCards = [
     { label: "Reception Desk", desc: "Patient registration, SHA verification, and check-ins", icon: Users, tab: "registration", image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80" },
     { label: "OPD / Triage", desc: "Vitals recording, screening, and priority queue sorting", icon: Hourglass, tab: "triage", image: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=600&q=80" },
     { label: "Consultation / EMR", desc: "SOAP EMR forms, clinical history, and prescription tools", icon: Activity, tab: "consultation", image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=600&q=80" },
-    { label: "Billing & Cashier", desc: "Invoicing, co-pays, pre-auths, reversals, and refunds", icon: DollarSign, tab: "billing", image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80" },
-    { label: "POS Sales Entry", desc: "Direct cash sales, stock checks, and billing routing", icon: ShoppingCart, tab: "pos", image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=600&q=80" },
+    { label: "Billing & Cashier", desc: "Invoicing, co-pays, pre-auths, reversals, and refunds", icon: DollarSign, tab: "billing", subTab: "desk", image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80" },
+    { label: "POS Sales Entry", desc: "Direct cash sales, stock checks, and billing routing", icon: ShoppingCart, tab: "pharmacy", subTab: "sell", permissionTab: "pos", image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=600&q=80" },
     { label: "Laboratory", desc: "Pathology orders, results logging, and machine config", icon: RefreshCw, tab: "orders", image: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80" },
     { label: "Radiology / Imaging", desc: "X-Ray/Ultrasound visual records and diagnostic logs", icon: Camera, tab: "radiology", image: "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=600&q=80" },
-    { label: "Pharmacy Dispensing", desc: "Prescription queuing, stock validation, and drug payouts", icon: Pill, tab: "pharmacy", image: "https://images.unsplash.com/photo-1607619056574-7b8d304a3b13?auto=format&fit=crop&w=600&q=80" },
+    { label: "Pharmacy Dispensing", desc: "Prescription queuing, stock validation, and drug payouts", icon: Pill, tab: "pharmacy", subTab: "dispensing", image: "https://images.unsplash.com/photo-1607619056574-7b8d304a3b13?auto=format&fit=crop&w=600&q=80" },
     { label: "In-Patient Ward", desc: "Admissions census, bed layout editor, and ward rounds", icon: Home, tab: "ward", image: "https://images.unsplash.com/photo-1538108176447-28d90c497f10?auto=format&fit=crop&w=600&q=80" },
-    { label: "MCH Clinic", desc: "Mother and Child health specialty records registry", icon: Heart, tab: "mch", image: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=600&q=80" },
-    { label: "Maternity Care", desc: "Delivery summary reports and prenatal registries", icon: Baby, tab: "maternity", image: "https://images.unsplash.com/photo-1518104593124-ac2e82a5eb9d?auto=format&fit=crop&w=600&q=80" },
+    { label: "MCH Clinic", desc: "Mother and Child health specialty records registry", icon: Heart, tab: "mch", subTab: "dashboard", image: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=600&q=80" },
+    { label: "Maternity Care", desc: "Delivery summary reports and prenatal registries", icon: Baby, tab: "maternity", subTab: "dashboard", image: "https://images.unsplash.com/photo-1518104593124-ac2e82a5eb9d?auto=format&fit=crop&w=600&q=80" },
     { label: "Theatre / ICU / HDU", desc: "Surgery schedule, pre-op lists, and anesthesiologist logs", icon: Activity, tab: "surgery", image: "https://images.unsplash.com/photo-1551601651-2a8555f1a136?auto=format&fit=crop&w=600&q=80" },
-    { label: "Procurement Desk", desc: "Purchase order logging and supplier catalouges", icon: Package, tab: "admin", image: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80" },
-    { label: "Supplier Management", desc: "Supplier directory and active SLA agreements", icon: Truck, tab: "admin", image: "https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=600&q=80" },
-    { label: "HR / Employees", desc: "Staff directory, rosters, and attendance logs", icon: Contact, tab: "admin", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80" },
-    { label: "Payroll Console", desc: "Employee payslip generation and salary logs", icon: CreditCard, tab: "admin", image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=600&q=80" },
+    { label: "Procurement Desk", desc: "Purchase order logging and supplier catalogues", icon: Package, tab: "procurement", image: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80" },
+    { label: "Supplier Management", desc: "Supplier directory and active SLA agreements", icon: Truck, tab: "procurement", image: "https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=600&q=80" },
+    { label: "HR / Employees", desc: "Staff directory, rosters, and attendance logs", icon: Contact, tab: "hr", subTab: "directory", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80" },
+    { label: "Payroll Console", desc: "Employee payslip generation and salary logs", icon: CreditCard, tab: "payroll", image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=600&q=80" },
     { label: "Appointments Grid", desc: "Interactive appointment scheduling calendar slots", icon: Calendar, tab: "appointments", image: "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=600&q=80" },
     { label: "Assets Maintenance", desc: "Medical machinery calibration and repairs logs", icon: Wrench, tab: "maintenance", image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80" },
     { label: "Help Desk Support", desc: "Support inquiries, platform client feedback", icon: HelpCircle, tab: "support", image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80" },
     { label: "Finance & Accounting", desc: "Revenue ledgers, tax allocations, and billing reports", icon: TrendingUp, tab: "reports", image: "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=600&q=80" },
     { label: "Management Reports", desc: "Analytics metrics and institutional KPIs", icon: Layers, tab: "reports", image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80" },
-    { label: "System Administration", desc: "White-label custom domains, SMTP configuration", icon: Sliders, tab: "admin", image: "https://images.unsplash.com/photo-1600132806370-bf17e65e942f?auto=format&fit=crop&w=600&q=80" }
+    { label: "System Administration", desc: "White-label custom domains, SMTP configuration", icon: Sliders, tab: "admin", subTab: "facility_profile", image: "https://images.unsplash.com/photo-1600132806370-bf17e65e942f?auto=format&fit=crop&w=600&q=80" }
   ];
 
   const accentMap = {
@@ -259,6 +269,7 @@ export default function Dashboard({ user, onNavigate }) {
       {/* Stat cards */}
       <Stagger className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" stagger={0.06}>
         {cards.filter((c) => {
+          if (!checkAccess(c.tab)) return false;
           if (!activeModules) return true;
           const key = statsModuleKeys[c.tab];
           if (!key) return true;
@@ -266,22 +277,10 @@ export default function Dashboard({ user, onNavigate }) {
         }).map((c) => {
           const Icon = c.icon;
           const a = accentMap[c.accent];
-          const hasAccess = checkAccess(c.tab);
           const base = `border ${a.border} ${a.bg} p-4 rounded-xl flex flex-col justify-between shadow-sm transition-all duration-300 text-left`;
-          if (!hasAccess) {
-            return (
-              <StaggerItem key={c.label} className={`${base} opacity-50 select-none`} title="Your role does not have permission to access this module">
-                <div className="flex justify-between items-start w-full">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-tight">{c.label}</span>
-                  <Icon size={14} className="text-slate-600 shrink-0" />
-                </div>
-                <span className="font-['JetBrains_Mono',monospace] text-2xl font-black text-slate-600 mt-3">{c.value}</span>
-              </StaggerItem>
-            );
-          }
           return (
             <StaggerItem key={c.label}>
-              <motion.button onClick={() => onNavigate(c.tab)} whileHover={{ y: -3 }} whileTap={{ scale: 0.97 }} transition={{ duration: 0.2, ease: 'easeOut' }} className={`${base} ${a.hover} w-full hover:shadow-lg cursor-pointer`}>
+              <motion.button onClick={() => navigateToCard(c)} whileHover={{ y: -3 }} whileTap={{ scale: 0.97 }} transition={{ duration: 0.2, ease: 'easeOut' }} className={`${base} ${a.hover} w-full hover:shadow-lg cursor-pointer`}>
                 <div className="flex justify-between items-start w-full">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-tight">{c.label}</span>
                   <Icon size={14} className={`${a.text} opacity-90 shrink-0`} />
@@ -304,13 +303,14 @@ export default function Dashboard({ user, onNavigate }) {
         </div>
         <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" stagger={0.03}>
           {moduleHubCards.filter((m) => {
+            if (!checkAccess(m.permissionTab || m.tab)) return false;
             if (!activeModules) return true;
             const mapping = {
               "Reception Desk": "reception",
               "OPD / Triage": "reception",
               "Consultation / EMR": "doctors",
               "Billing & Cashier": "billing",
-              "POS Sales Entry": "billing",
+              "POS Sales Entry": "pharmacy",
               "Laboratory": "laboratory",
               "Radiology / Imaging": "radiology",
               "Pharmacy Dispensing": "pharmacy",
@@ -319,13 +319,13 @@ export default function Dashboard({ user, onNavigate }) {
               "Maternity Care": "maternity",
               "Theatre / ICU / HDU": "theatre",
               "Procurement Desk": "procurement",
-              "Supplier Management": "suppliers_management",
+              "Supplier Management": "procurement",
               "HR / Employees": "hr",
               "Payroll Console": "payroll",
               "Appointments Grid": "reception",
               "Assets Maintenance": "maintenance",
               "Help Desk Support": "help",
-              "Finance & Accounting": "finance",
+              "Finance & Accounting": "reports",
               "Management Reports": "reports",
               "System Administration": null
             };
@@ -334,40 +334,12 @@ export default function Dashboard({ user, onNavigate }) {
             return activeModules[key] !== false;
           }).map((m) => {
             const Icon = m.icon;
-            const hasAccess = checkAccess(m.tab);
             const baseClass = "relative overflow-hidden rounded-xl border p-5 flex flex-col justify-between h-[155px] text-left transition-all duration-300 group";
-            
-            if (!hasAccess) {
-              return (
-                <StaggerItem key={m.label}>
-                  <div className={`${baseClass} border-slate-800/40 bg-slate-950/20 opacity-40 select-none cursor-not-allowed`} title="Access restricted by security policy">
-                    {m.image && (
-                      <div 
-                        className="absolute inset-0 bg-cover bg-center opacity-[0.08] select-none pointer-events-none filter grayscale brightness-50"
-                        style={{ backgroundImage: `url(${m.image})` }}
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/90 to-slate-900/60 pointer-events-none" />
-                    
-                    <div className="relative z-10 flex justify-between items-start">
-                      <div className="space-y-1 pr-2">
-                        <h3 className="font-bold text-slate-400 text-sm leading-tight">{m.label}</h3>
-                        <p className="text-[10px] text-slate-600 leading-normal">{m.desc}</p>
-                      </div>
-                      <Icon size={18} className="text-slate-600 shrink-0" />
-                    </div>
-                    <div className="relative z-10 text-[10px] font-semibold text-slate-600 flex items-center gap-1 mt-3">
-                      <span>Locked (Restricted)</span>
-                    </div>
-                  </div>
-                </StaggerItem>
-              );
-            }
 
             return (
               <StaggerItem key={m.label}>
                 <motion.button
-                  onClick={() => onNavigate(m.tab)}
+                  onClick={() => navigateToCard(m)}
                   whileHover={{ y: -4, borderColor: "rgba(45,212,191,0.4)" }}
                   whileTap={{ scale: 0.98 }}
                   className={`${baseClass} border-teal-500/15 bg-slate-900/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.5)] cursor-pointer w-full`}

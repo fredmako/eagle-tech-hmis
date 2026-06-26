@@ -13,7 +13,7 @@ export const getDefaultSmtpConfig = () => ({
   sender_email: 'admin@eagletechsolutions.tech',
   sender_name: 'Eagle Tech System Communications',
   username: 'admin@eagletechsolutions.tech',
-  password: 'y$rTkif7LE24Zkz',
+  password: '',
   retry_policy: '3 attempts, linear backoff',
   timeout: 15, // seconds
   log_retention: 30, // days
@@ -52,9 +52,9 @@ export const getSmtpConfig = (facilityId) => {
     try {
       const parsed = JSON.parse(stored);
       // Auto-migrate legacy default SMTP settings
-      if (parsed.username === 'noreply@eagletechsolutions.tech' && parsed.password === 'password123') {
+      if (parsed.username === 'noreply@eagletechsolutions.tech' && parsed.password) {
         parsed.username = 'admin@eagletechsolutions.tech';
-        parsed.password = 'y$rTkif7LE24Zkz';
+        parsed.password = '';
         if (parsed.sender_email === 'noreply@eagletechsolutions.tech') {
           parsed.sender_email = 'admin@eagletechsolutions.tech';
         }
@@ -115,6 +115,43 @@ const addEmailLog = (logEntry) => {
   const logs = getEmailLogs();
   logs.unshift(logEntry); // new logs first
   localStorage.setItem(EMAIL_LOGS_KEY, JSON.stringify(logs));
+};
+
+export const recordExternalEmailLog = ({
+  facilityId,
+  event = 'EXTERNAL_EMAIL',
+  recipient,
+  subject,
+  body = '',
+  status = 'sent',
+  sender = 'supabase-auth',
+  errorMessage = null,
+  messageId = null,
+  smtpConfig = {}
+}) => {
+  if (!facilityId || !recipient || !subject) return null;
+  const logEntry = {
+    id: Math.random().toString(36).substring(2, 11),
+    facility_id: facilityId,
+    event,
+    sender,
+    recipient,
+    subject,
+    body,
+    status,
+    retry_count: 0,
+    created_at: new Date().toISOString(),
+    error_message: errorMessage,
+    message_id: messageId,
+    smtp_config: {
+      host: smtpConfig.host || 'Supabase Auth Admin API',
+      port: smtpConfig.port || 'managed',
+      encryption: smtpConfig.encryption || 'managed',
+      username: smtpConfig.username || sender
+    }
+  };
+  addEmailLog(logEntry);
+  return logEntry;
 };
 
 // Update a log entry status
@@ -763,5 +800,3 @@ export const sendWhatsAppNotification = async (phone, message, facilityId = null
     return { success: false, error: err.message };
   }
 };
-
-

@@ -2,7 +2,7 @@ const { Client } = require('pg');
 const dns = require('dns').promises;
 
 const projectRef = 'rzavtfppueiskmqkouti';
-const password = '_GiR4SKRhdTfcs_';
+const password = process.env.SUPABASE_DB_PASSWORD || '';
 const user = `postgres.${projectRef}`;
 const database = 'postgres';
 

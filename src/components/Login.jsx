@@ -104,6 +104,19 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
 
    const [isAdminAction, setIsAdminAction] = useState(false);
 
+  const getFacilityLabel = (facilityId, facList = facilities) => {
+    const facility = facList.find(f => f.id === facilityId);
+    return facility ? `${facility.name} (${facility.code})` : '';
+  };
+
+  const setRoleRequestFacilityContext = (preferredFacilityId, facList = facilities) => {
+    const resolvedFacilityId = preferredFacilityId || lockedFacilityId || selectedFacility || facList[0]?.id || '';
+    if (!resolvedFacilityId) return;
+    setRequestFacility(resolvedFacilityId);
+    const label = getFacilityLabel(resolvedFacilityId, facList);
+    if (label) setFacilitySearchQuery(label);
+  };
+
   useEffect(() => {
     setIsSandbox(!!supabase.isSandbox);
     fetchFacilitiesAndCheckAutoLogin();
@@ -350,10 +363,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                   setTempUser(resData.user);
                   setHasNoProfile(true);
                   setRequestName(resData.user.name || '');
-                  if (data.length > 0) {
-                    setRequestFacility(data[0].id);
-                    setFacilitySearchQuery(`${data[0].name} (${data[0].code})`);
-                  }
+                  setRoleRequestFacilityContext(resolvedLockedId, data);
                   setPendingRequest(resData.pendingRequest || null);
                   return;
                 } else {
@@ -406,7 +416,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
             sessionStorage.removeItem('egesa_health_new_facility_id');
             sessionStorage.removeItem('egesa_health_new_admin_email');
           } else {
-            setSelectedFacility(data[0].id);
+            setSelectedFacility(resolvedLockedId || data[0].id);
           }
         }
       } else {
@@ -556,9 +566,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         setTempUser(result.user);
         setHasNoProfile(true);
         setRequestName(result.user.name || '');
-        if (facilities.length > 0) {
-          setRequestFacility(facilities[0].id);
-        }
+        setRoleRequestFacilityContext(selectedFacility);
         setPendingRequest(result.pendingRequest || null);
       } else if (result.status === 'success') {
         console.log('[Login:handleLogin] ✅ Login success! Navigating to dashboard for:', result.user?.email || result.user?.id);
@@ -618,9 +626,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         setTempUser(result.user);
         setHasNoProfile(true);
         setRequestName(signUpName);
-        if (facilities.length > 0) {
-          setRequestFacility(facilities[0].id);
-        }
+        setRoleRequestFacilityContext(selectedFacility);
         setPendingRequest(null);
         setIsSignUp(false); // reset form view
       }
@@ -827,7 +833,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: `${window.location.origin}/auth/callback`,
+            redirectTo: `${window.location.origin}/auth/callback?facility_id=${encodeURIComponent(selectedFacility)}`,
           },
         });
         if (error) throw error;
@@ -873,20 +879,24 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
           setTempUser(mockUser);
           setHasNoProfile(true);
           setRequestName(mockUser.name);
-          if (facilities.length > 0) {
-            setRequestFacility(facilities[0].id);
-            setFacilitySearchQuery(`${facilities[0].name} (${facilities[0].code})`);
-          }
+          setRoleRequestFacilityContext(lockedFacilityId || selectedFacility);
           setPendingRequest(null);
         }
         setLoading(false);
         return;
       } else {
         sessionStorage.setItem('egesa_health_google_global_login', 'true');
+        if (lockedFacilityId || selectedFacility) {
+          const facilityContext = lockedFacilityId || selectedFacility;
+          sessionStorage.setItem('egesa_health_pending_facility', facilityContext);
+          localStorage.setItem('egesa_active_facility_id', facilityContext);
+        }
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: `${window.location.origin}/auth/callback`,
+            redirectTo: lockedFacilityId || selectedFacility
+              ? `${window.location.origin}/auth/callback?facility_id=${encodeURIComponent(lockedFacilityId || selectedFacility)}`
+              : `${window.location.origin}/auth/callback`,
           },
         });
         if (error) throw error;
@@ -911,16 +921,20 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         setTempUser(mockUser);
         setHasNoProfile(true);
         setRequestName(mockUser.name);
-        if (facilities.length > 0) {
-          setRequestFacility(facilities[0].id);
-          setFacilitySearchQuery(`${facilities[0].name} (${facilities[0].code})`);
-        }
+        setRoleRequestFacilityContext(lockedFacilityId || selectedFacility);
         setPendingRequest(null);
       } else {
+        if (lockedFacilityId || selectedFacility) {
+          const facilityContext = lockedFacilityId || selectedFacility;
+          sessionStorage.setItem('egesa_health_pending_facility', facilityContext);
+          localStorage.setItem('egesa_active_facility_id', facilityContext);
+        }
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: `${window.location.origin}/auth/callback`,
+            redirectTo: lockedFacilityId || selectedFacility
+              ? `${window.location.origin}/auth/callback?facility_id=${encodeURIComponent(lockedFacilityId || selectedFacility)}`
+              : `${window.location.origin}/auth/callback`,
           },
         });
         if (error) throw error;

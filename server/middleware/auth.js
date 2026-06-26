@@ -3,7 +3,11 @@ const jwt = require("jsonwebtoken");
 // Load env configurations
 require("../config/env");
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev_key_fallback";
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET must be configured before the server starts");
+}
 
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];

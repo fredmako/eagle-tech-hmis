@@ -23,6 +23,7 @@ export default function FacilityHelpDesk({ user }) {
   const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'pending' | 'addressed'
   const [searchTerm, setSearchTerm] = useState('');
   const [statusMsg, setStatusMsg] = useState(null);
+  const [facilityWhatsApp, setFacilityWhatsApp] = useState('');
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -54,6 +55,24 @@ export default function FacilityHelpDesk({ user }) {
 
       const resData = await res.json();
       setTickets(resData.data || []);
+
+      const facilityRes = await fetch(`${apiBase}/db/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          table: 'facilities',
+          queries: [{ type: 'equal', column: 'id', value: user.facility_id }],
+          limit: 1
+        })
+      });
+
+      if (facilityRes.ok) {
+        const facilityBody = await facilityRes.json();
+        setFacilityWhatsApp(facilityBody?.data?.[0]?.whatsapp_number || '');
+      }
     } catch (err) {
       console.error('[FacilityHelpDesk] Error loading tickets:', err);
       setStatusMsg({ type: 'error', text: err.message || 'Failed to load support queries.' });
@@ -166,7 +185,7 @@ export default function FacilityHelpDesk({ user }) {
       <div className="bg-slate-900 border border-slate-800/80 rounded-xl p-5 shadow-xl space-y-4">
         
         {/* Header */}
-        <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+        <div className="flex justify-between items-center pb-3 border-b border-slate-800 gap-3">
           <div>
             <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
               <PhoneCall size={14} className="text-teal-400" /> Facility Help Desk & Patient Inquiries
@@ -175,6 +194,16 @@ export default function FacilityHelpDesk({ user }) {
               Review and reply to inquiries and support tickets sent directly to your hospital workspace by patients or staff.
             </p>
           </div>
+          {facilityWhatsApp && (
+            <a
+              href={`https://wa.me/${String(facilityWhatsApp).replace(/[^\d]/g, '')}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-500/15 transition"
+            >
+              Chat on WhatsApp
+            </a>
+          )}
           <button
             onClick={() => { setRefreshing(true); fetchTickets(); }}
             disabled={loading}

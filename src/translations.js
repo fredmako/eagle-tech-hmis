@@ -1,7 +1,7 @@
 const translations = {
   en: {
     dashboard: 'Dashboard',
-    registration: 'Patient Registration',
+    reception: 'Patient Reception',
     queue: 'Queue Management',
     triage: 'Triage Desk',
     consultation: 'OPD Consultation',
@@ -36,7 +36,7 @@ const translations = {
   },
   sw: {
     dashboard: 'Wanda la Kazi',
-    registration: 'Sajili Mgonjwa',
+    reception: 'Mapokezi (Reception)',
     queue: 'Foleni ya Wagonjwa',
     triage: 'Vipimo vya Awali (Triage)',
     consultation: 'Daktari wa Nje (OPD)',
@@ -71,7 +71,7 @@ const translations = {
   },
   fr: {
     dashboard: 'Tableau de Bord',
-    registration: 'Enregistrement Patient',
+    reception: 'Réception (Patient)',
     queue: 'Gestion de la File',
     triage: 'Triage & Signes Vitaux',
     consultation: 'Consultation Externe',

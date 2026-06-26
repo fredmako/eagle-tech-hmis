@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { sendNotification } from '../../notificationService';
 import HumanResources from './HumanResources';
 
-export default function HumanResourcesWrapper({ user }) {
+export default function HumanResourcesWrapper({ user, initialSubTab = 'directory' }) {
   const { authFetch, inviteStaff, getInvitations, revokeInvite } = useAuth();
   
   // Base states
@@ -343,6 +343,7 @@ export default function HumanResourcesWrapper({ user }) {
         // Delegation props
         adminDelegation={adminDelegation}
         onDelegationUpdate={handleDelegationUpdate}
+        initialSubTab={initialSubTab}
       />
     </div>
   );

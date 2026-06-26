@@ -37,7 +37,10 @@ supabase.from = function (table) {
     'lab_test_categories', 'lab_test_units', 'lab_specimen_tests', 
     'lab_specimen_sub_tests', 'lab_reference_ranges',
     'payroll_allowances', 'payroll_banks', 'payroll_deductions', 'payrolls',
-    'patient_registrations', 'medication_stock', 'prescriptions'
+    'patient_registrations', 'medication_stock', 'prescriptions',
+    'role_requests', 'invitations', 'triages', 'triage_assessments',
+    'emergency_registrations', 'duty_rosters', 'attendance_logs',
+    'staff_access_archives', 'sha_claim_documents'
   ];
 
   const applyTenantFilter = (builder) => {

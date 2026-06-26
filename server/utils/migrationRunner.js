@@ -4,7 +4,7 @@ const path = require('path');
 
 const host = process.env.SUPABASE_DB_HOST || 'aws-1-eu-north-1.pooler.supabase.com';
 const user = process.env.SUPABASE_DB_USER || 'postgres.rzavtfppueiskmqkouti';
-const password = process.env.SUPABASE_DB_PASSWORD || '_GiR4SKRhdTfcs_';
+const password = process.env.SUPABASE_DB_PASSWORD || '';
 const database = process.env.SUPABASE_DB_NAME || 'postgres';
 const port = parseInt(process.env.SUPABASE_DB_PORT || '6543', 10);
 
@@ -15,6 +15,10 @@ async function runMigrations() {
   
   if (!supabaseUrl || !supabaseKey) {
     console.log('[MigrationRunner] Sandbox Mode: Skipping SQL database migrations.');
+    return;
+  }
+  if (!password) {
+    console.warn('[MigrationRunner] SUPABASE_DB_PASSWORD is not configured; skipping remote schema synchronization.');
     return;
   }
 

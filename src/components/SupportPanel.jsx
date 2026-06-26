@@ -10,6 +10,7 @@ import {
   MessageSquare, 
   User, 
   Mail, 
+  PhoneCall,
   AlertCircle 
 } from "lucide-react";
 
@@ -19,16 +20,20 @@ export default function SupportPanel() {
   const [subject, setSubject] = useState("Technical Issue");
   const [messageText, setMessageText] = useState("");
   const [facilityEmail, setFacilityEmail] = useState("");
+  const [facilityWhatsApp, setFacilityWhatsApp] = useState("");
 
   useEffect(() => {
     if (user?.facility_id) {
       supabase
         .from('facilities')
-        .select('contact_email')
+        .select('contact_email, whatsapp_number')
         .eq('id', user.facility_id)
         .single()
         .then(({ data }) => {
-          if (data) setFacilityEmail(data.contact_email || '');
+          if (data) {
+            setFacilityEmail(data.contact_email || '');
+            setFacilityWhatsApp(data.whatsapp_number || '');
+          }
         });
     }
   }, [user]);
@@ -47,6 +52,12 @@ export default function SupportPanel() {
     "Patient Portal Assistance",
     "Other"
   ];
+
+  const whatsappNumber = (facilityWhatsApp || "254722334455").replace(/[^\d]/g, "");
+  const whatsappMessage = encodeURIComponent(
+    `Hello, I need help with Eagle Tech HMIS. My name is ${user?.full_name || ""}, facility: ${user?.facility_name || user?.facility_id || "N/A"}.`
+  );
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   const fetchMyTickets = async () => {
     if (!user || !user.email) return;
@@ -186,7 +197,17 @@ export default function SupportPanel() {
           </h2>
           <p className="text-xs text-slate-400 mt-1">Submit support tickets directly to the Super Admin team and view the progress of your queries.</p>
         </div>
-        <div className="flex gap-1.5 bg-slate-900 border border-slate-850 p-1 rounded-lg">
+        <div className="flex items-center gap-2">
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/15 text-2xs font-bold transition"
+          >
+            <PhoneCall size={13} />
+            Chat with us on WhatsApp
+          </a>
+          <div className="flex gap-1.5 bg-slate-900 border border-slate-850 p-1 rounded-lg">
           <button
             onClick={() => { setActiveTab("submit"); setStatusMessage(null); }}
             className={`px-3 py-1.5 text-2xs font-bold rounded-md transition ${activeTab === "submit" ? "bg-teal-400 text-slate-950 shadow" : "text-slate-400 hover:text-slate-200"}`}
@@ -199,8 +220,19 @@ export default function SupportPanel() {
           >
             My Queries
           </button>
+          </div>
         </div>
       </div>
+
+      <a
+        href={whatsappUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="sm:hidden flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/15 text-2xs font-bold transition"
+      >
+        <PhoneCall size={13} />
+        Chat with us on WhatsApp
+      </a>
 
       {statusMessage && (
         <div className={`p-4 rounded-xl border flex items-start gap-3 ${statusMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>

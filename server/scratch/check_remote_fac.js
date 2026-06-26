@@ -2,7 +2,7 @@ const { Client } = require('pg');
 
 const host = 'aws-1-eu-north-1.pooler.supabase.com';
 const user = 'postgres.rzavtfppueiskmqkouti';
-const password = '_GiR4SKRhdTfcs_';
+const password = process.env.SUPABASE_DB_PASSWORD || '';
 const database = 'postgres';
 const port = 6543;
 

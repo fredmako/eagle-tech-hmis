@@ -9,6 +9,38 @@ const nodemailer = require("nodemailer");
 const { isRealSupabase, supabaseClient, loadSandboxDB, saveSandboxDB, db } = require("../utils/db");
 const { authenticateToken, JWT_SECRET } = require("../middleware/auth");
 
+const roleList = (role) => String(role || "").split(",").map((r) => r.trim().toLowerCase()).filter(Boolean);
+const hasAnyRole = (user, allowed) => roleList(user?.role).some((role) => allowed.includes(role));
+const canManageFacilityAccess = (user) => hasAnyRole(user, ["admin", "super_admin", "facility_admin", "hr_manager"]);
+const canInviteStaff = (user) => hasAnyRole(user, ["admin", "super_admin", "facility_admin", "hr_manager"]);
+
+const resolveFacilityId = (user, headers = {}) => {
+  if (hasAnyRole(user, ["super_admin"]) && headers["x-facility-id"]) {
+    return headers["x-facility-id"];
+  }
+  return user?.facility_id;
+};
+
+const isInactiveProfile = (profile) => {
+  const status = String(profile?.access_status || "active").toLowerCase();
+  return status === "suspended" || status === "deleted" || status === "terminated";
+};
+
+const assertProfileActive = (profile) => {
+  if (isInactiveProfile(profile)) {
+    const status = String(profile.access_status || "suspended").toUpperCase();
+    const err = new Error(`Access ${status}: this staff profile is not active. Contact the facility administrator.`);
+    err.statusCode = 403;
+    throw err;
+  }
+};
+
+const isValidWalletAddress = (address) => {
+  if (!address) return true;
+  const clean = String(address).trim();
+  return /^0x[a-fA-F0-9]{40}$/.test(clean) || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(clean);
+};
+
 // User Signup
 router.post("/signup", async (req, res) => {
   const { email, password, name } = req.body;
@@ -246,6 +278,8 @@ router.post("/login", async (req, res) => {
       }
     }
 
+    assertProfileActive(activeProfile);
+
     if (activeProfile && activeProfile.role !== "super_admin" && requestedFacilityId) {
       if (activeProfile.facility_id && activeProfile.facility_id !== requestedFacilityId) {
         return res.status(401).json({
@@ -273,6 +307,8 @@ router.post("/login", async (req, res) => {
       facility_logo: facility?.logo_url || null,
       facility_is_verified: activeProfile.role === "super_admin" ? true : (facility?.is_verified || false),
       department: activeProfile.department || "admin",
+      access_status: activeProfile.access_status || "active",
+      blockchain_wallet_address: activeProfile.blockchain_wallet_address || null,
       license_tier: facility?.license_tier || "free",
       auth_method: "email_password",
       session_expiry: Math.floor(Date.now() / 1000) + 12 * 60 * 60,
@@ -445,6 +481,8 @@ router.post("/supabase-login", async (req, res) => {
       }
     }
 
+    assertProfileActive(activeProfile);
+
     if (activeProfile && activeProfile.role !== "super_admin" && targetFacId) {
       if (activeProfile.facility_id && activeProfile.facility_id !== targetFacId) {
         return res.status(401).json({
@@ -472,6 +510,8 @@ router.post("/supabase-login", async (req, res) => {
       facility_logo: facility?.logo_url || null,
       facility_is_verified: activeProfile.role === "super_admin" ? true : (facility?.is_verified || false),
       department: activeProfile.department || "admin",
+      access_status: activeProfile.access_status || "active",
+      blockchain_wallet_address: activeProfile.blockchain_wallet_address || null,
       license_tier: facility?.license_tier || "free",
       auth_method: "google_oauth",
       avatar_url: activeProfile.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
@@ -636,7 +676,7 @@ router.post("/resolve-tenant", async (req, res) => {
 
 // Admin: Invite Department Staff
 router.post("/invite-staff", authenticateToken, async (req, res) => {
-  if (req.user.role !== "admin" && req.user.role !== "super_admin") {
+  if (!canInviteStaff(req.user)) {
     return res
       .status(403)
       .json({ error: "Administrative privileges required" });
@@ -649,9 +689,7 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
       .json({ error: "Email, role, and department are required" });
   }
 
-  const facilityId = (req.user.role === "super_admin" && req.headers["x-facility-id"])
-    ? req.headers["x-facility-id"]
-    : req.user.facility_id;
+  const facilityId = resolveFacilityId(req.user, req.headers);
 
   if (!facilityId) {
     return res.status(400).json({ error: "Facility ID is required context" });
@@ -664,7 +702,7 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
     const profiles = await db.getDocuments("profiles", [
       { type: "equal", column: "email", value: targetEmail },
     ]);
-    if (profiles && profiles.length > 0) {
+    if (profiles && profiles.some((profile) => profile.facility_id === facilityId && !isInactiveProfile(profile))) {
       return res
         .status(400)
         .json({
@@ -678,7 +716,7 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
       { type: "equal", column: "status", value: "pending" },
     ]);
     const activeInvites = (existingInvites || []).filter(
-      (inv) => new Date(inv.expires_at) > new Date()
+      (inv) => inv.facility_id === facilityId && new Date(inv.expires_at) > new Date()
     );
     if (activeInvites && activeInvites.length > 0) {
       return res
@@ -705,6 +743,7 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
         invited_by: req.user.email,
         token,
         status: "pending",
+        mail_status: "queued",
         expires_at: expiresAt,
       }
     );
@@ -806,6 +845,16 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
       mailSent = true;
     }
 
+    const mailStatus = mailSent ? "sent" : "failed";
+    await db.updateDocument("invitations", newInvite.id, {
+      mail_status: mailStatus,
+      mail_error: errMessage,
+      mail_sent_at: mailSent ? new Date().toISOString() : null,
+    });
+    newInvite.mail_status = mailStatus;
+    newInvite.mail_error = errMessage;
+    newInvite.mail_sent_at = mailSent ? new Date().toISOString() : null;
+
     // Write audit log
     await db.createDocument(
       "audit_logs",
@@ -818,7 +867,14 @@ router.post("/invite-staff", authenticateToken, async (req, res) => {
       }
     );
 
-    res.json({ success: true, invite: newInvite, mailSent });
+    res.json({
+      success: true,
+      invite: newInvite,
+      mailSent,
+      mailStatus,
+      mailError: errMessage,
+      mailSentAt: newInvite.mail_sent_at
+    });
   } catch (err) {
     console.error("Invite staff error:", err);
     res
@@ -926,6 +982,7 @@ router.post("/accept-invite", async (req, res) => {
       email: invite.email,
       department: invite.department,
       auth_method: "email_password",
+      access_status: "active",
     });
 
     // 4. Mark invitation as accepted
@@ -951,6 +1008,7 @@ router.post("/accept-invite", async (req, res) => {
       facility_name: facility?.name || "Eagle Tech Medical Clinic",
       facility_logo: facility?.logo_url || null,
       department: invite.department,
+      access_status: "active",
       license_tier: facility?.license_tier || "free",
       auth_method: "email_password",
       session_expiry: Math.floor(Date.now() / 1000) + 12 * 60 * 60,
@@ -985,15 +1043,13 @@ router.post("/accept-invite", async (req, res) => {
 
 // Admin: Get all Invitations for Facility
 router.get("/invitations", authenticateToken, async (req, res) => {
-  if (req.user.role !== "admin" && req.user.role !== "super_admin") {
+  if (!canInviteStaff(req.user)) {
     return res
       .status(403)
       .json({ error: "Administrative privileges required" });
   }
 
-  const facilityId = (req.user.role === "super_admin" && req.headers["x-facility-id"])
-    ? req.headers["x-facility-id"]
-    : req.user.facility_id;
+  const facilityId = resolveFacilityId(req.user, req.headers);
 
   if (!facilityId) {
     return res.status(400).json({ error: "Facility ID is required context" });
@@ -1012,7 +1068,7 @@ router.get("/invitations", authenticateToken, async (req, res) => {
 
 // Admin: Revoke Invitation
 router.post("/revoke-invite", authenticateToken, async (req, res) => {
-  if (req.user.role !== "admin" && req.user.role !== "super_admin") {
+  if (!canInviteStaff(req.user)) {
     return res
       .status(403)
       .json({ error: "Administrative privileges required" });
@@ -1022,9 +1078,7 @@ router.post("/revoke-invite", authenticateToken, async (req, res) => {
     return res.status(400).json({ error: "Invitation ID is required" });
   }
 
-  const facilityId = (req.user.role === "super_admin" && req.headers["x-facility-id"])
-    ? req.headers["x-facility-id"]
-    : req.user.facility_id;
+  const facilityId = resolveFacilityId(req.user, req.headers);
 
   if (!facilityId) {
     return res.status(400).json({ error: "Facility ID is required context" });
@@ -1089,11 +1143,24 @@ router.post("/role-request", async (req, res) => {
   }
 
   try {
+    const emailClean = email.toLowerCase().trim();
+    const existingRequests = await db.getDocuments("role_requests", [
+      { type: "equal", column: "email", value: emailClean },
+      { type: "equal", column: "facility_id", value: facility_id },
+    ]);
+    const activeExistingRequest = (existingRequests || []).find((request) => request.status === "pending");
+    if (activeExistingRequest) {
+      return res.status(409).json({
+        error: "A pending role request already exists for this facility.",
+        request: activeExistingRequest,
+      });
+    }
+
     const docId = "req_" + Math.random().toString(36).substring(2, 12);
     const newRequest = await db.createDocument("role_requests", docId, {
       user_id,
       full_name,
-      email,
+      email: emailClean,
       facility_id,
       requested_role,
       request_category,
@@ -1120,7 +1187,14 @@ router.post("/role-request", async (req, res) => {
       const facility = facs && facs[0];
       const facilityName = facility?.name || "Eagle Tech Medical Clinic";
 
-      const adminEmails = ["fredrickmakori102@gmail.com"];
+      const facilityProfiles = await db.getDocuments("profiles", [
+        { type: "equal", column: "facility_id", value: facility_id },
+      ]);
+      const facilityAdminEmails = (facilityProfiles || [])
+        .filter((profile) => hasAnyRole(profile, ["admin", "facility_admin", "hr_manager"]) && !isInactiveProfile(profile))
+        .map((profile) => profile.email)
+        .filter(Boolean);
+      const adminEmails = Array.from(new Set([...facilityAdminEmails, "fredrickmakori102@gmail.com"]));
 
       const origin = req.headers.origin || "https://www.eagletechsolutions.tech";
       const loginUrl = `${origin}/login`;
@@ -1132,7 +1206,7 @@ router.post("/role-request", async (req, res) => {
           
           <div style="background-color: #1e293b; padding: 15px; border-left: 4px solid #2dd4bf; border-radius: 4px; margin: 15px 0;">
             <p style="margin: 0; font-size: 14px;"><strong>Applicant Name:</strong> ${full_name}</p>
-            <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Applicant Email:</strong> ${email}</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Applicant Email:</strong> ${emailClean}</p>
             <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Request Category:</strong> ${request_category}</p>
             <p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Requested Role:</strong> <span style="font-family: monospace; color: #2dd4bf; font-weight: bold;">${requested_role.toUpperCase()}</span></p>
           </div>
@@ -1206,18 +1280,19 @@ router.post("/role-request", async (req, res) => {
 
 // Get all Role Requests (Super Admin: all; Facility Admin: filtered by facility)
 router.get("/role-requests", authenticateToken, async (req, res) => {
-  if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+  if (!canManageFacilityAccess(req.user)) {
     return res.json({ success: true, requests: [] });
   }
   try {
-    if (req.user.role === "super_admin") {
+    if (hasAnyRole(req.user, ["super_admin"]) && !req.headers["x-facility-id"]) {
       // Fetch all requests across all facilities for super admin
       const requests = await db.getDocuments("role_requests", []);
       res.json({ success: true, requests });
     } else {
       // Filter requests for the admin's facility
+      const facilityId = resolveFacilityId(req.user, req.headers);
       const requests = await db.getDocuments("role_requests", [
-        { type: "equal", column: "facility_id", value: req.user.facility_id },
+        { type: "equal", column: "facility_id", value: facilityId },
       ]);
       res.json({ success: true, requests });
     }
@@ -1229,7 +1304,7 @@ router.get("/role-requests", authenticateToken, async (req, res) => {
 
 // Approve Request (Super Admin or Facility Admin)
 router.post("/approve-request", authenticateToken, async (req, res) => {
-  if (req.user.role !== "admin" && req.user.role !== "super_admin") {
+  if (!canManageFacilityAccess(req.user)) {
     return res
       .status(403)
       .json({ error: "Administrative privileges required" });
@@ -1250,7 +1325,8 @@ router.post("/approve-request", authenticateToken, async (req, res) => {
     }
 
     // Security check: Facility Admin can only approve requests for their own facility
-    if (req.user.role === "admin" && request.facility_id !== req.user.facility_id) {
+    const approverFacilityId = resolveFacilityId(req.user, req.headers);
+    if (!hasAnyRole(req.user, ["super_admin"]) && request.facility_id !== approverFacilityId) {
       return res.status(403).json({ error: "Access denied. Request belongs to another facility." });
     }
 
@@ -1263,18 +1339,30 @@ router.post("/approve-request", authenticateToken, async (req, res) => {
       { type: "equal", column: "email", value: request.email.toLowerCase().trim() },
     ]);
 
-    if (existingProfiles && existingProfiles.length > 0) {
-      await db.updateDocument("profiles", existingProfiles[0].id, {
-        full_name: request.full_name,
-        role: request.requested_role,
-        facility_id: request.facility_id,
-      });
+    const sameFacilityProfile =
+      existingProfiles?.find((profile) => profile.facility_id === request.facility_id) || null;
+
+    if (sameFacilityProfile) {
+      await db.updateDocument(
+        "profiles",
+        sameFacilityProfile.id,
+        {
+          full_name: request.full_name,
+          role: request.requested_role,
+          facility_id: request.facility_id,
+          access_status: "active",
+          suspended_at: null,
+          deleted_at: null,
+        },
+        [{ column: "facility_id", value: request.facility_id }]
+      );
     } else {
       await db.createDocument("profiles", profileId, {
         full_name: request.full_name,
         role: request.requested_role,
         facility_id: request.facility_id,
         email: request.email.toLowerCase().trim(),
+        access_status: "active",
       });
     }
 
@@ -1304,7 +1392,7 @@ router.post("/approve-request", authenticateToken, async (req, res) => {
 
 // Reject Request (Super Admin or Facility Admin)
 router.post("/reject-request", authenticateToken, async (req, res) => {
-  if (req.user.role !== "admin" && req.user.role !== "super_admin") {
+  if (!canManageFacilityAccess(req.user)) {
     return res
       .status(403)
       .json({ error: "Administrative privileges required" });
@@ -1325,7 +1413,8 @@ router.post("/reject-request", authenticateToken, async (req, res) => {
     }
 
     // Security check: Facility Admin can only reject requests for their own facility
-    if (req.user.role === "admin" && request.facility_id !== req.user.facility_id) {
+    const rejectorFacilityId = resolveFacilityId(req.user, req.headers);
+    if (!hasAnyRole(req.user, ["super_admin"]) && request.facility_id !== rejectorFacilityId) {
       return res.status(403).json({ error: "Access denied. Request belongs to another facility." });
     }
 
@@ -1352,6 +1441,281 @@ router.post("/reject-request", authenticateToken, async (req, res) => {
     res
       .status(500)
       .json({ error: err.message || "Error processing rejection" });
+  }
+});
+
+// Admin: Suspend active staff access without deleting history
+router.post("/profiles/:profile_id/suspend", authenticateToken, async (req, res) => {
+  if (!canManageFacilityAccess(req.user)) {
+    return res.status(403).json({ error: "Administrative privileges required" });
+  }
+
+  const { profile_id } = req.params;
+  const { reason } = req.body || {};
+  if (!profile_id) {
+    return res.status(400).json({ error: "Profile ID is required" });
+  }
+  if (profile_id === req.user.id) {
+    return res.status(400).json({ error: "You cannot suspend your own active session profile." });
+  }
+
+  try {
+    const facilityId = resolveFacilityId(req.user, req.headers);
+    const profiles = await db.getDocuments("profiles", [
+      { type: "equal", column: "id", value: profile_id },
+    ]);
+    const profile = (profiles || []).find((candidate) => candidate.facility_id === facilityId);
+    if (!profile) {
+      return res.status(404).json({ error: "Staff profile not found." });
+    }
+
+    if (!hasAnyRole(req.user, ["super_admin"]) && profile.facility_id !== facilityId) {
+      return res.status(403).json({ error: "Access denied. Staff profile belongs to another facility." });
+    }
+
+    await db.updateDocument(
+      "profiles",
+      profile_id,
+      {
+        access_status: "suspended",
+        suspended_at: new Date().toISOString(),
+        suspension_reason: reason || "Suspended by facility administrator",
+      },
+      [{ column: "facility_id", value: facilityId }]
+    );
+
+    await db.createDocument("audit_logs", "log_" + Math.random().toString(36).substring(2, 12), {
+      facility_id: profile.facility_id,
+      user_id: req.user.id,
+      action: "STAFF_ACCESS_SUSPENDED",
+      details: `${req.user.full_name || req.user.email} suspended ${profile.full_name || profile.email}. Reason: ${reason || "Not specified"}.`,
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Suspend profile error:", err);
+    res.status(500).json({ error: err.message || "Error suspending staff profile" });
+  }
+});
+
+// Admin: Restore a suspended staff profile
+router.post("/profiles/:profile_id/restore", authenticateToken, async (req, res) => {
+  if (!canManageFacilityAccess(req.user)) {
+    return res.status(403).json({ error: "Administrative privileges required" });
+  }
+
+  const { profile_id } = req.params;
+  try {
+    const facilityId = resolveFacilityId(req.user, req.headers);
+    const profiles = await db.getDocuments("profiles", [
+      { type: "equal", column: "id", value: profile_id },
+    ]);
+    const profile = (profiles || []).find((candidate) => candidate.facility_id === facilityId);
+    if (!profile) {
+      return res.status(404).json({ error: "Staff profile not found." });
+    }
+
+    if (!hasAnyRole(req.user, ["super_admin"]) && profile.facility_id !== facilityId) {
+      return res.status(403).json({ error: "Access denied. Staff profile belongs to another facility." });
+    }
+
+    await db.updateDocument(
+      "profiles",
+      profile_id,
+      {
+        access_status: "active",
+        suspended_at: null,
+        suspension_reason: null,
+      },
+      [{ column: "facility_id", value: facilityId }]
+    );
+
+    await db.createDocument("audit_logs", "log_" + Math.random().toString(36).substring(2, 12), {
+      facility_id: profile.facility_id,
+      user_id: req.user.id,
+      action: "STAFF_ACCESS_RESTORED",
+      details: `${req.user.full_name || req.user.email} restored access for ${profile.full_name || profile.email}.`,
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Restore profile error:", err);
+    res.status(500).json({ error: err.message || "Error restoring staff profile" });
+  }
+});
+
+// Admin: Mark fired staff as deleted and remove the profile record from active directory
+router.post("/profiles/:profile_id/delete", authenticateToken, async (req, res) => {
+  if (!canManageFacilityAccess(req.user)) {
+    return res.status(403).json({ error: "Administrative privileges required" });
+  }
+
+  const { profile_id } = req.params;
+  const { reason } = req.body || {};
+  if (profile_id === req.user.id) {
+    return res.status(400).json({ error: "You cannot delete your own active session profile." });
+  }
+
+  try {
+    const facilityId = resolveFacilityId(req.user, req.headers);
+    const profiles = await db.getDocuments("profiles", [
+      { type: "equal", column: "id", value: profile_id },
+    ]);
+    const profile = (profiles || []).find((candidate) => candidate.facility_id === facilityId);
+    if (!profile) {
+      return res.status(404).json({ error: "Staff profile not found." });
+    }
+
+    if (!hasAnyRole(req.user, ["super_admin"]) && profile.facility_id !== facilityId) {
+      return res.status(403).json({ error: "Access denied. Staff profile belongs to another facility." });
+    }
+
+    await db.createDocument("staff_access_archives", "arch_" + Math.random().toString(36).substring(2, 12), {
+      profile_id,
+      facility_id: profile.facility_id,
+      full_name: profile.full_name,
+      email: profile.email,
+      role: profile.role,
+      department: profile.department,
+      phone: profile.phone || "",
+      blockchain_wallet_address: profile.blockchain_wallet_address || "",
+      archived_by: req.user.id,
+      archive_reason: reason || "Deleted by facility administrator",
+      snapshot: profile,
+    });
+
+    await db.deleteDocument("profiles", profile_id, [{ column: "facility_id", value: facilityId }]);
+
+    await db.createDocument("audit_logs", "log_" + Math.random().toString(36).substring(2, 12), {
+      facility_id: profile.facility_id,
+      user_id: req.user.id,
+      action: "STAFF_PROFILE_DELETED",
+      details: `${req.user.full_name || req.user.email} deleted staff profile ${profile.full_name || profile.email}. Reason: ${reason || "Not specified"}.`,
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Delete profile error:", err);
+    res.status(500).json({ error: err.message || "Error deleting staff profile" });
+  }
+});
+
+// Admin: Update staff blockchain wallet address for payroll/benefits linkage
+router.post("/profiles/:profile_id/wallet", authenticateToken, async (req, res) => {
+  if (!canManageFacilityAccess(req.user)) {
+    return res.status(403).json({ error: "Administrative privileges required" });
+  }
+
+  const { profile_id } = req.params;
+  const walletAddress = String(req.body?.blockchain_wallet_address || "").trim();
+  if (!isValidWalletAddress(walletAddress)) {
+    return res.status(400).json({ error: "Wallet address must be a valid EVM or Solana-style public address." });
+  }
+
+  try {
+    const facilityId = resolveFacilityId(req.user, req.headers);
+    const profiles = await db.getDocuments("profiles", [
+      { type: "equal", column: "id", value: profile_id },
+    ]);
+    const profile = (profiles || []).find((candidate) => candidate.facility_id === facilityId);
+    if (!profile) {
+      return res.status(404).json({ error: "Staff profile not found for this facility." });
+    }
+
+    await db.updateDocument(
+      "profiles",
+      profile_id,
+      { blockchain_wallet_address: walletAddress },
+      [{ column: "facility_id", value: facilityId }]
+    );
+
+    await db.createDocument("audit_logs", "log_" + Math.random().toString(36).substring(2, 12), {
+      facility_id: facilityId,
+      user_id: req.user.id,
+      action: "STAFF_WALLET_UPDATED",
+      details: `${req.user.full_name || req.user.email} updated blockchain wallet linkage for ${profile.full_name || profile.email}.`,
+    });
+
+    res.json({ success: true, blockchain_wallet_address: walletAddress });
+  } catch (err) {
+    console.error("Update staff wallet error:", err);
+    res.status(500).json({ error: err.message || "Error updating staff wallet" });
+  }
+});
+
+// Admin / facility staff: Store SHA claim document references for adjudication
+router.get("/sha-claims", authenticateToken, async (req, res) => {
+  if (!canManageFacilityAccess(req.user)) {
+    return res.status(403).json({ error: "Administrative privileges required" });
+  }
+
+  try {
+    const facilityId = resolveFacilityId(req.user, req.headers);
+    const claims = await db.getDocuments("sha_claim_documents", [
+      { type: "equal", column: "facility_id", value: facilityId }
+    ], "created_at", false);
+
+    res.json({ success: true, data: claims });
+  } catch (err) {
+    console.error("Fetch SHA claims error:", err);
+    res.status(500).json({ error: err.message || "Error loading SHA claim documents" });
+  }
+});
+
+router.post("/sha-claims", authenticateToken, async (req, res) => {
+  if (!canManageFacilityAccess(req.user)) {
+    return res.status(403).json({ error: "Administrative privileges required" });
+  }
+
+  const {
+    patient_id = null,
+    visit_id = null,
+    invoice_id = null,
+    claim_reference = "",
+    sha_member_number = "",
+    claim_form_url = "",
+    diagnosis_report_url = "",
+    invoice_url = "",
+    discharge_summary_url = "",
+    status = "draft",
+    payload = {}
+  } = req.body || {};
+
+  try {
+    const facilityId = resolveFacilityId(req.user, req.headers);
+    const claimId = "sha_claim_" + Math.random().toString(36).substring(2, 12);
+    const normalizedStatus = String(status || "draft").toLowerCase();
+    const submittedAt = normalizedStatus === "submitted" ? new Date().toISOString() : null;
+
+    const record = await db.createDocument("sha_claim_documents", claimId, {
+      facility_id: facilityId,
+      patient_id,
+      visit_id,
+      invoice_id,
+      claim_reference: claim_reference || `SHA-${claimId.substring(9).toUpperCase()}`,
+      sha_member_number,
+      claim_form_url,
+      diagnosis_report_url,
+      invoice_url,
+      discharge_summary_url,
+      status: normalizedStatus,
+      payload,
+      submitted_by: normalizedStatus === "submitted" ? req.user.id : null,
+      submitted_at: submittedAt,
+      updated_at: new Date().toISOString()
+    });
+
+    await db.createDocument("audit_logs", "log_" + Math.random().toString(36).substring(2, 12), {
+      facility_id: facilityId,
+      user_id: req.user.id,
+      action: "SHA_CLAIM_DOCUMENT_SAVED",
+      details: `${req.user.full_name || req.user.email} saved SHA claim ${record.claim_reference || claimId} with supporting documents.`
+    });
+
+    res.json({ success: true, data: record });
+  } catch (err) {
+    console.error("Save SHA claim error:", err);
+    res.status(500).json({ error: err.message || "Error saving SHA claim document" });
   }
 });
 
@@ -1457,4 +1821,3 @@ router.get("/role-request-status", async (req, res) => {
 });
 
 module.exports = router;
-

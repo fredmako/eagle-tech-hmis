@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { Activity, ShieldAlert, CheckCircle, Heart, Thermometer, AlertOctagon, Zap } from 'lucide-react';
 import InstrumentTracker from './InstrumentTracker';
+import { getTempCache, removeTempCache, setTempCache } from '../../utils/tempCache';
 
 export default function Triage({ user, onComplete, showNotification }) {
   const [queue, setQueue] = useState([]);
@@ -37,6 +38,57 @@ export default function Triage({ user, onComplete, showNotification }) {
   const [activePort, setActivePort] = useState(null);
   const [simulationMode, setSimulationMode] = useState(true);
   const [readingLoop, setReadingLoop] = useState(null);
+  const getDraftKey = (visitId = selectedVisit?.id) => `triage:draft:${user?.facility_id || 'facility'}:${visitId || 'no_visit'}`;
+  const getSelectedVisitKey = () => `triage:selected:${user?.facility_id || 'facility'}`;
+
+  const getDraftPayload = () => ({
+    systolic,
+    diastolic,
+    heartRate,
+    temp,
+    respRate,
+    spo2,
+    weight,
+    height,
+    chiefComplaint,
+    priorityFlag,
+    riskIndicators,
+    captureMethod,
+    airwayStatus,
+    breathingStatus,
+    circulationStatus,
+    consciousnessLevel,
+    boundInstrumentId,
+    updated_at: new Date().toISOString()
+  });
+
+  const restoreDraft = (visitId) => {
+    try {
+      const draft = getTempCache(getDraftKey(visitId));
+      if (!draft) return false;
+      setSystolic(draft.systolic || '');
+      setDiastolic(draft.diastolic || '');
+      setHeartRate(draft.heartRate || '');
+      setTemp(draft.temp || '');
+      setRespRate(draft.respRate || '');
+      setSpo2(draft.spo2 || '');
+      setWeight(draft.weight || '');
+      setHeight(draft.height || '');
+      setChiefComplaint(draft.chiefComplaint || '');
+      setPriorityFlag(draft.priorityFlag || 'green');
+      setRiskIndicators(draft.riskIndicators || '');
+      setCaptureMethod(draft.captureMethod || 'manual');
+      setAirwayStatus(draft.airwayStatus || 'clear');
+      setBreathingStatus(draft.breathingStatus || 'normal');
+      setCirculationStatus(draft.circulationStatus || 'normal');
+      setConsciousnessLevel(draft.consciousnessLevel || 'alert');
+      setBoundInstrumentId(draft.boundInstrumentId || '');
+      return true;
+    } catch (err) {
+      console.warn('[Triage] Failed to restore cached draft:', err);
+      return false;
+    }
+  };
 
   const handleConnectDevice = async () => {
     setMessage({ type: '', text: '' });
@@ -205,7 +257,8 @@ export default function Triage({ user, onComplete, showNotification }) {
   useEffect(() => {
     // Recalculate BMI
     const w = parseFloat(weight);
-    const h = parseFloat(height);
+    const rawHeight = parseFloat(height);
+    const h = rawHeight > 3 ? rawHeight / 100 : rawHeight;
     if (w && h) {
       const computed = w / (h * h);
       setBmi(parseFloat(computed.toFixed(1)));
@@ -213,6 +266,31 @@ export default function Triage({ user, onComplete, showNotification }) {
       setBmi(0);
     }
   }, [weight, height]);
+
+  useEffect(() => {
+    if (!selectedVisit?.id) return;
+    setTempCache(getDraftKey(selectedVisit.id), getDraftPayload(), 24 * 60 * 60 * 1000);
+    setTempCache(getSelectedVisitKey(), selectedVisit.id, 24 * 60 * 60 * 1000);
+  }, [
+    selectedVisit?.id,
+    systolic,
+    diastolic,
+    heartRate,
+    temp,
+    respRate,
+    spo2,
+    weight,
+    height,
+    chiefComplaint,
+    priorityFlag,
+    riskIndicators,
+    captureMethod,
+    airwayStatus,
+    breathingStatus,
+    circulationStatus,
+    consciousnessLevel,
+    boundInstrumentId
+  ]);
 
   const fetchTriageQueue = async () => {
     try {
@@ -225,7 +303,7 @@ export default function Triage({ user, onComplete, showNotification }) {
       }) : [];
       
       setQueue(enrichedQueue);
-      const savedVisitId = sessionStorage.getItem('egesa_selected_visit_id_triage');
+      const savedVisitId = getTempCache(getSelectedVisitKey());
       const matchedVisit = enrichedQueue.find(v => v.id === savedVisitId);
       if (matchedVisit) {
         handleSelectVisit(matchedVisit);
@@ -241,27 +319,35 @@ export default function Triage({ user, onComplete, showNotification }) {
   };
 
   const handleSelectVisit = (visit) => {
-    setSelectedVisit(visit);
-    if (visit) {
-      setPatient(visit.patient);
-      sessionStorage.setItem('egesa_selected_visit_id_triage', visit.id);
-    } else {
-      setPatient(null);
-      sessionStorage.removeItem('egesa_selected_visit_id_triage');
-    }
+      setSelectedVisit(visit);
+      if (visit) {
+        setPatient(visit.patient);
+        setTempCache(getSelectedVisitKey(), visit.id, 24 * 60 * 60 * 1000);
+      } else {
+        setPatient(null);
+        removeTempCache(getSelectedVisitKey());
+      }
     
-    // Clear vitals
-    setSystolic('');
-    setDiastolic('');
-    setHeartRate('');
-    setTemp('');
-    setRespRate('');
-    setSpo2('');
-    setWeight('');
-    setHeight('');
-    setChiefComplaint('');
-    setPriorityFlag('green');
-    setRiskIndicators('');
+    const restored = visit ? restoreDraft(visit.id) : false;
+    if (!restored) {
+      setSystolic('');
+      setDiastolic('');
+      setHeartRate('');
+      setTemp('');
+      setRespRate('');
+      setSpo2('');
+      setWeight('');
+      setHeight('');
+      setChiefComplaint('');
+      setPriorityFlag('green');
+      setRiskIndicators('');
+      setCaptureMethod('manual');
+      setAirwayStatus('clear');
+      setBreathingStatus('normal');
+      setCirculationStatus('normal');
+      setConsciousnessLevel('alert');
+      setBoundInstrumentId('');
+    }
     setMessage({ type: '', text: '' });
   };
 
@@ -528,7 +614,8 @@ export default function Triage({ user, onComplete, showNotification }) {
       
       // Clear selection and refresh queue
       setTimeout(() => {
-        sessionStorage.removeItem('egesa_selected_visit_id_triage');
+        removeTempCache(getSelectedVisitKey());
+        removeTempCache(getDraftKey(selectedVisit.id));
         fetchTriageQueue();
         if (onComplete) onComplete();
       }, 1000);

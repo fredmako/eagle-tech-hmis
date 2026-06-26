@@ -139,6 +139,7 @@ export default function App() {
   const [mchSubTab, setMchSubTab] = useState("dashboard");
   const [maternitySubTab, setMaternitySubTab] = useState("dashboard");
   const [adminSubTab, setAdminSubTab] = useState("overview");
+  const [hrSubTab, setHrSubTab] = useState("directory");
   const [activeModules, setActiveModules] = useState({});
   const [showTour, setShowTour] = useState(false);
 
@@ -180,6 +181,7 @@ export default function App() {
     if (itemId === "mch") return mchSubTab === subId;
     if (itemId === "maternity") return maternitySubTab === subId;
     if (itemId === "admin") return adminSubTab === subId;
+    if (itemId === "hr") return hrSubTab === subId;
     return false;
   };
 
@@ -190,10 +192,18 @@ export default function App() {
     if (itemId === "mch") setMchSubTab(subId);
     if (itemId === "maternity") setMaternitySubTab(subId);
     if (itemId === "admin") setAdminSubTab(subId);
+    if (itemId === "hr") setHrSubTab(subId);
   };
 
-  const handleNavigate = (tabId) => {
+  const handleNavigate = (tabId, subId = null) => {
     setActiveTab(tabId);
+    if (!subId) return;
+    if (tabId === "pharmacy") setPharmacySubTab(subId);
+    if (tabId === "billing") setBillingSubTab(subId);
+    if (tabId === "mch") setMchSubTab(subId);
+    if (tabId === "maternity") setMaternitySubTab(subId);
+    if (tabId === "admin") setAdminSubTab(subId);
+    if (tabId === "hr") setHrSubTab(subId);
   };
 
   const [preselectedPatient, setPreselectedPatient] = useState(null);
@@ -856,6 +866,7 @@ export default function App() {
       label: "Pharmacy Desk",
       icon: Pill,
       roles: ["pharmacist", "admin"],
+      keywords: ["drugs", "prescriptions", "dispense", "stock"],
       subItems: [
         { id: "dispensing", label: "Dispense Queue" },
         { id: "sell", label: "Sell Drug(s)" },
@@ -868,6 +879,7 @@ export default function App() {
       label: "Cashier / Billing",
       icon: DollarSign,
       roles: ["cashier", "admin"],
+      keywords: ["invoice", "claims", "preauth", "payments", "cashier"],
       subItems: [
         { id: "desk", label: "Billing Desk" },
         { id: "preauth", label: "Pre-Auth Claims" },
@@ -879,6 +891,7 @@ export default function App() {
       label: "MOH Reports",
       icon: FileSpreadsheet,
       roles: ["admin"],
+      keywords: ["reports", "moh", "compliance", "analytics", "diagnosis", "discharge summary"],
     },
     {
       id: "patient_dashboard",
@@ -923,13 +936,14 @@ export default function App() {
       ]
     },
     { id: "admin", label: "Admin Settings", icon: Settings, roles: ["admin", "facility_admin", "hr_manager", "marketing_admin", "operations_manager", "it_support"],
+      keywords: ["settings", "smtp", "email delivery", "audit", "license", "facility", "sha", "shira", "claims"],
       subItems: [
         { id: "audit", label: "Audit Logs" },
-        { id: "smtp_settings", label: "SMTP Settings" },
-        { id: "email_logs", label: "Email Logs" },
+        { id: "smtp_settings", label: "SMTP Settings", keywords: ["smtp", "mail server", "email setup", "google oauth"] },
+        { id: "email_logs", label: "Email Logs", keywords: ["mail delivery", "invites", "delivery status", "failed email"] },
         { id: "licensing", label: "Licensing" },
         { id: "facility_profile", label: "Facility Profile" },
-        { id: "afyalink", label: "DHA Kenya HIE" }
+        { id: "afyalink", label: "SHA / DHA HIE Claims", keywords: ["shira", "sha", "claim forms", "invoice", "diagnosis report", "discharge summary"] }
       ]
     },
     {
@@ -937,6 +951,14 @@ export default function App() {
       label: "Human Resources",
       icon: Users,
       roles: ["*"],
+      keywords: ["staff", "employees", "permissions", "access", "wallet", "suspend", "delete fired"],
+      subItems: [
+        { id: "directory", label: "Staff Directory", keywords: ["employees", "access status", "suspend", "delete", "wallet"] },
+        { id: "roster", label: "Duty Roster", keywords: ["attendance", "clock in", "geofence", "openstreetmap"] },
+        { id: "onboarding", label: "Staff On-boarding", keywords: ["invite", "email delivery", "mail status"] },
+        { id: "requests", label: "Role Requests", keywords: ["permission upgrade", "facility role request", "approval"] },
+        { id: "delegation", label: "Access Delegation Settings", keywords: ["privileges", "permissions", "delegate access"] }
+      ]
     },
     {
       id: "payroll",
@@ -973,6 +995,7 @@ export default function App() {
       label: "Help & Support",
       icon: HelpCircle,
       roles: ["*"],
+      keywords: ["whatsapp", "chat", "support", "help desk"],
     },
   ];
   const MENU_CATEGORIES = [
@@ -1093,6 +1116,53 @@ export default function App() {
     (t && t(item.id) ? t(item.id).toLowerCase().includes(menuSearch.toLowerCase()) : false)
   );
 
+  const normalizedMenuSearch = menuSearch.trim().toLowerCase();
+  const searchMenuResults = normalizedMenuSearch
+    ? visibleMenuItems.flatMap((item) => {
+        const parentLabel = t(item.id) || item.label;
+        const parentKeywords = (item.keywords || []).join(" ");
+        const parentMatches =
+          parentLabel.toLowerCase().includes(normalizedMenuSearch) ||
+          item.id.toLowerCase().includes(normalizedMenuSearch) ||
+          parentKeywords.toLowerCase().includes(normalizedMenuSearch);
+        const results = parentMatches
+          ? [{ type: "parent", item, label: parentLabel, path: parentLabel }]
+          : [];
+
+        (item.subItems || []).forEach((sub) => {
+          const subLabel = sub.label || sub.id;
+          const subKeywords = (sub.keywords || []).join(" ");
+          const subMatches =
+            subLabel.toLowerCase().includes(normalizedMenuSearch) ||
+            sub.id.toLowerCase().includes(normalizedMenuSearch) ||
+            subKeywords.toLowerCase().includes(normalizedMenuSearch);
+          if (subMatches) {
+            results.push({
+              type: "sub",
+              item,
+              sub,
+              label: subLabel,
+              path: `${parentLabel} / ${subLabel}`,
+            });
+          }
+        });
+
+        return results;
+      })
+    : [];
+
+  const navigateSearchResult = (result) => {
+    if (result.type === "sub") {
+      handleSubClick(result.item.id, result.sub.id);
+    } else {
+      setActiveTab(result.item.id);
+    }
+    setActiveCategoryDropdown(null);
+    setMenuSearch("");
+    setIsSearchExpanded(false);
+    setIsSidebarOpen(false);
+  };
+
   return (
     <div
       className={`flex h-screen bg-slate-950 text-slate-100 overflow-hidden theme-${theme} mode-${themeMode} font-${font} font-['DM_Sans',system-ui,sans-serif] ${menuLayout === 'topbar' ? 'flex-col' : 'flex-row'}`}
@@ -1163,17 +1233,18 @@ export default function App() {
           <nav className="flex-1 max-w-4xl mx-2 flex items-center gap-2.5 py-1">
             {menuSearch ? (
               // Flat Search Results
-              filteredMenuItems.length === 0 ? (
+              searchMenuResults.length === 0 ? (
                 <span className="text-[10px] text-slate-500 italic px-3 py-1">No matching menus found</span>
               ) : (
                 <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-                  {filteredMenuItems.map((item) => {
+                  {searchMenuResults.map((result) => {
+                    const item = result.item;
                     const Icon = item.icon;
-                    const isActive = activeTab === item.id;
+                    const isActive = result.type === "sub" ? getSubActive(item.id, result.sub.id) : activeTab === item.id;
                     return (
                       <button
-                        key={item.id}
-                        onClick={() => setActiveTab(item.id)}
+                        key={`${item.id}-${result.type}-${result.sub?.id || "main"}`}
+                        onClick={() => navigateSearchResult(result)}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide whitespace-nowrap transition-all duration-200 cursor-pointer ${
                           isActive 
                             ? "bg-teal-400 text-slate-955 shadow shadow-teal-500/15" 
@@ -1181,7 +1252,7 @@ export default function App() {
                         }`}
                       >
                         <Icon size={13} />
-                        <span>{t(item.id) || item.label}</span>
+                        <span>{result.path}</span>
                       </button>
                     );
                   })}
@@ -1379,24 +1450,22 @@ export default function App() {
         <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
           {menuSearch ? (
             // Flat Search Results
-            filteredMenuItems.length === 0 ? (
+            searchMenuResults.length === 0 ? (
               <div className="p-4 text-center text-slate-500 text-[11px] font-medium italic">
                 No matching menus found
               </div>
             ) : (
               <div className="space-y-1">
-                {filteredMenuItems.map((item) => {
+                {searchMenuResults.map((result) => {
+                  const item = result.item;
                   const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  const hasSub = item.subItems && item.subItems.length > 0;
+                  const isActive = result.type === "sub" ? getSubActive(item.id, result.sub.id) : activeTab === item.id;
+                  const hasSub = false;
                   return (
-                    <div key={item.id} className="space-y-1">
+                    <div key={`${item.id}-${result.type}-${result.sub?.id || "main"}`} className="space-y-1">
                       <button
                         type="button"
-                        onClick={() => {
-                          setActiveTab(item.id);
-                          setIsSidebarOpen(false);
-                        }}
+                        onClick={() => navigateSearchResult(result)}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[12px] font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
                           isActive 
                             ? "bg-teal-400 text-slate-950 shadow-md shadow-teal-500/15" 
@@ -1405,7 +1474,7 @@ export default function App() {
                       >
                         <div className="flex items-center gap-3">
                           <Icon size={15} />
-                          <span>{t(item.id) || item.label}</span>
+                          <span className="text-left">{result.path}</span>
                         </div>
                         {hasSub && (
                           <span className="text-[8px] opacity-70">
@@ -1751,9 +1820,9 @@ export default function App() {
                 </div>
               )
             )}
-            {activeTab === "admin" && <Admin user={user} initialSubTab={adminSubTab} />}
+            {activeTab === "admin" && <Admin user={user} initialSubTab={adminSubTab} onNavigate={handleNavigate} />}
             {activeTab === "procurement" && <OperationsDesk user={user} />}
-            {activeTab === "hr" && <HumanResourcesWrapper user={user} />}
+            {activeTab === "hr" && <HumanResourcesWrapper user={user} initialSubTab={hrSubTab} />}
             {activeTab === "payroll" && <Payroll user={user} />}
             {activeTab === "maintenance" && <AssetsMaintenance user={user} />}
             {activeTab === "settings" && (

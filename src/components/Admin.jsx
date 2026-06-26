@@ -23,6 +23,7 @@ import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { 
   sendNotification, 
+  recordExternalEmailLog,
   getSmtpConfig, 
   saveSmtpConfig, 
   getLicenseConfig, 
@@ -69,7 +70,7 @@ import {
   Wrench
 } from 'lucide-react';
 
-export default function Admin({ user, initialSubTab }) {
+export default function Admin({ user, initialSubTab, onNavigate }) {
   const { authFetch, inviteStaff, getInvitations, revokeInvite, setUser } = useAuth();
   const [activeSubTab, setActiveSubTab] = useState(() => localStorage.getItem('egesa_active_admin_subtab') || 'overview'); // 'overview', 'audit', 'smtp_settings', 'email_logs', 'licensing', 'staff_onboarding', 'role_requests', 'help_desk', 'facility_profile', 'hr', 'procurement', 'ward_settings', 'payment_settings'
   
@@ -144,6 +145,21 @@ export default function Admin({ user, initialSubTab }) {
 
   // AfyaLink states
   const [afyalinkLogs, setAfyalinkLogs] = useState([]);
+  const [shaClaims, setShaClaims] = useState([]);
+  const [shaClaimMessage, setShaClaimMessage] = useState({ type: '', text: '' });
+  const [shaClaimLoading, setShaClaimLoading] = useState(false);
+  const [shaClaimForm, setShaClaimForm] = useState({
+    patient_id: '',
+    visit_id: '',
+    invoice_id: '',
+    claim_reference: '',
+    sha_member_number: '',
+    claim_form_url: '',
+    diagnosis_report_url: '',
+    invoice_url: '',
+    discharge_summary_url: '',
+    status: 'draft'
+  });
   const [afyaMessage, setAfyaMessage] = useState('');
   const [retryingLogId, setRetryingLogId] = useState(null);
   const [revealSecret, setRevealSecret] = useState(false);
@@ -222,6 +238,33 @@ export default function Admin({ user, initialSubTab }) {
       // Filter out AfyaLink sync transactions
       const afyaLogs = logs.filter(l => l.action === 'AfyaLink Sync');
       setAfyalinkLogs(afyaLogs);
+
+      // Fetch SHA claim documents
+      let claims = [];
+      try {
+        const res = await fetch(`${apiBase}/db/query`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            table: 'sha_claim_documents',
+            queries: user.facility_id ? [
+              { type: 'equal', column: 'facility_id', value: user.facility_id }
+            ] : [],
+            orderByField: 'created_at',
+            orderByAsc: false
+          })
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          claims = resData.data || [];
+        }
+      } catch (e) {
+        console.error('Error fetching SHA claims:', e);
+      }
+      setShaClaims(claims);
 
       // Fetch profiles filtered by this facility context
       let profs = [];
@@ -523,8 +566,29 @@ export default function Admin({ user, initialSubTab }) {
     setInviteMessage({ type: '', text: '' });
     try {
       const rolesString = Array.isArray(inviteRole) ? inviteRole.join(',') : inviteRole;
-      await inviteStaff(inviteEmail.trim(), rolesString, inviteDept);
-      setInviteMessage({ type: 'success', text: `Invitation successfully dispatched to ${inviteEmail}!` });
+      const inviteResult = await inviteStaff(inviteEmail.trim(), rolesString, inviteDept);
+      recordExternalEmailLog({
+        facilityId: user.facility_id,
+        event: 'STAFF_INVITATION',
+        recipient: inviteEmail.trim(),
+        subject: `[System Invite] Join ${user.facility_name || 'Eagle Tech HMIS'}`,
+        body: `Staff onboarding invitation for roles ${rolesString} in ${inviteDept}. Delivery handled by ${inviteResult.mailSent ? 'Supabase/server mailer' : 'pending mailer'}.`,
+        status: inviteResult.mailStatus || (inviteResult.mailSent ? 'sent' : 'queued'),
+        sender: 'staff-onboarding',
+        errorMessage: inviteResult.mailError || null,
+        messageId: inviteResult.mailSentAt || null,
+        smtpConfig: {
+          host: inviteResult.mailSent ? 'Supabase Auth Admin API / server mailer' : 'pending mailer',
+          username: 'staff-onboarding'
+        }
+      });
+      const mailStatus = inviteResult.mailStatus || (inviteResult.mailSent ? 'sent' : 'queued');
+      setInviteMessage({
+        type: mailStatus === 'failed' ? 'error' : 'success',
+        text: mailStatus === 'failed'
+          ? `Invitation created for ${inviteEmail}, but email delivery failed: ${inviteResult.mailError || 'unknown mail error'}. Check Mail Delivery in the invites table.`
+          : `Invitation successfully dispatched to ${inviteEmail}! Delivery log added under Email Delivery Logs.`
+      });
       setInviteEmail('');
       // Log config change in audit logs
       try {
@@ -950,6 +1014,48 @@ export default function Admin({ user, initialSubTab }) {
     }
   };
 
+  const handleSaveShaClaim = async (e) => {
+    e.preventDefault();
+    setShaClaimLoading(true);
+    setShaClaimMessage({ type: '', text: '' });
+
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('egesa_health_token');
+      const res = await fetch(`${apiBase}/auth/sha-claims`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(shaClaimForm)
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save SHA claim document.');
+
+      setShaClaimMessage({ type: 'success', text: `SHA claim ${data.data?.claim_reference || 'record'} saved successfully.` });
+      setShaClaimForm({
+        patient_id: '',
+        visit_id: '',
+        invoice_id: '',
+        claim_reference: '',
+        sha_member_number: '',
+        claim_form_url: '',
+        diagnosis_report_url: '',
+        invoice_url: '',
+        discharge_summary_url: '',
+        status: 'draft'
+      });
+      fetchAdminData();
+    } catch (err) {
+      console.error('[Admin SHA Claims] Save failed:', err);
+      setShaClaimMessage({ type: 'error', text: err.message || 'Failed to save SHA claim document.' });
+    } finally {
+      setShaClaimLoading(false);
+    }
+  };
+
   const handleSaveDomain = async (e) => {
     e.preventDefault();
     setSavingDomain(true);
@@ -1335,6 +1441,7 @@ export default function Admin({ user, initialSubTab }) {
                   afyalinkLogs={afyalinkLogs}
                   emailLogs={emailLogs}
                   adminDelegation={adminDelegation}
+                  onNavigate={onNavigate}
                 />
               )}
           
@@ -1443,20 +1550,145 @@ export default function Admin({ user, initialSubTab }) {
                   </div>
                   <div>
                     <span className="text-slate-500 block font-semibold">Username</span>
-                    <span className="text-slate-300">{revealSecret ? 't8xwo9EjTR9xVot7jgc' : '••••••••••••••••••••'}</span>
+                    <span className="text-slate-300">{revealSecret ? '[managed in backend config]' : '••••••••••••••••••••'}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 block font-semibold">Password</span>
-                    <span className="text-slate-300">{revealSecret ? '70h1gsbVx1cV1hgewB4' : '••••••••••••••••••••'}</span>
+                    <span className="text-slate-300">{revealSecret ? '[managed in backend config]' : '••••••••••••••••••••'}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 block font-semibold">Client Key</span>
-                    <span className="text-slate-300">{revealSecret ? 'HA6-DHABP06856' : '••••••••••••••••••••'}</span>
+                    <span className="text-slate-300">{revealSecret ? '[managed in backend config]' : '••••••••••••••••••••'}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 block font-semibold">Client Secret</span>
-                    <span className="text-slate-300 break-all">{revealSecret ? 'fECP2T1dOAJn4BEzeyYtbgXmGz4moWTftxBx9aMGybfPj5Cr' : '••••••••••••••••••••••••••••••••••••••••'}</span>
+                    <span className="text-slate-300 break-all">{revealSecret ? '[managed in backend config]' : '••••••••••••••••••••••••••••••••••••••••'}</span>
                   </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                {[
+                  { label: 'Claim form', desc: 'Store uploaded SHA claim form references.' },
+                  { label: 'Diagnosis report', desc: 'Attach clinical diagnosis reports for adjudication.' },
+                  { label: 'Invoice', desc: 'Link billed services and invoice exports.' },
+                  { label: 'Discharge summary', desc: 'Attach discharge summaries for inpatient claims.' }
+                ].map((doc) => (
+                  <div key={doc.label} className="bg-slate-955 border border-slate-850 rounded-xl p-3">
+                    <div className="flex items-center gap-2 text-teal-400 mb-2">
+                      <FileText size={14} />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">{doc.label}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-450 leading-relaxed font-semibold">{doc.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-slate-955 border border-slate-850 rounded-xl p-4 space-y-4">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-900 pb-2">
+                  <h5 className="text-[11px] font-bold text-slate-300 uppercase tracking-wider font-sans">Create SHA Claim Record</h5>
+                  <span className="text-[10px] text-slate-500 font-semibold">Facility-scoped claim document index</span>
+                </div>
+                {shaClaimMessage && shaClaimMessage.text && (
+                  <div className={`p-2.5 rounded text-xs border ${shaClaimMessage.type === 'success' ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' : 'bg-red-500/5 border-red-500/20 text-red-400'}`}>
+                    {shaClaimMessage.text}
+                  </div>
+                )}
+                <form onSubmit={handleSaveShaClaim} className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
+                  <input value={shaClaimForm.patient_id} onChange={(e) => setShaClaimForm(prev => ({ ...prev, patient_id: e.target.value }))} placeholder="Patient ID" className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 outline-none focus:border-teal-500/50" />
+                  <input value={shaClaimForm.visit_id} onChange={(e) => setShaClaimForm(prev => ({ ...prev, visit_id: e.target.value }))} placeholder="Visit ID" className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 outline-none focus:border-teal-500/50" />
+                  <input value={shaClaimForm.invoice_id} onChange={(e) => setShaClaimForm(prev => ({ ...prev, invoice_id: e.target.value }))} placeholder="Invoice ID" className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 outline-none focus:border-teal-500/50" />
+                  <input value={shaClaimForm.sha_member_number} onChange={(e) => setShaClaimForm(prev => ({ ...prev, sha_member_number: e.target.value }))} placeholder="SHA Member Number" className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 outline-none focus:border-teal-500/50" />
+                  <input value={shaClaimForm.claim_reference} onChange={(e) => setShaClaimForm(prev => ({ ...prev, claim_reference: e.target.value }))} placeholder="Claim Reference" className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 outline-none focus:border-teal-500/50 md:col-span-2" />
+                  <input value={shaClaimForm.claim_form_url} onChange={(e) => setShaClaimForm(prev => ({ ...prev, claim_form_url: e.target.value }))} placeholder="Claim Form URL / Storage Reference" className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 outline-none focus:border-teal-500/50 md:col-span-2" />
+                  <input value={shaClaimForm.diagnosis_report_url} onChange={(e) => setShaClaimForm(prev => ({ ...prev, diagnosis_report_url: e.target.value }))} placeholder="Diagnosis Report URL / Reference" className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 outline-none focus:border-teal-500/50 md:col-span-2" />
+                  <input value={shaClaimForm.invoice_url} onChange={(e) => setShaClaimForm(prev => ({ ...prev, invoice_url: e.target.value }))} placeholder="Invoice URL / Reference" className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 outline-none focus:border-teal-500/50 md:col-span-2" />
+                  <input value={shaClaimForm.discharge_summary_url} onChange={(e) => setShaClaimForm(prev => ({ ...prev, discharge_summary_url: e.target.value }))} placeholder="Discharge Summary URL / Reference" className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 outline-none focus:border-teal-500/50 md:col-span-2" />
+                  <select value={shaClaimForm.status} onChange={(e) => setShaClaimForm(prev => ({ ...prev, status: e.target.value }))} className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 outline-none focus:border-teal-500/50">
+                    <option value="draft">Draft</option>
+                    <option value="submitted">Submitted</option>
+                    <option value="reviewing">Reviewing</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="approved">Approved</option>
+                  </select>
+                  <div className="md:col-span-2 flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={shaClaimLoading}
+                      className="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-600 disabled:opacity-60 text-slate-950 font-bold text-[11px] px-4 py-2 rounded-lg transition"
+                    >
+                      <FileText size={13} />
+                      {shaClaimLoading ? 'Saving...' : 'Save Claim Record'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Transactions logs table */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <h5 className="text-[11px] font-bold text-slate-300 uppercase tracking-wider font-sans">SHA Claim Document Queue</h5>
+                  <button
+                    onClick={fetchAdminData}
+                    className="text-[10px] text-teal-400 hover:text-teal-300 flex items-center gap-1 font-bold font-sans cursor-pointer"
+                  >
+                    <RefreshCw size={10} /> Refresh Queue
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto border border-slate-850 rounded-xl">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-950 text-slate-400 font-bold border-b border-slate-850 uppercase text-[9px] tracking-wider">
+                        <th className="py-2.5 px-3">Date/Time</th>
+                        <th className="py-2.5 px-3">Claim Ref</th>
+                        <th className="py-2.5 px-3">Patient / Visit</th>
+                        <th className="py-2.5 px-3">Attachments</th>
+                        <th className="py-2.5 px-3 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-850 text-slate-300">
+                      {shaClaims.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="py-8 text-center text-slate-500 text-[11px] font-sans">
+                            No SHA claim documents saved for this facility context.
+                          </td>
+                        </tr>
+                      ) : (
+                        shaClaims.map((claim) => (
+                          <tr key={claim.id} className="hover:bg-slate-850/40 transition">
+                            <td className="py-2.5 px-3 text-slate-400 text-[10px]">
+                              {new Date(claim.created_at || claim.updated_at || Date.now()).toLocaleString()}
+                            </td>
+                            <td className="py-2.5 px-3 font-mono text-[10px] text-teal-500">
+                              {claim.claim_reference || claim.id}
+                            </td>
+                            <td className="py-2.5 px-3 text-[11px]">
+                              <div className="font-semibold">{claim.patient_id || 'Patient ID N/A'}</div>
+                              <div className="text-[10px] text-slate-500">Visit: {claim.visit_id || 'N/A'} | Invoice: {claim.invoice_id || 'N/A'}</div>
+                            </td>
+                            <td className="py-2.5 px-3 text-[10px] text-slate-400">
+                              <div>Form: {claim.claim_form_url ? 'Linked' : 'Missing'}</div>
+                              <div>Dx: {claim.diagnosis_report_url ? 'Linked' : 'Missing'}</div>
+                              <div>Invoice: {claim.invoice_url ? 'Linked' : 'Missing'}</div>
+                              <div>Discharge: {claim.discharge_summary_url ? 'Linked' : 'Missing'}</div>
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border inline-block ${
+                                claim.status === 'submitted' || claim.status === 'approved'
+                                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                  : claim.status === 'rejected'
+                                    ? 'bg-red-500/10 border-red-500/20 text-red-400'
+                                    : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                              }`}>
+                                {String(claim.status || 'draft').toUpperCase()}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 

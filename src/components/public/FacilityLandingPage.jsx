@@ -332,16 +332,16 @@ export default function FacilityLandingPage() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = async (preferredRole = isStaffLogin ? 'staff' : 'patient') => {
     setAuthLoading(true);
     setAuthError('');
     setAuthSuccess('');
     try {
+      const googleAuthIntent = preferredRole === 'staff' ? 'staff' : 'patient';
+      sessionStorage.setItem('egesa_google_auth_intent', googleAuthIntent);
+
       if (supabase.isSandbox) {
-        const simulateExists = window.confirm(
-          "Sandbox Mock Google Login:\n\nClick [OK] to simulate a Patient login.\nClick [Cancel] to simulate a Staff login."
-        );
-        if (simulateExists) {
+        if (googleAuthIntent === 'patient') {
           const mockUser = {
             id: 'u_mock_google_patient',
             email: 'patient.google@eagletechsolutions.tech',
@@ -378,6 +378,7 @@ export default function FacilityLandingPage() {
         }
       } else {
         sessionStorage.setItem('egesa_health_pending_facility', facility.id);
+        sessionStorage.setItem('egesa_google_auth_intent', googleAuthIntent);
         localStorage.setItem('egesa_active_facility_id', facility.id);
         sessionStorage.setItem('egesa_google_auth_facility_redirect', 'true');
         
@@ -418,6 +419,7 @@ export default function FacilityLandingPage() {
               const resData = await res.json();
               if (res.ok) {
                 if (resData.status === 'success') {
+                  sessionStorage.removeItem('egesa_google_auth_intent');
                   localStorage.setItem('egesa_health_token', resData.token);
                   localStorage.setItem('egesa_health_user', JSON.stringify(resData.user));
                   localStorage.setItem('egesa_active_facility_id', resData.user.facility_id || '');
@@ -433,6 +435,13 @@ export default function FacilityLandingPage() {
                     }
                   }, 1000);
                 } else if (resData.status === 'no_profile') {
+                  const authIntent = sessionStorage.getItem('egesa_google_auth_intent') || 'patient';
+                  if (authIntent === 'staff') {
+                    sessionStorage.removeItem('egesa_google_auth_intent');
+                    await supabase.auth.signOut().catch(() => {});
+                    setAuthError('No staff profile is linked to this Google account yet. Please use a staff invite or ask an administrator to assign your role before signing in with Google.');
+                    return;
+                  }
                   try {
                     const patientRes = await fetch(`${apiBase}/auth/patient/signup`, {
                       method: 'POST',
@@ -861,7 +870,7 @@ export default function FacilityLandingPage() {
 
           <button
             type="button"
-            onClick={handleGoogleSignIn}
+            onClick={() => handleGoogleSignIn('staff')}
             disabled={authLoading}
             className="w-full bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-800 text-slate-200 font-bold py-2 rounded-lg text-xs transition flex items-center justify-center gap-2 active:scale-[0.97] cursor-pointer"
           >
@@ -936,7 +945,7 @@ export default function FacilityLandingPage() {
 
           <button
             type="button"
-            onClick={handleGoogleSignIn}
+            onClick={() => handleGoogleSignIn('patient')}
             disabled={authLoading}
             className="w-full bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-800 text-slate-200 font-bold py-2 rounded-lg text-xs transition flex items-center justify-center gap-2 active:scale-[0.97] cursor-pointer"
           >
@@ -1050,7 +1059,7 @@ export default function FacilityLandingPage() {
 
           <button
             type="button"
-            onClick={handleGoogleSignIn}
+            onClick={() => handleGoogleSignIn('patient')}
             disabled={authLoading}
             className="w-full bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-800 text-slate-200 font-bold py-2 rounded-lg text-xs transition flex items-center justify-center gap-2 active:scale-[0.97] cursor-pointer"
           >

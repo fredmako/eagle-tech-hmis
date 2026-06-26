@@ -11,7 +11,9 @@ import {
   UserCheck, 
   RefreshCw, 
   FileText,
-  Clock3
+  Clock3,
+  MapPin,
+  Navigation
 } from 'lucide-react';
 
 export default function StaffScheduler({ user, profiles = [], fetchAdminData, dbDepartments = [] }) {
@@ -32,6 +34,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
   // Clock in/out widget state
   const [activeAttendanceLog, setActiveAttendanceLog] = useState(null);
   const [clockNotes, setClockNotes] = useState('');
+  const [facilityGeo, setFacilityGeo] = useState(null);
 
   // Offline Geofenced Caching States
   const [offlineQueue, setOfflineQueue] = useState(() => {
@@ -125,6 +128,12 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const shiftTypes = ['Morning', 'Afternoon', 'Night', 'On-Call'];
+  const shiftWindows = {
+    Morning: { start: '08:00', end: '13:00' },
+    Afternoon: { start: '13:00', end: '17:00' },
+    Night: { start: '17:00', end: '08:00' },
+    'On-Call': { start: '00:00', end: '23:59' }
+  };
   
   const departments = dbDepartments.length > 0
     ? dbDepartments.map(d => d.type || d.name.toLowerCase())
@@ -133,6 +142,14 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
   // Check roles: Duty Roster & Attendance admin tools are only visible to admins, facility_admins, or HR
   const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
   const hasAdminPrivilege = rolesList.includes('admin') || rolesList.includes('facility_admin') || rolesList.includes('hr_manager');
+
+  const getTodayRoster = () => {
+    const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    return roster.find((shift) => shift.user_id === user.id && shift.day_of_week === todayName) || null;
+  };
+
+  const todayRoster = getTodayRoster();
+  const todayWindow = todayRoster ? shiftWindows[todayRoster.shift_type] || shiftWindows['On-Call'] : null;
 
   useEffect(() => {
     if (dbDepartments.length > 0) {
@@ -168,6 +185,13 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
       // 3. Find if logged-in user is currently clocked-in
       const activeLog = attData?.find(log => log.user_id === user.id && !log.clock_out);
       setActiveAttendanceLog(activeLog || null);
+
+      const { data: facData } = await supabase
+        .from('facilities')
+        .select('id,name,address,latitude,longitude,geofence_radius_meters')
+        .eq('id', user.facility_id)
+        .maybeSingle();
+      setFacilityGeo(facData || null);
 
     } catch (err) {
       console.error('Error loading scheduler data:', err);
@@ -246,7 +270,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
     }
   };
 
-  const handleClockIn = async () => {
+  const handleClockIn = async (noteOverride = null) => {
     setActionLoading(true);
     setMessage(null);
     try {
@@ -258,6 +282,8 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
       }
 
       // Check if offline
+      const punchNotes = noteOverride ?? clockNotes.trim();
+
       if (!navigator.onLine) {
         const queueId = 'off_in_' + Date.now();
         const offlineLog = {
@@ -266,7 +292,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
           timestamp: new Date().toISOString(),
           latitude: coords.latitude,
           longitude: coords.longitude,
-          notes: clockNotes.trim() || 'Offline Clock-In'
+          notes: punchNotes || 'Offline Clock-In'
         };
         const updatedQueue = [...offlineQueue, offlineLog];
         localStorage.setItem('egesa_offline_attendance', JSON.stringify(updatedQueue));
@@ -290,7 +316,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
         body: JSON.stringify({
           latitude: coords.latitude,
           longitude: coords.longitude,
-          notes: clockNotes.trim() || 'Manual Check-in'
+          notes: punchNotes || 'Manual Check-in'
         })
       });
 
@@ -311,7 +337,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
     }
   };
 
-  const handleClockOut = async () => {
+  const handleClockOut = async (noteOverride = null) => {
     if (!activeAttendanceLog) return;
     setActionLoading(true);
     setMessage(null);
@@ -324,6 +350,8 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
         throw new Error(locErr.message);
       }
 
+      const punchNotes = noteOverride ?? clockNotes.trim();
+
       // Check if offline
       if (!navigator.onLine) {
         const queueId = 'off_out_' + Date.now();
@@ -333,7 +361,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
           timestamp: new Date().toISOString(),
           latitude: coords.latitude,
           longitude: coords.longitude,
-          notes: clockNotes.trim() || 'Offline Clock-Out'
+          notes: punchNotes || 'Offline Clock-Out'
         };
         const updatedQueue = [...offlineQueue, offlineLog];
         localStorage.setItem('egesa_offline_attendance', JSON.stringify(updatedQueue));
@@ -357,7 +385,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
         body: JSON.stringify({
           latitude: coords.latitude,
           longitude: coords.longitude,
-          notes: clockNotes.trim() || 'Manual Check-out'
+          notes: punchNotes || 'Manual Check-out'
         })
       });
 
@@ -662,12 +690,68 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
             </div>
           )}
 
+          {/* Automatic Shift Attendance Prompt */}
+          {todayRoster && (
+            <div className="bg-blue-500/10 border border-blue-500/20 p-3.5 rounded-xl space-y-2 text-left">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <span className="text-[8px] font-bold text-blue-300 uppercase tracking-wider flex items-center gap-1">
+                    <Clock3 size={10} /> Automatic Shift Detection
+                  </span>
+                  <p className="text-[10px] text-slate-300 font-semibold mt-1">
+                    Today: {todayRoster.shift_type} shift in {String(todayRoster.department || 'assigned department').toUpperCase()}
+                    {todayWindow ? ` (${todayWindow.start}-${todayWindow.end})` : ''}
+                  </p>
+                </div>
+                {!activeAttendanceLog && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const autoNote = `Auto shift check-in: ${todayRoster.shift_type} ${todayRoster.department || ''}`.trim();
+                      setClockNotes(autoNote);
+                      handleClockIn(autoNote);
+                    }}
+                    disabled={actionLoading}
+                    className="shrink-0 bg-blue-400 hover:bg-blue-300 text-slate-950 text-[10px] font-black px-3 py-1.5 rounded-lg disabled:opacity-50"
+                  >
+                    Auto Clock-In
+                  </button>
+                )}
+              </div>
+              <p className="text-[9.5px] text-slate-450 leading-relaxed">
+                The system detected your rostered shift. Attendance still requests device location so the geofence proof is attached to the punch log.
+              </p>
+            </div>
+          )}
+
           {/* Geofence Status Information */}
           <div className="bg-slate-950/60 border border-slate-850 p-3.5 rounded-xl space-y-1 text-left">
-            <span className="text-[8px] font-bold text-teal-400 uppercase tracking-wider block">Boundary Verification Active</span>
+            <span className="text-[8px] font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1">
+              <MapPin size={10} /> Boundary Verification Active
+            </span>
             <p className="text-[10px] text-slate-400 font-sans leading-normal">
-              Clocking is geofence-restricted. You must be physically present within 100 meters of the facility to register attendance. Offline clock-ins capture your device coordinates and will be verified by the server upon sync.
+              Clocking is geofence-restricted. You must be physically present within {facilityGeo?.geofence_radius_meters || 100} meters of the facility to register attendance. Offline clock-ins capture your device coordinates and will be verified by the server upon sync.
             </p>
+            {facilityGeo?.latitude && facilityGeo?.longitude && (
+              <div className="pt-2 space-y-2">
+                <div className="overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                  <iframe
+                    title="OpenStreetMap attendance geofence"
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(facilityGeo.longitude) - 0.004}%2C${Number(facilityGeo.latitude) - 0.004}%2C${Number(facilityGeo.longitude) + 0.004}%2C${Number(facilityGeo.latitude) + 0.004}&layer=mapnik&marker=${facilityGeo.latitude}%2C${facilityGeo.longitude}`}
+                    className="w-full h-36 border-0"
+                    loading="lazy"
+                  />
+                </div>
+                <a
+                  href={`https://www.openstreetmap.org/?mlat=${facilityGeo.latitude}&mlon=${facilityGeo.longitude}#map=17/${facilityGeo.latitude}/${facilityGeo.longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] text-teal-400 hover:text-teal-300 font-bold"
+                >
+                  <Navigation size={10} /> Open facility geofence in OpenStreetMap
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Current Punch Status indicator */}

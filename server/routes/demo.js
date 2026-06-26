@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../utils/db");
 const jwt = require("jsonwebtoken");
-const JWT_SECRET = process.env.JWT_SECRET || "egesa_secret_key_102";
+const { JWT_SECRET } = require("../middleware/auth");
 
 // Middleware to authenticate token (for admin view/delete operations)
 const authenticateToken = (req, res, next) => {

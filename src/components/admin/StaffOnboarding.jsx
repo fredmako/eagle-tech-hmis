@@ -160,6 +160,7 @@ export default function StaffOnboarding({
                   <th className="py-2.5 px-3">Department</th>
                   <th className="py-2.5 px-3">Sent By</th>
                   <th className="py-2.5 px-3">Status</th>
+                  <th className="py-2.5 px-3">Mail Delivery</th>
                   <th className="py-2.5 px-3 text-center">Actions</th>
                 </tr>
               </thead>
@@ -178,6 +179,25 @@ export default function StaffOnboarding({
                       }`}>
                         {invite.status}
                       </span>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <div className="flex flex-col gap-1">
+                        <span
+                          title={invite.mail_error || (invite.mail_sent_at ? `Sent ${new Date(invite.mail_sent_at).toLocaleString()}` : 'Awaiting delivery confirmation')}
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase w-fit ${
+                            invite.mail_status === 'sent' ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-500/20' :
+                            invite.mail_status === 'failed' ? 'bg-red-400/10 text-red-400 border border-red-500/20' :
+                            'bg-slate-400/10 text-slate-400 border border-slate-500/20'
+                          }`}
+                        >
+                          {invite.mail_status || 'queued'}
+                        </span>
+                        {invite.mail_error && (
+                          <span className="text-[9px] text-red-300 max-w-[220px] truncate" title={invite.mail_error}>
+                            {invite.mail_error}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-2.5 px-3 font-mono text-[10px]">
                       {invite.status === 'pending' ? (

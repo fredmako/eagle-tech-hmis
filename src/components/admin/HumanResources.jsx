@@ -13,7 +13,10 @@ import {
   Printer,
   Shield,
   Mail,
-  Calendar
+  Calendar,
+  PauseCircle,
+  RotateCcw,
+  Wallet
 } from 'lucide-react';
 import StaffOnboarding from './StaffOnboarding';
 import RoleRequestsList from './RoleRequestsList';
@@ -46,21 +49,28 @@ export default function HumanResources({
   
   // Delegation props
   adminDelegation = {},
-  onDelegationUpdate
+  onDelegationUpdate,
+  initialSubTab = 'directory'
 }) {
   const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
   const isHRManager = rolesList.includes('admin') || rolesList.includes('super_admin') || rolesList.includes('facility_admin') || rolesList.includes('hr_manager');
 
-  const [activeTab, setActiveTab] = useState(isHRManager ? 'directory' : 'roster'); // 'directory' | 'onboarding' | 'requests' | 'delegation' | 'roster'
+  const [activeTab, setActiveTab] = useState(initialSubTab || (isHRManager ? 'directory' : 'roster')); // 'directory' | 'onboarding' | 'requests' | 'delegation' | 'roster'
   
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffEmail, setNewStaffEmail] = useState('');
   const [newStaffRole, setNewStaffRole] = useState(['nurse']);
   const [editingRolesProfileId, setEditingRolesProfileId] = useState(null);
+  const [editingWalletProfileId, setEditingWalletProfileId] = useState(null);
+  const [walletDraft, setWalletDraft] = useState('');
   const [newStaffDept, setNewStaffDept] = useState('general');
   const [actionLoading, setActionLoading] = useState(null); // stores user ID during action
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  React.useEffect(() => {
+    if (initialSubTab) setActiveTab(initialSubTab);
+  }, [initialSubTab]);
 
   const handleRegisterStaff = async (e) => {
     e.preventDefault();
@@ -92,7 +102,9 @@ export default function HumanResources({
             role: rolesString,
             facility_id: user.facility_id,
             email: newStaffEmail,
-            department: newStaffDept
+            department: newStaffDept,
+            access_status: 'active',
+            blockchain_wallet_address: ''
           }
         })
       });
@@ -132,6 +144,16 @@ export default function HumanResources({
   };
 
   const handleChangeRole = async (profileId, newRole) => {
+    const existingProfile = profiles.find(p => p.id === profileId);
+    const currentRoles = (existingProfile?.role || '').split(',').map(r => r.trim()).filter(Boolean);
+    const nextRoles = (newRole || '').split(',').map(r => r.trim()).filter(Boolean);
+    const sensitiveRoles = ['admin', 'facility_admin', 'hr_manager', 'it_support'];
+    const addedSensitiveRoles = nextRoles.filter(role => sensitiveRoles.includes(role) && !currentRoles.includes(role));
+    if (addedSensitiveRoles.length > 0) {
+      const confirmed = window.confirm(`Increase privileges for ${existingProfile?.full_name || 'this staff member'} to include ${addedSensitiveRoles.join(', ')}? This grants higher system access in this facility.`);
+      if (!confirmed) return;
+    }
+
     setActionLoading(profileId);
     setMessage({ type: '', text: '' });
     try {
@@ -184,6 +206,93 @@ export default function HumanResources({
     }
   };
 
+  const handleSaveWallet = async (profileId, staffName) => {
+    setActionLoading(profileId);
+    setMessage({ type: '', text: '' });
+    try {
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiBase}/auth/profiles/${profileId}/wallet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ blockchain_wallet_address: walletDraft.trim() })
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to update wallet address.');
+      }
+      setMessage({ type: 'success', text: `Blockchain wallet linkage updated for ${staffName}.` });
+      setEditingWalletProfileId(null);
+      setWalletDraft('');
+      fetchAdminData();
+    } catch (err) {
+      console.error('[HR Panel] Wallet update failed:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to update staff wallet.' });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleSuspendProfile = async (profileId, staffName) => {
+    const reason = window.prompt(`Reason for suspending ${staffName}'s access?`, 'Suspended by HR');
+    if (reason === null) return;
+    setActionLoading(profileId);
+    setMessage({ type: '', text: '' });
+    try {
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiBase}/auth/profiles/${profileId}/suspend`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ reason })
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to suspend staff access.');
+      }
+      setMessage({ type: 'success', text: `${staffName}'s access has been suspended.` });
+      fetchAdminData();
+    } catch (err) {
+      console.error('[HR Panel] Suspension failed:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to suspend staff access.' });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRestoreProfile = async (profileId, staffName) => {
+    setActionLoading(profileId);
+    setMessage({ type: '', text: '' });
+    try {
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiBase}/auth/profiles/${profileId}/restore`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to restore staff access.');
+      }
+      setMessage({ type: 'success', text: `${staffName}'s access has been restored.` });
+      fetchAdminData();
+    } catch (err) {
+      console.error('[HR Panel] Restore failed:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to restore staff access.' });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleDeleteProfile = async (profileId, staffName) => {
     if (!window.confirm(`Are you sure you want to permanently remove ${staffName} from this facility context?`)) {
       return;
@@ -194,40 +303,19 @@ export default function HumanResources({
       const token = localStorage.getItem('egesa_health_token');
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-      const deleteRes = await fetch(`${apiBase}/db/delete`, {
+      const deleteRes = await fetch(`${apiBase}/auth/profiles/${profileId}/delete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          table: 'profiles',
-          column: 'id',
-          value: profileId
-        })
+        body: JSON.stringify({ reason: 'Fired employee removed by HR' })
       });
 
       if (!deleteRes.ok) {
         const errData = await deleteRes.json();
         throw new Error(errData.error || 'Failed to delete profile record.');
       }
-
-      await fetch(`${apiBase}/db/insert`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          table: 'audit_logs',
-          rows: {
-            facility_id: user.facility_id,
-            user_id: user.id,
-            action: 'Staff Profile Removed',
-            details: `Permanently removed staff profile for ${staffName} (ID: ${profileId}).`
-          }
-        })
-      });
 
       setMessage({ type: 'success', text: 'Staff profile removed successfully!' });
       fetchAdminData();
@@ -534,6 +622,7 @@ export default function HumanResources({
                       <th className="py-2.5 px-3">Name</th>
                       <th className="py-2.5 px-3">Email</th>
                       <th className="py-2.5 px-3">Assign Role</th>
+                      <th className="py-2.5 px-3">Access</th>
                       <th className="py-2.5 px-3 text-center">Actions</th>
                     </tr>
                   </thead>
@@ -580,6 +669,7 @@ export default function HumanResources({
                                 { id: 'lab_tech', label: 'Lab Technician' },
                                 { id: 'pharmacist', label: 'Pharmacist' },
                                 { id: 'cashier', label: 'Billing Cashier' },
+                                { id: 'facility_admin', label: 'Facility Admin' },
                                 { id: 'marketing_admin', label: 'Marketing Admin' },
                                 { id: 'hr_manager', label: 'HR Manager' },
                                 { id: 'operations_manager', label: 'Operations Manager' },
@@ -614,15 +704,75 @@ export default function HumanResources({
                             </div>
                           )}
                         </td>
+                        <td className="py-3 px-3">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${
+                            (prof.access_status || 'active') === 'suspended'
+                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          }`}>
+                            {prof.access_status || 'active'}
+                          </span>
+                        </td>
                         <td className="py-3 px-3 text-center">
-                          <button
-                            onClick={() => handleDeleteProfile(prof.id, prof.full_name)}
-                            disabled={actionLoading === prof.id || prof.id === user.id}
-                            className="text-red-400 hover:text-red-300 p-1.5 rounded bg-slate-950 border border-slate-800 hover:border-red-500/20 disabled:opacity-40 transition cursor-pointer"
-                            title={prof.id === user.id ? "Cannot remove yourself" : "Remove staff profile"}
-                          >
-                            <Trash2 size={12} />
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            {(prof.access_status || 'active') === 'suspended' ? (
+                              <button
+                                onClick={() => handleRestoreProfile(prof.id, prof.full_name)}
+                                disabled={actionLoading === prof.id || prof.id === user.id}
+                                className="text-emerald-400 hover:text-emerald-300 p-1.5 rounded bg-slate-950 border border-slate-800 hover:border-emerald-500/20 disabled:opacity-40 transition cursor-pointer"
+                                title="Restore staff access"
+                              >
+                                <RotateCcw size={12} />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleSuspendProfile(prof.id, prof.full_name)}
+                                disabled={actionLoading === prof.id || prof.id === user.id}
+                                className="text-amber-400 hover:text-amber-300 p-1.5 rounded bg-slate-950 border border-slate-800 hover:border-amber-500/20 disabled:opacity-40 transition cursor-pointer"
+                                title={prof.id === user.id ? "Cannot suspend yourself" : "Suspend staff access"}
+                              >
+                                <PauseCircle size={12} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                setEditingWalletProfileId(editingWalletProfileId === prof.id ? null : prof.id);
+                                setWalletDraft(prof.blockchain_wallet_address || '');
+                              }}
+                              disabled={actionLoading === prof.id}
+                              className="text-blue-400 hover:text-blue-300 p-1.5 rounded bg-slate-950 border border-slate-800 hover:border-blue-500/20 disabled:opacity-40 transition cursor-pointer"
+                              title="Update blockchain wallet"
+                            >
+                              <Wallet size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProfile(prof.id, prof.full_name)}
+                              disabled={actionLoading === prof.id || prof.id === user.id}
+                              className="text-red-400 hover:text-red-300 p-1.5 rounded bg-slate-950 border border-slate-800 hover:border-red-500/20 disabled:opacity-40 transition cursor-pointer"
+                              title={prof.id === user.id ? "Cannot remove yourself" : "Delete fired employee profile"}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                          {editingWalletProfileId === prof.id && (
+                            <div className="mt-2 flex items-center gap-1.5 justify-center">
+                              <input
+                                type="text"
+                                value={walletDraft}
+                                onChange={(e) => setWalletDraft(e.target.value)}
+                                placeholder="0x... or Solana address"
+                                className="w-44 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[10px] text-slate-200 font-mono focus:border-blue-500 outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSaveWallet(prof.id, prof.full_name)}
+                                disabled={actionLoading === prof.id}
+                                className="bg-blue-500/15 border border-blue-500/25 text-blue-300 hover:bg-blue-500/25 text-[9px] font-bold px-2 py-1 rounded"
+                              >
+                                Save
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -673,6 +823,7 @@ export default function HumanResources({
                       { id: 'lab_tech', label: 'Lab Technician' },
                       { id: 'pharmacist', label: 'Pharmacist' },
                       { id: 'cashier', label: 'Billing Cashier' },
+                      { id: 'facility_admin', label: 'Facility Admin' },
                       { id: 'marketing_admin', label: 'Marketing Admin' },
                       { id: 'hr_manager', label: 'HR Manager' },
                       { id: 'operations_manager', label: 'Operations Manager' },

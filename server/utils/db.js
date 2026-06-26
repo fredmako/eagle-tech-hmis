@@ -83,7 +83,7 @@ const DEFAULT_ACTIVE_MODULES = {
 };
 
 const getInitialSandboxData = () => {
-  // Hash for 'password123'
+  // Legacy default password hash used for sandbox bootstrapping
   const defaultHash =
     "$2a$10$tM.yF.1nJ9Z9P4mI8vN5yOqZk7xZ/Q3K5.p1j/H7J2zN9xK2TzJ.O";
   return {
@@ -153,6 +153,36 @@ const getInitialSandboxData = () => {
           ...DEFAULT_LAB_SERVICES
         ]
       },
+      {
+        id: "f3",
+        name: "EGS Medical Clinic",
+        code: "EGS-003",
+        logo_url: "preset:shield",
+        address: "Nairobi, Kenya",
+        is_verified: true,
+        latitude: -1.2921,
+        longitude: 36.8219,
+        geofence_radius_meters: 100,
+        stripe_publishable_key: process.env.STRIPE_PUBLISHABLE_KEY || "",
+        stripe_secret_key: process.env.STRIPE_SECRET_KEY || "",
+        paypal_client_id: "",
+        paypal_client_secret: "",
+        whatsapp_number: "254700000003",
+        whatsapp_welcome_message: "Hello, welcome to EGS Medical Clinic!",
+        subdomain_prefix: "egs-medical",
+        about_us: "EGS Medical Clinic is a fully seeded facility with operational admin coverage and clinical workflows.",
+        custom_domain: "",
+        domain_status: "pending",
+        admin_delegation: {},
+        landing_template: "classic",
+        facility_images: [],
+        active_modules: { ...DEFAULT_ACTIVE_MODULES },
+        services_list: [
+          { name: "General Outpatient Consultation", category: "Consultation", charge: 1000 },
+          { name: "Emergency Triage Review", category: "Triage", charge: 700 },
+          { name: "Basic Laboratory Panel", category: "Lab", charge: 2500 }
+        ]
+      },
     ],
     profiles: [
       {
@@ -203,6 +233,13 @@ const getInitialSandboxData = () => {
         role: "admin",
         facility_id: "f1",
         email: "admin@egesa.com",
+      },
+      {
+        id: "u8",
+        full_name: "EGS Admin",
+        role: "admin",
+        facility_id: "f3",
+        email: "admin@egsmedical.co.ke",
       },
       {
         id: "u_super_admin",
@@ -261,6 +298,12 @@ const getInitialSandboxData = () => {
         email: "admin@egesa.com",
         passwordHash: defaultHash,
         name: "Admin Grace",
+      },
+      {
+        id: "u8",
+        email: "admin@egsmedical.co.ke",
+        passwordHash: defaultHash,
+        name: "EGS Admin",
       },
       {
         id: "u_super_admin",
@@ -557,6 +600,8 @@ const getInitialSandboxData = () => {
     notifications: [],
     duty_rosters: [],
     attendance_logs: [],
+    staff_access_archives: [],
+    sha_claim_documents: [],
     sample_specimens: [
       { id: 'spec_1', facility_id: 'f1', category: 'MICROBIOLOGY', name: 'SERUM', description: 'Serum Crag', status: 'Active' },
       { id: 'spec_2', facility_id: 'f1', category: 'MICROBIOLOGY', name: 'SCRAPING', description: 'SCRAPING', status: 'Active' },
@@ -665,6 +710,14 @@ const loadSandboxDB = () => {
       data.attendance_logs = [];
       updated = true;
     }
+    if (!data.staff_access_archives) {
+      data.staff_access_archives = [];
+      updated = true;
+    }
+    if (!data.sha_claim_documents) {
+      data.sha_claim_documents = [];
+      updated = true;
+    }
     if (!data.sample_specimens) {
       data.sample_specimens = initial.sample_specimens || [];
       updated = true;
@@ -679,6 +732,14 @@ const loadSandboxDB = () => {
         }
         if (prof.department === undefined) {
           prof.department = "";
+          profilesUpdated = true;
+        }
+        if (prof.access_status === undefined) {
+          prof.access_status = "active";
+          profilesUpdated = true;
+        }
+        if (prof.blockchain_wallet_address === undefined) {
+          prof.blockchain_wallet_address = "";
           profilesUpdated = true;
         }
       });
@@ -733,7 +794,14 @@ const loadSandboxDB = () => {
     initial.profiles.forEach(p => {
       const exists = data.profiles.some(existing => existing.id === p.id);
       if (!exists) {
-        data.profiles.push(p);
+        data.profiles.push({ ...p, access_status: "active", blockchain_wallet_address: "" });
+        updated = true;
+      } else if (p.id === "u7") {
+        data.profiles = data.profiles.map(existing => (
+          existing.id === "u7"
+            ? { ...existing, full_name: "Admin Grace", role: "admin", facility_id: "f1", email: "admin@egesa.com", access_status: "active" }
+            : existing
+        ));
         updated = true;
       }
     });
@@ -847,20 +915,24 @@ const db = {
     }
   },
 
-  updateDocument: async (tableName, docId, docData) => {
+  updateDocument: async (tableName, docId, docData, extraFilters = []) => {
     if (isRealSupabase) {
-      const { data, error } = await supabaseClient
+      let query = supabaseClient
         .from(tableName)
         .update(docData)
-        .eq("id", docId)
-        .select();
+        .eq("id", docId);
+      extraFilters.forEach((filter) => {
+        query = query.eq(filter.column, filter.value);
+      });
+      const { data, error } = await query.select();
       if (error) throw new Error(`Supabase update error: ${error.message}`);
       return data?.[0] || { id: docId, ...docData };
     } else {
       const data = loadSandboxDB();
       if (!data[tableName]) data[tableName] = [];
       data[tableName] = data[tableName].map((doc) => {
-        if (doc.id === docId) {
+        const extraMatches = extraFilters.every((filter) => doc[filter.column] === filter.value);
+        if (doc.id === docId && extraMatches) {
           return { ...doc, ...docData };
         }
         return doc;
@@ -870,18 +942,25 @@ const db = {
     }
   },
 
-  deleteDocument: async (tableName, docId) => {
+  deleteDocument: async (tableName, docId, extraFilters = []) => {
     if (isRealSupabase) {
-      const { error } = await supabaseClient
+      let query = supabaseClient
         .from(tableName)
         .delete()
         .eq("id", docId);
+      extraFilters.forEach((filter) => {
+        query = query.eq(filter.column, filter.value);
+      });
+      const { error } = await query;
       if (error) throw new Error(`Supabase delete error: ${error.message}`);
       return true;
     } else {
       const data = loadSandboxDB();
       if (data[tableName]) {
-        data[tableName] = data[tableName].filter((doc) => doc.id !== docId);
+        data[tableName] = data[tableName].filter((doc) => {
+          const extraMatches = extraFilters.every((filter) => doc[filter.column] === filter.value);
+          return !(doc.id === docId && extraMatches);
+        });
         saveSandboxDB(data);
       }
       return true;

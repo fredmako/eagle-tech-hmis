@@ -16,7 +16,9 @@ import {
   LayoutGrid,
   Calendar,
   Bell,
-  Wrench
+  Wrench,
+  BarChart3,
+  TrendingUp
 } from 'lucide-react';
 import { hasAccess } from '../../utils/permissions';
 
@@ -28,7 +30,8 @@ export default function AdminOverview({
   supportTicketsCount = 0,
   afyalinkLogs = [],
   emailLogs = [],
-  adminDelegation = {}
+  adminDelegation = {},
+  onNavigate
 }) {
   // Count pending items
   const pendingInvitations = invitationsList.filter(i => i.status === 'pending').length;
@@ -39,6 +42,46 @@ export default function AdminOverview({
       return JSON.parse(l.details).status === 'failed';
     } catch (e) { return false; }
   }).length;
+  const openAdminTasks = pendingInvitations + pendingRoles + pendingTickets + failedAfyaLink;
+  const overviewMetrics = [
+    {
+      label: 'Open admin tasks',
+      value: openAdminTasks,
+      detail: `${pendingInvitations} invites, ${pendingRoles} role reviews`,
+      icon: Bell,
+      tone: 'amber'
+    },
+    {
+      label: 'Support queue',
+      value: pendingTickets,
+      detail: 'Patient and staff inquiries awaiting response',
+      icon: PhoneCall,
+      tone: 'rose'
+    },
+    {
+      label: 'Integration issues',
+      value: failedAfyaLink,
+      detail: 'AfyaLink records needing attention',
+      icon: Activity,
+      tone: 'red'
+    },
+    {
+      label: 'Email volume',
+      value: emailLogs.length,
+      detail: 'Transactional email delivery events',
+      icon: Mail,
+      tone: 'blue'
+    }
+  ];
+
+  const analyticsRows = [
+    { label: 'Invitations', value: pendingInvitations },
+    { label: 'Role requests', value: pendingRoles },
+    { label: 'Support tickets', value: pendingTickets },
+    { label: 'Email logs', value: emailLogs.length },
+    { label: 'AfyaLink alerts', value: failedAfyaLink }
+  ];
+  const analyticsPeak = Math.max(1, ...analyticsRows.map(row => row.value));
 
   const sections = [
     {
@@ -83,6 +126,8 @@ export default function AdminOverview({
       cards: [
         {
           id: 'staff_onboarding',
+          route: 'hr',
+          subTab: 'onboarding',
           title: "Staff Onboarding",
           desc: "Draft and dispatch email invitations to new healthcare clinicians.",
           icon: UserPlus,
@@ -93,6 +138,8 @@ export default function AdminOverview({
         },
         {
           id: 'role_requests',
+          route: 'hr',
+          subTab: 'requests',
           title: "Role Requests",
           desc: "Authorize, delegate or restrict employee clearance updates.",
           icon: UserCheck,
@@ -103,6 +150,8 @@ export default function AdminOverview({
         },
         {
           id: 'hr',
+          route: 'hr',
+          subTab: 'directory',
           title: "Human Resources",
           desc: "Manage profiles, contacts, and active access parameters for staff.",
           icon: Users,
@@ -111,6 +160,8 @@ export default function AdminOverview({
         },
         {
           id: 'roster',
+          route: 'hr',
+          subTab: 'roster',
           title: "Duty Roster & Attendance",
           desc: "Allocate weekly clinician shifts, and monitor real-time clock-in/out logs.",
           icon: Calendar,
@@ -132,6 +183,7 @@ export default function AdminOverview({
       cards: [
         {
           id: 'procurement',
+          route: 'procurement',
           title: "Procurement Desk",
           desc: "Track clinic purchases, inventory balances, and recurring utility invoices.",
           icon: ShoppingBag,
@@ -140,6 +192,7 @@ export default function AdminOverview({
         },
         {
           id: 'maintenance',
+          route: 'maintenance',
           title: "Assets Maintenance",
           desc: "Track clinic assets, equipment calibrations, and medical machinery repairs.",
           icon: Wrench,
@@ -221,6 +274,88 @@ export default function AdminOverview({
         </div>
       </div>
 
+      <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-4">
+        <div className="bg-slate-900/40 border border-slate-850 rounded-xl p-4 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                <BarChart3 size={14} className="text-teal-400" />
+                Facility Analytics Snapshot
+              </h3>
+              <p className="text-[10.5px] text-slate-500 mt-1">
+                A quick read on admin load, support demand, and integration health.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
+              <TrendingUp size={13} className="text-emerald-400" />
+              Live overview
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {overviewMetrics.map((metric) => {
+              const Icon = metric.icon;
+              const toneMap = {
+                amber: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+                rose: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+                red: 'text-red-400 bg-red-500/10 border-red-500/20',
+                blue: 'text-blue-400 bg-blue-500/10 border-blue-500/20'
+              };
+              return (
+                <div key={metric.label} className="bg-slate-950/70 border border-slate-850 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{metric.label}</span>
+                    <div className={`p-1.5 rounded-md border ${toneMap[metric.tone]}`}>
+                      <Icon size={12} />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black text-slate-100">{metric.value}</div>
+                  <p className="text-[10.5px] text-slate-500 leading-snug">{metric.detail}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="bg-slate-900/40 border border-slate-850 rounded-xl p-4 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                <Activity size={14} className="text-teal-400" />
+                Workload Distribution
+              </h3>
+              <p className="text-[10.5px] text-slate-500 mt-1">
+                The busiest admin queues, scaled against the highest count.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {analyticsRows.map((row, idx) => {
+              const width = `${Math.max(6, Math.round((row.value / analyticsPeak) * 100))}%`;
+              const rowTones = [
+                'bg-teal-500/80',
+                'bg-amber-500/80',
+                'bg-rose-500/80',
+                'bg-blue-500/80',
+                'bg-purple-500/80'
+              ];
+              return (
+                <div key={row.label} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    <span>{row.label}</span>
+                    <span className="text-slate-300">{row.value}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-900 border border-slate-850 overflow-hidden">
+                    <div className={`h-full rounded-full ${rowTones[idx % rowTones.length]}`} style={{ width }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-6">
         {sections.map((section, sIdx) => {
           const visibleCards = section.cards.filter(c => c.show);
@@ -239,7 +374,13 @@ export default function AdminOverview({
                   return (
                     <button
                       key={cIdx}
-                      onClick={() => setActiveSubTab(card.id)}
+                      onClick={() => {
+                        if (card.route && onNavigate) {
+                          onNavigate(card.route, card.subTab || null);
+                        } else {
+                          setActiveSubTab(card.id);
+                        }
+                      }}
                       className="group flex items-start gap-3.5 p-3.5 bg-slate-900/40 hover:bg-slate-850/30 border border-slate-850 hover:border-slate-700/80 rounded-xl transition-all duration-300 text-left hover:translate-y-[-1px] hover:shadow-lg hover:shadow-slate-950/20 w-full active:scale-[0.99] cursor-pointer"
                     >
                       <div className={`p-2.5 rounded-lg border transition-all duration-300 group-hover:scale-105 shrink-0 ${card.color}`}>

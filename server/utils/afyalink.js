@@ -13,12 +13,21 @@ const supabase = isRealSupabase ? createClient(supabaseUrl, supabaseKey) : null;
  * Implements fallback mock handling to ensure system resilience.
  */
 async function submitEncounterToAfyaLink(encounterData) {
-  let agentId = process.env.AFYALINK_AGENT_ID || 'DHABP06856';
-  let username = process.env.AFYALINK_USERNAME || 't8xwo9EjTR9xVot7jgc';
-  let password = process.env.AFYALINK_PASSWORD || '70h1gsbVx1cV1hgewB4';
-  let clientKey = process.env.AFYALINK_KEY || 'HA6-DHABP06856';
-  let clientSecret = process.env.AFYALINK_SECRET || 'fECP2T1dOAJn4BEzeyYtbgXmGz4moWTftxBx9aMGybfPj5Cr';
+  let agentId = process.env.AFYALINK_AGENT_ID || '';
+  let username = process.env.AFYALINK_USERNAME || '';
+  let password = process.env.AFYALINK_PASSWORD || '';
+  let clientKey = process.env.AFYALINK_KEY || '';
+  let clientSecret = process.env.AFYALINK_SECRET || '';
   let baseUrl = process.env.AFYALINK_BASE_URL || 'https://api.dha.go.ke/v1';
+
+  if (!agentId || !username || !password || !clientKey || !clientSecret) {
+    return {
+      success: false,
+      status: 'skipped',
+      error: 'AfyaLink credentials are not configured for this environment.',
+      mocked: true
+    };
+  }
 
   if (supabase && encounterData.facility_id) {
     try {

@@ -2,7 +2,7 @@ const { Client } = require('pg');
 
 const host = '2a05:d016:dd0:9402:4161:2baf:5600:e340';
 const user = 'postgres';
-const password = '_GiR4SKRhdTfcs_';
+const password = process.env.SUPABASE_DB_PASSWORD || '';
 const database = 'postgres';
 
 async function testIPv6() {

@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 export default function SaaSOnboarding({ onBackToLogin }) {
-  const { signup, login } = useAuth();
+  const { signup, login, verifyOtp } = useAuth();
 
   // Form steps: 1 (Hospital Details & Admin Acc), 2 (Plan Selection), 3 (Payment & Verification), 4 (Complete)
   const [step, setStep] = useState(1);
@@ -45,6 +45,13 @@ export default function SaaSOnboarding({ onBackToLogin }) {
   const [googleUser, setGoogleUser] = useState(null);
   const [existingHospitals, setExistingHospitals] = useState([]);
   const [onboardingWarningType, setOnboardingWarningType] = useState("");
+
+  // OTP Verification states
+  const [showOtpVerification, setShowOtpVerification] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Kenyan Hospital Registration Details
   const [kmpdcRegNumber, setKmpdcRegNumber] = useState("");
@@ -500,7 +507,24 @@ export default function SaaSOnboarding({ onBackToLogin }) {
         }
       }
 
-      setStep(2);
+      // After successful signup, show OTP verification screen (skip for Google auth)
+      if (!googleUser) {
+        setShowOtpVerification(true);
+        // Start resend cooldown timer
+        setResendCooldown(30);
+        const timer = setInterval(() => {
+          setResendCooldown((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        // Google users skip OTP verification
+        setStep(2);
+      }
       return;
     }
 
@@ -543,6 +567,66 @@ export default function SaaSOnboarding({ onBackToLogin }) {
     if (step === 4) {
       setStep(5);
       return;
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode.trim() || otpCode.trim().length < 6) {
+      setOtpError("Please enter a valid 6-digit code.");
+      return;
+    }
+
+    setOtpLoading(true);
+    setOtpError("");
+
+    try {
+      const result = await verifyOtp(adminEmail, otpCode.trim(), 'signup');
+      console.log('[SaaSOnboarding:handleVerifyOtp] verifyOtp() resolved with status:', result?.status);
+
+      if (result?.status === 'success') {
+        setShowOtpVerification(false);
+        setStep(2);
+      } else {
+        setOtpError("Verification failed. Please try again.");
+      }
+    } catch (err) {
+      console.error('[SaaSOnboarding:handleVerifyOtp] Error:', err.message);
+      setOtpError(err.message || "Invalid verification code. Please try again.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+
+    setOtpLoading(true);
+    setOtpError("");
+
+    try {
+      // Resend OTP via Supabase
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: adminEmail,
+      });
+
+      if (error) throw error;
+
+      // Reset cooldown
+      setResendCooldown(30);
+      const timer = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      setOtpError(err.message || "Failed to resend code. Please try again.");
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -1062,6 +1146,80 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                 {loading ? "Registering..." : "Create Account & Continue"}{" "}
                 <ArrowRight size={14} />
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* OTP VERIFICATION SCREEN */}
+        {showOtpVerification && (
+          <div className="space-y-6 max-w-xl mx-auto">
+            <div className="text-center space-y-1.5 mb-2">
+              <h2 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-1.5 font-sans">
+                <Mail size={18} className="text-teal-400" /> Verify Your Email
+              </h2>
+              <p className="text-xs text-slate-400">
+                A 6-digit confirmation code was sent to{" "}
+                <strong className="text-slate-200">{adminEmail}</strong>
+              </p>
+            </div>
+
+            <div className="bg-slate-950 border border-slate-855 p-6 rounded-xl space-y-6 font-sans">
+              {otpError && (
+                <div className="bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg p-3 text-xs flex items-center gap-2">
+                  <AlertCircle size={14} className="shrink-0" />
+                  <span>{otpError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
+                  Enter 6-Digit Code
+                </label>
+                <input
+                  type="text"
+                  value={otpCode}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setOtpCode(value);
+                  }}
+                  placeholder="000000"
+                  maxLength={6}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg py-3 px-4 text-center text-2xl font-mono text-slate-100 tracking-[0.5em] focus:outline-none focus:border-teal-500 transition"
+                  autoFocus
+                />
+                <p className="text-[10px] text-slate-500 mt-2 text-center">
+                  Sandbox mode: use code <span className="font-mono text-teal-400">123456</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t border-slate-800">
+              <button
+                onClick={() => {
+                  setShowOtpVerification(false);
+                  setStep(1);
+                }}
+                className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 transition"
+              >
+                <ArrowLeft size={14} /> Change Email
+              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleResendOtp}
+                  disabled={loading || resendCooldown > 0}
+                  className="text-[11px] font-semibold text-teal-400 hover:underline transition disabled:opacity-50 disabled:no-underline"
+                >
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
+                </button>
+                <button
+                  onClick={handleVerifyOtp}
+                  disabled={otpLoading || otpCode.length !== 6}
+                  className="bg-teal-500 hover:bg-teal-600 disabled:bg-teal-500/20 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg flex items-center gap-1.5 shadow active:scale-[0.98] transition cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {otpLoading ? "Verifying..." : "Verify & Continue"}
+                  <ArrowRight size={14} />
+                </button>
+              </div>
             </div>
           </div>
         )}

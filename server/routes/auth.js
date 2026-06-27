@@ -1339,13 +1339,12 @@ router.post("/approve-request", authenticateToken, async (req, res) => {
       { type: "equal", column: "email", value: request.email.toLowerCase().trim() },
     ]);
 
-    const sameFacilityProfile =
-      existingProfiles?.find((profile) => profile.facility_id === request.facility_id) || null;
+    const existingProfile = existingProfiles?.[0] || null;
 
-    if (sameFacilityProfile) {
+    if (existingProfile) {
       await db.updateDocument(
         "profiles",
-        sameFacilityProfile.id,
+        existingProfile.id,
         {
           full_name: request.full_name,
           role: request.requested_role,
@@ -1353,8 +1352,7 @@ router.post("/approve-request", authenticateToken, async (req, res) => {
           access_status: "active",
           suspended_at: null,
           deleted_at: null,
-        },
-        [{ column: "facility_id", value: request.facility_id }]
+        }
       );
     } else {
       await db.createDocument("profiles", profileId, {

@@ -135,9 +135,32 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
     'On-Call': { start: '00:00', end: '23:59' }
   };
   
+  // Get active departments from module config
+  const [activeDepartments, setActiveDepartments] = useState([]);
+  
+  useEffect(() => {
+    const fetchActiveDepts = async () => {
+      try {
+        const { data: moduleData } = await supabase
+          .from('module_config')
+          .select('module_key')
+          .eq('facility_id', user.facility_id)
+          .eq('is_active', true);
+        
+        if (moduleData) {
+          setActiveDepartments(moduleData.map(m => m.module_key));
+        }
+      } catch (err) {
+        console.error('Error fetching active departments:', err);
+      }
+    };
+    
+    fetchActiveDepts();
+  }, [user.facility_id]);
+
   const departments = dbDepartments.length > 0
-    ? dbDepartments.map(d => d.type || d.name.toLowerCase())
-    : ['triage', 'consultation', 'lab', 'pharmacy', 'radiology', 'ward'];
+    ? dbDepartments.map(d => d.type || d.name.toLowerCase()).filter(d => activeDepartments.includes(d))
+    : ['triage', 'consultation', 'lab', 'pharmacy', 'radiology', 'ward'].filter(d => activeDepartments.includes(d));
 
   // Check roles: Duty Roster & Attendance admin tools are only visible to admins, facility_admins, or HR
   const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];

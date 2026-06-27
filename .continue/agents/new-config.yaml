@@ -1,0 +1,20 @@
+{
+  "models":
+    [
+      {
+        "title": "Groq via DigitalOcean",
+        "provider": "openai",
+        "model": "llama-3.1-8b-instant",
+        "apiBase": "http://142.93.109.200:5000",
+        "apiKey": "dummy",
+      },
+    ],
+  "tabAutocompleteModel":
+    {
+      "title": "Groq via DigitalOcean",
+      "provider": "openai",
+      "model": "llama-3.1-8b-instant",
+      "apiBase": "http://142.93.109.200:5000",
+      "apiKey": "dummy",
+    },
+}

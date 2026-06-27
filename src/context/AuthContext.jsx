@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '../supabaseClient';
 
 const AuthContext = createContext(null);
@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
     checkSession();
   }, []);
 
-  const checkSession = async () => {
+  async function checkSession() {
     try {
       const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
       console.log('[AuthContext:checkSession] Supabase session check:', session?.user?.email || 'no session');
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
               setLoading(false);
               return;
             }
-          } catch (e) {
+          } catch {
             // ignore
           }
         }
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }) => {
           if (parsed && parsed.email === session.user.email) {
             userData = parsed;
           }
-        } catch (e) {
+        } catch {
           // ignore parsing error
         }
       }
@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
             return true;
           }
           return false;
-        } catch (e) {
+        } catch {
           return true;
         }
       })();
@@ -274,6 +274,106 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const verifyOtp = async (email, token, type = 'signup', requestedFacilityId = undefined) => {
+    setError('');
+    setLoading(true);
+    console.log('[AuthContext:verifyOtp] ▶ Attempting OTP verification:', email, '| Type:', type);
+    try {
+      if (supabase.isSandbox) {
+        // In sandbox, simulate OTP verification
+        if (token === '123456' || token === sessionStorage.getItem('egesa_health_sandbox_otp')) {
+          const storedName = sessionStorage.getItem('egesa_health_sandbox_pending_name') || email.split('@')[0];
+          let userData = {
+            id: 'u_mock_otp_' + Date.now(),
+            email,
+            name: storedName,
+            full_name: storedName,
+            role: 'staff',
+            facility_is_verified: true
+          };
+          setUser(userData);
+          sessionStorage.setItem('egesa_health_active_user', JSON.stringify(userData));
+          setLoading(false);
+          return { status: 'success', user: userData };
+        } else {
+          throw new Error('Invalid verification code.');
+        }
+      }
+
+      const { data: { session, user: authUser }, error: verifyErr } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type
+      });
+
+      if (verifyErr) throw verifyErr;
+      if (!authUser) throw new Error('OTP verification failed: no user returned');
+
+      const isSuperAdmin = authUser.email && authUser.email.toLowerCase().trim() === 'fredrickmakori102@gmail.com';
+      let userData = {
+        id: authUser.id,
+        email: authUser.email,
+        name: authUser.user_metadata?.full_name || authUser.email,
+        full_name: authUser.user_metadata?.full_name || authUser.email,
+        role: isSuperAdmin ? 'super_admin' : (authUser.user_metadata?.role || 'staff'),
+        facility_is_verified: true
+      };
+
+      // Enrich user profile details from backend if not in sandbox mode
+      if (!supabase.isSandbox && session) {
+        try {
+          console.log('[AuthContext:verifyOtp] Fetching enriched profile from backend...');
+          const activeFacilityId = localStorage.getItem('egesa_active_facility_id');
+          const res = await fetch(`${API_URL}/auth/supabase-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              access_token: session.access_token,
+              facility_id: requestedFacilityId || activeFacilityId || undefined,
+              requestedFacilityId: requestedFacilityId || undefined
+            })
+          });
+
+          if (res.ok) {
+            const resData = await res.json();
+            if (resData.status === 'success') {
+              userData = resData.user;
+              localStorage.setItem('egesa_health_token', resData.token);
+              console.log('[AuthContext:verifyOtp] Enriched profile fetched successfully:', userData.email);
+            } else if (resData.status === 'select_facility') {
+              setLoading(false);
+              return {
+                status: 'select_facility',
+                user: resData.user,
+                profiles: resData.profiles
+              };
+            } else if (resData.status === 'no_profile') {
+              setLoading(false);
+              return {
+                status: 'no_profile',
+                user: userData,
+                pendingRequest: resData.pendingRequest || null
+              };
+            }
+          }
+        } catch (fetchErr) {
+          console.error('[AuthContext:verifyOtp] Failed to fetch profile from backend:', fetchErr.message);
+        }
+      }
+
+      console.log('[AuthContext:verifyOtp] ✅ OTP login successful:', userData.email);
+      setUser(userData);
+      sessionStorage.setItem('egesa_health_active_user', JSON.stringify(userData));
+      setLoading(false);
+      return { status: 'success', user: userData };
+    } catch (err) {
+      console.error('[AuthContext:verifyOtp] ❌ OTP verification error:', err.message);
+      setError(err.message);
+      setLoading(false);
+      throw err;
+    }
+  };
+
   const logout = async () => {
     try {
       await supabase.auth.signOut();
@@ -435,7 +535,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, error, login, signup, logout, submitRoleRequest, authFetch, resolveTenant, inviteStaff, acceptInvite, getInvitations, revokeInvite, checkSession }}>
+    <AuthContext.Provider value={{ user, setUser, loading, error, login, signup, logout, submitRoleRequest, authFetch, resolveTenant, inviteStaff, acceptInvite, getInvitations, revokeInvite, checkSession, verifyOtp }}>
       {children}
     </AuthContext.Provider>
   );

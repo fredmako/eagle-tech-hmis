@@ -16,6 +16,7 @@ import AdminOverview from './admin/AdminOverview';
 import BroadcastPanel from './admin/BroadcastPanel';
 import AdminDelegation from './admin/AdminDelegation';
 import ModulesConfig from './admin/ModulesConfig';
+import DepartmentActivation from './admin/DepartmentActivation';
 import LaboratoryManagement from './admin/LaboratoryManagement';
 import { hasAccess } from '../utils/permissions';
 
@@ -50,6 +51,7 @@ import {
   Globe,
   Check,
   Building,
+  Building2,
   UserCheck,
   Upload,
   Heart,
@@ -1212,6 +1214,31 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
               >
                 <Sliders size={13} /> Modules Config
               </button>
+            {isAdminRole && (
+              <button
+                onClick={() => setActiveSubTab('modules_config')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'modules_config'
+                    ? 'bg-slate-850 border border-slate-705 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Sliders size={13} /> Modules Config
+              </button>
+            )}
+
+            {isAdminRole && (
+              <button
+                onClick={() => setActiveSubTab('department_activation')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                  activeSubTab === 'department_activation'
+                    ? 'bg-slate-850 border border-slate-705 text-teal-400'
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Building2 size={13} /> Dept Activation
+              </button>
+            )}
             )}
 
 
@@ -1418,6 +1445,13 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                   user={user} 
                   onClose={() => setActiveSubTab('overview')} 
                 />
+              {/* TAB: DEPARTMENT ACTIVATION */}
+              {activeSubTab === 'department_activation' && (
+                <DepartmentActivation 
+                  user={user} 
+                  onClose={() => setActiveSubTab('overview')} 
+                />
+              )}
               )}
 
 

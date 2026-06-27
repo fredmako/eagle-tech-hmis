@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import PasswordRecovery from './login/PasswordRecovery';
 import RoleRequestPending from './login/RoleRequestPending';
 import RoleRequestForm from './login/RoleRequestForm';
 
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
-import { sendNotification, getSmtpConfig } from '../notificationService';
-import { Activity, ShieldAlert, CheckCircle, UserPlus, Clock, LogOut, UserCheck, ShieldCheck, Heart, ChevronRight } from 'lucide-react';
+import { sendNotification } from '../notificationService';
+import { Activity, ShieldAlert, CheckCircle, UserCheck, ShieldCheck, Heart, ChevronRight } from 'lucide-react';
 
 export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLanding, lockedFacilityId: propLockedFacilityId }) {
-  const { login, signup, logout, submitRoleRequest, resolveTenant, acceptInvite, checkSession } = useAuth();
+  const { login, logout, submitRoleRequest, resolveTenant, acceptInvite, checkSession, verifyOtp } = useAuth();
   const [facilities, setFacilities] = useState([]);
   const [lockedFacilityId, setLockedFacilityId] = useState(propLockedFacilityId || null);
   const [selectedFacility, setSelectedFacility] = useState('');
@@ -83,6 +83,14 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
   const [enteredCode, setEnteredCode] = useState('');
   const [newPass, setNewPass] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+
+  // OTP Verification states
+  const [showOtpScreen, setShowOtpScreen] = useState(false);
+  const [otpEmail, setOtpEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpType, setOtpType] = useState('signup');
+  const [otpSuccess, setOtpSuccess] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Self-service registration & role request states
   const [isSignUp, setIsSignUp] = useState(false);
@@ -200,7 +208,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         parsedRes = typeof resData.responseBody === 'string' 
           ? JSON.parse(resData.responseBody) 
           : resData.responseBody;
-      } catch (e) {
+      } catch {
         parsedRes = resData.responseBody || {};
       }
 
@@ -576,6 +584,32 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
         setError('Unexpected authentication response. Please contact support.');
       }
     } catch (err) {
+      if (err.message && err.message.toLowerCase().includes('email not confirmed')) {
+        console.log('[Login:handleLogin] User email is unconfirmed. Triggering resend and showing OTP view.');
+        try {
+          if (!supabase.isSandbox) {
+            const { error: resendErr } = await supabase.auth.resend({
+              type: 'signup',
+              email
+            });
+            if (resendErr) throw resendErr;
+          } else {
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            sessionStorage.setItem('egesa_health_sandbox_otp', code);
+            console.log('SIMULATED OTP RESEND DISPATCH:', code);
+            alert(`[Sandbox] Simulated confirmation code is: ${code}`);
+          }
+          setOtpEmail(email);
+          setOtpType('signup');
+          setShowOtpScreen(true);
+          setLoading(false);
+          return;
+        } catch (resendErr) {
+          setError(`Failed to send verification code: ${resendErr.message}`);
+          setLoading(false);
+          return;
+        }
+      }
       const nextFailCount = failedAttempts + 1;
       setFailedAttempts(nextFailCount);
       console.error(`[Login:handleLogin] ❌ Login failed (attempt ${nextFailCount}):`, err.message, err);
@@ -612,24 +646,37 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     setError('');
 
     try {
-      await signup(signUpEmail, signUpPassword, signUpName);
+      if (supabase.isSandbox) {
+        // Sandbox mock signup sends email notification
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        sessionStorage.setItem('egesa_health_sandbox_otp', code);
+        sessionStorage.setItem('egesa_health_sandbox_pending_name', signUpName);
+        sessionStorage.setItem('egesa_health_sandbox_pending_password', signUpPassword);
 
-      // Auto login user after signing up
-      const result = await login(signUpEmail, signUpPassword);
+        await sendNotification('USER_SIGNUP', {
+          recipientEmail: signUpEmail,
+          fullName: signUpName,
+          otpCode: code
+        }, selectedFacility || facilities[0]?.id || 'f1');
 
-      if (result.status === 'no_profile') {
-        if ((result.user?.role && result.user?.role !== 'staff') || signUpEmail.toLowerCase().trim() === 'fredrickmakori102@gmail.com') {
-          console.log('[Login:handleSignUp] Bypass role request (user has assigned role). Redirecting to dashboard.');
-          onLoginSuccess(result.user);
-          return;
-        }
-        setTempUser(result.user);
-        setHasNoProfile(true);
-        setRequestName(signUpName);
-        setRoleRequestFacilityContext(selectedFacility);
-        setPendingRequest(null);
-        setIsSignUp(false); // reset form view
+        alert(`[Sandbox Mode] Simulated confirmation code is: ${code}`);
+      } else {
+        // Real signup with Supabase sends a confirmation email (containing code)
+        const { error: signUpErr } = await supabase.auth.signUp({
+          email: signUpEmail,
+          password: signUpPassword,
+          options: {
+            data: {
+              full_name: signUpName
+            }
+          }
+        });
+        if (signUpErr) throw signUpErr;
       }
+
+      setOtpEmail(signUpEmail);
+      setOtpType('signup');
+      setShowOtpScreen(true);
     } catch (err) {
       setError(err.message || 'Registration failed. Check details.');
     } finally {
@@ -945,8 +992,159 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
     }
   };
 
+  useEffect(() => {
+    let timer;
+    if (resendCooldown > 0) {
+      timer = setTimeout(() => setResendCooldown(prev => prev - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (!otpCode.trim() || !otpEmail) return;
 
+    setLoading(true);
+    setError('');
+    setOtpSuccess('');
+
+    try {
+      const result = await verifyOtp(otpEmail, otpCode.trim(), otpType, selectedFacility || undefined);
+      console.log('[Login:handleVerifyOtp] verifyOtp() resolved with status:', result?.status);
+
+      if (result.status === 'select_facility') {
+        setSelectableProfiles(result.profiles);
+        setLoginStage('select_facility');
+        setShowOtpScreen(false);
+      } else if (result.status === 'no_profile') {
+        setTempUser(result.user);
+        setHasNoProfile(true);
+        setRequestName(result.user.name || signUpName || '');
+        setRoleRequestFacilityContext(selectedFacility);
+        setPendingRequest(result.pendingRequest || null);
+        setShowOtpScreen(false);
+      } else if (result.status === 'success') {
+        onLoginSuccess(result.user);
+      } else {
+        setError('Unexpected verification response. Please contact support.');
+      }
+    } catch (err) {
+      setError(err.message || 'Verification failed. Please check the code and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!otpEmail) return;
+    setLoading(true);
+    setError('');
+    setOtpSuccess('');
+
+    try {
+      if (!supabase.isSandbox) {
+        const { error: resendErr } = await supabase.auth.resend({
+          type: otpType === 'recovery' ? 'recovery' : 'signup',
+          email: otpEmail
+        });
+        if (resendErr) throw resendErr;
+      } else {
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        sessionStorage.setItem('egesa_health_sandbox_otp', code);
+        console.log('SIMULATED OTP RESEND DISPATCH:', code);
+        alert(`[Sandbox Mode] A new simulated OTP code ${code} was dispatched to ${otpEmail}.`);
+      }
+      setOtpSuccess('Verification code resent successfully!');
+      setResendCooldown(60);
+    } catch (err) {
+      setError(err.message || 'Failed to resend verification code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // If OTP screen toggle is active
+  if (showOtpScreen) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans select-none">
+        <div className="w-full max-w-md bg-slate-900 border border-slate-850 rounded-[28px] shadow-2xl p-8 space-y-6 relative overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-teal-500/5 rounded-full blur-[60px] pointer-events-none" />
+          
+          <div className="text-center space-y-2">
+            <div className="inline-flex p-3 bg-teal-500/10 rounded-2xl text-teal-400 mb-2">
+              <Activity size={24} />
+            </div>
+            <h2 className="text-xl font-bold text-slate-100 uppercase tracking-widest">Verify Your Email</h2>
+            <p className="text-xs text-slate-400 leading-normal max-w-[32ch] mx-auto">
+              A 6-digit confirmation OTP was dispatched to <strong className="text-slate-200">{otpEmail}</strong>.
+            </p>
+          </div>
+
+          {error && (
+            <div className="bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg p-3 text-xs flex items-start gap-2">
+              <ShieldAlert size={16} className="shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {otpSuccess && (
+            <div className="bg-green-900/20 border border-green-500/30 text-green-400 rounded-lg p-3 text-xs flex items-start gap-2">
+              <CheckCircle size={16} className="shrink-0 mt-0.5" />
+              <span>{otpSuccess}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-450 uppercase tracking-wider mb-1.5">
+                Enter Verification Code (OTP)
+              </label>
+              <input
+                type="text"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                placeholder="e.g. 123456"
+                maxLength={6}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-slate-100 text-sm font-mono tracking-widest text-center placeholder:text-slate-700 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-semibold text-sm py-2.5 px-4 rounded-lg shadow-lg shadow-teal-500/10 hover:shadow-teal-500/20 active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none"
+            >
+              {loading ? 'Verifying...' : 'Verify & Log In'}
+            </button>
+          </form>
+
+          <div className="flex flex-col gap-2.5 text-center mt-4">
+            <button
+              type="button"
+              onClick={handleResendOtp}
+              disabled={loading || resendCooldown > 0}
+              className="text-[11px] font-semibold text-teal-400 hover:underline transition disabled:opacity-50 disabled:no-underline"
+            >
+              {resendCooldown > 0 ? `Resend Code in ${resendCooldown}s` : 'Resend Verification Code'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowOtpScreen(false);
+                setError('');
+                setOtpSuccess('');
+                setOtpCode('');
+              }}
+              className="text-[11px] font-semibold text-slate-450 hover:text-slate-200 transition"
+            >
+              Back to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // If password recovery toggle is clicked
   if (showRecovery) {

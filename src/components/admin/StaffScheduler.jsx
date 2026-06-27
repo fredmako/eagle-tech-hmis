@@ -137,6 +137,8 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
   
   // Get active departments from module config
   const [activeDepartments, setActiveDepartments] = useState([]);
+  const [roleAllocations, setRoleAllocations] = useState({});
+  const [loadingRoles, setLoadingRoles] = useState(false);
   
   useEffect(() => {
     const fetchActiveDepts = async () => {
@@ -157,6 +159,47 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
     
     fetchActiveDepts();
   }, [user.facility_id]);
+
+  const fetchRoleAllocations = async () => {
+    setLoadingRoles(true);
+    try {
+      const { data, error } = await supabase
+        .from('roster_role_assignments')
+        .select('*, profiles(full_name, role, email)')
+        .eq('facility_id', user.facility_id)
+        .order('department_code');
+
+      if (error) throw error;
+
+      const allocations = {};
+      data.forEach(assignment => {
+        if (!allocations[assignment.department_code]) {
+          allocations[assignment.department_code] = [];
+        }
+        allocations[assignment.department_code].push({
+          id: assignment.id,
+          profileId: assignment.profile_id,
+          name: assignment.profiles?.full_name || 'Unknown',
+          role: assignment.profiles?.role || 'N/A',
+          email: assignment.profiles?.email || '',
+          canManageRoster: assignment.can_manage_roster,
+          canViewRoster: assignment.can_view_roster,
+          canApproveAttendance: assignment.can_approve_attendance
+        });
+      });
+      setRoleAllocations(allocations);
+    } catch (err) {
+      console.error('Error fetching role allocations:', err);
+    } finally {
+      setLoadingRoles(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeSubTab === 'role_allocations') {
+      fetchRoleAllocations();
+    }
+  }, [activeSubTab]);
 
   const departments = dbDepartments.length > 0
     ? dbDepartments.map(d => d.type || d.name.toLowerCase()).filter(d => activeDepartments.includes(d))
@@ -480,6 +523,18 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
               <UserCheck size={13} /> Live Attendance Logs
             </button>
           )}
+          {hasAdminPrivilege && (
+            <button
+              onClick={() => { setActiveSubTab('role_allocations'); fetchRoleAllocations(); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition flex items-center gap-1.5 cursor-pointer ${
+                activeSubTab === 'role_allocations'
+                  ? 'bg-slate-850 border border-slate-700 text-teal-400'
+                  : 'text-slate-450 hover:text-slate-200'
+              }`}
+            >
+              <Users size={13} /> Role Allocations
+            </button>
+          )}
           <button
             onClick={() => setActiveSubTab('clock_widget')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition flex items-center gap-1.5 cursor-pointer ${
@@ -688,6 +743,106 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 2.5 ROLE ALLOCATIONS VIEW */}
+      {activeSubTab === 'role_allocations' && hasAdminPrivilege && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h5 className="text-[11px] font-bold text-slate-350 uppercase tracking-wide">Department Role Allocations</h5>
+              <p className="text-[9.5px] text-slate-500 mt-0.5">Staff members assigned to each department with their permissions</p>
+            </div>
+            <button
+              onClick={fetchRoleAllocations}
+              disabled={loadingRoles}
+              className="p-1 rounded bg-slate-900 border border-slate-850 hover:border-slate-800 text-slate-400 hover:text-white transition"
+            >
+              <RefreshCw size={12} className={loadingRoles ? "animate-spin" : ""} />
+            </button>
+          </div>
+
+          {loadingRoles ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-teal-500 border-t-transparent mx-auto mb-2" />
+              <p className="text-[10px] text-slate-500">Loading role allocations...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.keys(roleAllocations).length === 0 ? (
+                <div className="col-span-full text-center py-12 bg-slate-950/30 border border-slate-850 rounded-xl">
+                  <Users size={24} className="mx-auto text-slate-600 mb-2" />
+                  <p className="text-xs text-slate-500 font-medium">No role allocations found</p>
+                  <p className="text-[10px] text-slate-600 mt-1">Assign staff to departments from Admin → Dept Activation</p>
+                </div>
+              ) : (
+                Object.entries(roleAllocations).map(([deptCode, allocations]) => {
+                  const deptNames = {
+                    reception: 'Reception',
+                    doctors: 'Consultation',
+                    laboratory: 'Laboratory',
+                    pharmacy: 'Pharmacy',
+                    billing: 'Billing',
+                    inpatient: 'Inpatient',
+                    maternity: 'Maternity',
+                    hr: 'HR',
+                    cleaning: 'Cleaning',
+                    security: 'Security',
+                    emergency: 'Emergency Unit',
+                    kitchen: 'Kitchen'
+                  };
+                  const deptName = deptNames[deptCode] || deptCode.toUpperCase();
+
+                  return (
+                    <div key={deptCode} className="bg-slate-950/40 border border-slate-850 rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
+                        <h6 className="text-xs font-bold text-slate-300 uppercase">{deptName}</h6>
+                        <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded-full">
+                          {allocations.length} staff
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {allocations.map(allocation => (
+                          <div key={allocation.id} className="flex items-start justify-between p-2 bg-slate-950/60 rounded-lg border border-slate-850/50 hover:border-slate-800 transition">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded-full bg-slate-800 flex items-center justify-center font-bold text-[10px] text-teal-400 shrink-0">
+                                  {allocation.name.substring(0, 2).toUpperCase()}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-[10px] font-semibold text-slate-200 truncate">{allocation.name}</div>
+                                  <div className="text-[9px] text-slate-500 truncate">{allocation.role} • {allocation.email}</div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex gap-1 ml-2 shrink-0">
+                              {allocation.canManageRoster && (
+                                <span className="text-[8px] font-bold text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded border border-teal-500/20" title="Can manage roster">
+                                  MGR
+                                </span>
+                              )}
+                              {allocation.canViewRoster && (
+                                <span className="text-[8px] font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/20" title="Can view roster">
+                                  VIEW
+                                </span>
+                              )}
+                              {allocation.canApproveAttendance && (
+                                <span className="text-[8px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20" title="Can approve attendance">
+                                  APPR
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
         </div>
       )}
 

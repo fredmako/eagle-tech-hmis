@@ -160,7 +160,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
 
   const departments = dbDepartments.length > 0
     ? dbDepartments.map(d => d.type || d.name.toLowerCase()).filter(d => activeDepartments.includes(d))
-    : ['triage', 'consultation', 'lab', 'pharmacy', 'radiology', 'ward'].filter(d => activeDepartments.includes(d));
+    : ['triage', 'consultation', 'lab', 'pharmacy', 'radiology', 'ward', 'cleaning', 'security', 'emergency', 'kitchen'].filter(d => activeDepartments.includes(d));
 
   // Check roles: Duty Roster & Attendance admin tools are only visible to admins, facility_admins, or HR
   const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];

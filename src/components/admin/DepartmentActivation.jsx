@@ -11,6 +11,10 @@ const DEPTS = [
   { key: 'inpatient', name: 'Inpatient', desc: 'Ward care' },
   { key: 'maternity', name: 'Maternity', desc: 'Maternal care' },
   { key: 'hr', name: 'HR', desc: 'Staff management' },
+  { key: 'cleaning', name: 'Cleaning', desc: 'Sanitation services' },
+  { key: 'security', name: 'Security', desc: 'Facility security' },
+  { key: 'emergency', name: 'Emergency Unit', desc: 'Emergency services' },
+  { key: 'kitchen', name: 'Kitchen', desc: 'Nutrition services' },
 ];
 
 export default function DepartmentActivation({ user, onClose }) {

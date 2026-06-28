@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { sendNotification } from "../notificationService";
+import { useAuth } from "../context/AuthContext";
+
 import {
   Activity,
   Building2,

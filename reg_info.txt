@@ -1,0 +1,48 @@
+7: const [searchQuery, setSearchQuery] = useState('');
+8: const [searchResults, setSearchResults] = useState([]);
+9: const [searched, setSearched] = useState(false);
+10: const [searching, setSearching] = useState(false);
+13: const [searchId, setSearchId] = useState('');
+14: const [firstName, setFirstName] = useState('');
+15: const [middleName, setMiddleName] = useState('');
+16: const [lastName, setLastName] = useState('');
+17: const [idNumber, setIdNumber] = useState('');
+18: const [gender, setGender] = useState('male');
+19: const [title, setTitle] = useState('');
+20: const [telephone, setTelephone] = useState('');
+21: const [altTelephone, setAltTelephone] = useState('');
+22: const [age, setAge] = useState('');
+23: const [dob, setDob] = useState('');
+24: const [village, setVillage] = useState('');
+25: const [location, setLocation] = useState('');
+26: const [ward, setWard] = useState('');
+27: const [email, setEmail] = useState('');
+28: const [nearestSchool, setNearestSchool] = useState('');
+29: const [isIncomingReferral, setIsIncomingReferral] = useState('');
+30: const [nokName, setNokName] = useState('');
+31: const [nokPhone, setNokPhone] = useState('');
+32: const [nokRelation, setNokRelation] = useState('spouse');
+33: const [servicePoint, setServicePoint] = useState('');
+34: const [serviceRoom, setServiceRoom] = useState('');
+35: const [serviceProvider, setServiceProvider] = useState('');
+36: const [specialist, setSpecialist] = useState('');
+37: const [payments, setPayments] = useState('');
+38: const [preferredPayment, setPreferredPayment] = useState('');
+39: const [servicePointFee, setServicePointFee] = useState([]);
+40: const [consent, setConsent] = useState(true);
+41: const [autoCheckin, setAutoCheckin] = useState(true);
+42: const [shaNumber, setShaNumber] = useState('');
+43: const [shaStatus, setShaStatus] = useState('unverified');
+44: const [verifyingSha, setVerifyingSha] = useState(false);
+45: const [activeTab, setActiveTab] = useState('search');
+46: const [admissions, setAdmissions] = useState([]);
+47: const [loadingAdmissions, setLoadingAdmissions] = useState(false);
+90: const [message, setMessage] = useState({ type: '', text: '' });
+91: const [loading, setLoading] = useState(false);
+143: const [timelineData, setTimelineData] = useState([]);
+144: const [loadingTimeline, setLoadingTimeline] = useState(false);
+145: const [expandedTimelinePtId, setExpandedTimelinePtId] = useState(null);
+567: <form onSubmit={handleSearch} className="flex gap-2">
+567: <form onSubmit={handleSearch} className="flex gap-2">
+819: <form onSubmit={handleRegister} className="space-y-5">
+819: <form onSubmit={handleRegister} className="space-y-5">

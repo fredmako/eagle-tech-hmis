@@ -811,13 +811,6 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
           >
             System Security Audit Trail
           </button>
-            <span>Support Queries</span>
-            {supportTickets.filter(t => t.status === 'pending').length > 0 && (
-              <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25 animate-pulse">
-                {supportTickets.filter(t => t.status === 'pending').length}
-              </span>
-            )}
-          </button>
           <button
             onClick={() => switchTab('users')}
             className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition ${
@@ -856,7 +849,7 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
 
           <button
             onClick={() => switchTab('knowledge')}
-            className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${{
+            className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${
               activeTab === 'knowledge' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -1231,9 +1224,10 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
             })()}
           </div>
         ) : activeTab === 'demo' ? (
-          /* DEMO PROSPECTS PANEL */
-          <div className="space-y-4 animate-fadeIn font-sans">
-            <div className="bg-slate-900 border border-slate-850 rounded-2xl shadow-xl overflow-hidden">
+          <>
+            <div className="space-y-4 animate-fadeIn font-sans">
+              {/* DEMO PROSPECTS PANEL */}
+              <div className="bg-slate-900 border border-slate-850 rounded-2xl shadow-xl overflow-hidden">
               <div className="p-4 border-b border-slate-850 flex justify-between items-center bg-slate-950/25">
                 <div>
                   <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider">Demo Prospects & Bookings</h3>
@@ -1334,10 +1328,10 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
                   </tbody>
                 </table>
               </div>
+              </div>
             </div>
-          </div>
-          /* PLATFORM USERS PANEL */
-          <div className="bg-slate-900 border border-slate-850 rounded-2xl overflow-hidden shadow-lg animate-fadeIn">
+            <div className="bg-slate-900 border border-slate-850 rounded-2xl overflow-hidden shadow-lg animate-fadeIn">
+              {/* PLATFORM USERS PANEL */}
             <div className="p-5 border-b border-slate-850">
               <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
                 Platform Users Directory
@@ -1419,6 +1413,7 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
               </table>
             </div>
           </div>
+          </>
         ) : activeTab === 'knowledge' ? (
           <KnowledgeBasePanel />
         ) : (

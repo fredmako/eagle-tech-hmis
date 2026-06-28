@@ -1,99 +1,141 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
-import { visibleOfferedServices } from '../../utils/facilityServices';
-import { 
-  PhoneCall, ShieldCheck, ArrowRight, UserPlus,
-  LogIn, Award, MapPin, Heart, Activity,
-  Sparkles, Stethoscope, Search, Mail, Key, MessageSquare, X
-} from 'lucide-react';
+import { useState, useEffect } from "react";
+import { supabase } from "../../supabaseClient";
+import { visibleOfferedServices } from "../../utils/facilityServices";
+import {
+  PhoneCall,
+  ShieldCheck,
+  ArrowRight,
+  UserPlus,
+  LogIn,
+  Award,
+  MapPin,
+  Heart,
+  Activity,
+  Sparkles,
+  Stethoscope,
+  Search,
+  Mail,
+  Key,
+  MessageSquare,
+  X,
+} from "lucide-react";
 
 export default function FacilityLandingPage() {
-  const hostnameParts = window.location.hostname.split('.');
-  const isSubdomain = hostnameParts.length > 2 && hostnameParts[0] !== 'www' && !window.location.hostname.includes('localhost') && !window.location.hostname.match(/^[0-9.]+$/);
-  
+  const hostnameParts = window.location.hostname.split(".");
+  const isSubdomain =
+    hostnameParts.length > 2 &&
+    hostnameParts[0] !== "www" &&
+    !window.location.hostname.includes("localhost") &&
+    !window.location.hostname.match(/^[0-9.]+$/);
+
   let subdomain = null;
   if (isSubdomain) {
     subdomain = hostnameParts[0];
   } else {
-    const pathParts = window.location.pathname.split('/');
-    const hospitalIndex = pathParts.indexOf('hospital');
-    subdomain = hospitalIndex !== -1 && pathParts[hospitalIndex + 1] ? pathParts[hospitalIndex + 1] : null;
+    const pathParts = window.location.pathname.split("/");
+    const hospitalIndex = pathParts.indexOf("hospital");
+    subdomain =
+      hospitalIndex !== -1 && pathParts[hospitalIndex + 1]
+        ? pathParts[hospitalIndex + 1]
+        : null;
   }
   const [facility, setFacility] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Search & Category states for landing templates
-  const [serviceSearch, setServiceSearch] = useState('');
-  const [activeCategoryTab, setActiveCategoryTab] = useState('All');
+  const [serviceSearch, setServiceSearch] = useState("");
+  const [activeCategoryTab, setActiveCategoryTab] = useState("All");
 
   // Patient Login & Register Card States
   const [isLoginTab, setIsLoginTab] = useState(true);
   const [isStaffLogin, setIsStaffLogin] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [dob, setDob] = useState('');
-  const [gender, setGender] = useState('female');
-  const [phone, setPhone] = useState('');
-  const [authError, setAuthError] = useState('');
-  const [authSuccess, setAuthSuccess] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState("female");
+  const [phone, setPhone] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authSuccess, setAuthSuccess] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
   // Support / Inquiry Form States
-  const [supportName, setSupportName] = useState('');
-  const [supportEmail, setSupportEmail] = useState('');
-  const [supportSubject, setSupportSubject] = useState('General Inquiry');
-  const [supportMessage, setSupportMessage] = useState('');
+  const [supportName, setSupportName] = useState("");
+  const [supportEmail, setSupportEmail] = useState("");
+  const [supportSubject, setSupportSubject] = useState("General Inquiry");
+  const [supportMessage, setSupportMessage] = useState("");
   const [supportLoading, setSupportLoading] = useState(false);
-  const [supportSuccess, setSupportSuccess] = useState('');
-  const [supportError, setSupportError] = useState('');
+  const [supportSuccess, setSupportSuccess] = useState("");
+  const [supportError, setSupportError] = useState("");
 
   // Public Booking Modal States
   const [showPublicBookingModal, setShowPublicBookingModal] = useState(false);
 
   // Chatbot states
   const [chatOpen, setChatOpen] = useState(false);
-  const [chatInput, setChatInput] = useState('');
+  const [chatInput, setChatInput] = useState("");
   const [chatTyping, setChatTyping] = useState(false);
-  const [chatSessionId, setChatSessionId] = useState(() => `public_chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+  const [chatSessionId, setChatSessionId] = useState(
+    () => `public_chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  );
   const [chatEscalation, setChatEscalation] = useState(null);
   const Date = globalThis.Date;
   const [chatMessages, setChatMessages] = useState([
-    { sender: 'bot', text: `Hi there! I am your automated clinic assistant. Ask me anything about our medical packages, services pricing, opening hours, or appointments!` }
+    {
+      sender: "bot",
+      text: `Hi there! I am your automated clinic assistant. Ask me anything about our medical packages, services pricing, opening hours, or appointments!`,
+    },
   ]);
 
   const handleChatSend = async (text) => {
     if (!text.trim()) return;
 
     const normalized = text.trim();
-    setChatMessages(prev => [...prev, { sender: 'user', text: normalized }]);
-    setChatInput('');
+    setChatMessages((prev) => [...prev, { sender: "user", text: normalized }]);
+    setChatInput("");
     setChatTyping(true);
     setChatEscalation(null);
 
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const apiBase =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const history = chatMessages.slice(-14);
       const res = await fetch(`${apiBase}/ai-chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: normalized, sessionId: chatSessionId, history })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: normalized,
+          sessionId: chatSessionId,
+          history,
+        }),
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'AI chat failed');
+        throw new Error(data.error || "AI chat failed");
       }
 
       const data = await res.json();
-      const reply = data.response || data.error || 'I received an empty response from the assistant.';
+      const reply =
+        data.response ||
+        data.error ||
+        "I received an empty response from the assistant.";
       if (data.sessionId) setChatSessionId(data.sessionId);
-      setChatMessages(prev => [...prev, { sender: 'bot', text: reply }]);
+      setChatMessages((prev) => [...prev, { sender: "bot", text: reply }]);
 
-      const lowConfidence = /not sure|cannot answer|unable to|don't have that information|please contact support|submit a support ticket/i.test(reply || '');
+      const lowConfidence =
+        /not sure|cannot answer|unable to|don't have that information|please contact support|submit a support ticket/i.test(
+          reply || "",
+        );
       if (lowConfidence) setChatEscalation(normalized);
     } catch (err) {
-      setChatMessages(prev => [...prev, { sender: 'bot', text: 'Sorry, I am having trouble connecting right now. Please try again later or send us a message through the inquiry form.' }]);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "Sorry, I am having trouble connecting right now. Please try again later or send us a message through the inquiry form.",
+        },
+      ]);
       setChatEscalation(normalized);
     } finally {
       setChatTyping(false);
@@ -103,43 +145,59 @@ export default function FacilityLandingPage() {
   const handleChatCreateTicket = async () => {
     if (!chatEscalation) return;
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const lastBot = [...chatMessages].reverse().find(m => m.sender === 'bot');
+      const apiBase =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const lastBot = [...chatMessages]
+        .reverse()
+        .find((m) => m.sender === "bot");
       const res = await fetch(`${apiBase}/support-chat-ticket`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           subject: chatEscalation.slice(0, 80),
           description: `${chatEscalation}
 
-Bot reply: ${lastBot?.text || ''}`,
-          contact_email: '',
+Bot reply: ${lastBot?.text || ""}`,
+          contact_email: "",
           facility_id: null,
-        })
+        }),
       });
       const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Ticket creation failed');
-      setChatMessages(prev => [...prev, { sender: 'bot', text: 'I've created a support ticket for you. Our team will follow up shortly.' }]);
+      if (!res.ok || data.error)
+        throw new Error(data.error || "Ticket creation failed");
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "I've created a support ticket for you. Our team will follow up shortly.",
+        },
+      ]);
       setChatEscalation(null);
     } catch (err) {
-      setChatMessages(prev => [...prev, { sender: 'bot', text: 'I couldn't submit the support ticket just now. Please use the support form instead.' }]);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "I couldn't submit the support ticket just now. Please use the support form instead.",
+        },
+      ]);
     }
   };
   const [facilityDoctors, setFacilityDoctors] = useState([]);
-  const [selectedDoctorId, setSelectedDoctorId] = useState('');
+  const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [bookingDate, setBookingDate] = useState(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
+    return tomorrow.toISOString().split("T")[0];
   });
   const [availableSlots, setAvailableSlots] = useState([]);
-  const [selectedSlot, setSelectedSlot] = useState('');
-  const [bookingNotes, setBookingNotes] = useState('');
+  const [selectedSlot, setSelectedSlot] = useState("");
+  const [bookingNotes, setBookingNotes] = useState("");
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
-  const [patientName, setPatientName] = useState('');
-  const [patientPhone, setPatientPhone] = useState('');
-  const [patientEmail, setPatientEmail] = useState('');
+  const [patientName, setPatientName] = useState("");
+  const [patientPhone, setPatientPhone] = useState("");
+  const [patientEmail, setPatientEmail] = useState("");
 
   useEffect(() => {
     if (facility) {
@@ -154,38 +212,56 @@ Bot reply: ${lastBot?.text || ''}`,
   }, [selectedDoctorId, bookingDate, showPublicBookingModal]);
 
   const getDayName = (dateStr) => {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const days = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
     const d = new Date(dateStr);
     return days[d.getDay()];
   };
 
   const fetchFacilityDoctors = async (facilityId) => {
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const apiBase =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const res = await fetch(`${apiBase}/db/query`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          table: 'profiles',
-          queries: [{ type: 'equal', column: 'facility_id', value: facilityId }]
-        })
+          table: "profiles",
+          queries: [
+            { type: "equal", column: "facility_id", value: facilityId },
+          ],
+        }),
       });
 
       const body = await res.json();
       if (res.ok && body.data) {
-        const filteredDocs = body.data.filter(p => {
-          const r = (p.role || '').toLowerCase();
-          return r.includes('clinician') || r.includes('doctor') || r.includes('admin') || r.includes('nurse');
-        }).map(p => ({
-          id: p.id,
-          name: p.full_name || 'Anonymous Doctor',
-          specialty: p.department || 'General Practice'
-        }));
+        const filteredDocs = body.data
+          .filter((p) => {
+            const r = (p.role || "").toLowerCase();
+            return (
+              r.includes("clinician") ||
+              r.includes("doctor") ||
+              r.includes("admin") ||
+              r.includes("nurse")
+            );
+          })
+          .map((p) => ({
+            id: p.id,
+            name: p.full_name || "Anonymous Doctor",
+            specialty: p.department || "General Practice",
+          }));
         setFacilityDoctors(filteredDocs);
         if (filteredDocs.length > 0) setSelectedDoctorId(filteredDocs[0].id);
       }
     } catch (err) {
-      console.error('Error fetching facility doctors:', err);
+      console.error("Error fetching facility doctors:", err);
     }
   };
 
@@ -194,34 +270,36 @@ Bot reply: ${lastBot?.text || ''}`,
     setLoadingSlots(true);
     try {
       const dayName = getDayName(dateStr);
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const apiBase =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
       // 1. Fetch doctor availability config
       const availRes = await fetch(`${apiBase}/db/query`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          table: 'doctor_availability',
+          table: "doctor_availability",
           queries: [
-            { type: 'equal', column: 'doctor_id', value: docId },
-            { type: 'equal', column: 'day_of_week', value: dayName }
-          ]
-        })
+            { type: "equal", column: "doctor_id", value: docId },
+            { type: "equal", column: "day_of_week", value: dayName },
+          ],
+        }),
       });
       const availBody = await availRes.json();
-      const avail = availBody.data && availBody.data.length > 0 ? availBody.data[0] : null;
+      const avail =
+        availBody.data && availBody.data.length > 0 ? availBody.data[0] : null;
 
       // 2. Fetch existing appointments
       const apptRes = await fetch(`${apiBase}/db/query`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          table: 'appointments',
+          table: "appointments",
           queries: [
-            { type: 'equal', column: 'doctor_id', value: docId },
-            { type: 'equal', column: 'appointment_date', value: dateStr }
-          ]
-        })
+            { type: "equal", column: "doctor_id", value: docId },
+            { type: "equal", column: "appointment_date", value: dateStr },
+          ],
+        }),
       });
       const apptBody = await apptRes.json();
       const booked = apptBody.data || [];
@@ -233,11 +311,11 @@ Bot reply: ${lastBot?.text || ''}`,
       if (avail) {
         isAvailable = avail.is_available;
         try {
-          startHour = parseInt(avail.start_time.split(':')[0], 10);
-          endHour = parseInt(avail.end_time.split(':')[0], 10);
-        } catch(e) {}
+          startHour = parseInt(avail.start_time.split(":")[0], 10);
+          endHour = parseInt(avail.end_time.split(":")[0], 10);
+        } catch (e) {}
       } else {
-        if (dayName === 'Saturday' || dayName === 'Sunday') {
+        if (dayName === "Saturday" || dayName === "Sunday") {
           isAvailable = false;
         }
       }
@@ -250,8 +328,8 @@ Bot reply: ${lastBot?.text || ''}`,
 
       const slots = [];
       const bookedTimes = booked
-        .filter(b => b.status !== 'cancelled')
-        .map(b => b.start_time.substring(0, 5));
+        .filter((b) => b.status !== "cancelled")
+        .map((b) => b.start_time.substring(0, 5));
 
       for (let h = startHour; h < endHour; h++) {
         const hh = h < 10 ? `0${h}:00` : `${h}:00`;
@@ -263,7 +341,7 @@ Bot reply: ${lastBot?.text || ''}`,
       setAvailableSlots(slots);
       if (slots.length > 0) setSelectedSlot(slots[0]);
     } catch (err) {
-      console.error('Error fetching slots:', err);
+      console.error("Error fetching slots:", err);
     } finally {
       setLoadingSlots(false);
     }
@@ -275,7 +353,8 @@ Bot reply: ${lastBot?.text || ''}`,
 
     setBookingLoading(true);
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const apiBase =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const newApp = {
         id: `app_${Date.now()}`,
         facility_id: facility.id,
@@ -285,7 +364,7 @@ Bot reply: ${lastBot?.text || ''}`,
         appointment_date: bookingDate,
         start_time: selectedSlot,
         notes: bookingNotes.trim(),
-        status: 'booked'
+        status: "booked",
       };
 
       if (patientEmail.trim()) {
@@ -293,31 +372,34 @@ Bot reply: ${lastBot?.text || ''}`,
       }
 
       const res = await fetch(`${apiBase}/db/insert`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          table: 'appointments',
-          rows: newApp
-        })
+          table: "appointments",
+          rows: newApp,
+        }),
       });
 
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || 'Failed to request appointment.');
+      if (!res.ok)
+        throw new Error(body.error || "Failed to request appointment.");
 
-      setAuthSuccess(`Slot reserved! Your appointment has been booked for ${bookingDate} at ${selectedSlot}.`);
+      setAuthSuccess(
+        `Slot reserved! Your appointment has been booked for ${bookingDate} at ${selectedSlot}.`,
+      );
       setShowPublicBookingModal(false);
-      setPatientName('');
-      setPatientPhone('');
-      setPatientEmail('');
-      setBookingNotes('');
+      setPatientName("");
+      setPatientPhone("");
+      setPatientEmail("");
+      setBookingNotes("");
       setTimeout(() => {
-        setAuthSuccess('');
+        setAuthSuccess("");
       }, 5000);
     } catch (err) {
-      console.error('Error booking appointment:', err);
-      setAuthError(err.message || 'Failed to request appointment.');
+      console.error("Error booking appointment:", err);
+      setAuthError(err.message || "Failed to request appointment.");
       setTimeout(() => {
-        setAuthError('');
+        setAuthError("");
       }, 5000);
     } finally {
       setBookingLoading(false);
@@ -331,13 +413,13 @@ Bot reply: ${lastBot?.text || ''}`,
   const fetchFacilityDetails = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('facilities').select('*');
+      let query = supabase.from("facilities").select("*");
       if (subdomain) {
-        query = query.eq('subdomain_prefix', subdomain);
+        query = query.eq("subdomain_prefix", subdomain);
       } else {
-        query = query.eq('id', 'f1'); // Default to Egesa Medical Clinic
+        query = query.eq("id", "f1"); // Default to Egesa Medical Clinic
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
 
@@ -345,68 +427,79 @@ Bot reply: ${lastBot?.text || ''}`,
         setFacility(data[0]);
       } else {
         // Fallback default
-        const { data: fallback } = await supabase.from('facilities').select('*').eq('id', 'f1');
+        const { data: fallback } = await supabase
+          .from("facilities")
+          .select("*")
+          .eq("id", "f1");
         if (fallback) setFacility(fallback[0]);
       }
     } catch (err) {
-      console.error('Error fetching landing details:', err);
+      console.error("Error fetching landing details:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignIn = async (preferredRole = isStaffLogin ? 'staff' : 'patient') => {
+  const handleGoogleSignIn = async (
+    preferredRole = isStaffLogin ? "staff" : "patient",
+  ) => {
     setAuthLoading(true);
-    setAuthError('');
-    setAuthSuccess('');
+    setAuthError("");
+    setAuthSuccess("");
     try {
-      const googleAuthIntent = preferredRole === 'staff' ? 'staff' : 'patient';
-      sessionStorage.setItem('egesa_google_auth_intent', googleAuthIntent);
+      const googleAuthIntent = preferredRole === "staff" ? "staff" : "patient";
+      sessionStorage.setItem("egesa_google_auth_intent", googleAuthIntent);
 
       if (supabase.isSandbox) {
-        if (googleAuthIntent === 'patient') {
+        if (googleAuthIntent === "patient") {
           const mockUser = {
-            id: 'u_mock_google_patient',
-            email: 'patient.google@eagletechsolutions.tech',
-            name: 'Google Patient User',
-            role: 'patient',
-            facility_id: facility.id
+            id: "u_mock_google_patient",
+            email: "patient.google@eagletechsolutions.tech",
+            name: "Google Patient User",
+            role: "patient",
+            facility_id: facility.id,
           };
-          localStorage.setItem('egesa_health_token', 'mock_google_token');
-          localStorage.setItem('egesa_health_user', JSON.stringify(mockUser));
-          localStorage.setItem('egesa_active_facility_id', facility.id);
-          sessionStorage.setItem('egesa_health_token', 'mock_google_token');
-          sessionStorage.setItem('egesa_health_active_user', JSON.stringify(mockUser));
-          setAuthSuccess('Redirecting to Patient Portal...');
+          localStorage.setItem("egesa_health_token", "mock_google_token");
+          localStorage.setItem("egesa_health_user", JSON.stringify(mockUser));
+          localStorage.setItem("egesa_active_facility_id", facility.id);
+          sessionStorage.setItem("egesa_health_token", "mock_google_token");
+          sessionStorage.setItem(
+            "egesa_health_active_user",
+            JSON.stringify(mockUser),
+          );
+          setAuthSuccess("Redirecting to Patient Portal...");
           setTimeout(() => {
-            window.location.href = '/patient-portal';
+            window.location.href = "/patient-portal";
           }, 1000);
         } else {
           const mockUser = {
-            id: 'u_mock_google_staff',
-            email: 'staff.google@eagletechsolutions.tech',
-            name: 'Google Staff User',
-            role: 'doctor',
-            facility_id: facility.id
+            id: "u_mock_google_staff",
+            email: "staff.google@eagletechsolutions.tech",
+            name: "Google Staff User",
+            role: "doctor",
+            facility_id: facility.id,
           };
-          localStorage.setItem('egesa_health_token', 'mock_google_token');
-          localStorage.setItem('egesa_health_user', JSON.stringify(mockUser));
-          localStorage.setItem('egesa_active_facility_id', facility.id);
-          sessionStorage.setItem('egesa_health_token', 'mock_google_token');
-          sessionStorage.setItem('egesa_health_active_user', JSON.stringify(mockUser));
-          setAuthSuccess('Redirecting to Staff Workspace...');
+          localStorage.setItem("egesa_health_token", "mock_google_token");
+          localStorage.setItem("egesa_health_user", JSON.stringify(mockUser));
+          localStorage.setItem("egesa_active_facility_id", facility.id);
+          sessionStorage.setItem("egesa_health_token", "mock_google_token");
+          sessionStorage.setItem(
+            "egesa_health_active_user",
+            JSON.stringify(mockUser),
+          );
+          setAuthSuccess("Redirecting to Staff Workspace...");
           setTimeout(() => {
-            window.location.href = '/';
+            window.location.href = "/";
           }, 1000);
         }
       } else {
-        sessionStorage.setItem('egesa_health_pending_facility', facility.id);
-        sessionStorage.setItem('egesa_google_auth_intent', googleAuthIntent);
-        localStorage.setItem('egesa_active_facility_id', facility.id);
-        sessionStorage.setItem('egesa_google_auth_facility_redirect', 'true');
-        
+        sessionStorage.setItem("egesa_health_pending_facility", facility.id);
+        sessionStorage.setItem("egesa_google_auth_intent", googleAuthIntent);
+        localStorage.setItem("egesa_active_facility_id", facility.id);
+        sessionStorage.setItem("egesa_google_auth_facility_redirect", "true");
+
         const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
+          provider: "google",
           options: {
             redirectTo: `${window.location.origin}/auth/callback`,
           },
@@ -414,7 +507,7 @@ Bot reply: ${lastBot?.text || ''}`,
         if (error) throw error;
       }
     } catch (err) {
-      setAuthError(err.message || 'Google Login failed.');
+      setAuthError(err.message || "Google Login failed.");
     } finally {
       setAuthLoading(false);
     }
@@ -423,95 +516,145 @@ Bot reply: ${lastBot?.text || ''}`,
   useEffect(() => {
     const checkGoogleSession = async () => {
       if (facility?.id) {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (session && session.user) {
-          const localUserStr = localStorage.getItem('egesa_health_user');
+          const localUserStr = localStorage.getItem("egesa_health_user");
           if (!localUserStr) {
             setAuthLoading(true);
             try {
-              const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+              const apiBase =
+                import.meta.env.VITE_API_URL || "http://localhost:5000/api";
               const res = await fetch(`${apiBase}/auth/supabase-login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   access_token: session.access_token,
-                  requestedFacilityId: facility.id
-                })
+                  requestedFacilityId: facility.id,
+                }),
               });
-              
+
               const resData = await res.json();
               if (res.ok) {
-                if (resData.status === 'success') {
-                  sessionStorage.removeItem('egesa_google_auth_intent');
-                  localStorage.setItem('egesa_health_token', resData.token);
-                  localStorage.setItem('egesa_health_user', JSON.stringify(resData.user));
-                  localStorage.setItem('egesa_active_facility_id', resData.user.facility_id || '');
-                  sessionStorage.setItem('egesa_health_token', resData.token);
-                  sessionStorage.setItem('egesa_health_active_user', JSON.stringify(resData.user));
-                  
-                  setAuthSuccess('Logged in successfully!');
+                if (resData.status === "success") {
+                  sessionStorage.removeItem("egesa_google_auth_intent");
+                  localStorage.setItem("egesa_health_token", resData.token);
+                  localStorage.setItem(
+                    "egesa_health_user",
+                    JSON.stringify(resData.user),
+                  );
+                  localStorage.setItem(
+                    "egesa_active_facility_id",
+                    resData.user.facility_id || "",
+                  );
+                  sessionStorage.setItem("egesa_health_token", resData.token);
+                  sessionStorage.setItem(
+                    "egesa_health_active_user",
+                    JSON.stringify(resData.user),
+                  );
+
+                  setAuthSuccess("Logged in successfully!");
                   setTimeout(() => {
-                    if (resData.user.role === 'patient') {
-                      window.location.href = '/patient-portal';
+                    if (resData.user.role === "patient") {
+                      window.location.href = "/patient-portal";
                     } else {
-                      window.location.href = '/';
+                      window.location.href = "/";
                     }
                   }, 1000);
-                } else if (resData.status === 'no_profile') {
-                  const authIntent = sessionStorage.getItem('egesa_google_auth_intent') || 'patient';
-                  if (authIntent === 'staff') {
-                    sessionStorage.removeItem('egesa_google_auth_intent');
+                } else if (resData.status === "no_profile") {
+                  const authIntent =
+                    sessionStorage.getItem("egesa_google_auth_intent") ||
+                    "patient";
+                  if (authIntent === "staff") {
+                    sessionStorage.removeItem("egesa_google_auth_intent");
                     await supabase.auth.signOut().catch(() => {});
-                    setAuthError('No staff profile is linked to this Google account yet. Please use a staff invite or ask an administrator to assign your role before signing in with Google.');
+                    setAuthError(
+                      "No staff profile is linked to this Google account yet. Please use a staff invite or ask an administrator to assign your role before signing in with Google.",
+                    );
                     return;
                   }
                   try {
-                    const patientRes = await fetch(`${apiBase}/auth/patient/signup`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        email: session.user.email,
-                        password: 'google_oauth_bypass_pass_' + Math.random().toString(36),
-                        name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
-                        dob: '2000-01-01',
-                        gender: 'female',
-                        facilityId: facility.id,
-                        phone: ''
-                      })
-                    });
-                    
+                    const patientRes = await fetch(
+                      `${apiBase}/auth/patient/signup`,
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          email: session.user.email,
+                          password:
+                            "google_oauth_bypass_pass_" +
+                            Math.random().toString(36),
+                          name:
+                            session.user.user_metadata?.full_name ||
+                            session.user.email.split("@")[0],
+                          dob: "2000-01-01",
+                          gender: "female",
+                          facilityId: facility.id,
+                          phone: "",
+                        }),
+                      },
+                    );
+
                     const signUpBody = await patientRes.json();
-                    if (!patientRes.ok) throw new Error(signUpBody.error || 'Auto-signup failed.');
-                    
-                    const retryRes = await fetch(`${apiBase}/auth/supabase-login`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        access_token: session.access_token,
-                        requestedFacilityId: facility.id
-                      })
-                    });
+                    if (!patientRes.ok)
+                      throw new Error(
+                        signUpBody.error || "Auto-signup failed.",
+                      );
+
+                    const retryRes = await fetch(
+                      `${apiBase}/auth/supabase-login`,
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          access_token: session.access_token,
+                          requestedFacilityId: facility.id,
+                        }),
+                      },
+                    );
                     const retryData = await retryRes.json();
-                    if (retryRes.ok && retryData.status === 'success') {
-                      localStorage.setItem('egesa_health_token', retryData.token);
-                      localStorage.setItem('egesa_health_user', JSON.stringify(retryData.user));
-                      localStorage.setItem('egesa_active_facility_id', retryData.user.facility_id || '');
-                      sessionStorage.setItem('egesa_health_token', retryData.token);
-                      sessionStorage.setItem('egesa_health_active_user', JSON.stringify(retryData.user));
-                      
-                      setAuthSuccess('Account registered successfully with Google!');
+                    if (retryRes.ok && retryData.status === "success") {
+                      localStorage.setItem(
+                        "egesa_health_token",
+                        retryData.token,
+                      );
+                      localStorage.setItem(
+                        "egesa_health_user",
+                        JSON.stringify(retryData.user),
+                      );
+                      localStorage.setItem(
+                        "egesa_active_facility_id",
+                        retryData.user.facility_id || "",
+                      );
+                      sessionStorage.setItem(
+                        "egesa_health_token",
+                        retryData.token,
+                      );
+                      sessionStorage.setItem(
+                        "egesa_health_active_user",
+                        JSON.stringify(retryData.user),
+                      );
+
+                      setAuthSuccess(
+                        "Account registered successfully with Google!",
+                      );
                       setTimeout(() => {
-                        window.location.href = '/patient-portal';
+                        window.location.href = "/patient-portal";
                       }, 1000);
                     } else {
-                      throw new Error(retryData.error || 'Failed to initialize session.');
+                      throw new Error(
+                        retryData.error || "Failed to initialize session.",
+                      );
                     }
                   } catch (err) {
-                    setAuthError('Google registration failed: ' + err.message);
+                    setAuthError("Google registration failed: " + err.message);
                   }
                 }
               } else {
-                setAuthError(resData.error || 'OAuth session initialization failed.');
+                setAuthError(
+                  resData.error || "OAuth session initialization failed.",
+                );
               }
             } catch (err) {
               setAuthError(err.message);
@@ -522,42 +665,53 @@ Bot reply: ${lastBot?.text || ''}`,
         }
       }
     };
-    
+
     checkGoogleSession();
   }, [facility]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthLoading(true);
-    setAuthError('');
-    setAuthSuccess('');
+    setAuthError("");
+    setAuthSuccess("");
 
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const apiBase =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const res = await fetch(`${apiBase}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, requestedFacilityId: facility?.id })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          requestedFacilityId: facility?.id,
+        }),
       });
 
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || 'Login failed.');
+      if (!res.ok) throw new Error(body.error || "Login failed.");
 
-      localStorage.setItem('egesa_health_token', body.token);
-      localStorage.setItem('egesa_health_user', JSON.stringify(body.user));
-      localStorage.setItem('egesa_active_facility_id', body.user.facility_id || '');
-      sessionStorage.setItem('egesa_health_token', body.token);
-      sessionStorage.setItem('egesa_health_active_user', JSON.stringify(body.user));
+      localStorage.setItem("egesa_health_token", body.token);
+      localStorage.setItem("egesa_health_user", JSON.stringify(body.user));
+      localStorage.setItem(
+        "egesa_active_facility_id",
+        body.user.facility_id || "",
+      );
+      sessionStorage.setItem("egesa_health_token", body.token);
+      sessionStorage.setItem(
+        "egesa_health_active_user",
+        JSON.stringify(body.user),
+      );
 
-      if (body.user.role === 'patient') {
-        setAuthSuccess('Redirecting to Patient Portal...');
+      if (body.user.role === "patient") {
+        setAuthSuccess("Redirecting to Patient Portal...");
         setTimeout(() => {
-          window.location.href = '/patient-portal';
+          window.location.href = "/patient-portal";
         }, 1000);
       } else {
-        setAuthSuccess('Redirecting to Workspace Dashboard...');
+        setAuthSuccess("Redirecting to Workspace Dashboard...");
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = "/";
         }, 1000);
       }
     } catch (err) {
@@ -570,22 +724,23 @@ Bot reply: ${lastBot?.text || ''}`,
   const handleSignup = async (e) => {
     e.preventDefault();
     setAuthLoading(true);
-    setAuthError('');
-    setAuthSuccess('');
+    setAuthError("");
+    setAuthSuccess("");
 
     // Input Buffers Validation
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (dob > todayStr || dob < '1900-01-01') {
-      setAuthError('Please enter a realistic Date of Birth.');
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (dob > todayStr || dob < "1900-01-01") {
+      setAuthError("Please enter a realistic Date of Birth.");
       setAuthLoading(false);
       return;
     }
 
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const apiBase =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const res = await fetch(`${apiBase}/auth/patient/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           password,
@@ -593,35 +748,45 @@ Bot reply: ${lastBot?.text || ''}`,
           dob,
           gender,
           facilityId: facility.id,
-          phone
-        })
+          phone,
+        }),
       });
 
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || 'Signup failed.');
+      if (!res.ok) throw new Error(body.error || "Signup failed.");
 
-      setAuthSuccess('Account created successfully! Logging you in...');
-      
+      setAuthSuccess("Account created successfully! Logging you in...");
+
       // Auto Login
       const loginRes = await fetch(`${apiBase}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, requestedFacilityId: facility.id })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          requestedFacilityId: facility.id,
+        }),
       });
       const loginBody = await loginRes.json();
-      localStorage.setItem('egesa_health_token', loginBody.token);
-      localStorage.setItem('egesa_health_user', JSON.stringify(loginBody.user));
-      localStorage.setItem('egesa_active_facility_id', loginBody.user.facility_id || '');
-      sessionStorage.setItem('egesa_health_token', loginBody.token);
-      sessionStorage.setItem('egesa_health_active_user', JSON.stringify(loginBody.user));
+      localStorage.setItem("egesa_health_token", loginBody.token);
+      localStorage.setItem("egesa_health_user", JSON.stringify(loginBody.user));
+      localStorage.setItem(
+        "egesa_active_facility_id",
+        loginBody.user.facility_id || "",
+      );
+      sessionStorage.setItem("egesa_health_token", loginBody.token);
+      sessionStorage.setItem(
+        "egesa_health_active_user",
+        JSON.stringify(loginBody.user),
+      );
 
-      if (loginBody.user.role === 'patient') {
+      if (loginBody.user.role === "patient") {
         setTimeout(() => {
-          window.location.href = '/patient-portal';
+          window.location.href = "/patient-portal";
         }, 1000);
       } else {
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = "/";
         }, 1000);
       }
     } catch (err) {
@@ -633,48 +798,52 @@ Bot reply: ${lastBot?.text || ''}`,
 
   const handleSupportSubmit = async (e) => {
     e.preventDefault();
-    if (!supportName.trim() || !supportEmail.trim() || !supportMessage.trim()) return;
+    if (!supportName.trim() || !supportEmail.trim() || !supportMessage.trim())
+      return;
 
     setSupportLoading(true);
-    setSupportError('');
-    setSupportSuccess('');
+    setSupportError("");
+    setSupportSuccess("");
 
     try {
-      const ticketId = 'ticket_' + Math.random().toString(36).substring(2, 12);
+      const ticketId = "ticket_" + Math.random().toString(36).substring(2, 12);
       const newTicket = {
         id: ticketId,
         user_name: supportName.trim(),
         user_email: supportEmail.trim(),
         subject: supportSubject,
         message: supportMessage.trim(),
-        status: 'pending',
-        facility_id: facility.id
+        status: "pending",
+        facility_id: facility.id,
       };
 
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const apiBase =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
       // 1. Save support ticket in DB proxy
       const dbRes = await fetch(`${apiBase}/db/insert`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          table: 'support_tickets',
-          rows: newTicket
-        })
+          table: "support_tickets",
+          rows: newTicket,
+        }),
       });
 
       if (!dbRes.ok) {
         const errorData = await dbRes.json();
-        throw new Error(errorData.error || 'Failed to submit support ticket.');
+        throw new Error(errorData.error || "Failed to submit support ticket.");
       }
 
       // 2. Dispatch Automated Email Confirmation
       try {
         await fetch(`${apiBase}/email/send-email`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            email: facility.contact_email ? `${supportEmail.trim()}, ${facility.contact_email}` : supportEmail.trim(),
+            email: facility.contact_email
+              ? `${supportEmail.trim()}, ${facility.contact_email}`
+              : supportEmail.trim(),
             subject: `Inquiry Received: [#${ticketId.substring(7, 13)}] - ${supportSubject}`,
             html: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
@@ -691,18 +860,20 @@ Bot reply: ${lastBot?.text || ''}`,
                 <p>Thank you,</p>
                 <p><strong>${facility.name} Team</strong></p>
               </div>
-            `
-          })
+            `,
+          }),
         });
       } catch (emailErr) {
-        console.error('Email dispatch failed:', emailErr);
+        console.error("Email dispatch failed:", emailErr);
       }
 
-      setSupportSuccess(`Inquiry submitted successfully! Reference: #${ticketId.substring(7, 13)}`);
-      setSupportName('');
-      setSupportEmail('');
-      setSupportSubject('General Inquiry');
-      setSupportMessage('');
+      setSupportSuccess(
+        `Inquiry submitted successfully! Reference: #${ticketId.substring(7, 13)}`,
+      );
+      setSupportName("");
+      setSupportEmail("");
+      setSupportSubject("General Inquiry");
+      setSupportMessage("");
     } catch (err) {
       setSupportError(err.message);
     } finally {
@@ -715,7 +886,9 @@ Bot reply: ${lastBot?.text || ''}`,
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
         <div className="text-center space-y-2">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto"></div>
-          <p className="text-xs font-bold uppercase tracking-wider">Loading Hospital Landing Page...</p>
+          <p className="text-xs font-bold uppercase tracking-wider">
+            Loading Hospital Landing Page...
+          </p>
         </div>
       </div>
     );
@@ -724,69 +897,118 @@ Bot reply: ${lastBot?.text || ''}`,
   if (!facility) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
-        <p className="text-xs font-bold uppercase">Hospital Facility Not Found</p>
+        <p className="text-xs font-bold uppercase">
+          Hospital Facility Not Found
+        </p>
       </div>
     );
   }
 
   // Group services by category. Entries explicitly marked offered=false are hidden.
   const services = visibleOfferedServices(facility.services_list || []);
-  const categories = [...new Set(services.map(s => s.category || 'Other'))];
-  const template = facility.landing_template || 'classic';
+  const categories = [...new Set(services.map((s) => s.category || "Other"))];
+  const template = facility.landing_template || "classic";
 
   const getServiceImage = (svc) => {
-    const name = (svc.name || '').toLowerCase();
-    const cat = (svc.category || '').toLowerCase();
+    const name = (svc.name || "").toLowerCase();
+    const cat = (svc.category || "").toLowerCase();
 
-    if (cat.includes('consult') || name.includes('consult')) {
-      return '/medical_consultation.png';
+    if (cat.includes("consult") || name.includes("consult")) {
+      return "/medical_consultation.png";
     }
-    if (cat.includes('lab') || cat.includes('test') || name.includes('lab') || name.includes('blood') || name.includes('stool') || name.includes('urine') || name.includes('widal') || name.includes('hiv') || name.includes('panel')) {
-      return '/laboratory_diagnostics.png';
+    if (
+      cat.includes("lab") ||
+      cat.includes("test") ||
+      name.includes("lab") ||
+      name.includes("blood") ||
+      name.includes("stool") ||
+      name.includes("urine") ||
+      name.includes("widal") ||
+      name.includes("hiv") ||
+      name.includes("panel")
+    ) {
+      return "/laboratory_diagnostics.png";
     }
-    if (cat.includes('immun') || cat.includes('vaccin') || name.includes('vacc') || name.includes('immun')) {
-      return 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=500&q=80';
+    if (
+      cat.includes("immun") ||
+      cat.includes("vaccin") ||
+      name.includes("vacc") ||
+      name.includes("immun")
+    ) {
+      return "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=500&q=80";
     }
-    if (cat.includes('mch') || cat.includes('maternity') || cat.includes('anc') || name.includes('pregnancy') || name.includes('antenatal') || name.includes('delivery')) {
-      return 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=500&q=80';
+    if (
+      cat.includes("mch") ||
+      cat.includes("maternity") ||
+      cat.includes("anc") ||
+      name.includes("pregnancy") ||
+      name.includes("antenatal") ||
+      name.includes("delivery")
+    ) {
+      return "https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=500&q=80";
     }
-    if (cat.includes('radiology') || cat.includes('scan') || name.includes('ct') || name.includes('mri') || name.includes('x-ray')) {
-      return 'https://images.unsplash.com/photo-1516549838248-7452393c0807?auto=format&fit=crop&w=500&q=80';
+    if (
+      cat.includes("radiology") ||
+      cat.includes("scan") ||
+      name.includes("ct") ||
+      name.includes("mri") ||
+      name.includes("x-ray")
+    ) {
+      return "https://images.unsplash.com/photo-1516549838248-7452393c0807?auto=format&fit=crop&w=500&q=80";
     }
-    if (cat.includes('ward') || cat.includes('bed') || cat.includes('icu') || name.includes('admission') || name.includes('ward')) {
-      return 'https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=500&q=80';
+    if (
+      cat.includes("ward") ||
+      cat.includes("bed") ||
+      cat.includes("icu") ||
+      name.includes("admission") ||
+      name.includes("ward")
+    ) {
+      return "https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=500&q=80";
     }
-    return 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80';
+    return "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80";
   };
 
   const renderHeader = () => (
     <header className="bg-slate-900/60 backdrop-blur border-b border-slate-900 py-4 px-6 shrink-0 flex justify-between items-center z-50 sticky top-0 animate-slideDown">
       <div className="flex items-center gap-2.5">
-        <div className={`h-9 w-9 border rounded-xl flex items-center justify-center transition-all ${
-          template === 'wellness' 
-            ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' 
-            : 'bg-teal-500/10 border-teal-500/20 text-teal-400'
-        }`}>
+        <div
+          className={`h-9 w-9 border rounded-xl flex items-center justify-center transition-all ${
+            template === "wellness"
+              ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
+              : "bg-teal-500/10 border-teal-500/20 text-teal-400"
+          }`}
+        >
           <Award size={20} />
         </div>
         <div>
-          <h1 className="text-sm font-bold tracking-tight text-white">{facility.name}</h1>
-          <span className={`text-[9px] font-bold uppercase tracking-widest block ${
-            template === 'wellness' ? 'text-purple-400' : 'text-teal-400'
-          }`}>{facility.code}</span>
+          <h1 className="text-sm font-bold tracking-tight text-white">
+            {facility.name}
+          </h1>
+          <span
+            className={`text-[9px] font-bold uppercase tracking-widest block ${
+              template === "wellness" ? "text-purple-400" : "text-teal-400"
+            }`}
+          >
+            {facility.code}
+          </span>
         </div>
       </div>
       <div className="flex items-center gap-4 text-xs font-semibold">
         <span className="text-slate-400 flex items-center gap-1.5 hidden sm:flex">
-          <MapPin size={14} className={template === 'wellness' ? 'text-purple-400' : 'text-teal-400'} /> 
+          <MapPin
+            size={14}
+            className={
+              template === "wellness" ? "text-purple-400" : "text-teal-400"
+            }
+          />
           {facility.address}
         </span>
         <button
           onClick={() => setShowPublicBookingModal(true)}
           className={`font-black text-[10px] py-1.5 px-3.5 rounded-lg border cursor-pointer active:scale-[0.98] transition ${
-            template === 'wellness'
-              ? 'bg-purple-500 hover:bg-purple-650 text-white border-purple-500/20 shadow-lg shadow-purple-500/10'
-              : 'bg-teal-500 hover:bg-teal-600 text-slate-950 border-teal-500/20 shadow-lg shadow-teal-500/10'
+            template === "wellness"
+              ? "bg-purple-500 hover:bg-purple-650 text-white border-purple-500/20 shadow-lg shadow-purple-500/10"
+              : "bg-teal-500 hover:bg-teal-600 text-slate-950 border-teal-500/20 shadow-lg shadow-teal-500/10"
           }`}
         >
           📅 Book Appointment
@@ -796,36 +1018,51 @@ Bot reply: ${lastBot?.text || ''}`,
   );
 
   const renderAuthWidget = () => (
-    <div className={`bg-slate-900 border rounded-2xl shadow-2xl p-6 space-y-6 transition duration-300 ${
-      template === 'wellness' ? 'border-slate-800 hover:border-purple-500/30' : 'border-slate-850 hover:border-teal-500/30'
-    }`}>
+    <div
+      className={`bg-slate-900 border rounded-2xl shadow-2xl p-6 space-y-6 transition duration-300 ${
+        template === "wellness"
+          ? "border-slate-800 hover:border-purple-500/30"
+          : "border-slate-850 hover:border-teal-500/30"
+      }`}
+    >
       <div className="flex border-b border-slate-800">
         <button
-          onClick={() => { setIsLoginTab(true); setIsStaffLogin(false); setAuthError(''); }}
+          onClick={() => {
+            setIsLoginTab(true);
+            setIsStaffLogin(false);
+            setAuthError("");
+          }}
           className={`flex-1 pb-3 text-center text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
             isLoginTab && !isStaffLogin
-              ? `border-b-2 ${template === 'wellness' ? 'border-purple-500 text-purple-400' : 'border-teal-500 text-teal-400'}` 
-              : 'text-slate-500 hover:text-slate-300'
+              ? `border-b-2 ${template === "wellness" ? "border-purple-500 text-purple-400" : "border-teal-500 text-teal-400"}`
+              : "text-slate-500 hover:text-slate-300"
           }`}
         >
           <LogIn size={13} /> Patient Login
         </button>
         <button
-          onClick={() => { setIsLoginTab(false); setIsStaffLogin(false); setAuthError(''); }}
+          onClick={() => {
+            setIsLoginTab(false);
+            setIsStaffLogin(false);
+            setAuthError("");
+          }}
           className={`flex-1 pb-3 text-center text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
             !isLoginTab && !isStaffLogin
-              ? `border-b-2 ${template === 'wellness' ? 'border-purple-500 text-purple-400' : 'border-teal-500 text-teal-400'}` 
-              : 'text-slate-500 hover:text-slate-300'
+              ? `border-b-2 ${template === "wellness" ? "border-purple-500 text-purple-400" : "border-teal-500 text-teal-400"}`
+              : "text-slate-500 hover:text-slate-300"
           }`}
         >
           <UserPlus size={13} /> Patient Sign Up
         </button>
         <button
-          onClick={() => { setIsStaffLogin(true); setAuthError(''); }}
+          onClick={() => {
+            setIsStaffLogin(true);
+            setAuthError("");
+          }}
           className={`flex-1 pb-3 text-center text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
             isStaffLogin
-              ? `border-b-2 ${template === 'wellness' ? 'border-purple-500 text-purple-400' : 'border-teal-500 text-teal-400'}` 
-              : 'text-slate-500 hover:text-slate-300'
+              ? `border-b-2 ${template === "wellness" ? "border-purple-500 text-purple-400" : "border-teal-500 text-teal-400"}`
+              : "text-slate-500 hover:text-slate-300"
           }`}
         >
           <ShieldCheck size={13} /> Staff Login
@@ -846,9 +1083,13 @@ Bot reply: ${lastBot?.text || ''}`,
       {isStaffLogin ? (
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Staff Email Address</label>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Staff Email Address
+            </label>
             <div className="flex bg-slate-950 border border-slate-850 rounded-lg focus-within:border-teal-500/60 transition overflow-hidden">
-              <span className="pl-3 py-2 text-slate-550 flex items-center justify-center"><Mail size={13} /></span>
+              <span className="pl-3 py-2 text-slate-550 flex items-center justify-center">
+                <Mail size={13} />
+              </span>
               <input
                 type="email"
                 value={email}
@@ -860,9 +1101,13 @@ Bot reply: ${lastBot?.text || ''}`,
             </div>
           </div>
           <div>
-            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Password
+            </label>
             <div className="flex bg-slate-950 border border-slate-850 rounded-lg focus-within:border-teal-500/60 transition overflow-hidden">
-              <span className="pl-3 py-2 text-slate-550 flex items-center justify-center"><Key size={13} /></span>
+              <span className="pl-3 py-2 text-slate-550 flex items-center justify-center">
+                <Key size={13} />
+              </span>
               <input
                 type="password"
                 value={password}
@@ -877,9 +1122,9 @@ Bot reply: ${lastBot?.text || ''}`,
             type="submit"
             disabled={authLoading}
             className={`w-full font-black py-2 rounded-lg text-xs transition flex items-center justify-center gap-1 active:scale-[0.97] cursor-pointer ${
-              template === 'wellness' 
-                ? 'bg-purple-500 hover:bg-purple-650 text-white shadow-lg shadow-purple-500/10' 
-                : 'bg-teal-500 hover:bg-teal-600 text-slate-955 shadow-lg shadow-teal-500/10'
+              template === "wellness"
+                ? "bg-purple-500 hover:bg-purple-650 text-white shadow-lg shadow-purple-500/10"
+                : "bg-teal-500 hover:bg-teal-600 text-slate-955 shadow-lg shadow-teal-500/10"
             }`}
           >
             Sign In as Staff <ArrowRight size={14} />
@@ -887,13 +1132,15 @@ Bot reply: ${lastBot?.text || ''}`,
 
           <div className="relative flex py-2 items-center">
             <div className="flex-grow border-t border-slate-800"></div>
-            <span className="flex-shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">or</span>
+            <span className="flex-shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">
+              or
+            </span>
             <div className="flex-grow border-t border-slate-800"></div>
           </div>
 
           <button
             type="button"
-            onClick={() => handleGoogleSignIn('staff')}
+            onClick={() => handleGoogleSignIn("staff")}
             disabled={authLoading}
             className="w-full bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-800 text-slate-200 font-bold py-2 rounded-lg text-xs transition flex items-center justify-center gap-2 active:scale-[0.97] cursor-pointer"
           >
@@ -921,9 +1168,13 @@ Bot reply: ${lastBot?.text || ''}`,
       ) : isLoginTab ? (
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Email Address
+            </label>
             <div className="flex bg-slate-950 border border-slate-850 rounded-lg focus-within:border-teal-500/60 transition overflow-hidden">
-              <span className="pl-3 py-2 text-slate-550 flex items-center justify-center"><Mail size={13} /></span>
+              <span className="pl-3 py-2 text-slate-550 flex items-center justify-center">
+                <Mail size={13} />
+              </span>
               <input
                 type="email"
                 value={email}
@@ -935,9 +1186,13 @@ Bot reply: ${lastBot?.text || ''}`,
             </div>
           </div>
           <div>
-            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Password
+            </label>
             <div className="flex bg-slate-950 border border-slate-850 rounded-lg focus-within:border-teal-500/60 transition overflow-hidden">
-              <span className="pl-3 py-2 text-slate-550 flex items-center justify-center"><Key size={13} /></span>
+              <span className="pl-3 py-2 text-slate-550 flex items-center justify-center">
+                <Key size={13} />
+              </span>
               <input
                 type="password"
                 value={password}
@@ -952,9 +1207,9 @@ Bot reply: ${lastBot?.text || ''}`,
             type="submit"
             disabled={authLoading}
             className={`w-full font-black py-2 rounded-lg text-xs transition flex items-center justify-center gap-1 active:scale-[0.97] cursor-pointer ${
-              template === 'wellness' 
-                ? 'bg-purple-500 hover:bg-purple-650 text-white shadow-lg shadow-purple-500/10' 
-                : 'bg-teal-500 hover:bg-teal-600 text-slate-955 shadow-lg shadow-teal-500/10'
+              template === "wellness"
+                ? "bg-purple-500 hover:bg-purple-650 text-white shadow-lg shadow-purple-500/10"
+                : "bg-teal-500 hover:bg-teal-600 text-slate-955 shadow-lg shadow-teal-500/10"
             }`}
           >
             Sign In <ArrowRight size={14} />
@@ -962,13 +1217,15 @@ Bot reply: ${lastBot?.text || ''}`,
 
           <div className="relative flex py-2 items-center">
             <div className="flex-grow border-t border-slate-800"></div>
-            <span className="flex-shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">or</span>
+            <span className="flex-shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">
+              or
+            </span>
             <div className="flex-grow border-t border-slate-800"></div>
           </div>
 
           <button
             type="button"
-            onClick={() => handleGoogleSignIn('patient')}
+            onClick={() => handleGoogleSignIn("patient")}
             disabled={authLoading}
             className="w-full bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-800 text-slate-200 font-bold py-2 rounded-lg text-xs transition flex items-center justify-center gap-2 active:scale-[0.97] cursor-pointer"
           >
@@ -996,7 +1253,9 @@ Bot reply: ${lastBot?.text || ''}`,
       ) : (
         <form onSubmit={handleSignup} className="space-y-3.5">
           <div>
-            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Full Name</label>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Full Name
+            </label>
             <input
               type="text"
               value={name}
@@ -1007,7 +1266,9 @@ Bot reply: ${lastBot?.text || ''}`,
             />
           </div>
           <div>
-            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Email Address
+            </label>
             <input
               type="email"
               value={email}
@@ -1018,7 +1279,9 @@ Bot reply: ${lastBot?.text || ''}`,
             />
           </div>
           <div>
-            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Password
+            </label>
             <input
               type="password"
               value={password}
@@ -1030,7 +1293,9 @@ Bot reply: ${lastBot?.text || ''}`,
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Date of Birth</label>
+              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                Date of Birth
+              </label>
               <input
                 type="date"
                 value={dob}
@@ -1040,7 +1305,9 @@ Bot reply: ${lastBot?.text || ''}`,
               />
             </div>
             <div>
-              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Gender</label>
+              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                Gender
+              </label>
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
@@ -1053,7 +1320,9 @@ Bot reply: ${lastBot?.text || ''}`,
             </div>
           </div>
           <div>
-            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Phone Number
+            </label>
             <input
               type="text"
               value={phone}
@@ -1066,9 +1335,9 @@ Bot reply: ${lastBot?.text || ''}`,
             type="submit"
             disabled={authLoading}
             className={`w-full font-black py-2 rounded-lg text-xs transition flex items-center justify-center gap-1 active:scale-[0.97] cursor-pointer ${
-              template === 'wellness' 
-                ? 'bg-purple-500 hover:bg-purple-650 text-white shadow-lg' 
-                : 'bg-teal-500 hover:bg-teal-600 text-slate-955 shadow-lg'
+              template === "wellness"
+                ? "bg-purple-500 hover:bg-purple-650 text-white shadow-lg"
+                : "bg-teal-500 hover:bg-teal-600 text-slate-955 shadow-lg"
             }`}
           >
             Register Account <ArrowRight size={14} />
@@ -1076,13 +1345,15 @@ Bot reply: ${lastBot?.text || ''}`,
 
           <div className="relative flex py-2 items-center">
             <div className="flex-grow border-t border-slate-800"></div>
-            <span className="flex-shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">or</span>
+            <span className="flex-shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">
+              or
+            </span>
             <div className="flex-grow border-t border-slate-800"></div>
           </div>
 
           <button
             type="button"
-            onClick={() => handleGoogleSignIn('patient')}
+            onClick={() => handleGoogleSignIn("patient")}
             disabled={authLoading}
             className="w-full bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-800 text-slate-200 font-bold py-2 rounded-lg text-xs transition flex items-center justify-center gap-2 active:scale-[0.97] cursor-pointer"
           >
@@ -1114,7 +1385,7 @@ Bot reply: ${lastBot?.text || ''}`,
           type="button"
           onClick={() => setShowPublicBookingModal(true)}
           className={`text-[10px] font-bold uppercase tracking-wider underline hover:text-white transition cursor-pointer ${
-            template === 'wellness' ? 'text-purple-400' : 'text-teal-400'
+            template === "wellness" ? "text-purple-400" : "text-teal-400"
           }`}
         >
           📅 Book appointment without an account
@@ -1126,13 +1397,16 @@ Bot reply: ${lastBot?.text || ''}`,
   const renderInquiryForm = () => (
     <div className="bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-6">
       <div>
-        <h3 className={`text-sm font-bold uppercase tracking-widest flex items-center gap-2 ${
-          template === 'wellness' ? 'text-purple-400' : 'text-teal-400'
-        }`}>
+        <h3
+          className={`text-sm font-bold uppercase tracking-widest flex items-center gap-2 ${
+            template === "wellness" ? "text-purple-400" : "text-teal-400"
+          }`}
+        >
           <PhoneCall size={16} /> Contact & Inquiry Help Desk
         </h3>
         <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
-          Have a question or request for {facility.name}? Submit your query below and our team will get in touch.
+          Have a question or request for {facility.name}? Submit your query
+          below and our team will get in touch.
         </p>
       </div>
 
@@ -1150,7 +1424,9 @@ Bot reply: ${lastBot?.text || ''}`,
       <form onSubmit={handleSupportSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Your Full Name</label>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Your Full Name
+            </label>
             <input
               type="text"
               value={supportName}
@@ -1161,7 +1437,9 @@ Bot reply: ${lastBot?.text || ''}`,
             />
           </div>
           <div>
-            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Email Address
+            </label>
             <input
               type="email"
               value={supportEmail}
@@ -1174,7 +1452,9 @@ Bot reply: ${lastBot?.text || ''}`,
         </div>
 
         <div>
-          <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Subject of Inquiry</label>
+          <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+            Subject of Inquiry
+          </label>
           <select
             value={supportSubject}
             onChange={(e) => setSupportSubject(e.target.value)}
@@ -1189,7 +1469,9 @@ Bot reply: ${lastBot?.text || ''}`,
         </div>
 
         <div>
-          <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Message / Query Description</label>
+          <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+            Message / Query Description
+          </label>
           <textarea
             value={supportMessage}
             onChange={(e) => setSupportMessage(e.target.value)}
@@ -1204,9 +1486,9 @@ Bot reply: ${lastBot?.text || ''}`,
           type="submit"
           disabled={supportLoading}
           className={`w-full font-black py-2.5 rounded-lg text-xs transition flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer ${
-            template === 'wellness' 
-              ? 'bg-purple-500 hover:bg-purple-650 text-white' 
-              : 'bg-teal-500 hover:bg-teal-600 text-slate-955'
+            template === "wellness"
+              ? "bg-purple-500 hover:bg-purple-650 text-white"
+              : "bg-teal-500 hover:bg-teal-600 text-slate-955"
           }`}
         >
           {supportLoading ? (
@@ -1233,8 +1515,12 @@ Bot reply: ${lastBot?.text || ''}`,
         <div className="bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-4">
           <div className="flex justify-between items-start flex-wrap gap-4">
             <div className="space-y-2 flex-1 min-w-[250px]">
-              <h2 className="text-xl font-black text-white font-sans tracking-tight">Our Services & Specialities</h2>
-              <p className="text-xs text-slate-400 leading-relaxed font-sans">{facility.about_us}</p>
+              <h2 className="text-xl font-black text-white font-sans tracking-tight">
+                Our Services & Specialities
+              </h2>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                {facility.about_us}
+              </p>
             </div>
             <button
               onClick={() => setShowPublicBookingModal(true)}
@@ -1247,41 +1533,56 @@ Bot reply: ${lastBot?.text || ''}`,
 
         {/* Pricing Catalog */}
         <div className="space-y-6">
-          <h3 className="text-xs font-bold text-teal-400 uppercase tracking-widest">Medical Services Pricing Guide</h3>
+          <h3 className="text-xs font-bold text-teal-400 uppercase tracking-widest">
+            Medical Services Pricing Guide
+          </h3>
           <div className="space-y-6">
-            {categories.map(cat => (
+            {categories.map((cat) => (
               <div key={cat} className="space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 border-l-2 border-teal-500">{cat}</h4>
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 border-l-2 border-teal-500">
+                  {cat}
+                </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {services.filter(s => s.category === cat).map((svc, idx) => (
-                    <div key={idx} className="bg-slate-900 border border-slate-850 rounded-2xl overflow-hidden shadow-lg group hover:border-slate-800 transition duration-300 flex flex-col">
-                      <div className="relative h-28 w-full bg-slate-955 overflow-hidden">
-                        <img 
-                          src={getServiceImage(svc)} 
-                          alt={svc.name} 
-                          className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-955/80 to-transparent" />
-                        <span className="absolute bottom-2 left-2 text-[8px] font-bold text-teal-400 bg-teal-950/80 border border-teal-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
-                          {svc.category}
-                        </span>
-                      </div>
-                      <div className="p-4 flex-1 flex flex-col justify-between gap-3">
-                        <h5 className="font-bold text-slate-100 text-xs leading-snug">{svc.name}</h5>
-                        <div className="flex justify-between items-center mt-1">
-                          <span className="text-[10px] text-slate-400 font-medium">Standard Fee</span>
-                          <span className="font-mono font-bold text-teal-400 bg-teal-500/10 border border-teal-500/10 px-2.5 py-1 rounded-lg">
-                            {svc.charge}/-
+                  {services
+                    .filter((s) => s.category === cat)
+                    .map((svc, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-slate-900 border border-slate-850 rounded-2xl overflow-hidden shadow-lg group hover:border-slate-800 transition duration-300 flex flex-col"
+                      >
+                        <div className="relative h-28 w-full bg-slate-955 overflow-hidden">
+                          <img
+                            src={getServiceImage(svc)}
+                            alt={svc.name}
+                            className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-955/80 to-transparent" />
+                          <span className="absolute bottom-2 left-2 text-[8px] font-bold text-teal-400 bg-teal-950/80 border border-teal-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                            {svc.category}
                           </span>
                         </div>
+                        <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+                          <h5 className="font-bold text-slate-100 text-xs leading-snug">
+                            {svc.name}
+                          </h5>
+                          <div className="flex justify-between items-center mt-1">
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              Standard Fee
+                            </span>
+                            <span className="font-mono font-bold text-teal-400 bg-teal-500/10 border border-teal-500/10 px-2.5 py-1 rounded-lg">
+                              {svc.charge}/-
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
             ))}
             {services.length === 0 && (
-              <p className="text-xs text-slate-550 italic">No services registered for this facility.</p>
+              <p className="text-xs text-slate-550 italic">
+                No services registered for this facility.
+              </p>
             )}
           </div>
         </div>
@@ -1291,22 +1592,22 @@ Bot reply: ${lastBot?.text || ''}`,
       </div>
 
       {/* Right Col: Patient Portal Access Widget */}
-      <div className="animate-slideUp delay-100">
-        {renderAuthWidget()}
-      </div>
+      <div className="animate-slideUp delay-100">{renderAuthWidget()}</div>
     </main>
   );
 
   const renderModernBody = () => {
     // Filter services based on search query and active tab
-    const filteredServices = services.filter(s => {
-      const matchSearch = s.name.toLowerCase().includes(serviceSearch.toLowerCase()) || 
-                          s.category.toLowerCase().includes(serviceSearch.toLowerCase());
-      const matchTab = activeCategoryTab === 'All' || s.category === activeCategoryTab;
+    const filteredServices = services.filter((s) => {
+      const matchSearch =
+        s.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+        s.category.toLowerCase().includes(serviceSearch.toLowerCase());
+      const matchTab =
+        activeCategoryTab === "All" || s.category === activeCategoryTab;
       return matchSearch && matchTab;
     });
 
-    const displayCategories = ['All', ...categories];
+    const displayCategories = ["All", ...categories];
 
     return (
       <div className="flex-1 space-y-16 py-6 font-sans animate-fadeIn">
@@ -1314,29 +1615,35 @@ Bot reply: ${lastBot?.text || ''}`,
         <section className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-8">
           <div className="lg:col-span-7 space-y-6 animate-slideUp">
             <span className="text-[10px] font-bold text-teal-400 uppercase tracking-widest bg-teal-500/10 border border-teal-500/20 px-4 py-1.5 rounded-full inline-flex items-center gap-1.5 select-none">
-              <Sparkles size={12} className="animate-pulse" /> Premium Healthcare
+              <Sparkles size={12} className="animate-pulse" /> Premium
+              Healthcare
             </span>
             <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight font-serif">
-              Next-Gen Intelligent Healthcare for <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">Your Family</span>
+              Next-Gen Intelligent Healthcare for{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">
+                Your Family
+              </span>
             </h2>
             <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
-              {facility.about_us} Eagle Tech HMIS enables direct laboratory integrations, electronic medical records, digital pharmacies, and seamless real-time notifications.
+              {facility.about_us} Eagle Tech HMIS enables direct laboratory
+              integrations, electronic medical records, digital pharmacies, and
+              seamless real-time notifications.
             </p>
             <div className="flex flex-wrap gap-4 pt-2">
-              <button 
+              <button
                 onClick={() => setShowPublicBookingModal(true)}
                 className="bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-black text-xs px-6 py-3 rounded-xl shadow-lg hover:shadow-teal-500/10 hover:scale-[1.02] transition active:scale-[0.98] cursor-pointer"
               >
                 📅 Book Appointment
               </button>
-              <a 
-                href="#portal-access" 
+              <a
+                href="#portal-access"
                 className="bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-bold text-xs px-6 py-3 rounded-xl hover:bg-slate-850 transition"
               >
                 Patient Portal
               </a>
-              <a 
-                href="#pricing-catalog" 
+              <a
+                href="#pricing-catalog"
                 className="bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-bold text-xs px-6 py-3 rounded-xl hover:bg-slate-850 transition"
               >
                 View Price Catalog
@@ -1345,9 +1652,9 @@ Bot reply: ${lastBot?.text || ''}`,
           </div>
           <div className="lg:col-span-5 relative flex justify-center animate-slideUp delay-100">
             <div className="absolute inset-0 bg-teal-500/5 rounded-2xl blur-3xl -z-10" />
-            <img 
-              src="/modern_hospital_hero.png" 
-              alt="Healthcare Vector illustration" 
+            <img
+              src="/modern_hospital_hero.png"
+              alt="Healthcare Vector illustration"
               className="w-full max-w-md rounded-2xl shadow-2xl border border-slate-850 transform hover:scale-[1.02] transition duration-500 shadow-teal-500/5 object-cover h-[280px]"
             />
           </div>
@@ -1357,20 +1664,36 @@ Bot reply: ${lastBot?.text || ''}`,
         <section className="bg-slate-900/30 border-y border-slate-900/60 py-10">
           <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="p-5 bg-slate-900/60 border border-slate-855 rounded-2xl text-center space-y-1 hover:border-slate-800 transition">
-              <span className="block text-2xl font-black text-teal-400">15+</span>
-              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">Departments</span>
+              <span className="block text-2xl font-black text-teal-400">
+                15+
+              </span>
+              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                Departments
+              </span>
             </div>
             <div className="p-5 bg-slate-900/60 border border-slate-855 rounded-2xl text-center space-y-1 hover:border-slate-800 transition">
-              <span className="block text-2xl font-black text-teal-400">100%</span>
-              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">Certified Results</span>
+              <span className="block text-2xl font-black text-teal-400">
+                100%
+              </span>
+              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                Certified Results
+              </span>
             </div>
             <div className="p-5 bg-slate-900/60 border border-slate-855 rounded-2xl text-center space-y-1 hover:border-slate-800 transition">
-              <span className="block text-2xl font-black text-teal-400">24/7</span>
-              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">WhatsApp Support</span>
+              <span className="block text-2xl font-black text-teal-400">
+                24/7
+              </span>
+              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                WhatsApp Support
+              </span>
             </div>
             <div className="p-5 bg-slate-900/60 border border-slate-855 rounded-2xl text-center space-y-1 hover:border-slate-800 transition">
-              <span className="block text-2xl font-black text-teal-400">Secure</span>
-              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">MOH Integrations</span>
+              <span className="block text-2xl font-black text-teal-400">
+                Secure
+              </span>
+              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                MOH Integrations
+              </span>
             </div>
           </div>
         </section>
@@ -1379,17 +1702,25 @@ Bot reply: ${lastBot?.text || ''}`,
         {facility.facility_images && facility.facility_images.length > 0 && (
           <section className="max-w-7xl mx-auto px-6 space-y-6 animate-slideUp">
             <div className="space-y-2">
-              <h3 className="text-xl font-bold font-serif text-white">Facility Gallery</h3>
-              <p className="text-xs text-slate-455">Explore views of our modern clinics, wards, and treatment equipment.</p>
+              <h3 className="text-xl font-bold font-serif text-white">
+                Facility Gallery
+              </h3>
+              <p className="text-xs text-slate-455">
+                Explore views of our modern clinics, wards, and treatment
+                equipment.
+              </p>
             </div>
-            
+
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {facility.facility_images.map((imgUrl, idx) => (
-                <div key={idx} className="relative aspect-video rounded-2xl overflow-hidden border border-slate-850 shadow-md group bg-slate-900">
-                  <img 
-                    src={imgUrl} 
-                    alt={`Facility view ${idx + 1}`} 
-                    className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105" 
+                <div
+                  key={idx}
+                  className="relative aspect-video rounded-2xl overflow-hidden border border-slate-850 shadow-md group bg-slate-900"
+                >
+                  <img
+                    src={imgUrl}
+                    alt={`Facility view ${idx + 1}`}
+                    className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent" />
                 </div>
@@ -1399,15 +1730,26 @@ Bot reply: ${lastBot?.text || ''}`,
         )}
 
         {/* Services Section with Search and Tabs */}
-        <section id="pricing-catalog" className="max-w-7xl mx-auto px-6 space-y-8 scroll-mt-20">
+        <section
+          id="pricing-catalog"
+          className="max-w-7xl mx-auto px-6 space-y-8 scroll-mt-20"
+        >
           <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 border-b border-slate-900 pb-6">
             <div className="space-y-2">
-              <h3 className="text-xl font-bold font-serif text-white">Medical Catalog & Services</h3>
-              <p className="text-xs text-slate-450">Filter specialized diagnostics, vaccinations, consultations, and inpatient checkups.</p>
+              <h3 className="text-xl font-bold font-serif text-white">
+                Medical Catalog & Services
+              </h3>
+              <p className="text-xs text-slate-450">
+                Filter specialized diagnostics, vaccinations, consultations, and
+                inpatient checkups.
+              </p>
             </div>
             {/* Search Input */}
             <div className="w-full md:max-w-xs flex bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 focus-within:border-teal-500/50 transition">
-              <Search size={14} className="text-slate-550 mt-0.5 mr-2 shrink-0" />
+              <Search
+                size={14}
+                className="text-slate-550 mt-0.5 mr-2 shrink-0"
+              />
               <input
                 type="text"
                 placeholder="Search services..."
@@ -1420,14 +1762,14 @@ Bot reply: ${lastBot?.text || ''}`,
 
           {/* Category Tabs */}
           <div className="flex flex-wrap gap-2">
-            {displayCategories.map(cat => (
+            {displayCategories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategoryTab(cat)}
                 className={`text-[10px] font-bold tracking-wider uppercase px-4 py-2 rounded-lg transition-all cursor-pointer ${
-                  activeCategoryTab === cat 
-                    ? 'bg-teal-500 text-slate-950' 
-                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200'
+                  activeCategoryTab === cat
+                    ? "bg-teal-500 text-slate-950"
+                    : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200"
                 }`}
               >
                 {cat}
@@ -1438,14 +1780,14 @@ Bot reply: ${lastBot?.text || ''}`,
           {/* Catalog grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredServices.map((svc, idx) => (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className="bg-slate-900/40 border border-slate-850/60 rounded-2xl overflow-hidden shadow-md hover:shadow-lg hover:border-slate-800 transition duration-300 flex flex-col group"
               >
                 <div className="relative h-32 w-full bg-slate-950 overflow-hidden">
-                  <img 
-                    src={getServiceImage(svc)} 
-                    alt={svc.name} 
+                  <img
+                    src={getServiceImage(svc)}
+                    alt={svc.name}
                     className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent" />
@@ -1454,9 +1796,13 @@ Bot reply: ${lastBot?.text || ''}`,
                   </span>
                 </div>
                 <div className="p-4 flex-1 flex flex-col justify-between gap-3">
-                  <h4 className="font-bold text-slate-200 text-xs leading-snug group-hover:text-white transition">{svc.name}</h4>
+                  <h4 className="font-bold text-slate-200 text-xs leading-snug group-hover:text-white transition">
+                    {svc.name}
+                  </h4>
                   <div className="flex justify-between items-center mt-1">
-                    <span className="text-[10px] text-slate-455 font-bold uppercase tracking-wider font-sans">Service Fee</span>
+                    <span className="text-[10px] text-slate-455 font-bold uppercase tracking-wider font-sans">
+                      Service Fee
+                    </span>
                     <span className="font-mono font-bold text-teal-400 bg-teal-500/5 border border-teal-500/15 px-3 py-1 rounded-lg">
                       {svc.charge}/-
                     </span>
@@ -1473,21 +1819,32 @@ Bot reply: ${lastBot?.text || ''}`,
         </section>
 
         {/* Portal Access and Support section */}
-        <section id="portal-access" className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 scroll-mt-20">
+        <section
+          id="portal-access"
+          className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8 scroll-mt-20"
+        >
           <div className="space-y-6">
             <div className="space-y-2">
-              <h3 className="text-xl font-bold font-serif text-white">Join Our Digital Patient Portal</h3>
+              <h3 className="text-xl font-bold font-serif text-white">
+                Join Our Digital Patient Portal
+              </h3>
               <p className="text-xs text-slate-450 leading-relaxed font-sans">
-                Registered patients can view laboratory sync logs, check active prescriptions, verify outstanding billing invoices, and consult medical professionals online.
+                Registered patients can view laboratory sync logs, check active
+                prescriptions, verify outstanding billing invoices, and consult
+                medical professionals online.
               </p>
             </div>
             {renderAuthWidget()}
           </div>
           <div className="space-y-6">
             <div className="space-y-2">
-              <h3 className="text-xl font-bold font-serif text-white">Inquire or File a Request</h3>
+              <h3 className="text-xl font-bold font-serif text-white">
+                Inquire or File a Request
+              </h3>
               <p className="text-xs text-slate-450 leading-relaxed font-sans">
-                Need details regarding medical packages, hospital admission files, or custom billing structures? Fill in the form and we will notify you.
+                Need details regarding medical packages, hospital admission
+                files, or custom billing structures? Fill in the form and we
+                will notify you.
               </p>
             </div>
             {renderInquiryForm()}
@@ -1503,23 +1860,29 @@ Bot reply: ${lastBot?.text || ''}`,
       <section className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-8">
         <div className="lg:col-span-7 space-y-6 animate-slideUp">
           <div className="inline-flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold tracking-widest uppercase px-4 py-1.5 rounded-full select-none">
-            <Activity size={12} className="animate-pulse" /> Compassionate Clinical Care
+            <Activity size={12} className="animate-pulse" /> Compassionate
+            Clinical Care
           </div>
           <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight font-serif">
-            Providing Calming Care & <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">Wellness Solutions</span>
+            Providing Calming Care &{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">
+              Wellness Solutions
+            </span>
           </h2>
           <p className="text-xs text-slate-450 leading-relaxed max-w-xl">
-            {facility.about_us} Our clinic prioritizes a calm patient experience, certified laboratory parameters, and instant digital check-ins to make your health journey stress-free.
+            {facility.about_us} Our clinic prioritizes a calm patient
+            experience, certified laboratory parameters, and instant digital
+            check-ins to make your health journey stress-free.
           </p>
           <div className="flex flex-wrap gap-4 pt-2">
-            <button 
+            <button
               onClick={() => setShowPublicBookingModal(true)}
               className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xs px-6 py-3 rounded-xl shadow-lg hover:shadow-purple-500/10 hover:scale-[1.02] transition active:scale-[0.98] cursor-pointer"
             >
               📅 Book Appointment
             </button>
-            <a 
-              href="#portal-widget" 
+            <a
+              href="#portal-widget"
               className="bg-slate-900 border border-slate-850 text-slate-300 hover:text-white font-bold text-xs px-6 py-3 rounded-xl hover:bg-slate-850 transition"
             >
               Patient Sign In
@@ -1528,9 +1891,9 @@ Bot reply: ${lastBot?.text || ''}`,
         </div>
         <div className="lg:col-span-5 relative flex justify-center animate-slideUp delay-100">
           <div className="absolute inset-0 bg-purple-500/5 rounded-2xl blur-3xl -z-10" />
-          <img 
-            src="/wellness_clinic_hero.png" 
-            alt="Wellness illustration" 
+          <img
+            src="/wellness_clinic_hero.png"
+            alt="Wellness illustration"
             className="w-full max-w-md rounded-2xl shadow-2xl border border-slate-800 transform hover:scale-[1.02] transition duration-500 shadow-purple-500/5 object-cover h-[280px]"
           />
         </div>
@@ -1539,24 +1902,45 @@ Bot reply: ${lastBot?.text || ''}`,
       {/* Trust & Certifications Section */}
       <section className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="p-6 bg-slate-900/40 border border-slate-850 rounded-2xl flex gap-4 items-start">
-          <span className="p-3 rounded-xl bg-purple-500/10 text-purple-400 shrink-0"><ShieldCheck size={20} /></span>
+          <span className="p-3 rounded-xl bg-purple-500/10 text-purple-400 shrink-0">
+            <ShieldCheck size={20} />
+          </span>
           <div className="space-y-1">
-            <h4 className="text-xs font-bold text-slate-200">Certified Operations</h4>
-            <p className="text-[10px] text-slate-500 leading-relaxed font-sans">Full integrations with Kenyan MOH registers, verified licensing numbers, and audit logs.</p>
+            <h4 className="text-xs font-bold text-slate-200">
+              Certified Operations
+            </h4>
+            <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+              Full integrations with Kenyan MOH registers, verified licensing
+              numbers, and audit logs.
+            </p>
           </div>
         </div>
         <div className="p-6 bg-slate-900/40 border border-slate-850 rounded-2xl flex gap-4 items-start">
-          <span className="p-3 rounded-xl bg-purple-500/10 text-purple-400 shrink-0"><Heart size={20} /></span>
+          <span className="p-3 rounded-xl bg-purple-500/10 text-purple-400 shrink-0">
+            <Heart size={20} />
+          </span>
           <div className="space-y-1">
-            <h4 className="text-xs font-bold text-slate-200">Patient-Centric Portal</h4>
-            <p className="text-[10px] text-slate-500 leading-relaxed font-sans">Allows patient login, direct accessions tracking, invoice verification, and vaccine rosters.</p>
+            <h4 className="text-xs font-bold text-slate-200">
+              Patient-Centric Portal
+            </h4>
+            <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+              Allows patient login, direct accessions tracking, invoice
+              verification, and vaccine rosters.
+            </p>
           </div>
         </div>
         <div className="p-6 bg-slate-900/40 border border-slate-850 rounded-2xl flex gap-4 items-start">
-          <span className="p-3 rounded-xl bg-purple-500/10 text-purple-400 shrink-0"><Stethoscope size={20} /></span>
+          <span className="p-3 rounded-xl bg-purple-500/10 text-purple-400 shrink-0">
+            <Stethoscope size={20} />
+          </span>
           <div className="space-y-1">
-            <h4 className="text-xs font-bold text-slate-200">Automated LIS Tracker</h4>
-            <p className="text-[10px] text-slate-500 leading-relaxed font-sans">Lab results sync automatically from diagnostic equipment handshakes, reducing delays.</p>
+            <h4 className="text-xs font-bold text-slate-200">
+              Automated LIS Tracker
+            </h4>
+            <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+              Lab results sync automatically from diagnostic equipment
+              handshakes, reducing delays.
+            </p>
           </div>
         </div>
       </section>
@@ -1565,17 +1949,25 @@ Bot reply: ${lastBot?.text || ''}`,
       {facility.facility_images && facility.facility_images.length > 0 && (
         <section className="max-w-4xl mx-auto px-6 space-y-6 animate-slideUp">
           <div className="text-center space-y-2">
-            <h3 className="text-xl font-bold font-serif text-white font-normal">Explore Our Premises</h3>
-            <p className="text-xs text-slate-455 max-w-lg mx-auto">A visual tour of our calming wellness spaces and modern treatment areas.</p>
+            <h3 className="text-xl font-bold font-serif text-white font-normal">
+              Explore Our Premises
+            </h3>
+            <p className="text-xs text-slate-455 max-w-lg mx-auto">
+              A visual tour of our calming wellness spaces and modern treatment
+              areas.
+            </p>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             {facility.facility_images.map((imgUrl, idx) => (
-              <div key={idx} className="relative aspect-video rounded-2xl overflow-hidden border border-slate-850 shadow-lg group bg-slate-900">
-                <img 
-                  src={imgUrl} 
-                  alt={`Wellness Space ${idx + 1}`} 
-                  className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105" 
+              <div
+                key={idx}
+                className="relative aspect-video rounded-2xl overflow-hidden border border-slate-850 shadow-lg group bg-slate-900"
+              >
+                <img
+                  src={imgUrl}
+                  alt={`Wellness Space ${idx + 1}`}
+                  className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 to-transparent" />
               </div>
@@ -1587,61 +1979,94 @@ Bot reply: ${lastBot?.text || ''}`,
       {/* Dynamic Services Catalog */}
       <section className="max-w-4xl mx-auto px-6 space-y-8">
         <div className="text-center space-y-2">
-          <h3 className="text-xl font-bold font-serif text-white">Our Services Directory</h3>
-          <p className="text-xs text-slate-450 max-w-lg mx-auto">Explore standard rates and departments configured by the clinical administration.</p>
+          <h3 className="text-xl font-bold font-serif text-white">
+            Our Services Directory
+          </h3>
+          <p className="text-xs text-slate-450 max-w-lg mx-auto">
+            Explore standard rates and departments configured by the clinical
+            administration.
+          </p>
         </div>
 
         <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-850 p-6 rounded-2xl space-y-6">
-          {categories.map(cat => (
+          {categories.map((cat) => (
             <div key={cat} className="space-y-3">
-              <span className="inline-block text-[9px] font-bold text-purple-400 bg-purple-500/10 px-3 py-1 rounded-md uppercase tracking-wider">{cat}</span>
+              <span className="inline-block text-[9px] font-bold text-purple-400 bg-purple-500/10 px-3 py-1 rounded-md uppercase tracking-wider">
+                {cat}
+              </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-1">
-                {services.filter(s => s.category === cat).map((svc, idx) => (
-                  <div key={idx} className="bg-slate-950/40 border border-slate-900 hover:border-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow transition duration-300 flex flex-col group">
-                    <div className="relative h-28 w-full bg-slate-955 overflow-hidden">
-                      <img 
-                        src={getServiceImage(svc)} 
-                        alt={svc.name} 
-                        className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-955/85 to-transparent" />
-                      <span className="absolute bottom-2 left-2 text-[8px] font-bold text-purple-400 bg-purple-950/80 border border-purple-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
-                        {svc.category}
-                      </span>
-                    </div>
-                    <div className="p-4 flex-1 flex flex-col justify-between gap-3">
-                      <span className="font-semibold text-slate-300 text-xs leading-normal">{svc.name}</span>
-                      <div className="flex justify-between items-center mt-1">
-                        <span className="text-[10px] text-slate-500 font-medium font-sans">Standard Charge</span>
-                        <span className="font-mono text-purple-400 font-bold bg-purple-500/10 border border-purple-500/10 px-2.5 py-1 rounded-lg">
-                          {svc.charge}/-
+                {services
+                  .filter((s) => s.category === cat)
+                  .map((svc, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-slate-950/40 border border-slate-900 hover:border-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow transition duration-300 flex flex-col group"
+                    >
+                      <div className="relative h-28 w-full bg-slate-955 overflow-hidden">
+                        <img
+                          src={getServiceImage(svc)}
+                          alt={svc.name}
+                          className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-955/85 to-transparent" />
+                        <span className="absolute bottom-2 left-2 text-[8px] font-bold text-purple-400 bg-purple-950/80 border border-purple-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                          {svc.category}
                         </span>
                       </div>
+                      <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+                        <span className="font-semibold text-slate-300 text-xs leading-normal">
+                          {svc.name}
+                        </span>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-[10px] text-slate-500 font-medium font-sans">
+                            Standard Charge
+                          </span>
+                          <span className="font-mono text-purple-400 font-bold bg-purple-500/10 border border-purple-500/10 px-2.5 py-1 rounded-lg">
+                            {svc.charge}/-
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           ))}
           {services.length === 0 && (
-            <p className="text-xs text-slate-550 italic text-center">No services registered for this facility.</p>
+            <p className="text-xs text-slate-550 italic text-center">
+              No services registered for this facility.
+            </p>
           )}
         </div>
       </section>
 
       {/* Appointment Booking Inquiry & Portal Section */}
       <section className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start pt-8">
-        <div id="appointment-desk" className="lg:col-span-7 space-y-4 scroll-mt-20">
+        <div
+          id="appointment-desk"
+          className="lg:col-span-7 space-y-4 scroll-mt-20"
+        >
           <div className="space-y-2">
-            <h3 className="text-xl font-bold font-serif text-white">Inquiry Help Desk</h3>
-            <p className="text-xs text-slate-455">Submit health enquiries or department bookings directly. Our nurses will notify you.</p>
+            <h3 className="text-xl font-bold font-serif text-white">
+              Inquiry Help Desk
+            </h3>
+            <p className="text-xs text-slate-455">
+              Submit health enquiries or department bookings directly. Our
+              nurses will notify you.
+            </p>
           </div>
           {renderInquiryForm()}
         </div>
-        <div id="portal-widget" className="lg:col-span-5 space-y-4 scroll-mt-20">
+        <div
+          id="portal-widget"
+          className="lg:col-span-5 space-y-4 scroll-mt-20"
+        >
           <div className="space-y-2">
-            <h3 className="text-xl font-bold font-serif text-white">Secure Access Portal</h3>
-            <p className="text-xs text-slate-455 font-sans">Access medical records and digital pharmacy prescriptions.</p>
+            <h3 className="text-xl font-bold font-serif text-white">
+              Secure Access Portal
+            </h3>
+            <p className="text-xs text-slate-455 font-sans">
+              Access medical records and digital pharmacy prescriptions.
+            </p>
           </div>
           {renderAuthWidget()}
         </div>
@@ -1657,7 +2082,9 @@ Bot reply: ${lastBot?.text || ''}`,
         target="_blank"
         rel="noopener noreferrer"
         className={`fixed bottom-6 right-6 text-slate-950 font-extrabold p-3 rounded-full flex items-center gap-2 shadow-2xl transition hover:scale-105 z-50 group duration-300 ${
-          template === 'wellness' ? 'bg-purple-400 hover:bg-purple-500 text-slate-950' : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950'
+          template === "wellness"
+            ? "bg-purple-400 hover:bg-purple-500 text-slate-950"
+            : "bg-emerald-500 hover:bg-emerald-600 text-slate-950"
         }`}
         title="Chat on WhatsApp"
       >
@@ -1671,24 +2098,26 @@ Bot reply: ${lastBot?.text || ''}`,
 
   const renderFooter = () => (
     <footer className="bg-slate-950 py-4 px-6 text-center text-[10px] text-slate-600 border-t border-slate-900 shrink-0 font-sans">
-      © 2026 Eagle Tech HMIS Solutions. All rights reserved. Managed by {facility.name}.
+      © 2026 Eagle Tech HMIS Solutions. All rights reserved. Managed by{" "}
+      {facility.name}.
     </footer>
   );
 
   return (
-    <div className={`min-h-screen text-slate-100 flex flex-col justify-between selection:bg-teal-500 selection:text-slate-950 relative font-sans overflow-x-hidden ${
-      template === 'wellness' 
-        ? 'bg-gradient-to-br from-slate-950 via-purple-950/10 to-slate-950' 
-        : 'bg-slate-950'
-    }`}>
-      
+    <div
+      className={`min-h-screen text-slate-100 flex flex-col justify-between selection:bg-teal-500 selection:text-slate-950 relative font-sans overflow-x-hidden ${
+        template === "wellness"
+          ? "bg-gradient-to-br from-slate-950 via-purple-950/10 to-slate-950"
+          : "bg-slate-950"
+      }`}
+    >
       {/* Top Navigation Banner */}
       {renderHeader()}
 
       {/* Main Content Body depending on active template selection */}
-      {template === 'modern' && renderModernBody()}
-      {template === 'wellness' && renderWellnessBody()}
-      {template === 'classic' && renderClassicBody()}
+      {template === "modern" && renderModernBody()}
+      {template === "wellness" && renderWellnessBody()}
+      {template === "classic" && renderClassicBody()}
 
       {/* Floating WhatsApp Widget */}
       {renderWhatsAppWidget()}
@@ -1702,10 +2131,14 @@ Bot reply: ${lastBot?.text || ''}`,
           <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start pb-2 border-b border-slate-800">
               <div>
-                <h3 className="text-sm font-black text-white">Schedule an Appointment</h3>
-                <span className="text-[9px] text-slate-500 font-bold block">No account required to reserve a slot</span>
+                <h3 className="text-sm font-black text-white">
+                  Schedule an Appointment
+                </h3>
+                <span className="text-[9px] text-slate-500 font-bold block">
+                  No account required to reserve a slot
+                </span>
               </div>
-              <button 
+              <button
                 onClick={() => setShowPublicBookingModal(false)}
                 className="text-slate-500 hover:text-slate-350 text-xs font-bold border border-slate-800 hover:border-slate-700 px-2 py-1 rounded cursor-pointer"
               >
@@ -1715,7 +2148,9 @@ Bot reply: ${lastBot?.text || ''}`,
 
             <form onSubmit={handleBookAppointment} className="space-y-4">
               <div>
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Your Full Name</label>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Your Full Name
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. Jane Doe"
@@ -1728,7 +2163,9 @@ Bot reply: ${lastBot?.text || ''}`,
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Phone Number
+                  </label>
                   <input
                     type="text"
                     placeholder="e.g. 0712345678"
@@ -1739,7 +2176,9 @@ Bot reply: ${lastBot?.text || ''}`,
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Email Address
+                  </label>
                   <input
                     type="email"
                     placeholder="e.g. jane@example.com"
@@ -1751,14 +2190,16 @@ Bot reply: ${lastBot?.text || ''}`,
               </div>
 
               <div>
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Select Doctor / Clinician</label>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Select Doctor / Clinician
+                </label>
                 <select
                   value={selectedDoctorId}
                   onChange={(e) => setSelectedDoctorId(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 transition font-semibold"
                   required
                 >
-                  {facilityDoctors.map(doc => (
+                  {facilityDoctors.map((doc) => (
                     <option key={doc.id} value={doc.id}>
                       Dr. {doc.name} ({doc.specialty})
                     </option>
@@ -1770,11 +2211,13 @@ Bot reply: ${lastBot?.text || ''}`,
               </div>
 
               <div>
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Appointment Date</label>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Appointment Date
+                </label>
                 <input
                   type="date"
                   value={bookingDate}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={new Date().toISOString().split("T")[0]}
                   onChange={(e) => setBookingDate(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-850 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-semibold"
                   required
@@ -1792,17 +2235,17 @@ Bot reply: ${lastBot?.text || ''}`,
                   </div>
                 ) : availableSlots.length > 0 ? (
                   <div className="grid grid-cols-4 gap-1.5 max-h-[120px] overflow-y-auto pr-1">
-                    {availableSlots.map(slot => (
+                    {availableSlots.map((slot) => (
                       <button
                         key={slot}
                         type="button"
                         onClick={() => setSelectedSlot(slot)}
                         className={`py-1 text-[10px] font-bold font-mono border rounded transition ${
                           selectedSlot === slot
-                            ? template === 'wellness' 
-                              ? 'bg-purple-500/10 border-purple-500 text-purple-400'
-                              : 'bg-teal-500/10 border-teal-500 text-teal-400'
-                            : 'border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200'
+                            ? template === "wellness"
+                              ? "bg-purple-500/10 border-purple-500 text-purple-400"
+                              : "bg-teal-500/10 border-teal-500 text-teal-400"
+                            : "border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200"
                         }`}
                       >
                         {slot}
@@ -1817,7 +2260,9 @@ Bot reply: ${lastBot?.text || ''}`,
               </div>
 
               <div>
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reason for Visit / Symptoms</label>
+                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Reason for Visit / Symptoms
+                </label>
                 <textarea
                   value={bookingNotes}
                   onChange={(e) => setBookingNotes(e.target.value)}
@@ -1839,12 +2284,12 @@ Bot reply: ${lastBot?.text || ''}`,
                   type="submit"
                   disabled={bookingLoading || !selectedSlot}
                   className={`w-1/2 py-2 font-black rounded-lg text-xs transition ${
-                    template === 'wellness'
-                      ? 'bg-purple-500 hover:bg-purple-650 text-white disabled:opacity-40'
-                      : 'bg-teal-500 hover:bg-teal-600 text-slate-950 disabled:opacity-40'
+                    template === "wellness"
+                      ? "bg-purple-500 hover:bg-purple-650 text-white disabled:opacity-40"
+                      : "bg-teal-500 hover:bg-teal-600 text-slate-950 disabled:opacity-40"
                   }`}
                 >
-                  {bookingLoading ? 'Requesting...' : 'Request Slot'}
+                  {bookingLoading ? "Requesting..." : "Request Slot"}
                 </button>
               </div>
             </form>
@@ -1857,9 +2302,9 @@ Bot reply: ${lastBot?.text || ''}`,
           <button
             onClick={() => setChatOpen(true)}
             className={`h-12 w-12 rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition cursor-pointer ${
-              template === 'wellness'
-                ? 'bg-purple-500 hover:bg-purple-650 text-white shadow-purple-500/10'
-                : 'bg-teal-400 hover:bg-teal-500 text-slate-950 shadow-teal-500/10'
+              template === "wellness"
+                ? "bg-purple-500 hover:bg-purple-650 text-white shadow-purple-500/10"
+                : "bg-teal-400 hover:bg-teal-500 text-slate-950 shadow-teal-500/10"
             }`}
             aria-label="Open support chat"
           >
@@ -1871,18 +2316,24 @@ Bot reply: ${lastBot?.text || ''}`,
             <div className="p-3 bg-slate-950 border-b border-slate-800 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs font-serif ${
-                    template === 'wellness' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-teal-400/10 text-teal-400 border border-teal-400/20'
-                  }`}>
-                    {facility?.name?.substring(0, 2).toUpperCase() || 'EP'}
+                  <div
+                    className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs font-serif ${
+                      template === "wellness"
+                        ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                        : "bg-teal-400/10 text-teal-400 border border-teal-400/20"
+                    }`}
+                  >
+                    {facility?.name?.substring(0, 2).toUpperCase() || "EP"}
                   </div>
                   <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 border border-slate-900" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-slate-100 flex items-center gap-1 font-sans">
-                    {facility?.name || 'Clinic'} Helper
+                    {facility?.name || "Clinic"} Helper
                   </h4>
-                  <span className="text-[9px] text-slate-500 block leading-none font-sans">Online Assistant</span>
+                  <span className="text-[9px] text-slate-500 block leading-none font-sans">
+                    Online Assistant
+                  </span>
                 </div>
               </div>
               <button
@@ -1898,15 +2349,15 @@ Bot reply: ${lastBot?.text || ''}`,
               {chatMessages.map((m, idx) => (
                 <div
                   key={idx}
-                  className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
                     className={`max-w-[85%] rounded-2xl py-2 px-3 text-xs leading-relaxed font-sans ${
-                      m.sender === 'user'
-                        ? template === 'wellness'
-                          ? 'bg-purple-500 text-white font-medium rounded-tr-none'
-                          : 'bg-teal-400 text-slate-950 font-medium rounded-tr-none'
-                        : 'bg-slate-950/60 border border-slate-855 text-slate-200 rounded-tl-none whitespace-pre-line'
+                      m.sender === "user"
+                        ? template === "wellness"
+                          ? "bg-purple-500 text-white font-medium rounded-tr-none"
+                          : "bg-teal-400 text-slate-950 font-medium rounded-tr-none"
+                        : "bg-slate-950/60 border border-slate-855 text-slate-200 rounded-tl-none whitespace-pre-line"
                     }`}
                   >
                     {m.text}
@@ -1926,7 +2377,8 @@ Bot reply: ${lastBot?.text || ''}`,
                 <div className="px-1">
                   <button
                     type="button"
-                    onClick={handleChatCreateTicket}                    className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition"
+                    onClick={handleChatCreateTicket}
+                    className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition"
                   >
                     Create support ticket from this chat
                   </button>
@@ -1952,9 +2404,9 @@ Bot reply: ${lastBot?.text || ''}`,
               <button
                 type="submit"
                 className={`px-3 py-1.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                  template === 'wellness'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-teal-400 text-slate-950'
+                  template === "wellness"
+                    ? "bg-purple-500 text-white"
+                    : "bg-teal-400 text-slate-950"
                 }`}
               >
                 Send

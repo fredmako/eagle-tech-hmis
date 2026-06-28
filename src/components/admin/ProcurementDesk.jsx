@@ -20,6 +20,43 @@ export default function ProcurementDesk({ user }) {
   const [supplier, setSupplier] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  const [aiOrderLoading, setAiOrderLoading] = useState(false);
+  const [aiOrderResult, setAiOrderResult] = useState('');
+
+  const handleAiDraftOrder = async () => {
+    setAiOrderLoading(true);
+    setAiOrderResult('');
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const payload = {
+        mode: 'inventory',
+        prompt: `Write a concise hospital supply requisition description and justification for the following item. Include item purpose, recommended quantity rationale, estimated budget impact, and preferred supplier criteria.`,
+        context: {
+          itemName,
+          quantity,
+          estimatedCost,
+          supplier,
+          facilityId: user.facility_id
+        }
+      };
+      const res = await fetch(`${apiBase}/ai-report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'AI order draft failed');
+      }
+      const data = await res.json();
+      setAiOrderResult(data.content || data.response || '');
+    } catch (err) {
+      setAiOrderResult('AI draft failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setAiOrderLoading(false);
+    }
+  };
+
   const STORAGE_KEY = `egesa_procurements_${user.facility_id}`;
 
   useEffect(() => {
@@ -366,6 +403,21 @@ export default function ProcurementDesk({ user }) {
               type="submit"
               className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg shadow-md transition w-full active:scale-[0.98] cursor-pointer"
             >
+
+            {aiOrderResult && (
+              <div className="p-3 rounded-lg border border-slate-800 bg-slate-950/60 text-[11px] text-slate-200 whitespace-pre-line leading-relaxed">
+                {aiOrderResult}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleAiDraftOrder}
+              disabled={aiOrderLoading}
+              className="w-full bg-slate-900 border border-slate-800 hover:border-teal-500/30 text-slate-200 font-bold text-xs py-2 px-4 rounded-lg transition disabled:opacity-50"
+            >
+              {aiOrderLoading ? 'Drafting Order Details...' : 'AI Draft Order Details'}
+            </button>
+            
               Submit Requisition Order
             </button>
           </form>

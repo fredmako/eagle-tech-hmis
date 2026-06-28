@@ -116,6 +116,42 @@ export default function Consultation({ user, onComplete, showNotification }) {
   // Medical instrument binding
   const [boundInstrumentId, setBoundInstrumentId] = useState('');
 
+  const [aiMedicalReportResult, setAiMedicalReportResult] = useState(null);
+  const [aiMedicalReportLoading, setAiMedicalReportLoading] = useState(false);
+  const [aiMedicalReportError, setAiMedicalReportError] = useState('');
+
+  const handleAiWriteMedicalReport = async () => {
+    const symptoms = (history + ' ' + exam).trim();
+    const diagnosisText = diagnosis || 'Pending diagnosis';
+    const plan = treatmentPlan || 'Standard follow-up and review';
+    setAiMedicalReportLoading(true);
+    setAiMedicalReportError('');
+    setAiMedicalReportResult(null);
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const payload = {
+        mode: 'soap',
+        prompt: `Write a formal medical consultation report using the following clinical details. Format as a structured clinical report.`,
+        context: { symptoms, diagnosisText, plan, userName: user.full_name }
+      };
+      const res = await fetch(`${apiBase}/ai-report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'AI medical report failed');
+      }
+      const data = await res.json();
+      setAiMedicalReportResult(data.content || data.response || data);
+    } catch (err) {
+      setAiMedicalReportError(err.message || 'Failed to generate medical report');
+    } finally {
+      setAiMedicalReportLoading(false);
+    }
+  };
+
   // AI Diagnosis states
   const [aiDiagnosisResult, setAiDiagnosisResult] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -2789,12 +2825,40 @@ export default function Consultation({ user, onComplete, showNotification }) {
                 >
                   {loading
                     ? "Submitting Consult..."
+
+              <button
+                type="button"
+                onClick={handleAiWriteMedicalReport}
+                disabled={aiMedicalReportLoading}
+                className="text-[10px] font-bold px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 disabled:opacity-50 transition"
+              >
+                {aiMedicalReportLoading ? 'Writing Report...' : 'AI Write Medical Report'}
+              </button>
+              
                     : "Submit Consult & Issue Orders"}
                 </button>
               </div>
             </form>
           </div>
         )}
+
+              {aiMedicalReportError && (
+                <div className="text-[11px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-2.5 w-full">
+                  {aiMedicalReportError}
+                </div>
+              )}
+              {aiMedicalReportResult && (
+                <div className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2">
+                  <div className="text-[11px] text-slate-200 whitespace-pre-line leading-relaxed">{aiMedicalReportResult}</div>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(aiMedicalReportResult)}
+                    className="text-[10px] font-bold text-teal-400 hover:text-teal-300"
+                  >
+                    Copy to clipboard
+                  </button>
+                </div>
+              )}
       {/* MOH RECORD COMPLETION VERIFICATION MODAL */}
       {showMOHModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">

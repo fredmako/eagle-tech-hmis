@@ -10,44 +10,39 @@ export default function Registration({ user, onNavigateToQueue, showNotification
   const [searching, setSearching] = useState(false);
 
   // Form states
-  const [name, setName] = useState('');
-  const [dob, setDob] = useState('');
+  const [searchId, setSearchId] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [idNumber, setIdNumber] = useState('');
   const [gender, setGender] = useState('male');
-  const [nationalId, setNationalId] = useState('');
-  const [phone, setPhone] = useState('');
+  const [title, setTitle] = useState('');
+  const [telephone, setTelephone] = useState('');
+  const [altTelephone, setAltTelephone] = useState('');
+  const [age, setAge] = useState('');
+  const [dob, setDob] = useState('');
+  const [village, setVillage] = useState('');
+  const [location, setLocation] = useState('');
+  const [ward, setWard] = useState('');
+  const [email, setEmail] = useState('');
+  const [nearestSchool, setNearestSchool] = useState('');
+  const [isIncomingReferral, setIsIncomingReferral] = useState('');
   const [nokName, setNokName] = useState('');
   const [nokPhone, setNokPhone] = useState('');
   const [nokRelation, setNokRelation] = useState('spouse');
+  const [servicePoint, setServicePoint] = useState('');
+  const [serviceRoom, setServiceRoom] = useState('');
+  const [serviceProvider, setServiceProvider] = useState('');
+  const [specialist, setSpecialist] = useState('');
+  const [payments, setPayments] = useState('');
+  const [preferredPayment, setPreferredPayment] = useState('');
+  const [servicePointFee, setServicePointFee] = useState([]);
   const [consent, setConsent] = useState(true);
-
-  // Service Classification states
-  const [regServiceType, setRegServiceType] = useState('OPD');
   const [autoCheckin, setAutoCheckin] = useState(true);
-
-  // Email & notification settings
-  const [email, setEmail] = useState('');
-  const [optInLab, setOptInLab] = useState(true);
-  const [optInPharmacy, setOptInPharmacy] = useState(true);
-  const [optInBilling, setOptInBilling] = useState(true);
-
-  // Extra MOH compliance demographics
-  const [village, setVillage] = useState('');
-  const [landmark, setLandmark] = useState('');
-  const [maritalStatus, setMaritalStatus] = useState('single');
-  const [isPregnant, setIsPregnant] = useState(false);
-  const [parity, setParity] = useState('');
-  const [gravidae, setGravidae] = useState('');
-  const [lmp, setLmp] = useState('');
-  const [edd, setEdd] = useState('');
-
-  // SHA registration states
   const [shaNumber, setShaNumber] = useState('');
-  const [shaDependentType, setShaDependentType] = useState('self');
   const [shaStatus, setShaStatus] = useState('unverified');
   const [verifyingSha, setVerifyingSha] = useState(false);
-
-  // Ward admissions states
-  const [activeTab, setActiveTab] = useState('search'); // 'search' or 'wards'
+  const [activeTab, setActiveTab] = useState('search');
   const [admissions, setAdmissions] = useState([]);
   const [loadingAdmissions, setLoadingAdmissions] = useState(false);
 
@@ -358,8 +353,8 @@ export default function Registration({ user, onNavigateToQueue, showNotification
       return;
     }
 
-    if (phone) {
-      const cleanPhone = phone.trim();
+    if (telephone) {
+      const cleanPhone = telephone.trim();
       if (cleanPhone.length < 8 || cleanPhone.length > 15) {
         setMessage({ type: 'error', text: 'Phone number must be between 8 and 15 characters long.' });
         return;
@@ -371,8 +366,8 @@ export default function Registration({ user, onNavigateToQueue, showNotification
       }
     }
 
-    if (nationalId) {
-      const cleanNatId = nationalId.trim();
+    if (idNumber) {
+      const cleanNatId = idNumber.trim();
       if (cleanNatId.length < 4 || cleanNatId.length > 20) {
         setMessage({ type: 'error', text: 'National ID must be between 4 and 20 characters long.' });
         return;
@@ -406,14 +401,14 @@ export default function Registration({ user, onNavigateToQueue, showNotification
         name,
         dob,
         gender,
-        national_id: nationalId || null,
+        national_id: idNumber || null,
         facility_id_code: facilityCode,
         phone: JSON.stringify({
-          phone: phone,
+          phone: telephone,
           email: email,
           preferences: { lab: optInLab, pharmacy: optInPharmacy, billing: optInBilling },
           village: village,
-          landmark: landmark,
+          location: location,
           marital_status: maritalStatus,
           parity: parity ? parseInt(parity) : 0,
           gravidae: gravidae ? parseInt(gravidae) : 0,
@@ -439,7 +434,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
         patient_id: addedPt.id,
         facility_id: user.facility_id,
         visit_type: 'walk-in',
-        service_type: regServiceType,
+        service_type: servicePoint,
         status: 'active'
       };
       await supabase.from('patient_registrations').insert(regRecord);
@@ -449,18 +444,18 @@ export default function Registration({ user, onNavigateToQueue, showNotification
         let targetDept = 'triage';
         let targetPriority = 'routine';
 
-        if (regServiceType === 'LAB') {
+        if (servicePoint === 'LAB') {
           targetDept = 'lab';
-        } else if (regServiceType === 'PHA') {
+        } else if (servicePoint === 'PHA') {
           targetDept = 'pharmacy';
-        } else if (regServiceType === 'IPD') {
+        } else if (servicePoint === 'IPD') {
           targetDept = 'ward';
-        } else if (regServiceType === 'EMR') {
+        } else if (servicePoint === 'EMR') {
           targetDept = 'triage';
           targetPriority = 'emergency';
-        } else if (regServiceType === 'FP' || regServiceType === 'IMM') {
+        } else if (servicePoint === 'FP' || servicePoint === 'IMM') {
           targetDept = 'consultation';
-        } else if (regServiceType === 'ANC') {
+        } else if (servicePoint === 'ANC') {
           targetDept = 'triage';
         }
 
@@ -470,7 +465,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
           department: targetDept,
           priority: targetPriority,
           status: 'waiting',
-          service_type: regServiceType
+          service_type: servicePoint
         };
         await supabase.from('visits').insert(visitRecord);
       }
@@ -482,29 +477,34 @@ export default function Registration({ user, onNavigateToQueue, showNotification
       }
       
       // Clear form
-      setName('');
-      setDob('');
+      setFirstName('');
+      setMiddleName('');
+      setLastName('');
+      setIdNumber('');
       setGender('male');
-      setNationalId('');
-      setPhone('');
+      setTitle('');
+      setTelephone('');
+      setAltTelephone('');
+      setAge('');
+      setDob('');
       setEmail('');
+      setVillage('');
+      setLocation('');
+      setWard('');
+      setNearestSchool('');
+      setIsIncomingReferral('');
       setNokName('');
       setNokPhone('');
       setNokRelation('spouse');
+      setServicePoint('');
+      setServiceRoom('');
+      setServiceProvider('');
+      setSpecialist('');
+      setPayments('');
+      setPreferredPayment('');
+      setServicePointFee([]);
       setConsent(true);
-      setOptInLab(true);
-      setOptInPharmacy(true);
-      setOptInBilling(true);
-      setVillage('');
-      setLandmark('');
-      setMaritalStatus('single');
-      setIsPregnant(false);
-      setParity('');
-      setGravidae('');
-      setLmp('');
-      setEdd('');
       setShaNumber('');
-      setShaDependentType('self');
       setShaStatus('unverified');
 
       // Re-trigger search or take user to queue builder directly with patient details
@@ -824,7 +824,7 @@ export default function Registration({ user, onNavigateToQueue, showNotification
               <div className="min-w-0">
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Service Type</label>
                 <select
-                  value={regServiceType}
+                  value={servicePoint}
                   onChange={(e) => setRegServiceType(e.target.value)}
                   className="w-full min-w-0 bg-slate-900 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                 >
@@ -918,29 +918,74 @@ export default function Registration({ user, onNavigateToQueue, showNotification
             )}
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {/* Full Name */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Full Name *</label>
+          {/* SHA ID Search */}
+          <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-xl space-y-3">
+            <h3 className="text-[11px] font-bold text-teal-400 uppercase tracking-wider">Enter ID No. to Search (Only if the patient is registered with SHA)</h3>
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-2">
               <input
                 type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="First and last name"
+                value={searchId}
+                onChange={(e) => setSearchId(e.target.value)}
+                placeholder="SHA ID / National ID"
+                className="w-full min-w-0 bg-slate-900 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-teal-500 transition font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => performSearch(searchId)}
+                className="bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/20 text-teal-400 font-bold text-xs px-4 py-2.5 rounded-lg transition active:scale-[0.98] disabled:opacity-50 whitespace-nowrap"
+              >
+                Search
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {/* First Name */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">First Name *</label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="First Name"
                 className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                 required
               />
             </div>
 
-            {/* Date of Birth */}
+            {/* Middle Name */}
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Date of Birth *</label>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Middle Name</label>
               <input
-                type="date"
-                value={dob}
-                onChange={(e) => setDob(e.target.value)}
-                min="1900-01-01"
-                max={new Date().toISOString().split('T')[0]}
+                type="text"
+                value={middleName}
+                onChange={(e) => setMiddleName(e.target.value)}
+                placeholder="Middle Name"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              />
+            </div>
+
+            {/* Last Name */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Last Name *</label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Last Name"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                required
+              />
+            </div>
+
+            {/* ID Number */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">ID Number *</label>
+              <input
+                type="text"
+                value={idNumber}
+                onChange={(e) => setIdNumber(e.target.value)}
+                placeholder="ID Number"
                 className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
                 required
               />
@@ -948,12 +993,11 @@ export default function Registration({ user, onNavigateToQueue, showNotification
 
             {/* Gender */}
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Gender *</label>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Gender</label>
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
                 className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                required
               >
                 <option value="male">Male</option>
                 <option value="female">Female</option>
@@ -961,15 +1005,314 @@ export default function Registration({ user, onNavigateToQueue, showNotification
               </select>
             </div>
 
-            {/* National ID */}
+            {/* Title */}
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">National ID / Passport</label>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Title</label>
+              <select
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              >
+                <option value="">--- Select Title ---</option>
+                <option value="mr">Mr</option>
+                <option value="mrs">Mrs</option>
+                <option value="miss">Miss</option>
+                <option value="dr">Dr</option>
+              </select>
+            </div>
+
+            {/* Telephone */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Telephone *</label>
               <input
                 type="text"
-                value={nationalId}
-                onChange={(e) => setNationalId(e.target.value)}
-                placeholder="ID Number"
+                value={telephone}
+                onChange={(e) => setTelephone(e.target.value)}
+                placeholder="Telephone"
                 className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                required
+              />
+            </div>
+
+            {/* Alt Telephone */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Alt Telephone</label>
+              <input
+                type="text"
+                value={altTelephone}
+                onChange={(e) => setAltTelephone(e.target.value)}
+                placeholder="Alternative Telephone"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              />
+            </div>
+
+            {/* Age */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Age (Years)</label>
+              <input
+                type="number"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                placeholder="Years"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              />
+            </div>
+
+            {/* Date of Birth */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Date of Birth</label>
+              <input
+                type="date"
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+                min="1900-01-01"
+                max={new Date().toISOString().split('T')[0]}
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              />
+            </div>
+
+            {/* Village */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Village *</label>
+              <input
+                type="text"
+                value={village}
+                onChange={(e) => setVillage(e.target.value)}
+                placeholder="Village"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                required
+              />
+            </div>
+
+            {/* Location */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Location *</label>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Location"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                required
+              />
+            </div>
+
+            {/* Ward */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Ward *</label>
+              <input
+                type="text"
+                value={ward}
+                onChange={(e) => setWard(e.target.value)}
+                placeholder="Ward"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                required
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter valid email address (e.g., name@domain.com)"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              />
+            </div>
+
+            {/* Nearest School */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Nearest School</label>
+              <input
+                type="text"
+                value={nearestSchool}
+                onChange={(e) => setNearestSchool(e.target.value)}
+                placeholder="Nearest School"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              />
+            </div>
+
+            {/* Is Incoming Referral? */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Is Incoming Referral?</label>
+              <select
+                value={isIncomingReferral}
+                onChange={(e) => setIsIncomingReferral(e.target.value)}
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+              >
+                <option value="">Select</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Responsible Person / Next Of Kin */}
+          <div className="border-t border-slate-800/80 pt-4 mt-2">
+            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-3">Responsible Person / Next Of Kin</h3>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Full Name *</label>
+                <input
+                  type="text"
+                  value={nokName}
+                  onChange={(e) => setNokName(e.target.value)}
+                  placeholder="Next Of Kin Name"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Mobile Number *</label>
+                <input
+                  type="text"
+                  value={nokPhone}
+                  onChange={(e) => setNokPhone(e.target.value)}
+                  placeholder="Next Of Kin Mobile Number"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Relationship *</label>
+                <select
+                  value={nokRelation}
+                  onChange={(e) => setNokRelation(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                  required
+                >
+                  <option value="">-- Select Relationship --</option>
+                  <option value="spouse">Spouse</option>
+                  <option value="parent">Parent</option>
+                  <option value="sibling">Sibling</option>
+                  <option value="child">Child</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Service Details */}
+          <div className="border-t border-slate-800/80 pt-4 mt-2">
+            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-3">Service Details</h3>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Select Service Point</label>
+                <select
+                  value={servicePoint}
+                  onChange={(e) => setServicePoint(e.target.value)}
+                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                >
+                  <option value="">Select Service Point</option>
+                  <option value="OPD">OPD</option>
+                  <option value="LAB">Laboratory</option>
+                  <option value="PHA">Pharmacy</option>
+                  <option value="IPD">Inpatient</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Service Room</label>
+                <input
+                  type="text"
+                  value={serviceRoom}
+                  onChange={(e) => setServiceRoom(e.target.value)}
+                  placeholder="Service Room"
+                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Service Provider</label>
+                <input
+                  type="text"
+                  value={serviceProvider}
+                  onChange={(e) => setServiceProvider(e.target.value)}
+                  placeholder="Service Provider"
+                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Select Specialist</label>
+                <select
+                  value={specialist}
+                  onChange={(e) => setSpecialist(e.target.value)}
+                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                >
+                  <option value="">Select Specialist</option>
+                  <option value="general">General</option>
+                  <option value="pediatrician">Pediatrician</option>
+                  <option value="gp">General Practitioner</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Payments */}
+          <div className="border-t border-slate-800/80 pt-4 mt-2">
+            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-3">Payments</h3>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Payments *</label>
+                <select
+                  value={payments}
+                  onChange={(e) => setPayments(e.target.value)}
+                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                  required
+                >
+                  <option value="">Preferred Payment Option</option>
+                  <option value="cash">Cash</option>
+                  <option value="insurance">Insurance</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Service Point Fee *</label>
+                <select
+                  multiple
+                  value={servicePointFee}
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.selectedOptions, option => option.value);
+                    setServicePointFee(selected);
+                  }}
+                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
+                  required
+                >
+                  <option value="consultation_cash">CONSULTATION FEE - CASH - 500.00</option>
+                  <option value="consultation_insurance">CONSULTATION FEE - INSURANCE - 1000.00</option>
+                  <option value="doctors_cash">DOCTORS FEE(MO) - CASH - 500.00</option>
+                  <option value="doctors_insurance">DOCTORS FEE(MO) - INSURANCE - 500.00</option>
+                  <option value="review_cash">REVIEW - CASH - 0.00</option>
+                  <option value="review_insurance">REVIEW - INSURANCE - 0.00</option>
+                  <option value="aon_cash">AON MINET CONSULTATION FEE - CASH - 0.00</option>
+                  <option value="aon_insurance">AON MINET CONSULTATION FEE - INSURANCE - 1000.00</option>
+                  <option value="maternity_cash">MATERNITY - CASH - 0.00</option>
+                  <option value="maternity_insurance">MATERNITY - INSURANCE - 0.00</option>
+                  <option value="hemodialysis_cash">HEMODIALYSIS - CASH - 10650.00</option>
+                  <option value="hemodialysis_insurance">HEMODIALYSIS - INSURANCE - 10650.00</option>
+                  <option value="photocopy_cash">PHOTOCOPY - CASH - 10.00</option>
+                  <option value="photocopy_insurance">PHOTOCOPY - INSURANCE - 10.00</option>
+                </select>
+                <p className="text-[10px] text-slate-500 mt-1">Press Ctrl and click to select multiple options</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Preview / Captured Actions */}
+          <div className="border-t border-slate-800/80 pt-4 mt-2 flex items-center gap-3">
+            <button
+              type="button"
+              className="text-[11px] font-bold px-4 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition"
+            >
+              Preview
+            </button>
+            <button
+              type="button"
+              className="text-[11px] font-bold px-4 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition"
+            >
+              Captured
+            </button>
+          </div>
+:border-teal-500 transition"
               />
             </div>
 

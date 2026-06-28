@@ -671,7 +671,7 @@ export default function Registration({
   };
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[minmax(360px,0.88fr)_minmax(620px,1.12fr)] gap-6 2xl:gap-8 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-[minmax(320px,0.9fr)_minmax(620px,1.4fr)_minmax(320px,0.7fr)] gap-4 lg:gap-6 2xl:gap-8 items-start">
       {/* Left Column: Search & Quick Actions / Patients in Wards */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 2xl:p-6 shadow-sm space-y-6 h-fit min-w-0">
         <div className="flex border-b border-slate-800 pb-2 gap-4">
@@ -1013,8 +1013,8 @@ export default function Registration({
         )}
       </div>
 
-      {/* Right Column: Register New Patient Form */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 2xl:p-6 shadow-sm space-y-6 min-w-0">
+      {/* Middle Column: Register New Patient Form */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 lg:p-5 2xl:p-6 shadow-sm space-y-6 min-w-0">
         <div>
           <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
             <UserPlus size={18} className="text-teal-400" /> Patient
@@ -1837,6 +1837,50 @@ export default function Registration({
             {loading ? "Registering Patient..." : "Register Patient"}
           </button>
         </form>
+      </div>
+
+      {/* Right Column: Reception Monitor - Admissions & Quick Actions */}
+      <div className="hidden lg:block bg-slate-900 border border-slate-800 rounded-2xl p-4 lg:p-5 2xl:p-6 shadow-sm space-y-6 min-w-0">
+        <div>
+          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+            <Activity size={16} className="text-teal-400" /> Reception Monitor
+          </h3>
+          <p className="text-xs text-slate-400 mt-1">Admissions, recent activity and quick actions</p>
+        </div>
+
+        <div>
+          <h4 className="text-2xs uppercase text-slate-500 font-bold tracking-wider mb-2">Current Admissions</h4>
+          {loadingAdmissions ? (
+            <div className="py-6 text-center text-slate-500 text-xs">
+              Loading admissions...
+            </div>
+          ) : admissions.length === 0 ? (
+            <div className="border border-dashed border-slate-800 rounded-lg p-4 text-center text-slate-500 text-xs">
+              No current admissions
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {admissions.map((adm) => (
+                <div key={adm.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-200 text-sm truncate">{adm.patient?.name || 'Unknown'}</div>
+                    <div className="text-2xs text-slate-400">{adm.ward_name} • {adm.bed_number}</div>
+                  </div>
+                  <div className="text-2xs text-slate-400 font-mono">{new Date(adm.admission_datetime).toLocaleString()}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <h4 className="text-2xs uppercase text-slate-500 font-bold tracking-wider mb-2">Quick Actions</h4>
+          <div className="grid grid-cols-1 gap-2">
+            <button onClick={() => fetchAdmissions()} className="text-sm text-teal-400 bg-slate-950/30 border border-slate-800 px-3 py-2 rounded-lg text-left">Refresh Admissions</button>
+            <button onClick={() => setActiveTab('search')} className="text-sm text-slate-100 bg-teal-500 hover:bg-teal-600 px-3 py-2 rounded-lg">Go to Search</button>
+            <button onClick={() => setActiveTab('wards')} className="text-sm text-slate-100 bg-amber-500 hover:bg-amber-600 px-3 py-2 rounded-lg">View Wards</button>
+          </div>
+        </div>
       </div>
     </div>
   );

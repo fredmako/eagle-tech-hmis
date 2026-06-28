@@ -707,6 +707,7 @@ export default function App() {
         onNavigateToDashboard={() => setPublicView("dashboard")}
         onNavigateToSuperAdminDashboard={() => setPublicView("super_admin_dashboard")}
         onSwitchFacility={handleSwitchFacility}
+        onSignOut={handleSignOut}
         theme={themeMode}
         onToggleTheme={toggleLightDark}
       />

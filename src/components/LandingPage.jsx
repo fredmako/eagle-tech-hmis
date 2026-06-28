@@ -35,6 +35,7 @@ export default function LandingPage({
   onNavigateToDashboard,
   onNavigateToSuperAdminDashboard,
   onSwitchFacility,
+  onSignOut,
   theme,
   onToggleTheme,
 }) {
@@ -625,13 +626,21 @@ Bot reply: ${lastBot?.text || ""}`,
                   )}
                 </div>
               ) : (
-                <button
-                  onClick={onNavigateToDashboard}
-                  className="text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg transition-all duration-medium active:scale-[0.97] cursor-pointer flex items-center gap-1.5"
-                >
-                  <LayoutDashboard size={14} />
-                  <span>Go to Dashboard</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={onNavigateToDashboard}
+                    className="text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg transition-all duration-medium active:scale-[0.97] cursor-pointer flex items-center gap-1.5"
+                  >
+                    <LayoutDashboard size={14} />
+                    <span>Go to Dashboard</span>
+                  </button>
+                  <button
+                    onClick={onSignOut}
+                    className="text-sm font-semibold text-fg-muted hover:text-fg-strong transition-colors px-3 py-1.5 rounded-lg"
+                  >
+                    Log Out
+                  </button>
+                </div>
               )
             ) : (
               <>
@@ -780,16 +789,27 @@ Bot reply: ${lastBot?.text || ""}`,
                       )}
                     </div>
                   ) : (
-                    <button
-                      onClick={() => {
-                        onNavigateToDashboard();
-                        setMobileOpen(false);
-                      }}
-                      className="font-bold bg-primary text-primary-foreground px-4 py-2 rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <LayoutDashboard size={14} />
-                      <span>Go to Dashboard</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          onNavigateToDashboard();
+                          setMobileOpen(false);
+                        }}
+                        className="font-bold bg-primary text-primary-foreground px-4 py-2 rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <LayoutDashboard size={14} />
+                        <span>Go to Dashboard</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (onSignOut) onSignOut();
+                          setMobileOpen(false);
+                        }}
+                        className="text-left text-fg-muted hover:text-fg-strong cursor-pointer"
+                      >
+                        Log Out
+                      </button>
+                    </div>
                   )
                 ) : (
                   <>

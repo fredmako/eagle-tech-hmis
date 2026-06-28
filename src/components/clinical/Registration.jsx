@@ -221,6 +221,7 @@ export default function Registration({
   const [timelineData, setTimelineData] = useState([]);
   const [loadingTimeline, setLoadingTimeline] = useState(false);
   const [expandedTimelinePtId, setExpandedTimelinePtId] = useState(null);
+  const [selectedReceptionPatientId, setSelectedReceptionPatientId] = useState(null);
 
   const loadPatientTimeline = async (ptId) => {
     setLoadingTimeline(true);
@@ -703,12 +704,10 @@ export default function Registration({
           <>
             <div>
               <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                <Search size={18} className="text-teal-400" /> Search Existing
-                Patient
+                <Search size={18} className="text-teal-400" /> Search Existing Patient
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Lookup patient records by Name, National ID, or Facility Patient
-                Number.
+                Lookup patient records by Name, National ID, or Facility Patient Number.
               </p>
             </div>
 
@@ -908,7 +907,7 @@ export default function Registration({
                                 {timelineData.map((evt) => (
                                   <div key={evt.id} className="relative group">
                                     <div
-                                      className={`absolute -left-[20.5px] top-1.5 h-2.5 w-2.5 rounded-full border border-slate-950 ${
+                                      className={`absolute left-[-20.5px] top-1.5 h-2.5 w-2.5 rounded-full border border-slate-950 ${
                                         evt.type === "visit"
                                           ? "bg-teal-400"
                                           : evt.type === "triage"
@@ -1068,7 +1067,7 @@ export default function Registration({
                   <option value="EMR">Emergency/Triage</option>
                 </select>
               </div>
-              <div className="flex items-center min-h-[42px]">
+              <div className="flex items-center min-h-10.5">
                 <label className="flex items-start gap-2 text-xs font-bold text-slate-400 cursor-pointer select-none hover:text-white transition leading-snug">
                   <input
                     type="checkbox"
@@ -1861,7 +1860,16 @@ export default function Registration({
           ) : (
             <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
               {admissions.map((adm) => (
-                <div key={adm.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+                <div
+                  key={adm.id}
+                  onClick={() => {
+                    const pid = adm.patient?.id;
+                    if (pid) {
+                      setSelectedReceptionPatientId(pid);
+                      loadPatientTimeline(pid);
+                    }
+                  }}
+                  className={`bg-slate-950 border rounded-xl p-3 flex items-center justify-between cursor-pointer transition ${selectedReceptionPatientId === (adm.patient?.id) ? 'border-teal-400/60 ring-1 ring-teal-400/10' : 'border-slate-800'}`}>
                   <div className="min-w-0">
                     <div className="font-bold text-slate-200 text-sm truncate">{adm.patient?.name || 'Unknown'}</div>
                     <div className="text-2xs text-slate-400">{adm.ward_name} • {adm.bed_number}</div>
@@ -1881,6 +1889,27 @@ export default function Registration({
             <button onClick={() => setActiveTab('wards')} className="text-sm text-slate-100 bg-amber-500 hover:bg-amber-600 px-3 py-2 rounded-lg">View Wards</button>
           </div>
         </div>
+
+        {selectedReceptionPatientId && (
+          <div>
+            <h4 className="text-2xs uppercase text-slate-500 font-bold tracking-wider mb-2">Selected Patient Timeline</h4>
+            {loadingTimeline ? (
+              <div className="py-3 text-center text-slate-500 text-xs">Loading timeline...</div>
+            ) : timelineData.length === 0 ? (
+              <div className="border border-dashed border-slate-800 rounded-lg p-3 text-xs text-slate-500">No records for selected patient.</div>
+            ) : (
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {timelineData.map((evt) => (
+                  <div key={evt.id} className="bg-slate-950 border border-slate-800 rounded-lg p-2">
+                    <div className="text-2xs text-slate-400 font-mono">{new Date(evt.date).toLocaleString()}</div>
+                    <div className="text-xs font-bold text-slate-200">{evt.title}</div>
+                    <div className="text-2xs text-slate-400">{evt.desc}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

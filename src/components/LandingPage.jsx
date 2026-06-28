@@ -112,6 +112,9 @@ export default function LandingPage({
     { sender: 'bot', text: 'Hello! I am EagleBot, your virtual HMIS assistant. Ask me anything about our subscription packages, hospital setup, pharmacy configuration, or laboratory serial/COM port syncing!' }
   ]);
   const [chatTyping, setChatTyping] = useState(false);
+  const [chatSessionId, setChatSessionId] = useState(() => `public_chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+  const [chatEscalation, setChatEscalation] = useState(null);
+  const Date = globalThis.Date;
 
   const faqs = [
     {
@@ -263,16 +266,19 @@ export default function LandingPage({
   const handleChatSend = async (text) => {
     if (!text.trim()) return;
 
-    setChatMessages(prev => [...prev, { sender: 'user', text: text.trim() }]);
+    const normalized = text.trim();
+    setChatMessages(prev => [...prev, { sender: 'user', text: normalized }]);
     setChatInput('');
     setChatTyping(true);
+    setChatEscalation(null);
 
     try {
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const history = chatMessages.slice(-14);
       const res = await fetch(`${apiBase}/ai-chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text.trim() })
+        body: JSON.stringify({ message: normalized, sessionId: chatSessionId, history })
       });
 
       if (!res.ok) {
@@ -282,11 +288,42 @@ export default function LandingPage({
 
       const data = await res.json();
       const reply = data.response || data.error || 'I received an empty response from the assistant.';
+      if (data.sessionId) setChatSessionId(data.sessionId);
       setChatMessages(prev => [...prev, { sender: 'bot', text: reply }]);
+
+      const lowConfidence = /not sure|cannot answer|unable to|don't have that information|please contact support|submit a support ticket/i.test(reply || '');
+      if (lowConfidence) setChatEscalation(normalized);
     } catch (err) {
-      setChatMessages(prev => [...prev, { sender: 'bot', text: 'Sorry, I am having trouble connecting right now. Please try again later or submit a support ticket below.' }]);
+      setChatMessages(prev => [...prev, { sender: 'bot', text: 'Sorry, I am having trouble connecting right now. Please try again later or submit a support ticket.' }]);
+      setChatEscalation(normalized);
     } finally {
       setChatTyping(false);
+    }
+  };
+
+  const handleChatCreateTicket = async () => {
+    if (!chatEscalation) return;
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const lastBot = [...chatMessages].reverse().find(m => m.sender === 'bot');
+      const res = await fetch(`${apiBase}/support-chat-ticket`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: chatEscalation.slice(0, 80),
+          description: `${chatEscalation}
+
+Bot reply: ${lastBot?.text || ''}`,
+          contact_email: '',
+          facility_id: null,
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Ticket creation failed');
+      setChatMessages(prev => [...prev, { sender: 'bot', text: 'I've created a support ticket for you. Our team will follow up shortly.' }]);
+      setChatEscalation(null);
+    } catch (err) {
+      setChatMessages(prev => [...prev, { sender: 'bot', text: 'I couldn't submit the support ticket just now. Please use the support form instead.' }]);
     }
   };
 

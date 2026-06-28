@@ -46,6 +46,8 @@ app.use("/api", aiChatRouter);
 app.use("/api", aiReportRouter);
 const aiNotifyRouter = require("./routes/ai-notify");
 app.use("/api", aiNotifyRouter);
+const supportChatRouter = require("./routes/support-chat");
+app.use("/api", supportChatRouter);
 
 const { runMigrations } = require("./utils/migrationRunner");
 

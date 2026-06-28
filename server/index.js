@@ -44,6 +44,8 @@ app.use("/api/attendance", attendanceRouter);
 app.use("/api", aiDiagnosisRouter);
 app.use("/api", aiChatRouter);
 app.use("/api", aiReportRouter);
+const aiNotifyRouter = require("./routes/ai-notify");
+app.use("/api", aiNotifyRouter);
 
 const { runMigrations } = require("./utils/migrationRunner");
 

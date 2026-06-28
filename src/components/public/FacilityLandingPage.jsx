@@ -1922,6 +1922,16 @@ Bot reply: ${lastBot?.text || ''}`,
                   </div>
                 </div>
               )}
+              {chatEscalation && (
+                <div className="px-1">
+                  <button
+                    type="button"
+                    onClick={handleChatCreateTicket}                    className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition"
+                  >
+                    Create support ticket from this chat
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Input Form */}

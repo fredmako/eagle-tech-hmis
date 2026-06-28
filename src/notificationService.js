@@ -1,5 +1,31 @@
 import { supabase } from './supabaseClient';
 
+const AI_NOTIFY_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/ai-notify`
+  : 'http://localhost:5000/api/ai-notify';
+
+const enhanceNotificationWithAI = async ({ event, payload, facilityName, contextSummary }) => {
+  try {
+    const res = await fetch(AI_NOTIFY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, payload, facilityName, contextSummary })
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.success) return null;
+    return {
+      subject: data.subject || null,
+      body: data.body || null,
+      priority: data.priority || null,
+      summary: data.summary || null
+    };
+  } catch (err) {
+    console.warn('[NotificationService] AI notification enhancement failed:', err.message);
+    return null;
+  }
+};
+
 // Key for storage
 const EMAIL_LOGS_KEY = 'egesa_email_logs';
 const SMTP_CONFIG_PREFIX = 'egesa_smtp_config_';
@@ -562,7 +588,24 @@ export const sendNotification = async (event, payload, facilityId = null) => {
   }
 
   // 6. Generate subject/body/sender from templates
-  const { subject, body, senderPrefix } = resolveTemplate(event, payload, branding, finalFacId);
+  let { subject, body, senderPrefix } = resolveTemplate(event, payload, branding, finalFacId);
+
+  // 6a. Optionally enhance with AI when available
+  try {
+    const aiEnhancement = await enhanceNotificationWithAI({
+      event,
+      payload,
+      facilityName: branding.facilityName,
+      contextSummary: payload.aiContextSummary || null
+    });
+    if (aiEnhancement) {
+      if (aiEnhancement.subject) subject = aiEnhancement.subject;
+      if (aiEnhancement.body) body = aiEnhancement.body;
+    }
+  } catch (err) {
+    console.warn('[NotificationService] AI enhancement skipped:', err.message);
+  }
+
   const smtpDomain = smtp.sender_email && smtp.sender_email.includes('@') 
     ? smtp.sender_email.split('@')[1] 
     : 'eagletechsolutions.tech';

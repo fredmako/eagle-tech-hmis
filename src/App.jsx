@@ -159,6 +159,8 @@ export default function App() {
   const [adminSubTab, setAdminSubTab] = useState("overview");
   const [hrSubTab, setHrSubTab] = useState("directory");
   const [receptionSubTab, setReceptionSubTab] = useState("registration");
+  const [selectedReceptionSubItem, setSelectedReceptionSubItem] =
+    useState("new_patient");
   const [activeModules, setActiveModules] = useState({});
   const [showTour, setShowTour] = useState(false);
 
@@ -202,7 +204,8 @@ export default function App() {
     if (itemId === "maternity") return maternitySubTab === subId;
     if (itemId === "admin") return adminSubTab === subId;
     if (itemId === "hr") return hrSubTab === subId;
-    if (itemId === "reception") return receptionSubTab === subId;
+    if (itemId === "reception")
+      return selectedReceptionSubItem === subId || receptionSubTab === subId;
     return false;
   };
 
@@ -264,6 +267,7 @@ export default function App() {
       const route = mapReceptionSubItemToRoute(subId);
       setActiveTab(route.tab);
       if (route.subTab) setReceptionSubTab(route.subTab);
+      setSelectedReceptionSubItem(subId);
       return;
     }
 
@@ -277,10 +281,23 @@ export default function App() {
   };
 
   const handleNavigate = (tabId, subId = null) => {
+    const directReceptionSubtab = ["registration", "triage", "queue"];
+    if (directReceptionSubtab.includes(tabId)) {
+      setActiveTab("reception");
+      setReceptionSubTab(tabId);
+      if (tabId === "queue") {
+        setSelectedReceptionSubItem("manage_queue");
+      } else {
+        setSelectedReceptionSubItem(null);
+      }
+      return;
+    }
+
     if (tabId === "reception" && subId) {
       const route = mapReceptionSubItemToRoute(subId);
       setActiveTab(route.tab);
       if (route.subTab) setReceptionSubTab(route.subTab);
+      setSelectedReceptionSubItem(subId);
       return;
     }
 
@@ -292,7 +309,6 @@ export default function App() {
     if (tabId === "maternity") setMaternitySubTab(subId);
     if (tabId === "admin") setAdminSubTab(subId);
     if (tabId === "hr") setHrSubTab(subId);
-    if (tabId === "reception") setReceptionSubTab(subId);
   };
 
   const [preselectedPatient, setPreselectedPatient] = useState(null);
@@ -369,6 +385,7 @@ export default function App() {
   );
   const [menuSearch, setMenuSearch] = useState("");
   const [activeCategoryDropdown, setActiveCategoryDropdown] = useState(null);
+  const [openModuleDropdown, setOpenModuleDropdown] = useState(null);
   const [adminDelegation, setAdminDelegation] = useState({});
 
   useEffect(() => {
@@ -715,7 +732,9 @@ export default function App() {
   };
   const handleNavigateToQueue = (patient) => {
     setPreselectedPatient(patient);
-    setActiveTab("queue");
+    setActiveTab("reception");
+    setReceptionSubTab("queue");
+    setSelectedReceptionSubItem("manage_queue");
   };
   const clearPreselected = () => setPreselectedPatient(null);
 
@@ -991,50 +1010,132 @@ export default function App() {
         "sha",
       ],
       subItems: [
-        { id: "new_patient", label: "New Patient" },
-        { id: "update_patient", label: "Update Patient" },
-        { id: "patient_insurance", label: "Patient Insurance" },
-        { id: "patients_in_wards", label: "Patients in Wards" },
-        { id: "sha_registrations", label: "SHA Registrations" },
-        { id: "eligibility_sha", label: "SHA Eligibility" },
-        { id: "eligibility_patients", label: "Patient Eligibility" },
-        { id: "triage", label: "Triage" },
-        { id: "checkin_patient", label: "Checkin Patient" },
-        { id: "checkin_dependant", label: "Checkin Dependant" },
-        { id: "sha_checkins", label: "SHA Checkins" },
-        { id: "reprint_ticket", label: "Reprint Ticket" },
-        { id: "manage_queue", label: "Manage Queue" },
-        { id: "send_sms", label: "Send SMS" },
-        { id: "send_email", label: "Send Email" },
-        { id: "sms_templates", label: "SMS Templates" },
-        { id: "patients_calendar", label: "Patients Calendar" },
-        { id: "doctors_calendar", label: "Doctors Calendar" },
-        { id: "schedule_appointments", label: "Schedule Appointments" },
-        { id: "appointment_reminders", label: "Appointment Reminders" },
-        { id: "referral", label: "Referral" },
-        { id: "sick_offs", label: "Sick Offs" },
-        { id: "surgeon", label: "Surgeon" },
-        { id: "radiology", label: "Radiology" },
-        { id: "anesthetist", label: "Anesthetist" },
+        {
+          id: "new_patient",
+          label: "New Patient",
+          group: "Patients",
+        },
+        {
+          id: "update_patient",
+          label: "Update Patient",
+          group: "Patients",
+        },
+        {
+          id: "patient_insurance",
+          label: "Patient Insurance",
+          group: "Patients",
+        },
+        {
+          id: "patients_in_wards",
+          label: "Patients in Wards",
+          group: "Patients",
+        },
+        {
+          id: "sha_registrations",
+          label: "SHA Registrations",
+          group: "Patients",
+        },
+        {
+          id: "eligibility_sha",
+          label: "SHA Eligibility",
+          group: "Patients",
+        },
+        {
+          id: "eligibility_patients",
+          label: "Patient Eligibility",
+          group: "Patients",
+        },
+        {
+          id: "triage",
+          label: "Triage",
+          group: "Checkins",
+        },
+        {
+          id: "checkin_patient",
+          label: "Checkin Patient",
+          group: "Checkins",
+        },
+        {
+          id: "checkin_dependant",
+          label: "Checkin Dependant",
+          group: "Checkins",
+        },
+        {
+          id: "sha_checkins",
+          label: "SHA Checkins",
+          group: "Checkins",
+        },
+        {
+          id: "reprint_ticket",
+          label: "Reprint Ticket",
+          group: "Checkins",
+        },
+        {
+          id: "manage_queue",
+          label: "Manage Queue",
+          group: "Checkins",
+        },
+        {
+          id: "send_sms",
+          label: "Send SMS",
+          group: "SMS & Email",
+        },
+        {
+          id: "send_email",
+          label: "Send Email",
+          group: "SMS & Email",
+        },
+        {
+          id: "sms_templates",
+          label: "SMS Templates",
+          group: "SMS & Email",
+        },
+        {
+          id: "patients_calendar",
+          label: "Patients Calendar",
+          group: "Appointments",
+        },
+        {
+          id: "doctors_calendar",
+          label: "Doctors Calendar",
+          group: "Appointments",
+        },
+        {
+          id: "schedule_appointments",
+          label: "Schedule Appointments",
+          group: "Appointments",
+        },
+        {
+          id: "appointment_reminders",
+          label: "Appointment Reminders",
+          group: "Appointments",
+        },
+        {
+          id: "referral",
+          label: "Referral",
+          group: "Hospital Forms",
+        },
+        {
+          id: "sick_offs",
+          label: "Sick Offs",
+          group: "Hospital Forms",
+        },
+        {
+          id: "surgeon",
+          label: "Surgeon",
+          group: "Hospital Forms",
+        },
+        {
+          id: "radiology",
+          label: "Radiology",
+          group: "Hospital Forms",
+        },
+        {
+          id: "anesthetist",
+          label: "Anesthetist",
+          group: "Hospital Forms",
+        },
       ],
-    },
-    {
-      id: "registration",
-      label: "Patient Registration",
-      icon: UserPlus,
-      roles: ["receptionist", "admin"],
-    },
-    {
-      id: "queue",
-      label: "Queue Management",
-      icon: Layers,
-      roles: ["receptionist", "nurse", "clinician", "admin"],
-    },
-    {
-      id: "triage",
-      label: "Triage Desk",
-      icon: Heart,
-      roles: ["nurse", "admin"],
     },
     {
       id: "consultation",
@@ -1294,7 +1395,7 @@ export default function App() {
       id: "patient_flow",
       label: "Patient Flow",
       icon: UserPlus,
-      items: ["reception", "registration", "queue", "triage", "consultation"],
+      items: ["reception", "consultation"],
     },
     {
       id: "medical_depts",
@@ -1614,35 +1715,153 @@ export default function App() {
                           className="absolute top-full left-0 pt-1.5 z-50"
                           onMouseEnter={() => setActiveCategoryDropdown(cat.id)}
                         >
-                          <div className="w-60 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-xl shadow-2xl p-1.5 flex flex-col gap-0.5">
+                          <div className="w-72 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl p-2 space-y-1">
                             {catItems.map((item) => {
                               const Icon = item.icon;
-                              const isActive = activeTab === item.id;
+                              const hasSub = item.subItems?.length > 0;
+                              const isActive =
+                                item.id === activeTab ||
+                                (hasSub &&
+                                  item.subItems.some((sub) =>
+                                    getSubActive(item.id, sub.id),
+                                  ));
+
                               return (
-                                <button
+                                <div
                                   key={item.id}
-                                  onClick={() => {
-                                    setActiveTab(item.id);
-                                    setActiveCategoryDropdown(null);
-                                  }}
-                                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-semibold text-left transition-all duration-150 cursor-pointer ${
-                                    isActive
-                                      ? "bg-teal-400 text-slate-955 font-bold"
-                                      : "text-slate-400 hover:bg-slate-800/80 hover:text-slate-100"
-                                  }`}
+                                  className="relative"
+                                  onMouseEnter={() =>
+                                    setOpenModuleDropdown(item.id)
+                                  }
+                                  onMouseLeave={() =>
+                                    setOpenModuleDropdown((current) =>
+                                      current === item.id ? null : current,
+                                    )
+                                  }
                                 >
-                                  <Icon
-                                    size={13}
-                                    className={
+                                  <button
+                                    onClick={() => {
+                                      setActiveTab(item.id);
+                                      setActiveCategoryDropdown(null);
+                                      setOpenModuleDropdown(null);
+                                    }}
+                                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-semibold text-left transition-all duration-150 cursor-pointer ${
                                       isActive
-                                        ? "text-slate-955"
-                                        : "text-slate-400"
-                                    }
-                                  />
-                                  <span className="flex-1 truncate">
-                                    {t(item.id) || item.label}
-                                  </span>
-                                </button>
+                                        ? "bg-teal-400 text-slate-955 font-bold"
+                                        : "text-slate-400 hover:bg-slate-800/80 hover:text-slate-100"
+                                    }`}
+                                  >
+                                    <Icon
+                                      size={13}
+                                      className={
+                                        isActive
+                                          ? "text-slate-955"
+                                          : "text-slate-400"
+                                      }
+                                    />
+                                    <span className="flex-1 truncate">
+                                      {t(item.id) || item.label}
+                                    </span>
+                                    {hasSub && (
+                                      <span className="text-[9px] opacity-70">
+                                        {openModuleDropdown === item.id
+                                          ? "▲"
+                                          : "▶"}
+                                      </span>
+                                    )}
+                                  </button>
+
+                                  {hasSub && openModuleDropdown === item.id && (
+                                    <div className="absolute top-0 left-full ml-1 w-72 bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl p-2">
+                                      {item.id === "reception"
+                                        ? Object.entries(
+                                            item.subItems.reduce(
+                                              (groups, sub) => {
+                                                const key =
+                                                  sub.group || "Other";
+                                                if (!groups[key])
+                                                  groups[key] = [];
+                                                groups[key].push(sub);
+                                                return groups;
+                                              },
+                                              {},
+                                            ),
+                                          ).map(([groupLabel, subs]) => (
+                                            <div
+                                              key={groupLabel}
+                                              className="space-y-2"
+                                            >
+                                              <div className="text-2xs uppercase tracking-[0.18em] text-slate-500 font-semibold px-1">
+                                                {groupLabel}
+                                              </div>
+                                              <div className="space-y-1">
+                                                {subs.map((sub) => {
+                                                  const isSubActive =
+                                                    getSubActive(
+                                                      item.id,
+                                                      sub.id,
+                                                    );
+                                                  return (
+                                                    <button
+                                                      key={sub.id}
+                                                      type="button"
+                                                      onClick={() => {
+                                                        handleSubClick(
+                                                          item.id,
+                                                          sub.id,
+                                                        );
+                                                        setActiveCategoryDropdown(
+                                                          null,
+                                                        );
+                                                        setOpenModuleDropdown(
+                                                          null,
+                                                        );
+                                                      }}
+                                                      className={`w-full text-left rounded-lg px-3 py-2 text-[11px] tracking-wide transition-all ${
+                                                        isSubActive
+                                                          ? "bg-teal-500/10 text-teal-400 font-semibold"
+                                                          : "text-slate-400 hover:bg-slate-800/70 hover:text-slate-100"
+                                                      }`}
+                                                    >
+                                                      {sub.label}
+                                                    </button>
+                                                  );
+                                                })}
+                                              </div>
+                                            </div>
+                                          ))
+                                        : item.subItems.map((sub) => {
+                                            const isSubActive = getSubActive(
+                                              item.id,
+                                              sub.id,
+                                            );
+                                            return (
+                                              <button
+                                                key={sub.id}
+                                                type="button"
+                                                onClick={() => {
+                                                  handleSubClick(
+                                                    item.id,
+                                                    sub.id,
+                                                  );
+                                                  setActiveCategoryDropdown(
+                                                    null,
+                                                  );
+                                                  setOpenModuleDropdown(null);
+                                                }}
+                                                className={`w-full text-left rounded-lg px-3 py-2 text-[11px] tracking-wide transition-all ${
+                                                  isSubActive
+                                                    ? "bg-teal-500/10 text-teal-400 font-semibold"
+                                                    : "text-slate-400 hover:bg-slate-800/70 hover:text-slate-100"
+                                                }`}
+                                              >
+                                                {sub.label}
+                                              </button>
+                                            );
+                                          })}
+                                    </div>
+                                  )}
+                                </div>
                               );
                             })}
                           </div>
@@ -1874,7 +2093,15 @@ export default function App() {
                   <div className="space-y-1">
                     {catItems.map((item) => {
                       const Icon = item.icon;
-                      const isActive = activeTab === item.id;
+                      const isActive =
+                        item.id === "reception"
+                          ? [
+                              "reception",
+                              "registration",
+                              "queue",
+                              "triage",
+                            ].includes(activeTab)
+                          : activeTab === item.id;
                       const hasSub = item.subItems && item.subItems.length > 0;
                       return (
                         <div key={item.id} className="space-y-1">
@@ -1908,32 +2135,75 @@ export default function App() {
 
                           {isActive && hasSub && (
                             <div className="ml-5 border-l border-slate-800 pl-3.5 py-1 space-y-1 text-left">
-                              {item.subItems.map((sub) => {
-                                const isSubActive = getSubActive(
-                                  item.id,
-                                  sub.id,
-                                );
-                                return (
-                                  <button
-                                    key={sub.id}
-                                    type="button"
-                                    onClick={() => {
-                                      handleSubClick(item.id, sub.id);
-                                      setIsSidebarOpen(false);
-                                    }}
-                                    className={`w-full text-left block py-1.5 px-2 rounded text-[11px] font-bold tracking-wide transition-all cursor-pointer ${
-                                      isSubActive
-                                        ? "text-teal-400 font-extrabold bg-teal-500/5 shadow-inner"
-                                        : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/30"
-                                    }`}
-                                  >
-                                    <span className="mr-1.5 text-[8px] text-teal-500/60">
-                                      ✳
-                                    </span>
-                                    {sub.label}
-                                  </button>
-                                );
-                              })}
+                              {item.id === "reception"
+                                ? Object.entries(
+                                    item.subItems.reduce((groups, sub) => {
+                                      const key = sub.group || "Other";
+                                      if (!groups[key]) groups[key] = [];
+                                      groups[key].push(sub);
+                                      return groups;
+                                    }, {}),
+                                  ).map(([groupLabel, subs]) => (
+                                    <div key={groupLabel} className="space-y-2">
+                                      <div className="text-2xs uppercase tracking-[0.18em] text-slate-500 font-semibold px-2">
+                                        {groupLabel}
+                                      </div>
+                                      <div className="space-y-1">
+                                        {subs.map((sub) => {
+                                          const isSubActive = getSubActive(
+                                            item.id,
+                                            sub.id,
+                                          );
+                                          return (
+                                            <button
+                                              key={sub.id}
+                                              type="button"
+                                              onClick={() => {
+                                                handleSubClick(item.id, sub.id);
+                                                setIsSidebarOpen(false);
+                                              }}
+                                              className={`w-full text-left block py-1.5 px-2 rounded text-[11px] font-bold tracking-wide transition-all cursor-pointer ${
+                                                isSubActive
+                                                  ? "text-teal-400 font-extrabold bg-teal-500/5 shadow-inner"
+                                                  : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/30"
+                                              }`}
+                                            >
+                                              <span className="mr-1.5 text-[8px] text-teal-500/60">
+                                                ✳
+                                              </span>
+                                              {sub.label}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  ))
+                                : item.subItems.map((sub) => {
+                                    const isSubActive = getSubActive(
+                                      item.id,
+                                      sub.id,
+                                    );
+                                    return (
+                                      <button
+                                        key={sub.id}
+                                        type="button"
+                                        onClick={() => {
+                                          handleSubClick(item.id, sub.id);
+                                          setIsSidebarOpen(false);
+                                        }}
+                                        className={`w-full text-left block py-1.5 px-2 rounded text-[11px] font-bold tracking-wide transition-all cursor-pointer ${
+                                          isSubActive
+                                            ? "text-teal-400 font-extrabold bg-teal-500/5 shadow-inner"
+                                            : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/30"
+                                        }`}
+                                      >
+                                        <span className="mr-1.5 text-[8px] text-teal-500/60">
+                                          ✳
+                                        </span>
+                                        {sub.label}
+                                      </button>
+                                    );
+                                  })}
                             </div>
                           )}
                         </div>
@@ -2093,15 +2363,10 @@ export default function App() {
                   {activeTab === "dashboard" && (
                     <Dashboard user={user} onNavigate={handleNavigate} />
                   )}
-                  {(activeTab === "registration" ||
-                    activeTab === "triage" ||
-                    activeTab === "queue" ||
-                    activeTab === "reception") && (
+                  {activeTab === "reception" && (
                     <Reception
                       user={user}
-                      initialSubTab={
-                        activeTab === "reception" ? receptionSubTab : activeTab
-                      }
+                      initialSubTab={receptionSubTab}
                       handleNavigate={(tab, subId) => {
                         if (tab === "reception" && subId) {
                           const route = mapReceptionSubItemToRoute(subId);

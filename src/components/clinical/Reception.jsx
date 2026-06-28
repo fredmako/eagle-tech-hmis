@@ -84,10 +84,7 @@ export default function Reception({
       )}
 
       {subTab === "queue" && (
-        <Queue
-          user={user}
-          preselectedPatient={preselectedPatient}
-        />
+        <Queue user={user} preselectedPatient={preselectedPatient} />
       )}
     </div>
   );

@@ -1218,7 +1218,8 @@ export default function Reports({ user }) {
       await sendNotification('REPORT_GENERATED', {
         details: `Custom ${reportCategory.toUpperCase()} report generated via serverless Supabase Function context (${brandingMode.toUpperCase()} branding).`,
         userName: user.full_name,
-        recipientEmail: brandingMode === 'platform' ? 'info@eagletechsolutions.tech' : `info@${facilityInfo.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
+        recipientEmail: brandingMode === 'platform' ? 'info@eagletechsolutions.tech' : `info@${facilityInfo.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+        aiContextSummary: `Report ${reportCategory} generated for ${user.full_name} covering ${startDate} to ${endDate}.`
       }, user.facility_id);
 
       setGenSuccess(true);

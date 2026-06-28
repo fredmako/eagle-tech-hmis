@@ -863,6 +863,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
             batches: dispenseMeta.dispensed_batch,
             pharmacist: user.full_name,
             recipientEmail: "patient@eagletechsolutions.tech",
+            aiContextSummary: `Prescription dispensed at pharmacy for ${selectedVisit?.patient?.name || 'patient'}: ${drugName} qty ${dispenseMeta.dispensed_qty} by ${user.full_name}.`
           },
           user.facility_id,
         );

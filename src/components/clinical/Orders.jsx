@@ -1215,7 +1215,8 @@ export default function Orders({ user, onComplete, showNotification }) {
           testName: activeOrder?.item_name || 'Lab Test',
           findings: meta.values,
           verifier: meta.verifier || user.full_name,
-          recipientEmail: 'clinician@eagletechsolutions.tech'
+          recipientEmail: 'clinician@eagletechsolutions.tech',
+          aiContextSummary: `Lab results released for ${selectedVisit?.patient?.name || 'patient'}: ${activeOrder?.item_name || 'test'} verified by ${user.full_name}. Findings: ${meta.values}`
         }, user.facility_id);
       } catch (e) {
         console.error('Lab result email trigger failed:', e);

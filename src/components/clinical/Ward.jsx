@@ -1164,7 +1164,8 @@ export default function Ward({ user, showNotification }) {
             bedName: selectedAdmission.bed,
             dischargedBy: user.full_name,
             dischargeNotes: dischargeNotes,
-            recipientEmail: contactInfo.email
+            recipientEmail: contactInfo.email,
+            aiContextSummary: `Patient ${selectedAdmission.patient?.name} discharged from bed ${selectedAdmission.bed} by ${user.full_name}. Notes: ${dischargeNotes}`
           }, user.facility_id);
         }
       } catch (e) {

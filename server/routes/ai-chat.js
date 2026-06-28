@@ -42,28 +42,11 @@ router.post("/ai-chat", async (req, res) => {
       { role: "user", content: trimmed },
     ];
 
-    // First try the droplet's direct chat endpoint if it behaves well.
-    let aiRes;
-    try {
-      aiRes = await axios.post(
-        `${AI_DIAGNOSIS_URL}/chat`,
-        { message: trimmed, history: messages },
-        { timeout: 120_000 }
-      );
-    } catch (chatErr) {
-      // Fallback: use the droplet's general task generator with a chat-oriented prompt.
-      aiRes = await axios.post(
-        `${AI_DIAGNOSIS_URL}/report`,
-        {
-          mode: "adhoc",
-          prompt: `${CHAT_SYSTEM_PROMPT}\n\nConversation so far:\n${priorHistory
-            .slice(-6)
-            .map((m) => `${m.sender}: ${m.text}`)
-            .join("\n")}\n\nUser: ${trimmed}\n\nReply as EagleBot.`,
-        },
-        { timeout: 180_000 }
-      );
-    }
+    const aiRes = await axios.post(
+      `${AI_DIAGNOSIS_URL}/chat`,
+      { message: trimmed, history: messages },
+      { timeout: 180_000 }
+    );
 
     const body = aiRes.data || {};
     const reply =

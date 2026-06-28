@@ -116,6 +116,49 @@ export default function Consultation({ user, onComplete, showNotification }) {
   // Medical instrument binding
   const [boundInstrumentId, setBoundInstrumentId] = useState('');
 
+  // AI Diagnosis states
+  const [aiDiagnosisResult, setAiDiagnosisResult] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+
+  const handleAiDiagnose = async () => {
+    const symptoms = (history + ' ' + exam).trim();
+    if (!symptoms) {
+      setAiError('Please describe the patient symptoms or history first.');
+      setAiDiagnosisResult(null);
+      return;
+    }
+
+    setAiLoading(true);
+    setAiError('');
+    setAiDiagnosisResult(null);
+
+    try {
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiBase}/ai-diagnose`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ symptoms })
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `AI diagnosis request failed with status ${res.status}`);
+      }
+
+      const data = await res.json();
+      setAiDiagnosisResult(data);
+    } catch (err) {
+      setAiError(err.message || 'Failed to run AI diagnosis.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchContraceptiveMethods();
   }, []);
@@ -2356,6 +2399,42 @@ export default function Consultation({ user, onComplete, showNotification }) {
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 placeholder:text-slate-750 focus:outline-none focus:border-teal-500 transition"
                   />
                 </div>
+              </div>
+
+              {/* AI Diagnosis Assistant */}
+              <div className="mt-4 p-4 rounded-xl border border-slate-800 bg-slate-950/60">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-[10px] text-teal-400 font-bold uppercase tracking-wider">AI Diagnosis Assistant</h4>
+                  <button
+                    type="button"
+                    onClick={handleAiDiagnose}
+                    disabled={aiLoading}
+                    className="text-[10px] font-bold px-3 py-1.5 rounded-lg bg-teal-500 text-slate-950 hover:bg-teal-400 disabled:opacity-50 transition"
+                  >
+                    {aiLoading ? 'Analyzing...' : 'AI Suggest Diagnosis'}
+                  </button>
+                </div>
+
+                {aiError && (
+                  <div className="text-[11px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-2.5">
+                    {aiError}
+                  </div>
+                )}
+
+                {aiDiagnosisResult && (
+                  <div className="mt-3 space-y-2">
+                    {aiDiagnosisResult.diagnosis && (
+                      <div className="text-[11px] text-slate-200 whitespace-pre-line leading-relaxed">
+                        {aiDiagnosisResult.diagnosis}
+                      </div>
+                    )}
+                    {!aiDiagnosisResult.diagnosis && aiDiagnosisResult.error && (
+                      <div className="text-[11px] text-red-400">
+                        {aiDiagnosisResult.error}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Clinical Recommendations (ICD-10 Suggestions) */}

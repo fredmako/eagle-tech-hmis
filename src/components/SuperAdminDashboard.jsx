@@ -193,7 +193,12 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
     return new URLSearchParams(window.location.search).get('tab') || 'registry';
   }); // 'registry' | 'audit' | 'requests' | 'support' | 'demo' | 'insights'
   const [supportTickets, setSupportTickets] = useState([]);
+  const [platformUsers, setPlatformUsers] = useState([]);
   const [demoRequests, setDemoRequests] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+  const [userFilter, setUserFilter] = useState('all');
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [responseText, setResponseText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
@@ -440,6 +445,26 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
       }
       setDemoRequests(demoList);
 
+      // Fetch all platform users (profiles)
+      setLoadingUsers(true);
+      try {
+        const { data: allProfiles } = await supabase.from('profiles').select('id, full_name, email, role, facility_id, access_status, created_at');
+        setUsers(allProfiles || []);
+      } catch (userErr) {
+        console.error('Failed to load users:', userErr);
+      } finally {
+        setLoadingUsers(false);
+      }
+      // Fetch all platform users (profiles)
+      const { data: allProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role, facility_id, access_status, created_at')
+        .order('created_at', { ascending: false });
+
+      if (allProfiles) {
+        setPlatformUsers(allProfiles);
+      }
+
       // Fetch platform usage statistics
       const { data: profiles } = await supabase.from('profiles').select('*');
       const { data: patients } = await supabase.from('patients').select('*');
@@ -646,14 +671,14 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
   return (
     <div className="min-h-screen bg-slate-955 text-slate-100 flex flex-col font-sans">
       {/* Super Admin Top Control Bar */}
-      <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-xl">
-        <div onClick={onLogoClick} className="flex items-center gap-3 cursor-pointer hover:opacity-85 transition active:scale-[0.98]">
-          <div className="bg-slate-955 border border-slate-900 p-1.5 rounded-xl shadow-lg shadow-teal-500/5">
-            <img src="/logo.png" alt="Eagle Tech Logo" className="w-9 h-9 object-contain" />
+      <header className="bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 border-b border-slate-700/50 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-2xl backdrop-blur-sm">
+        <div onClick={onLogoClick} className="flex items-center gap-3 cursor-pointer hover:opacity-90 transition-all duration-300 group">
+          <div className="bg-gradient-to-br from-teal-500/20 to-teal-600/10 border border-teal-500/30 p-2 rounded-2xl shadow-lg shadow-teal-500/10 group-hover:shadow-teal-500/20 transition-all duration-300">
+            <img src="/logo.png" alt="Eagle Tech Logo" className="w-10 h-10 object-contain filter brightness-110" />
           </div>
           <div>
-            <h1 className="text-md font-black tracking-wider text-white uppercase leading-none">Eagle Tech Systems Control</h1>
-            <span className="text-[10px] text-teal-400 font-bold uppercase tracking-widest block mt-1">Super Administrative Supervisor Terminal</span>
+            <h1 className="text-lg font-black tracking-wider text-white uppercase leading-tight">Eagle Tech Systems Control</h1>
+            <span className="text-[10px] text-teal-400 font-bold uppercase tracking-widest block mt-0.5 bg-teal-500/10 px-2 py-0.5 rounded-full inline-block">Super Admin Terminal</span>
           </div>
         </div>
 
@@ -784,6 +809,21 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
             }`}
           >
             System Security Audit Trail
+          </button>
+            <span>Support Queries</span>
+            {supportTickets.filter(t => t.status === 'pending').length > 0 && (
+              <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25 animate-pulse">
+                {supportTickets.filter(t => t.status === 'pending').length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => switchTab('users')}
+            className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition ${
+              activeTab === 'users' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Platform Users
           </button>
           <button
             onClick={() => switchTab('support')}
@@ -1286,6 +1326,90 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
               </div>
             </div>
           </div>
+          /* PLATFORM USERS PANEL */
+          <div className="bg-slate-900 border border-slate-850 rounded-2xl overflow-hidden shadow-lg animate-fadeIn">
+            <div className="p-5 border-b border-slate-850">
+              <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                Platform Users Directory
+              </h4>
+              <p className="text-[10px] text-slate-500 mt-0.5">All staff members across all facilities ({platformUsers.length} total)</p>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-[11px] text-slate-300 font-sans">
+                <thead className="bg-slate-950/45 text-[9px] uppercase tracking-wider text-slate-455 border-b border-slate-850">
+                  <tr>
+                    <th className="py-3 px-4 font-bold">Staff Member</th>
+                    <th className="py-3 px-4 font-bold">Email</th>
+                    <th className="py-3 px-4 font-bold">Role</th>
+                    <th className="py-3 px-4 font-bold">Facility</th>
+                    <th className="py-3 px-4 text-center font-bold">Status</th>
+                    <th className="py-3 px-4 text-center font-bold">Joined</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-850/50">
+                  {platformUsers.map((userItem) => {
+                    const facility = facilities.find(f => f.id === userItem.facility_id);
+                    const roleColors = {
+                      admin: 'bg-red-500/10 text-red-400 border-red-500/20',
+                      super_admin: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+                      facility_admin: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+                      hr_manager: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+                      clinician: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+                      nurse: 'bg-teal-500/10 text-teal-400 border-teal-500/20',
+                      lab_technician: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+                      pharmacist: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+                      receptionist: 'bg-pink-500/10 text-pink-400 border-pink-500/20',
+                    };
+                    const roleBadge = roleColors[userItem.role?.toLowerCase()] || 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+                    
+                    return (
+                      <tr key={userItem.id} className="hover:bg-slate-955/10 transition">
+                        <td className="py-3 px-4 font-bold text-slate-100">{userItem.full_name}</td>
+                        <td className="py-3 px-4">
+                          <a href={`mailto:${userItem.email}`} className="flex items-center gap-1 text-teal-400 hover:underline font-bold">
+                            <Mail size={11} /> {userItem.email}
+                          </a>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider ${roleBadge}`}>
+                            {userItem.role?.replace(/_/g, ' ')}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-400">
+                          {facility ? facility.name : <span className="text-slate-600 italic">No facility</span>}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          {userItem.access_status === 'active' ? (
+                            <span className="text-emerald-400 text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                              Active
+                            </span>
+                          ) : (
+                            <span className="text-red-400 text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                              Inactive
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-center text-slate-500 font-mono text-[10px]">
+                          {new Date(userItem.created_at).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {platformUsers.length === 0 && (
+                    <tr>
+                      <td colSpan="6" className="text-center py-12 text-slate-500 italic">
+                        No platform users found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
         ) : (
           /* CLIENT OPERATIONS WORKSPACE */
           <div className="space-y-5 animate-fadeIn font-sans">

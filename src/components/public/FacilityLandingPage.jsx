@@ -59,49 +59,34 @@ export default function FacilityLandingPage() {
     { sender: 'bot', text: `Hi there! I am your automated clinic assistant. Ask me anything about our medical packages, services pricing, opening hours, or appointments!` }
   ]);
 
-  const handleChatSend = (text) => {
+  const handleChatSend = async (text) => {
     if (!text.trim()) return;
 
     setChatMessages(prev => [...prev, { sender: 'user', text: text.trim() }]);
     setChatInput('');
     setChatTyping(true);
 
-    setTimeout(() => {
-      let reply = '';
-      const query = text.toLowerCase().trim();
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiBase}/ai-chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text.trim() })
+      });
 
-      const facName = facility?.name || 'our clinic';
-      const address = facility?.address || 'our location';
-      const mflCode = facility?.code || 'EMC-001';
-
-      if (query.includes('services') || query.includes('pricing') || query.includes('cost') || query.includes('charge') || query.includes('price')) {
-        if (services && services.length > 0) {
-          const list = services.slice(0, 5).map(s => `- ${s.name}: KES ${s.charge}`).join('\n');
-          reply = `Here is a sample of our services at ${facName}:\n${list}\n\nYou can view the full catalog and prices on our homepage!`;
-        } else {
-          reply = `At ${facName}, we offer specialized outpatient consultations, diagnostic laboratories, and pharmacy services. Please check our price catalog on the homepage or reach out via our inquiry form.`;
-        }
-      } else if (query.includes('location') || query.includes('address') || query.includes('find') || query.includes('where')) {
-        reply = `${facName} is located at ${address}. Feel free to visit us or call us for direct directions!`;
-      } else if (query.includes('appointment') || query.includes('book') || query.includes('schedul') || query.includes('visit')) {
-        reply = `You can easily book an appointment with our clinicians! Click the "Book Appointment" button on the homepage to choose a doctor, date, and preferred time slot.`;
-      } else if (query.includes('mfl') || query.includes('code') || query.includes('register') || query.includes('verify')) {
-        reply = `Our facility registration code is ${mflCode}. We are a verified healthcare provider under the Kenyan Ministry of Health registries.`;
-      } else if (query.includes('insurance') || query.includes('cover') || query.includes('nhif') || query.includes('sha') || query.includes('pay')) {
-        reply = `We accept primary corporate insurance covers including AAR, Jubilee, Britam, APA, and the National SHA / NHIF. You can manage and update your policy details on your Patient Portal dashboard!`;
-      } else if (query.includes('portal') || query.includes('login') || query.includes('register') || query.includes('signup') || query.includes('sign in')) {
-        reply = `You can join our Digital Patient Portal! Complete the sign-up or login form under the "Join Our Digital Patient Portal" section below. Once logged in, you can view your appointments, prescriptions, and lab reports.`;
-      } else if (query.includes('coin') || query.includes('eagle') || query.includes('egc') || query.includes('wallet') || query.includes('inflation')) {
-        reply = `We support payments in Eagle Coin (EGC)! Eagle Coin is an inflation-proof healthcare token peg-locked to clinical service units. You can manage your wallet, claim faucet rewards, and pay bills under the "Eagle Coin Wallet" tab of your Patient Portal.`;
-      } else if (query.includes('hello') || query.includes('hi') || query.includes('hey') || query.includes('assist')) {
-        reply = `Hello! How can I assist you today at ${facName}? You can ask me about our services, pricing, coordinates, or booking appointments.`;
-      } else {
-        reply = `Thank you for reaching out. I'm your automated helper at ${facName}. You can ask about "services and pricing", "hospital location", "appointment booking", or "insurance and patient portals". Or fill out our inquiry form for manual clinical support!`;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'AI chat failed');
       }
 
+      const data = await res.json();
+      const reply = data.response || data.error || 'I received an empty response from the assistant.';
       setChatMessages(prev => [...prev, { sender: 'bot', text: reply }]);
+    } catch (err) {
+      setChatMessages(prev => [...prev, { sender: 'bot', text: 'Sorry, I am having trouble connecting right now. Please try again later or send us a message through the inquiry form.' }]);
+    } finally {
       setChatTyping(false);
-    }, 800);
+    }
   };
   const [facilityDoctors, setFacilityDoctors] = useState([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState('');

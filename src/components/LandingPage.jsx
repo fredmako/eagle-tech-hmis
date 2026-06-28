@@ -260,55 +260,34 @@ export default function LandingPage({
     return () => window.removeEventListener('scroll', handler);
   }, []);
 
-  const handleChatSend = (text) => {
+  const handleChatSend = async (text) => {
     if (!text.trim()) return;
 
-    // Add user message
     setChatMessages(prev => [...prev, { sender: 'user', text: text.trim() }]);
     setChatInput('');
     setChatTyping(true);
 
-    setTimeout(() => {
-      let reply = '';
-      const query = text.toLowerCase().trim();
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiBase}/ai-chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text.trim() })
+      });
 
-      if (query.includes('free') || query.includes('pricing') || query.includes('plan') || query.includes('package') || query.includes('cost') || query.includes('dollar') || query.includes('subscription')) {
-        reply = 'We offer three simple plans:\n- Basic Care (Free): Outpatient EMR, registration/queues, and clinical SOAP notes.\n- Standard Care ($29/mo): Adds pharmacy inventory, cashier billing, and custom subdomains.\n- Enterprise Elite ($89/mo): Adds Kenyan MOH clinical registries, Stripe/M-Pesa STK checkouts, and room ward layout builders.';
-      } else if (query.includes('login') || query.includes('log in') || query.includes('sign in') || query.includes('access') || query.includes('credential')) {
-        reply = 'To log in, click "Sign In" at the top right of the homepage. You can authenticate using your registered email and password, or use Google SSO if configured by your administrator.';
-      } else if (query.includes('register') || query.includes('hospital') || query.includes('sign up') || query.includes('account creation') || query.includes('join')) {
-        reply = 'To set up your hospital, click "Register Hospital" at the top right. Enter your organization name, MFL code, and license number. The first registered user automatically becomes the facility administrator.';
-      } else if (query.includes('pharmacy') || query.includes('drug') || query.includes('dispens') || query.includes('procurement') || query.includes('pos') || query.includes('sell') || query.includes('held') || query.includes('sale') || query.includes('invoice')) {
-        reply = 'The Pharmacy Desk is unified with a POS sales entry workflow. In addition to processing EMR prescriptions from the Dispense Queue, it supports direct walk-in sales catalog searches, pagination, cart discounts, customer details, held carts management (under Modify Sale), and date-range invoice logs (under Paid Drugs).';
-      } else if (query.includes('mch') || query.includes('anc') || query.includes('pregnancy') || query.includes('contraceptive') || query.includes('family planning') || query.includes('welfare') || query.includes('immunization') || query.includes('vaccine')) {
-        reply = 'Our MCH Clinic module manages maternal and child healthcare programs. It tracks active pregnancies (ANC checkups, risk levels, EDD calculations), contraceptive followups (family planning methods, counseling), and child welfare immunization registries (BCG, Polio, Measles, and Pentavalent doses) decoupled from general triage.';
-      } else if (query.includes('maternity') || query.includes('ward') || query.includes('bed') || query.includes('wing') || query.includes('room')) {
-        reply = 'Under Maternity Setup and Inpatient Wards, administrators can dynamically define Blocks, Wards, Bed Types, and individual beds with custom cash/corporate pricing. A live visual bed grid allows tracking occupied vs vacant vs dirty states in real-time.';
-      } else if (query.includes('access') || query.includes('permission') || query.includes('department') || query.includes('lock') || query.includes('restrict') || query.includes('denied')) {
-        reply = 'Eagle Tech HMIS implements strict role and department-based access controls. Decoupled modules (such as Maternity and MCH) are locked and only accessible if you are a facility administrator, or if you have been specifically assigned to work in those departments (e.g. MCH/ANC/Maternity).';
-      } else if (query.includes('queue') || query.includes('board') || query.includes('ticket') || query.includes('call') || query.includes('lobby') || query.includes('voice') || query.includes('announc')) {
-        reply = 'Eagle Tech HMIS features a bank-like Queue Calling & Lobby Ticket Display system. Staff can click the megaphone icon (📣) in the Queue Management desk to announce patient tickets. The public lobby TV board (at `/queue-board`) automatically flashes the ticket code, chimes, and reads the ticket/patient details out loud using voice synthesis.';
-      } else if (query.includes('lab') || query.includes('analyzer') || query.includes('instrument') || query.includes('machine') || query.includes('serial') || query.includes('com')) {
-        reply = 'In the Laboratory module under "Automation Config", technicians can specify RS-232 serial parameters (COM1-COM8, baud rates) or TCP/IP details to retrieve diagnostic data (ASTM/HL7 format) from physical analyzers instantly.';
-      } else if (query.includes('referral') || query.includes('referred')) {
-        reply = 'Our system fully supports referrals! You can specify Referred From details when opening a visit ticket, and Referred To details with required reconciliation check boxes when completing care on the clinical queue.';
-      } else if (query.includes('appointment') || query.includes('schedul') || query.includes('calendar') || query.includes('slot')) {
-        reply = 'The Appointments Schedule module features an interactive hourly grid where you can search for patients and book slots under specific doctors. You can update statuses (booked, checked_in, completed, cancelled). Checking in a patient automatically routes them to the active triage queue.';
-      } else if (query.includes('policy') || query.includes('privacy') || query.includes('agreement') || query.includes('sla') || query.includes('gdpr') || query.includes('protection') || query.includes('act') || query.includes('odpc')) {
-        reply = 'Our platform is fully aligned with the Kenya Data Protection Act, 2019. Subscribing facilities act as Data Controllers, and Eagle Tech acts as the Data Processor. We guarantee a 99.9% uptime SLA with a 7-day payment grace period before read-only lock. You can access the full Privacy Policy and Service Agreement modals in the page footer.';
-      } else if (query.includes('theme') || query.includes('color') || query.includes('font') || query.includes('personalization') || query.includes('accent') || query.includes('slate')) {
-        reply = 'Eagle Tech HMIS supports deep branding personalization. You can toggle between Teal, Midnight Navy, Emerald, Royal Purple, and Warm Amber themes, adjust light/dark modes, select fonts, and customize slate readability under System Settings.';
-      } else if (query.includes('card') || query.includes('qr') || query.includes('business card') || query.includes('website')) {
-        reply = 'You can generate professional, white-labeled hospital staff business cards under the Admin settings. The cards default to our website www.eagletechsolutions.tech and feature a dynamic scan-ready QR code that routes scanners to the portal website.';
-      } else if (query.includes('hello') || query.includes('hi') || query.includes('hey') || query.includes('bot')) {
-        reply = 'Hi there! I am EagleBot, your Eagle Tech HMIS assistant. Ask me anything about our software modules, integration tools, or setups!';
-      } else {
-        reply = 'I am not sure I understand that query fully. Try asking about "pricing plans", "how to log in", "register a hospital", "lab automation", "appointments scheduler", "data protection policy", or submit a support ticket in the support form below!';
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'AI chat failed');
       }
 
+      const data = await res.json();
+      const reply = data.response || data.error || 'I received an empty response from the assistant.';
       setChatMessages(prev => [...prev, { sender: 'bot', text: reply }]);
+    } catch (err) {
+      setChatMessages(prev => [...prev, { sender: 'bot', text: 'Sorry, I am having trouble connecting right now. Please try again later or submit a support ticket below.' }]);
+    } finally {
       setChatTyping(false);
-    }, 800);
+    }
   };
 
   const handleSupportSubmit = async (e) => {

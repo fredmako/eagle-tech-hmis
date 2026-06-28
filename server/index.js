@@ -23,6 +23,8 @@ const domainsRouter = require("./routes/domains");
 const smsRouter = require("./routes/sms");
 const demoRouter = require("./routes/demo");
 const attendanceRouter = require("./routes/attendance");
+const aiDiagnosisRouter = require("./routes/ai-diagnosis");
+const aiChatRouter = require("./routes/ai-chat");
 
 // Mount routes
 app.use("/api/auth", authRouter);
@@ -38,6 +40,8 @@ app.use("/api/domains", domainsRouter);
 app.use("/api/sms", smsRouter);
 app.use("/api/demo", demoRouter);
 app.use("/api/attendance", attendanceRouter);
+app.use("/api", aiDiagnosisRouter);
+app.use("/api", aiChatRouter);
 
 const { runMigrations } = require("./utils/migrationRunner");
 

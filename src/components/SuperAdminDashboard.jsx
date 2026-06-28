@@ -37,6 +37,7 @@ import {
   BarChart3,
   ShieldAlert
 } from 'lucide-react';
+import KnowledgeBasePanel from './admin/KnowledgeBasePanel';
 
 const HEALTH_COLORS = {
   strong: '#2dd4bf',
@@ -191,7 +192,7 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window === 'undefined') return 'registry';
     return new URLSearchParams(window.location.search).get('tab') || 'registry';
-  }); // 'registry' | 'audit' | 'requests' | 'support' | 'demo' | 'insights'
+  }); // 'registry' | 'audit' | 'requests' | 'support' | 'demo' | 'insights' | 'knowledge'
   const [supportTickets, setSupportTickets] = useState([]);
   const [platformUsers, setPlatformUsers] = useState([]);
   const [demoRequests, setDemoRequests] = useState([]);
@@ -854,6 +855,15 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
           </button>
 
           <button
+            onClick={() => switchTab('knowledge')}
+            className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${{
+              activeTab === 'knowledge' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Tag size={12} className={activeTab === 'knowledge' ? 'text-teal-400' : 'text-slate-400'} />
+            <span>Knowledge Base</span>
+          </button>
+          <button
             onClick={() => switchTab('insights')}
             className={`py-3 px-5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${
               activeTab === 'insights' ? 'border-teal-500 text-teal-400 bg-teal-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -1409,7 +1419,8 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
               </table>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'knowledge' ? (
+          <KnowledgeBasePanel />
         ) : (
           /* CLIENT OPERATIONS WORKSPACE */
           <div className="space-y-5 animate-fadeIn font-sans">

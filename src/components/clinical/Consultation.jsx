@@ -849,9 +849,11 @@ export default function Consultation({ user, onComplete, showNotification }) {
         ords = fetchedOrds || [];
       }
 
+      const { data: pts } = await supabase.from("patients").select("*");
+
       const enrichedQueue = vsts
         ? vsts.map((v) => {
-            const p = pts?.find((pt) => pt.id === v.patient_id);
+            const p = (pts || []).find((pt) => pt.id === v.patient_id);
             const vOrds = ords.filter(o => o.visit_id === v.id);
             const completedLabs = vOrds.filter(o => o.type === 'lab' && o.status === 'released');
             return {

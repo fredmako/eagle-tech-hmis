@@ -186,14 +186,7 @@ export default function Reports({ user }) {
   const [scheduleSuccess, setScheduleSuccess] = useState(false);
   const [scheduledReportName, setScheduledReportName] = useState("");
 
-  useEffect(() => {
-    fetchReportData();
-    if (user && user.facility_id) {
-      fetchFacilityInfo(user.facility_id);
-    }
-  }, [user]);
-
-  const fetchFacilityInfo = async (facId) => {
+  async function fetchFacilityInfo(facId) {
     try {
       const { data } = await supabase
         .from("facilities")
@@ -205,9 +198,9 @@ export default function Reports({ user }) {
     } catch (e) {
       console.error("Failed to load facility info:", e);
     }
-  };
+  }
 
-  const fetchReportData = async () => {
+  async function fetchReportData() {
     try {
       const { data: pts } = await supabase.from("patients").select("*");
       const { data: vsts } = await supabase.from("visits").select("*");
@@ -229,7 +222,14 @@ export default function Reports({ user }) {
     } catch (err) {
       console.error("Error fetching report data:", err);
     }
-  };
+  }
+
+  useEffect(() => {
+    fetchReportData();
+    if (user && user.facility_id) {
+      fetchFacilityInfo(user.facility_id);
+    }
+  }, [user]);
 
   const analyzeDataQuality = (pts, vsts, trgs) => {
     const errors = [];

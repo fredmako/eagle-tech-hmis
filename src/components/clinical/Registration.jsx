@@ -1,13 +1,8 @@
 import { useState } from "react";
 import { supabase } from "../../supabaseClient";
-import { parsePatientContact } from "../../notificationService";
-import {
-  Search,
-  UserPlus,
-  CheckCircle2,
-  AlertCircle,
-  Activity,
-} from "lucide-react";
+import PatientSearchPanel from "./registration/PatientSearchPanel";
+import RegistrationFormPanel from "./registration/RegistrationFormPanel";
+import RegistrationMonitorPanel from "./registration/RegistrationMonitorPanel";
 
 export default function Registration({
   user,
@@ -674,1287 +669,133 @@ export default function Registration({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-[minmax(320px,0.9fr)_minmax(620px,1.4fr)_minmax(320px,0.7fr)] gap-4 lg:gap-6 2xl:gap-8 items-start">
-      {/* Left Column: Search & Quick Actions / Patients in Wards */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 2xl:p-6 shadow-sm space-y-6 h-fit min-w-0">
-        <div className="flex border-b border-slate-800 pb-2 gap-4">
-          <button
-            type="button"
-            onClick={() => handleTabChange("search")}
-            className={`text-sm font-bold pb-2 transition border-b-2 ${
-              activeTab === "search"
-                ? "text-teal-400 border-teal-400"
-                : "text-slate-400 border-transparent hover:text-slate-200"
-            }`}
-          >
-            Search Patient
-          </button>
-          <button
-            type="button"
-            onClick={() => handleTabChange("wards")}
-            className={`text-sm font-bold pb-2 transition border-b-2 ${
-              activeTab === "wards"
-                ? "text-teal-400 border-teal-400"
-                : "text-slate-400 border-transparent hover:text-slate-200"
-            }`}
-          >
-            Patients In Wards
-          </button>
-        </div>
+      <PatientSearchPanel
+        activeTab={activeTab}
+        handleTabChange={handleTabChange}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        handleSearch={handleSearch}
+        searchResults={searchResults}
+        searched={searched}
+        searching={searching}
+        onNavigateToQueue={onNavigateToQueue}
+        expandedTimelinePtId={expandedTimelinePtId}
+        setExpandedTimelinePtId={setExpandedTimelinePtId}
+        loadPatientTimeline={loadPatientTimeline}
+        loadingTimeline={loadingTimeline}
+        performSearch={performSearch}
+        admissions={admissions}
+        loadingAdmissions={loadingAdmissions}
+        handleDirectCheckin={handleDirectCheckin}
+        setMessage={setMessage}
+        timelineData={timelineData}
+      />
 
-        {activeTab === "search" ? (
-          <>
-            <div>
-              <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                <Search size={18} className="text-teal-400" /> Search Existing
-                Patient
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Lookup patient records by Name, National ID, or Facility Patient
-                Number.
-              </p>
-            </div>
+      <RegistrationFormPanel
+        message={message}
+        servicePoint={servicePoint}
+        setServicePoint={setServicePoint}
+        autoCheckin={autoCheckin}
+        setAutoCheckin={setAutoCheckin}
+        shaNumber={shaNumber}
+        setShaNumber={setShaNumber}
+        shaStatus={shaStatus}
+        setShaStatus={setShaStatus}
+        verifyingSha={verifyingSha}
+        shaDependentType={shaDependentType}
+        setShaDependentType={setShaDependentType}
+        searchId={searchId}
+        setSearchId={setSearchId}
+        performSearch={performSearch}
+        firstName={firstName}
+        setFirstName={setFirstName}
+        middleName={middleName}
+        setMiddleName={setMiddleName}
+        lastName={lastName}
+        setLastName={setLastName}
+        idNumber={idNumber}
+        setIdNumber={setIdNumber}
+        gender={gender}
+        setGender={setGender}
+        title={title}
+        setTitle={setTitle}
+        telephone={telephone}
+        setTelephone={setTelephone}
+        altTelephone={altTelephone}
+        setAltTelephone={setAltTelephone}
+        age={age}
+        setAge={setAge}
+        dob={dob}
+        setDob={setDob}
+        village={village}
+        setVillage={setVillage}
+        location={location}
+        setLocation={setLocation}
+        ward={ward}
+        setWard={setWard}
+        email={email}
+        setEmail={setEmail}
+        nearestSchool={nearestSchool}
+        setNearestSchool={setNearestSchool}
+        isIncomingReferral={isIncomingReferral}
+        setIsIncomingReferral={setIsIncomingReferral}
+        nokName={nokName}
+        setNokName={setNokName}
+        nokPhone={nokPhone}
+        setNokPhone={setNokPhone}
+        nokRelation={nokRelation}
+        setNokRelation={setNokRelation}
+        serviceRoom={serviceRoom}
+        setServiceRoom={setServiceRoom}
+        serviceProvider={serviceProvider}
+        setServiceProvider={setServiceProvider}
+        specialist={specialist}
+        setSpecialist={setSpecialist}
+        payments={payments}
+        setPayments={setPayments}
+        preferredPayment={preferredPayment}
+        setPreferredPayment={setPreferredPayment}
+        servicePointFee={servicePointFee}
+        setServicePointFee={setServicePointFee}
+        consent={consent}
+        setConsent={setConsent}
+        loading={loading}
+        handleRegister={handleRegister}
+        phone={phone}
+        setPhone={setPhone}
+        landmark={landmark}
+        setLandmark={setLandmark}
+        maritalStatus={maritalStatus}
+        setMaritalStatus={setMaritalStatus}
+        parity={parity}
+        setParity={setParity}
+        gravidae={gravidae}
+        setGravidae={setGravidae}
+        isPregnant={isPregnant}
+        setIsPregnant={setIsPregnant}
+        lmp={lmp}
+        setLmp={setLmp}
+        edd={edd}
+        setEdd={setEdd}
+        optInLab={optInLab}
+        setOptInLab={setOptInLab}
+        optInPharmacy={optInPharmacy}
+        setOptInPharmacy={setOptInPharmacy}
+        optInBilling={optInBilling}
+        setOptInBilling={setOptInBilling}
+      />
 
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="e.g. John Mwangi or National ID"
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-teal-500 transition"
-                required
-              />
-              <button
-                type="submit"
-                disabled={searching}
-                className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg transition active:scale-[0.98] disabled:opacity-50"
-              >
-                {searching ? "Searching..." : "Search"}
-              </button>
-            </form>
-
-            {searched && (
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Search Results ({searchResults.length})
-                </h3>
-
-                {searchResults.length === 0 ? (
-                  <div className="border border-dashed border-slate-800 rounded-lg p-6 text-center text-slate-500 text-sm">
-                    No matching patients found in this facility.
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                    {searchResults.map((pt) => (
-                      <div
-                        key={pt.id}
-                        className="bg-slate-950 border border-slate-800/80 rounded-xl p-4 flex flex-col justify-between gap-3 hover:border-teal-500/30 transition"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
-                          <div>
-                            <span className="font-bold text-slate-200 block text-sm">
-                              {pt.name}
-                            </span>
-                            <span className="text-xs text-slate-500 font-semibold uppercase">
-                              {pt.gender} | Age:{" "}
-                              {new Date().getFullYear() -
-                                new Date(pt.dob).getFullYear()}{" "}
-                              yrs
-                            </span>
-                            <div className="grid grid-cols-2 gap-x-4 mt-1 text-2xs text-slate-400">
-                              <span>
-                                Code:{" "}
-                                <span className="text-teal-400 font-semibold">
-                                  {pt.facility_id_code}
-                                </span>
-                              </span>
-                              <span>
-                                Phone:{" "}
-                                <span className="text-slate-300 font-semibold">
-                                  {parsePatientContact(pt.phone).phone}
-                                </span>
-                              </span>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => onNavigateToQueue(pt)}
-                            className="bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 font-semibold text-xs py-1.5 px-3 rounded-lg border border-teal-500/20 transition self-end sm:self-center shrink-0"
-                          >
-                            Open Visit / Queue
-                          </button>
-                        </div>
-                        <div className="border-t border-slate-900 pt-2 flex flex-wrap items-center justify-between gap-2.5 w-full">
-                          <div className="flex items-center gap-1.5">
-                            <select
-                              id={`service-select-${pt.id}`}
-                              defaultValue="OPD"
-                              className="bg-slate-900 border border-slate-800 text-2xs text-white py-1 px-2 rounded focus:outline-none focus:border-teal-500"
-                            >
-                              <option value="OPD">General OPD (OPD)</option>
-                              <option value="ANC">Antenatal Care (ANC)</option>
-                              <option value="FP">Family Planning (FP)</option>
-                              <option value="IMM">Immunization/Vaccine</option>
-                              <option value="LAB">Laboratory-Only</option>
-                              <option value="PHA">Pharmacy-Only</option>
-                              <option value="IPD">Inpatient Admission</option>
-                              <option value="EMR">Emergency/Triage</option>
-                            </select>
-                            <button
-                              onClick={async () => {
-                                const val = document.getElementById(
-                                  `service-select-${pt.id}`,
-                                ).value;
-                                await handleDirectCheckin(pt.id, val);
-                              }}
-                              className="bg-teal-500/15 hover:bg-teal-500/20 border border-teal-500/30 text-teal-400 font-bold text-[9px] py-1 px-2.5 rounded transition active:scale-[0.97]"
-                            >
-                              Direct Check-in
-                            </button>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (expandedTimelinePtId === pt.id) {
-                                setExpandedTimelinePtId(null);
-                              } else {
-                                setExpandedTimelinePtId(pt.id);
-                                loadPatientTimeline(pt.id);
-                              }
-                            }}
-                            className="bg-slate-850 hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold text-[9px] py-1 px-2.5 rounded transition active:scale-[0.97]"
-                          >
-                            {expandedTimelinePtId === pt.id
-                              ? "Hide Timeline"
-                              : "View Health Timeline"}
-                          </button>
-                        </div>
-
-                        {/* Clinical Journey Alerts */}
-                        {pt.alerts && (
-                          <div className="flex flex-wrap gap-1.5 mt-1 border-t border-slate-900 pt-2 w-full">
-                            {pt.alerts.pendingLabsCount > 0 && (
-                              <span className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                                ⚠️ {pt.alerts.pendingLabsCount} Pending Lab
-                              </span>
-                            )}
-                            {pt.alerts.pendingRadCount > 0 && (
-                              <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                                ⚡ {pt.alerts.pendingRadCount} Imaging Ordered
-                              </span>
-                            )}
-                            {pt.alerts.unpaidBalance > 0 && (
-                              <span className="bg-red-500/10 text-red-400 border border-red-500/20 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                                💳 Bill Unpaid: {pt.alerts.unpaidBalance}/-
-                              </span>
-                            )}
-                            {pt.alerts.scheduledFollowups.map((f, fIdx) => (
-                              <div
-                                key={fIdx}
-                                className="bg-teal-500/10 text-teal-400 border border-teal-500/20 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider flex items-center gap-1.5"
-                              >
-                                📅 Follow-up: {f.instructions}
-                                <button
-                                  onClick={async () => {
-                                    try {
-                                      // Mark scheduled follow-up order as completed
-                                      await supabase
-                                        .from("orders")
-                                        .update({ status: "completed" })
-                                        .eq("id", f.id);
-                                      // Create active visit in OPD Consultation
-                                      await supabase.from("visits").insert({
-                                        patient_id: pt.id,
-                                        facility_id: user.facility_id,
-                                        department: "consultation",
-                                        priority: "routine",
-                                        status: "waiting",
-                                      });
-                                      setMessage({
-                                        type: "success",
-                                        text: `Patient successfully checked in for scheduled follow-up review!`,
-                                      });
-                                      // Refresh search
-                                      performSearch(searchQuery);
-                                    } catch (err) {
-                                      setMessage({
-                                        type: "error",
-                                        text: err.message,
-                                      });
-                                    }
-                                  }}
-                                  className="bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold px-1.5 py-0.2 rounded transition active:scale-[0.96]"
-                                  title="Check-in patient now"
-                                >
-                                  Check-in
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {expandedTimelinePtId === pt.id && (
-                          <div className="mt-3 border-t border-slate-900 pt-3 space-y-3">
-                            <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
-                              Chronological Clinical Health Timeline
-                            </span>
-                            {loadingTimeline ? (
-                              <div className="py-4 text-center text-slate-500 text-2xs flex items-center justify-center gap-2">
-                                <div className="animate-spin rounded-full h-3.5 w-3.5 border-b border-teal-400" />
-                                <span>Loading timeline...</span>
-                              </div>
-                            ) : timelineData.length === 0 ? (
-                              <div className="text-center py-4 text-xs text-slate-600">
-                                No medical records found for this patient.
-                              </div>
-                            ) : (
-                              <div className="relative pl-4 border-l border-slate-800 space-y-3.5 py-1">
-                                {timelineData.map((evt) => (
-                                  <div key={evt.id} className="relative group">
-                                    <div
-                                      className={`absolute left-[-20.5px] top-1.5 h-2.5 w-2.5 rounded-full border border-slate-950 ${
-                                        evt.type === "visit"
-                                          ? "bg-teal-400"
-                                          : evt.type === "triage"
-                                            ? "bg-amber-400"
-                                            : evt.type === "consultation"
-                                              ? "bg-green-400"
-                                              : "bg-purple-400"
-                                      }`}
-                                    />
-
-                                    <div className="text-[9px] text-slate-500 font-semibold font-mono">
-                                      {new Date(evt.date).toLocaleString()}
-                                    </div>
-                                    <div className="text-[11px] font-bold text-slate-200 mt-0.5">
-                                      {evt.title}
-                                    </div>
-                                    <div className="text-2xs text-slate-400 leading-normal mt-0.5">
-                                      {evt.desc}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                <Activity size={18} className="text-teal-400 animate-pulse" />{" "}
-                Patients In Wards
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Currently admitted patients in the ward facility.
-              </p>
-            </div>
-
-            {loadingAdmissions ? (
-              <div className="py-12 text-center text-slate-500 text-sm flex items-center justify-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-400" />
-                <span>Loading admissions...</span>
-              </div>
-            ) : admissions.length === 0 ? (
-              <div className="border border-dashed border-slate-800 rounded-lg p-12 text-center text-slate-500 text-xs">
-                No patients currently admitted in the wards.
-              </div>
-            ) : (
-              <div className="space-y-2.5 max-h-112.5 overflow-y-auto pr-1">
-                {admissions.map((adm) => (
-                  <div
-                    key={adm.id}
-                    className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col gap-2.5 hover:border-teal-500/20 transition"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="font-bold text-slate-200 block text-xs">
-                          {adm.patient?.name || "Unknown Patient"}
-                        </span>
-                        <span className="text-2xs text-slate-400 font-semibold uppercase">
-                          {adm.patient?.gender} | Age:{" "}
-                          {adm.patient?.dob
-                            ? new Date().getFullYear() -
-                              new Date(adm.patient.dob).getFullYear()
-                            : "N/A"}{" "}
-                          yrs
-                        </span>
-                      </div>
-                      <span className="bg-teal-500/10 text-teal-400 border border-teal-500/20 text-[9px] font-bold px-1.5 py-0.5 rounded capitalize">
-                        {adm.admission_type}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-2xs text-slate-400 border-t border-slate-900 pt-2 font-mono">
-                      <div>
-                        Ward:{" "}
-                        <span className="text-slate-300 font-bold">
-                          {adm.ward_name}
-                        </span>
-                      </div>
-                      <div>
-                        Bed No:{" "}
-                        <span className="text-teal-400 font-bold">
-                          {adm.bed_number}
-                        </span>
-                      </div>
-                      <div className="col-span-2 text-[9px] text-slate-500">
-                        Admitted:{" "}
-                        {new Date(adm.admission_datetime).toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Middle Column: Register New Patient Form */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 lg:p-5 2xl:p-6 shadow-sm space-y-6 min-w-0">
-        <div>
-          <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-            <UserPlus size={18} className="text-teal-400" /> Patient
-            Registration
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Capture patient details to assign records to the MOH registers.
-          </p>
-        </div>
-
-        {message.text && (
-          <div
-            className={`p-3.5 rounded-lg border text-sm flex gap-2.5 ${
-              message.type === "success"
-                ? "bg-green-500/5 border-green-500/20 text-green-400"
-                : "bg-red-500/5 border-red-500/20 text-red-400"
-            }`}
-          >
-            {message.type === "success" ? (
-              <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
-            ) : (
-              <AlertCircle size={18} className="shrink-0 mt-0.5" />
-            )}
-            <span>{message.text}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleRegister} className="space-y-5">
-          {/* Service Classification */}
-          <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-xl space-y-3">
-            <h3 className="text-[11px] font-bold text-teal-400 uppercase tracking-wider">
-              Service Classification
-            </h3>
-            <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_240px] gap-4 items-end">
-              <div className="min-w-0">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Service Type
-                </label>
-                <select
-                  value={servicePoint}
-                  onChange={(e) => setServicePoint(e.target.value)}
-                  className="w-full min-w-0 bg-slate-900 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                >
-                  <option value="OPD">General OPD (Normal Consultation)</option>
-                  <option value="ANC">Antenatal Care (ANC)</option>
-                  <option value="FP">Family Planning (FP)</option>
-                  <option value="IMM">Immunization/Vaccination</option>
-                  <option value="LAB">Laboratory-Only</option>
-                  <option value="PHA">Pharmacy-Only</option>
-                  <option value="IPD">Inpatient Admission</option>
-                  <option value="EMR">Emergency/Triage</option>
-                </select>
-              </div>
-              <div className="flex items-center min-h-10.5">
-                <label className="flex items-start gap-2 text-xs font-bold text-slate-400 cursor-pointer select-none hover:text-white transition leading-snug">
-                  <input
-                    type="checkbox"
-                    checked={autoCheckin}
-                    onChange={(e) => setAutoCheckin(e.target.checked)}
-                    className="accent-teal-500 h-4 w-4 bg-slate-900 border-slate-800 rounded text-teal-505 shrink-0 mt-0.5"
-                  />
-                  <span>Check-in patient to queue immediately</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Social Health Authority (SHA) Insurance Verification */}
-          <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-xl space-y-3">
-            <h3 className="text-[11px] font-bold text-teal-400 uppercase tracking-wider">
-              Social Health Authority (SHA) Insurance
-            </h3>
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(220px,0.72fr)] gap-4 items-start">
-              <div className="min-w-0">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  SHA Member Number
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2">
-                  <input
-                    type="text"
-                    value={shaNumber}
-                    onChange={(e) => {
-                      setShaNumber(e.target.value);
-                      setShaStatus("unverified");
-                    }}
-                    placeholder="e.g. SHA-12345678"
-                    className="w-full min-w-0 bg-slate-900 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-teal-500 transition font-mono"
-                  />
-                  <button
-                    type="button"
-                    disabled={verifyingSha || !shaNumber.trim()}
-                    onClick={async () => {
-                      setVerifyingSha(true);
-                      // Mock external API handshake
-                      await new Promise((resolve) => setTimeout(resolve, 800));
-                      if (shaNumber.trim().length >= 4) {
-                        setShaStatus("Verified / Eligible");
-                      } else {
-                        setShaStatus("Ineligible / Invalid Number");
-                      }
-                      setVerifyingSha(false);
-                    }}
-                    className="bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/20 text-teal-400 font-bold text-xs px-4 py-2.5 rounded-lg transition active:scale-[0.98] disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {verifyingSha ? "Verifying..." : "Verify Eligibility"}
-                  </button>
-                </div>
-              </div>
-              <div className="min-w-0">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  SHA Dependent Type
-                </label>
-                <select
-                  value={shaDependentType}
-                  onChange={(e) => setShaDependentType(e.target.value)}
-                  className="w-full min-w-0 bg-slate-900 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                >
-                  <option value="self">Principal Member (Self)</option>
-                  <option value="spouse">Spouse</option>
-                  <option value="child">Child</option>
-                  <option value="other">Other Dependent</option>
-                </select>
-              </div>
-            </div>
-
-            {shaNumber.trim() && (
-              <div className="flex items-center gap-2 pt-1">
-                <span className="text-xs text-slate-400 font-medium">
-                  Status:
-                </span>
-                <span
-                  className={`text-xs font-bold px-2 py-0.5 rounded ${
-                    shaStatus === "Verified / Eligible"
-                      ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                      : shaStatus === "unverified"
-                        ? "bg-slate-900 border border-slate-800 text-slate-400"
-                        : "bg-red-500/10 text-red-400 border border-red-500/20"
-                  }`}
-                >
-                  {shaStatus}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* SHA ID Search */}
-          <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-xl space-y-3">
-            <h3 className="text-[11px] font-bold text-teal-400 uppercase tracking-wider">
-              Enter ID No. to Search (Only if the patient is registered with
-              SHA)
-            </h3>
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-2">
-              <input
-                type="text"
-                value={searchId}
-                onChange={(e) => setSearchId(e.target.value)}
-                placeholder="SHA ID / National ID"
-                className="w-full min-w-0 bg-slate-900 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-teal-500 transition font-mono"
-              />
-              <button
-                type="button"
-                onClick={() => performSearch(searchId)}
-                className="bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/20 text-teal-400 font-bold text-xs px-4 py-2.5 rounded-lg transition active:scale-[0.98] disabled:opacity-50 whitespace-nowrap"
-              >
-                Search
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {/* First Name */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                First Name *
-              </label>
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="First Name"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                required
-              />
-            </div>
-
-            {/* Middle Name */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Middle Name
-              </label>
-              <input
-                type="text"
-                value={middleName}
-                onChange={(e) => setMiddleName(e.target.value)}
-                placeholder="Middle Name"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-              />
-            </div>
-
-            {/* Last Name */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Last Name *
-              </label>
-              <input
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Last Name"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                required
-              />
-            </div>
-
-            {/* ID Number */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                ID Number *
-              </label>
-              <input
-                type="text"
-                value={idNumber}
-                onChange={(e) => setIdNumber(e.target.value)}
-                placeholder="ID Number"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                required
-              />
-            </div>
-
-            {/* Gender */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Gender
-              </label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-              >
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            {/* Title */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Title
-              </label>
-              <select
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-              >
-                <option value="">--- Select Title ---</option>
-                <option value="mr">Mr</option>
-                <option value="mrs">Mrs</option>
-                <option value="miss">Miss</option>
-                <option value="dr">Dr</option>
-              </select>
-            </div>
-
-            {/* Telephone */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Telephone *
-              </label>
-              <input
-                type="text"
-                value={telephone}
-                onChange={(e) => setTelephone(e.target.value)}
-                placeholder="Telephone"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                required
-              />
-            </div>
-
-            {/* Alt Telephone */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Alt Telephone
-              </label>
-              <input
-                type="text"
-                value={altTelephone}
-                onChange={(e) => setAltTelephone(e.target.value)}
-                placeholder="Alternative Telephone"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-              />
-            </div>
-
-            {/* Age */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Age (Years)
-              </label>
-              <input
-                type="number"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                placeholder="Years"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-              />
-            </div>
-
-            {/* Date of Birth */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Date of Birth
-              </label>
-              <input
-                type="date"
-                value={dob}
-                onChange={(e) => setDob(e.target.value)}
-                min="1900-01-01"
-                max={new Date().toISOString().split("T")[0]}
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-              />
-            </div>
-
-            {/* Village */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Village *
-              </label>
-              <input
-                type="text"
-                value={village}
-                onChange={(e) => setVillage(e.target.value)}
-                placeholder="Village"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                required
-              />
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Location *
-              </label>
-              <input
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Location"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                required
-              />
-            </div>
-
-            {/* Ward */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Ward *
-              </label>
-              <input
-                type="text"
-                value={ward}
-                onChange={(e) => setWard(e.target.value)}
-                placeholder="Ward"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                required
-              />
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter valid email address (e.g., name@domain.com)"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-              />
-            </div>
-
-            {/* Nearest School */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Nearest School
-              </label>
-              <input
-                type="text"
-                value={nearestSchool}
-                onChange={(e) => setNearestSchool(e.target.value)}
-                placeholder="Nearest School"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-              />
-            </div>
-
-            {/* Is Incoming Referral? */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Is Incoming Referral?
-              </label>
-              <select
-                value={isIncomingReferral}
-                onChange={(e) => setIsIncomingReferral(e.target.value)}
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-              >
-                <option value="">Select</option>
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Responsible Person / Next Of Kin */}
-          <div className="border-t border-slate-800/80 pt-4 mt-2">
-            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-3">
-              Responsible Person / Next Of Kin
-            </h3>
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  value={nokName}
-                  onChange={(e) => setNokName(e.target.value)}
-                  placeholder="Next Of Kin Name"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Mobile Number *
-                </label>
-                <input
-                  type="text"
-                  value={nokPhone}
-                  onChange={(e) => setNokPhone(e.target.value)}
-                  placeholder="Next Of Kin Mobile Number"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Relationship *
-                </label>
-                <select
-                  value={nokRelation}
-                  onChange={(e) => setNokRelation(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                  required
-                >
-                  <option value="">-- Select Relationship --</option>
-                  <option value="spouse">Spouse</option>
-                  <option value="parent">Parent</option>
-                  <option value="sibling">Sibling</option>
-                  <option value="child">Child</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Service Details */}
-          <div className="border-t border-slate-800/80 pt-4 mt-2">
-            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-3">
-              Service Details
-            </h3>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Select Service Point
-                </label>
-                <select
-                  value={servicePoint}
-                  onChange={(e) => setServicePoint(e.target.value)}
-                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                >
-                  <option value="">Select Service Point</option>
-                  <option value="OPD">OPD</option>
-                  <option value="LAB">Laboratory</option>
-                  <option value="PHA">Pharmacy</option>
-                  <option value="IPD">Inpatient</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Service Room
-                </label>
-                <input
-                  type="text"
-                  value={serviceRoom}
-                  onChange={(e) => setServiceRoom(e.target.value)}
-                  placeholder="Service Room"
-                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Service Provider
-                </label>
-                <input
-                  type="text"
-                  value={serviceProvider}
-                  onChange={(e) => setServiceProvider(e.target.value)}
-                  placeholder="Service Provider"
-                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Select Specialist
-                </label>
-                <select
-                  value={specialist}
-                  onChange={(e) => setSpecialist(e.target.value)}
-                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                >
-                  <option value="">Select Specialist</option>
-                  <option value="general">General</option>
-                  <option value="pediatrician">Pediatrician</option>
-                  <option value="gp">General Practitioner</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Payments */}
-          <div className="border-t border-slate-800/80 pt-4 mt-2">
-            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-3">
-              Payments
-            </h3>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Payments *
-                </label>
-                <select
-                  value={payments}
-                  onChange={(e) => setPayments(e.target.value)}
-                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                  required
-                >
-                  <option value="">Preferred Payment Option</option>
-                  <option value="cash">Cash</option>
-                  <option value="insurance">Insurance</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Service Point Fee *
-                </label>
-                <select
-                  multiple
-                  value={servicePointFee}
-                  onChange={(e) => {
-                    const selected = Array.from(
-                      e.target.selectedOptions,
-                      (option) => option.value,
-                    );
-                    setServicePointFee(selected);
-                  }}
-                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                  required
-                >
-                  <option value="consultation_cash">
-                    CONSULTATION FEE - CASH - 500.00
-                  </option>
-                  <option value="consultation_insurance">
-                    CONSULTATION FEE - INSURANCE - 1000.00
-                  </option>
-                  <option value="doctors_cash">
-                    DOCTORS FEE(MO) - CASH - 500.00
-                  </option>
-                  <option value="doctors_insurance">
-                    DOCTORS FEE(MO) - INSURANCE - 500.00
-                  </option>
-                  <option value="review_cash">REVIEW - CASH - 0.00</option>
-                  <option value="review_insurance">
-                    REVIEW - INSURANCE - 0.00
-                  </option>
-                  <option value="aon_cash">
-                    AON MINET CONSULTATION FEE - CASH - 0.00
-                  </option>
-                  <option value="aon_insurance">
-                    AON MINET CONSULTATION FEE - INSURANCE - 1000.00
-                  </option>
-                  <option value="maternity_cash">
-                    MATERNITY - CASH - 0.00
-                  </option>
-                  <option value="maternity_insurance">
-                    MATERNITY - INSURANCE - 0.00
-                  </option>
-                  <option value="hemodialysis_cash">
-                    HEMODIALYSIS - CASH - 10650.00
-                  </option>
-                  <option value="hemodialysis_insurance">
-                    HEMODIALYSIS - INSURANCE - 10650.00
-                  </option>
-                  <option value="photocopy_cash">
-                    PHOTOCOPY - CASH - 10.00
-                  </option>
-                  <option value="photocopy_insurance">
-                    PHOTOCOPY - INSURANCE - 10.00
-                  </option>
-                </select>
-                <p className="text-2xs text-slate-500 mt-1">
-                  Press Ctrl and click to select multiple options
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Preview / Captured Actions */}
-          <div className="border-t border-slate-800/80 pt-4 mt-2 flex items-center gap-3">
-            <button
-              type="button"
-              className="text-[11px] font-bold px-4 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition"
-            >
-              Preview
-            </button>
-            <button
-              type="button"
-              className="text-[11px] font-bold px-4 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition"
-            >
-              Captured
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {/* Patient Phone */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Phone Number *
-              </label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. 0712345678"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                required
-              />
-            </div>
-
-            {/* Patient Email */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="patient@eagletechsolutions.tech"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-              />
-            </div>
-
-            {/* Village / Estate */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Village / Estate *
-              </label>
-              <input
-                type="text"
-                value={village}
-                onChange={(e) => setVillage(e.target.value)}
-                placeholder="e.g. Kawangware"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                required
-              />
-            </div>
-
-            {/* Landmark */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Landmark / Residence Details
-              </label>
-              <input
-                type="text"
-                value={landmark}
-                onChange={(e) => setLandmark(e.target.value)}
-                placeholder="e.g. Near Market / Church"
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-              />
-            </div>
-
-            {/* Marital Status */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Marital Status *
-              </label>
-              <select
-                value={maritalStatus}
-                onChange={(e) => setMaritalStatus(e.target.value)}
-                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                required
-              >
-                <option value="single">Single</option>
-                <option value="married">Married</option>
-                <option value="divorced">Divorced</option>
-                <option value="widowed">Widowed</option>
-                <option value="separated">Separated</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Notification Opt-In preferences */}
-          <div className="border-t border-slate-800/80 pt-4 mt-2">
-            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-3">
-              Patient Notification Consent Preferences
-            </h3>
-            <div className="flex flex-wrap gap-4 text-xs font-bold">
-              <label className="flex items-center gap-2 text-slate-400 cursor-pointer select-none hover:text-white transition">
-                <input
-                  type="checkbox"
-                  checked={optInLab}
-                  onChange={(e) => setOptInLab(e.target.checked)}
-                  className="accent-teal-500 h-4 w-4 bg-slate-950 border-slate-800 rounded text-teal-500"
-                />
-                Opt-in Lab emails
-              </label>
-              <label className="flex items-center gap-2 text-slate-400 cursor-pointer select-none hover:text-white transition">
-                <input
-                  type="checkbox"
-                  checked={optInPharmacy}
-                  onChange={(e) => setOptInPharmacy(e.target.checked)}
-                  className="accent-teal-500 h-4 w-4 bg-slate-950 border-slate-800 rounded text-teal-500"
-                />
-                Opt-in Pharmacy emails
-              </label>
-              <label className="flex items-center gap-2 text-slate-400 cursor-pointer select-none hover:text-white transition">
-                <input
-                  type="checkbox"
-                  checked={optInBilling}
-                  onChange={(e) => setOptInBilling(e.target.checked)}
-                  className="accent-teal-500 h-4 w-4 bg-slate-950 border-slate-800 rounded text-teal-500"
-                />
-                Opt-in Billing emails
-              </label>
-            </div>
-          </div>
-
-          {/* Next of Kin Details */}
-          <div className="border-t border-slate-800/80 pt-4 mt-2">
-            <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-3">
-              Next of Kin details
-            </h3>
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  NOK Name
-                </label>
-                <input
-                  type="text"
-                  value={nokName}
-                  onChange={(e) => setNokName(e.target.value)}
-                  placeholder="NOK Full Name"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  NOK Phone
-                </label>
-                <input
-                  type="text"
-                  value={nokPhone}
-                  onChange={(e) => setNokPhone(e.target.value)}
-                  placeholder="NOK Phone number"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Relation
-                </label>
-                <select
-                  value={nokRelation}
-                  onChange={(e) => setNokRelation(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 focus:outline-none focus:border-teal-500 transition"
-                >
-                  <option value="spouse">Spouse</option>
-                  <option value="parent">Parent</option>
-                  <option value="sibling">Sibling</option>
-                  <option value="child">Child</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Consent Checkbox */}
-          <div className="border-t border-slate-800/80 pt-4 flex items-start gap-2.5">
-            <input
-              type="checkbox"
-              id="consentCheck"
-              checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-              className="accent-teal-500 rounded border-slate-800 bg-slate-950 text-teal-600 focus:ring-teal-500 h-4 w-4 mt-0.5 cursor-pointer"
-            />
-            <label
-              htmlFor="consentCheck"
-              className="text-xs text-slate-400 leading-relaxed cursor-pointer select-none"
-            >
-              Patient gives consent for medical care record capture and
-              reporting to Ministry of Health (MOH) systems under the Data
-              Protection Act.
-            </label>
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-sm py-2.5 px-4 rounded-lg shadow-lg shadow-teal-500/10 hover:shadow-teal-500/20 active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none mt-2"
-          >
-            {loading ? "Registering Patient..." : "Register Patient"}
-          </button>
-        </form>
-      </div>
-
-      {/* Right Column: Reception Monitor - Admissions & Quick Actions */}
-      <div className="hidden lg:block bg-slate-900 border border-slate-800 rounded-2xl p-4 lg:p-5 2xl:p-6 shadow-sm space-y-6 min-w-0">
-        <div>
-          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-            <Activity size={16} className="text-teal-400" /> Reception Monitor
-          </h3>
-          <p className="text-xs text-slate-400 mt-1">
-            Admissions, recent activity and quick actions
-          </p>
-        </div>
-
-        <div>
-          <h4 className="text-2xs uppercase text-slate-500 font-bold tracking-wider mb-2">
-            Current Admissions
-          </h4>
-          {loadingAdmissions ? (
-            <div className="py-6 text-center text-slate-500 text-xs">
-              Loading admissions...
-            </div>
-          ) : admissions.length === 0 ? (
-            <div className="border border-dashed border-slate-800 rounded-lg p-4 text-center text-slate-500 text-xs">
-              No current admissions
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-              {admissions.map((adm) => (
-                <div
-                  key={adm.id}
-                  onClick={() => {
-                    const pid = adm.patient?.id;
-                    if (pid) {
-                      setSelectedReceptionPatientId(pid);
-                      loadPatientTimeline(pid);
-                    }
-                  }}
-                  className={`bg-slate-950 border rounded-xl p-3 flex items-center justify-between cursor-pointer transition ${selectedReceptionPatientId === adm.patient?.id ? "border-teal-400/60 ring-1 ring-teal-400/10" : "border-slate-800"}`}
-                >
-                  <div className="min-w-0">
-                    <div className="font-bold text-slate-200 text-sm truncate">
-                      {adm.patient?.name || "Unknown"}
-                    </div>
-                    <div className="text-2xs text-slate-400">
-                      {adm.ward_name} • {adm.bed_number}
-                    </div>
-                  </div>
-                  <div className="text-2xs text-slate-400 font-mono">
-                    {new Date(adm.admission_datetime).toLocaleString()}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <h4 className="text-2xs uppercase text-slate-500 font-bold tracking-wider mb-2">
-            Quick Actions
-          </h4>
-          <div className="grid grid-cols-1 gap-2">
-            <button
-              onClick={() => fetchAdmissions()}
-              className="text-sm text-teal-400 bg-slate-950/30 border border-slate-800 px-3 py-2 rounded-lg text-left"
-            >
-              Refresh Admissions
-            </button>
-            <button
-              onClick={() => setActiveTab("search")}
-              className="text-sm text-slate-100 bg-teal-500 hover:bg-teal-600 px-3 py-2 rounded-lg"
-            >
-              Go to Search
-            </button>
-            <button
-              onClick={() => setActiveTab("wards")}
-              className="text-sm text-slate-100 bg-amber-500 hover:bg-amber-600 px-3 py-2 rounded-lg"
-            >
-              View Wards
-            </button>
-          </div>
-        </div>
-
-        {selectedReceptionPatientId && (
-          <div>
-            <h4 className="text-2xs uppercase text-slate-500 font-bold tracking-wider mb-2">
-              Selected Patient Timeline
-            </h4>
-            {loadingTimeline ? (
-              <div className="py-3 text-center text-slate-500 text-xs">
-                Loading timeline...
-              </div>
-            ) : timelineData.length === 0 ? (
-              <div className="border border-dashed border-slate-800 rounded-lg p-3 text-xs text-slate-500">
-                No records for selected patient.
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                {timelineData.map((evt) => (
-                  <div
-                    key={evt.id}
-                    className="bg-slate-950 border border-slate-800 rounded-lg p-2"
-                  >
-                    <div className="text-2xs text-slate-400 font-mono">
-                      {new Date(evt.date).toLocaleString()}
-                    </div>
-                    <div className="text-xs font-bold text-slate-200">
-                      {evt.title}
-                    </div>
-                    <div className="text-2xs text-slate-400">{evt.desc}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <RegistrationMonitorPanel
+        admissions={admissions}
+        loadingAdmissions={loadingAdmissions}
+        fetchAdmissions={fetchAdmissions}
+        handleTabChange={handleTabChange}
+        selectedReceptionPatientId={selectedReceptionPatientId}
+        setSelectedReceptionPatientId={setSelectedReceptionPatientId}
+        loadPatientTimeline={loadPatientTimeline}
+        loadingTimeline={loadingTimeline}
+        timelineData={timelineData}
+      />
     </div>
   );
 }

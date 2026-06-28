@@ -96,7 +96,7 @@ export default function Dashboard({ user, onNavigate }) {
           type: 'warning',
           message: `Help Desk: ${pendingTicketsCount} pending support inquiries require response.`,
           tab: 'admin',
-          subtab: 'help_desk'
+          subTab: 'help_desk'
         });
       }
 

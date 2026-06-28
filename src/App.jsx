@@ -334,6 +334,9 @@ export default function App() {
       if (window.location.hash === "#cards") {
         return "cards";
       }
+      if (path === "/chrome") {
+        return "super_admin_dashboard";
+      }
       if (
         sessionStorage.getItem("egesa_health_onboarding_redirect") === "true"
       ) {
@@ -386,6 +389,7 @@ export default function App() {
   const [menuSearch, setMenuSearch] = useState("");
   const [activeCategoryDropdown, setActiveCategoryDropdown] = useState(null);
   const [openModuleDropdown, setOpenModuleDropdown] = useState(null);
+  const [expandedSidebarItem, setExpandedSidebarItem] = useState(null);
   const [adminDelegation, setAdminDelegation] = useState({});
 
   useEffect(() => {
@@ -783,6 +787,7 @@ export default function App() {
       const isValidPath =
         pathname === "/" ||
         pathname === "/login" ||
+        pathname === "/chrome" ||
         pathname.startsWith("/auth/callback") ||
         pathname === "/patient-portal" ||
         pathname.startsWith("/hospital/");
@@ -817,13 +822,19 @@ export default function App() {
 
       if (
         pathname === "/login" ||
+        pathname === "/chrome" ||
         publicView === "login" ||
         (pathname.startsWith("/hospital/") && pathname.endsWith("/login"))
       ) {
         return (
           <Login
             lockedFacilityId={subdomainFacility?.id}
-            onLoginSuccess={handleLoginSuccess}
+            onLoginSuccess={(loggedInUser) => {
+              if (pathname === "/chrome") {
+                setPublicView("super_admin_dashboard");
+              }
+              handleLoginSuccess(loggedInUser);
+            }}
             onNavigateToSaaS={() => setPublicView("signup")}
             onNavigateToLanding={() => setPublicView("landing")}
           />
@@ -997,7 +1008,7 @@ export default function App() {
     },
     {
       id: "reception",
-      label: "Reception Hub",
+      label: "Reception hub",
       icon: Users,
       roles: ["receptionist", "admin"],
       keywords: [
@@ -1012,37 +1023,37 @@ export default function App() {
       subItems: [
         {
           id: "new_patient",
-          label: "New Patient",
+          label: "New patient",
           group: "Patients",
         },
         {
           id: "update_patient",
-          label: "Update Patient",
+          label: "Update patient",
           group: "Patients",
         },
         {
           id: "patient_insurance",
-          label: "Patient Insurance",
+          label: "Patient insurance",
           group: "Patients",
         },
         {
           id: "patients_in_wards",
-          label: "Patients in Wards",
+          label: "Patients in wards",
           group: "Patients",
         },
         {
           id: "sha_registrations",
-          label: "SHA Registrations",
+          label: "SHA registrations",
           group: "Patients",
         },
         {
           id: "eligibility_sha",
-          label: "SHA Eligibility",
+          label: "SHA eligibility",
           group: "Patients",
         },
         {
           id: "eligibility_patients",
-          label: "Patient Eligibility",
+          label: "Patient eligibility",
           group: "Patients",
         },
         {
@@ -1052,143 +1063,143 @@ export default function App() {
         },
         {
           id: "checkin_patient",
-          label: "Checkin Patient",
+          label: "Checkin patient",
           group: "Checkins",
         },
         {
           id: "checkin_dependant",
-          label: "Checkin Dependant",
+          label: "Checkin dependant",
           group: "Checkins",
         },
         {
           id: "sha_checkins",
-          label: "SHA Checkins",
+          label: "SHA checkins",
           group: "Checkins",
         },
         {
           id: "reprint_ticket",
-          label: "Reprint Ticket",
+          label: "Reprint ticket",
           group: "Checkins",
         },
         {
           id: "manage_queue",
-          label: "Manage Queue",
+          label: "Manage queue",
           group: "Checkins",
         },
         {
           id: "send_sms",
           label: "Send SMS",
-          group: "SMS & Email",
+          group: "SMS & email",
         },
         {
           id: "send_email",
-          label: "Send Email",
-          group: "SMS & Email",
+          label: "Send email",
+          group: "SMS & email",
         },
         {
           id: "sms_templates",
-          label: "SMS Templates",
-          group: "SMS & Email",
+          label: "SMS templates",
+          group: "SMS & email",
         },
         {
           id: "patients_calendar",
-          label: "Patients Calendar",
+          label: "Patients calendar",
           group: "Appointments",
         },
         {
           id: "doctors_calendar",
-          label: "Doctors Calendar",
+          label: "Doctors calendar",
           group: "Appointments",
         },
         {
           id: "schedule_appointments",
-          label: "Schedule Appointments",
+          label: "Schedule appointments",
           group: "Appointments",
         },
         {
           id: "appointment_reminders",
-          label: "Appointment Reminders",
+          label: "Appointment reminders",
           group: "Appointments",
         },
         {
           id: "referral",
           label: "Referral",
-          group: "Hospital Forms",
+          group: "Hospital forms",
         },
         {
           id: "sick_offs",
-          label: "Sick Offs",
-          group: "Hospital Forms",
+          label: "Sick offs",
+          group: "Hospital forms",
         },
         {
           id: "surgeon",
           label: "Surgeon",
-          group: "Hospital Forms",
+          group: "Hospital forms",
         },
         {
           id: "radiology",
           label: "Radiology",
-          group: "Hospital Forms",
+          group: "Hospital forms",
         },
         {
           id: "anesthetist",
           label: "Anesthetist",
-          group: "Hospital Forms",
+          group: "Hospital forms",
         },
       ],
     },
     {
       id: "consultation",
-      label: "OPD Consultation",
+      label: "OPD consultation",
       icon: Stethoscope,
       roles: ["clinician", "admin"],
     },
     {
       id: "orders",
-      label: "Laboratory Desk",
+      label: "Laboratory desk",
       icon: FlaskConical,
       roles: ["lab_tech", "admin"],
     },
     {
       id: "radiology",
-      label: "Radiology Desk",
+      label: "Radiology desk",
       icon: Camera,
       roles: ["lab_tech", "clinician", "admin"],
     },
     {
       id: "surgery",
-      label: "Surgery Desk",
+      label: "Surgery desk",
       icon: ShieldCheck,
       roles: ["clinician", "admin"],
     },
     {
       id: "pharmacy",
-      label: "Pharmacy Desk",
+      label: "Pharmacy desk",
       icon: Pill,
       roles: ["pharmacist", "admin"],
       keywords: ["drugs", "prescriptions", "dispense", "stock"],
       subItems: [
-        { id: "dispensing", label: "Dispense Queue" },
-        { id: "sell", label: "Sell Drug(s)" },
-        { id: "modify", label: "Modify Sale" },
-        { id: "paid", label: "Paid Drugs" },
+        { id: "dispensing", label: "Dispense queue" },
+        { id: "sell", label: "Sell drug(s)" },
+        { id: "modify", label: "Modify sale" },
+        { id: "paid", label: "Paid drugs" },
       ],
     },
     {
       id: "billing",
-      label: "Cashier / Billing",
+      label: "Cashier / billing",
       icon: DollarSign,
       roles: ["cashier", "admin"],
       keywords: ["invoice", "claims", "preauth", "payments", "cashier"],
       subItems: [
-        { id: "desk", label: "Billing Desk" },
-        { id: "preauth", label: "Pre-Auth Claims" },
-        { id: "setup", label: "Billing Setup" },
+        { id: "desk", label: "Billing desk" },
+        { id: "preauth", label: "Pre-auth claims" },
+        { id: "setup", label: "Billing setup" },
       ],
     },
     {
       id: "reports",
-      label: "MOH Reports",
+      label: "MOH reports",
       icon: FileSpreadsheet,
       roles: ["admin"],
       keywords: [
@@ -1202,49 +1213,49 @@ export default function App() {
     },
     {
       id: "patient_dashboard",
-      label: "Patient Dashboard",
+      label: "Patient dashboard",
       icon: Clipboard,
       roles: ["*"],
     },
     {
       id: "ward",
-      label: "Inpatient Ward",
+      label: "Inpatient ward",
       icon: Bed,
       roles: ["nurse", "clinician", "admin"],
     },
     {
       id: "maternity",
-      label: "Maternity Setup",
+      label: "Maternity setup",
       icon: Baby,
       roles: ["nurse", "clinician", "admin"],
       subItems: [
-        { id: "dashboard", label: "Maternity Dashboard" },
-        { id: "blocks", label: "Blocks Setup" },
-        { id: "wards", label: "Wards Setup" },
-        { id: "bed_types", label: "Bed Classifications" },
-        { id: "beds", label: "Beds Setup" },
-        { id: "registration", label: "Patient Register" },
-        { id: "queue", label: "Treatment Queue" },
-        { id: "inventory", label: "Maternal Drugs" },
-        { id: "reports", label: "Outcome Stats" },
+        { id: "dashboard", label: "Maternity dashboard" },
+        { id: "blocks", label: "Blocks setup" },
+        { id: "wards", label: "Wards setup" },
+        { id: "bed_types", label: "Bed classifications" },
+        { id: "beds", label: "Beds setup" },
+        { id: "registration", label: "Patient register" },
+        { id: "queue", label: "Treatment queue" },
+        { id: "inventory", label: "Maternal drugs" },
+        { id: "reports", label: "Outcome stats" },
       ],
     },
     {
       id: "mch",
-      label: "MCH Clinic",
+      label: "MCH clinic",
       icon: Heart,
       roles: ["nurse", "clinician", "admin"],
       subItems: [
-        { id: "dashboard", label: "MCH Dashboard" },
-        { id: "anc", label: "Antenatal Care" },
-        { id: "fp", label: "Family Planning" },
-        { id: "imm", label: "Child Welfare" },
-        { id: "reports", label: "MCH Reports" },
+        { id: "dashboard", label: "MCH dashboard" },
+        { id: "anc", label: "Antenatal care" },
+        { id: "fp", label: "Family planning" },
+        { id: "imm", label: "Child welfare" },
+        { id: "reports", label: "MCH reports" },
       ],
     },
     {
       id: "admin",
-      label: "Admin Settings",
+      label: "Admin settings",
       icon: Settings,
       roles: [
         "admin",
@@ -1266,15 +1277,15 @@ export default function App() {
         "claims",
       ],
       subItems: [
-        { id: "audit", label: "Audit Logs" },
+        { id: "audit", label: "Audit logs" },
         {
           id: "smtp_settings",
-          label: "SMTP Settings",
+          label: "Smtp settings",
           keywords: ["smtp", "mail server", "email setup", "google oauth"],
         },
         {
           id: "email_logs",
-          label: "Email Logs",
+          label: "Email logs",
           keywords: [
             "mail delivery",
             "invites",
@@ -1283,10 +1294,10 @@ export default function App() {
           ],
         },
         { id: "licensing", label: "Licensing" },
-        { id: "facility_profile", label: "Facility Profile" },
+        { id: "facility_profile", label: "Facility profile" },
         {
           id: "afyalink",
-          label: "SHA / DHA HIE Claims",
+          label: "SHA / DHA HIE claims",
           keywords: [
             "shira",
             "sha",
@@ -1300,7 +1311,7 @@ export default function App() {
     },
     {
       id: "hr",
-      label: "Human Resources",
+      label: "Human resources",
       icon: Users,
       roles: ["*"],
       keywords: [
@@ -1315,7 +1326,7 @@ export default function App() {
       subItems: [
         {
           id: "directory",
-          label: "Staff Directory",
+          label: "Staff directory",
           keywords: [
             "employees",
             "access status",
@@ -1326,59 +1337,59 @@ export default function App() {
         },
         {
           id: "roster",
-          label: "Duty Roster",
+          label: "Duty roster",
           keywords: ["attendance", "clock in", "geofence", "openstreetmap"],
         },
         {
           id: "onboarding",
-          label: "Staff On-boarding",
+          label: "Staff on-boarding",
           keywords: ["invite", "email delivery", "mail status"],
         },
         {
           id: "requests",
-          label: "Role Requests",
+          label: "Role requests",
           keywords: ["permission upgrade", "facility role request", "approval"],
         },
         {
           id: "delegation",
-          label: "Access Delegation Settings",
+          label: "Access delegation settings",
           keywords: ["privileges", "permissions", "delegate access"],
         },
       ],
     },
     {
       id: "payroll",
-      label: "Payroll Console",
+      label: "Payroll console",
       icon: CreditCard,
       roles: ["admin", "facility_admin", "hr_manager"],
     },
     {
       id: "procurement",
-      label: "Procurement Desk",
+      label: "Procurement desk",
       icon: ShoppingBag,
       roles: ["admin", "facility_admin", "operations_manager"],
     },
     {
       id: "maintenance",
-      label: "Assets Maintenance",
+      label: "Assets maintenance",
       icon: Wrench,
       roles: ["admin", "facility_admin", "operations_manager", "it_support"],
     },
     {
       id: "appointments",
-      label: "Appointments Schedule",
+      label: "Appointments schedule",
       icon: Calendar,
       roles: ["receptionist", "nurse", "clinician", "admin"],
     },
     {
       id: "settings",
-      label: "Manage Profile",
+      label: "Manage profile",
       icon: User,
       roles: ["*"],
     },
     {
       id: "support",
-      label: "Help & Support",
+      label: "Help & support",
       icon: HelpCircle,
       roles: ["*"],
       keywords: ["whatsapp", "chat", "support", "help desk"],
@@ -1387,43 +1398,43 @@ export default function App() {
   const MENU_CATEGORIES = [
     {
       id: "overview",
-      label: "Overview & Schedule",
+      label: "Overview & schedule",
       icon: LayoutDashboard,
       items: ["dashboard", "appointments"],
     },
     {
       id: "patient_flow",
-      label: "Patient Flow",
+      label: "Patient flow",
       icon: UserPlus,
       items: ["reception", "consultation"],
     },
     {
       id: "medical_depts",
-      label: "Medical Departments",
+      label: "Medical departments",
       icon: Bed,
       items: ["ward", "maternity", "mch", "surgery", "orders"],
     },
     {
       id: "mgmt_depts",
-      label: "Management Departments",
+      label: "Management departments",
       icon: Users,
       items: ["procurement", "hr", "payroll", "maintenance"],
     },
     {
       id: "diagnostics_rx",
-      label: "Diagnostics & Rx",
+      label: "Diagnostics & rx",
       icon: FlaskConical,
       items: ["radiology", "pharmacy"],
     },
     {
       id: "financials",
-      label: "Billing & Reports",
+      label: "Billing & reports",
       icon: DollarSign,
       items: ["billing", "reports", "patient_dashboard"],
     },
     {
       id: "system",
-      label: "System Control",
+      label: "System control",
       icon: Settings,
       items: ["admin", "settings", "support"],
     },
@@ -2103,8 +2114,19 @@ export default function App() {
                             ].includes(activeTab)
                           : activeTab === item.id;
                       const hasSub = item.subItems && item.subItems.length > 0;
+                      const isExpanded =
+                        isActive || expandedSidebarItem === item.id;
                       return (
-                        <div key={item.id} className="space-y-1">
+                        <div
+                          key={item.id}
+                          className="space-y-1"
+                          onMouseEnter={() =>
+                            hasSub ? setExpandedSidebarItem(item.id) : null
+                          }
+                          onMouseLeave={() =>
+                            hasSub ? setExpandedSidebarItem(null) : null
+                          }
+                        >
                           <button
                             type="button"
                             onClick={() => {
@@ -2133,7 +2155,7 @@ export default function App() {
                             )}
                           </button>
 
-                          {isActive && hasSub && (
+                          {isExpanded && hasSub && (
                             <div className="ml-5 border-l border-slate-800 pl-3.5 py-1 space-y-1 text-left">
                               {item.id === "reception"
                                 ? Object.entries(

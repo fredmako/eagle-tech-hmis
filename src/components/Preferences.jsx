@@ -309,7 +309,7 @@ export default function Preferences({
                     <span className="block text-[9.5px] text-slate-500 mt-0.5">JPG or PNG. Auto-optimized for system profiles.</span>
                     <label 
                       htmlFor="passport-photo-input" 
-                      className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-teal-500/10 border border-teal-500/20 text-[10px] font-bold text-teal-400 cursor-pointer hover:bg-teal-500/20 transition"
+                      className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-teal-500/10 border border-teal-500/20 text-2xs font-bold text-teal-400 cursor-pointer hover:bg-teal-500/20 transition"
                     >
                       <Camera size={11} /> Upload Photo
                     </label>

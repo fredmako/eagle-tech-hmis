@@ -1002,7 +1002,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                         item.priority === 'emergency' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-slate-900 border border-slate-800 text-slate-400'
                       }`}>{item.priority}</span>
                     </div>
-                    <div className="flex justify-between items-center text-[10px] text-slate-400 w-full font-mono">
+                    <div className="flex justify-between items-center text-2xs text-slate-400 w-full font-mono">
                       <span>{item.patient?.facility_id_code}</span>
                       <span>{new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                     </div>
@@ -1018,7 +1018,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
             ) : (
               <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
                 {loadingHistory ? (
-                  <div className="py-12 text-center text-slate-500 text-[10px] flex items-center justify-center gap-2">
+                  <div className="py-12 text-center text-slate-500 text-2xs flex items-center justify-center gap-2">
                     <div className="animate-spin rounded-full h-3.5 w-3.5 border-b border-teal-400" />
                     <span>Loading history...</span>
                   </div>
@@ -1056,7 +1056,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                           inv.status === 'reversed' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'
                         }`}>{inv.status}</span>
                       </div>
-                      <div className="flex justify-between items-center text-[10px] text-slate-400 w-full font-mono">
+                      <div className="flex justify-between items-center text-2xs text-slate-400 w-full font-mono">
                         <span>KES {parseFloat(inv.total_amount).toFixed(2)}</span>
                         <span>{new Date(inv.created_at).toLocaleDateString()}</span>
                       </div>
@@ -1091,7 +1091,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                     <h3 className="text-base font-bold text-slate-100">{selectedVisit.patient?.name}</h3>
                     <p className="text-xs text-slate-500">{selectedVisit.patient?.facility_id_code} | DOB: {selectedVisit.patient?.dob}</p>
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                  <span className={`text-2xs font-bold px-2 py-0.5 rounded uppercase ${
                     invoice?.status === 'paid' ? 'text-green-500 bg-green-500/10 border border-green-500/20' :
                     invoice?.status === 'reversed' ? 'text-red-500 bg-red-500/10 border border-red-500/20' :
                     'text-yellow-500 bg-yellow-500/10 border border-yellow-500/20'
@@ -1116,7 +1116,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                     <div>
                       <h4 className="font-bold text-slate-202">Tuma Pay STK Prompt Sent</h4>
                       <p className="text-xs text-slate-500 mt-1">Please approve the payment request on your phone to complete payment of <strong>KES {(parseFloat(invoice?.total_amount || 0) + getConsultationFee(selectedVisit)).toFixed(2)}</strong>.</p>
-                      <p className="text-[10px] text-slate-600 font-mono mt-1">Checkout ID: {checkoutId}</p>
+                      <p className="text-2xs text-slate-600 font-mono mt-1">Checkout ID: {checkoutId}</p>
                     </div>
                     <div className="flex flex-col gap-2 pt-2">
                       <button
@@ -1153,7 +1153,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
 
                     <div className="text-center pb-4 border-b border-dashed border-slate-800">
                       <h4 className="font-bold text-slate-202 uppercase tracking-wider">EAGLE TECH MEDICAL CLINIC</h4>
-                      <p className="text-[10px] text-slate-500">MOH Register ID: EMC-001 | Tel: +254 712 345 678</p>
+                      <p className="text-2xs text-slate-500">MOH Register ID: EMC-001 | Tel: +254 712 345 678</p>
                       <p className="text-[9px] text-slate-600 font-mono mt-1">Receipt No: RCPT-{Math.floor(10000 + Math.random() * 90000)} | Date: {new Date().toLocaleString()}</p>
                     </div>
 
@@ -1165,7 +1165,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                       </div>
 
                       <div className="border-t border-slate-800 pt-2 text-xs space-y-2">
-                        <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                        <div className="flex justify-between text-2xs font-bold text-slate-500 uppercase">
                           <span>Fee Item</span>
                           <span>Amount</span>
                         </div>
@@ -1199,7 +1199,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                       <div className="text-sm font-bold text-teal-400 mt-1">
                         Amount Paid: {(parseFloat(invoice?.total_amount || 0) + getConsultationFee(selectedVisit)).toFixed(2)}/-
                       </div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">
+                      <div className="text-2xs text-slate-500 mt-0.5">
                         Balance Outstanding: 0.00/-
                       </div>
                     </div>
@@ -1261,7 +1261,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Reversal Reason *</label>
+                            <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Reversal Reason *</label>
                             <select
                               value={reversalReason}
                               onChange={(e) => setReversalReason(e.target.value)}
@@ -1275,7 +1275,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                             </select>
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Audit Notes / Explanation</label>
+                            <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Audit Notes / Explanation</label>
                             <input
                               type="text"
                               value={reversalNotes}
@@ -1433,10 +1433,10 @@ export default function Billing({ user, onComplete, showNotification, initialSub
 
                         {paymentMethod === 'insurance' && (
                           <div className="bg-slate-950 p-4 border border-slate-855 rounded-xl space-y-4">
-                            <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider block">Insurance Authorization & Co-pay Split Details</span>
+                            <span className="text-2xs text-teal-400 font-bold uppercase tracking-wider block">Insurance Authorization & Co-pay Split Details</span>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Insurance Provider</label>
+                                <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Insurance Provider</label>
                                 <select
                                   value={insuranceProvider}
                                   onChange={(e) => setInsuranceProvider(e.target.value)}
@@ -1453,7 +1453,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Member ID / Policy Number</label>
+                                <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Member ID / Policy Number</label>
                                 <input
                                   type="text"
                                   value={memberId}
@@ -1463,7 +1463,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Pre-auth Code</label>
+                                <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Pre-auth Code</label>
                                 <input
                                   type="text"
                                   value={preAuthCode}
@@ -1476,7 +1476,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 border-t border-slate-900 pt-3">
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Insurance Coverage (KES)</label>
+                                <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Insurance Coverage (KES)</label>
                                 <input
                                   type="number"
                                   value={insuranceCoverage}
@@ -1491,7 +1491,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Patient Co-pay (KES)</label>
+                                <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Patient Co-pay (KES)</label>
                                 <input
                                   type="number"
                                   value={copayAmount}
@@ -1501,7 +1501,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Co-pay Method</label>
+                                <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Co-pay Method</label>
                                   <select
                                     value={copayPaymentMethod}
                                     onChange={(e) => setCopayPaymentMethod(e.target.value)}
@@ -1515,7 +1515,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
 
                               {copayPaymentMethod === 'mpesa' && parseFloat(copayAmount) > 0 && (
                                 <div className="w-full max-w-sm pt-2 border-t border-slate-900">
-                                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Tuma Pay Mobile Number for Co-pay *</label>
+                                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Tuma Pay Mobile Number for Co-pay *</label>
                                   <input
                                     type="text"
                                     value={tumaPhone}
@@ -1568,7 +1568,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
               
               <form onSubmit={handleSavePreauth} className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Select Patient *</label>
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Select Patient *</label>
                   <select
                     value={preauthPatientId}
                     onChange={(e) => setPreauthPatientId(e.target.value)}
@@ -1582,7 +1582,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Insurance Provider *</label>
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Insurance Provider *</label>
                   <select
                     value={preauthProvider}
                     onChange={(e) => setPreauthProvider(e.target.value)}
@@ -1599,7 +1599,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Member ID</label>
+                    <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Member ID</label>
                     <input
                       type="text"
                       value={preauthMemberId}
@@ -1609,7 +1609,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Pre-auth Code *</label>
+                    <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Pre-auth Code *</label>
                     <input
                       type="text"
                       value={preauthCodeVal}
@@ -1621,7 +1621,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Approved Limit (KES) *</label>
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Approved Limit (KES) *</label>
                   <input
                     type="number"
                     value={preauthAmount}
@@ -1632,7 +1632,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Mock File Upload (Letter) *</label>
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Mock File Upload (Letter) *</label>
                   <div className="flex gap-2 items-center">
                     <input
                       type="text"
@@ -1656,7 +1656,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Diagnosis / Notes</label>
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Diagnosis / Notes</label>
                   <textarea
                     value={preauthNotes}
                     onChange={(e) => setPreauthNotes(e.target.value)}
@@ -1689,7 +1689,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                         <span className="font-bold text-slate-200 text-sm block">${pa.patient_name}</span>
                         <span className="text-xs text-slate-400">${pa.insurance_provider} | Code: <span className="text-teal-400 font-bold font-mono">${pa.preauth_code}</span></span>
                       </div>
-                      <span className="bg-green-500/10 text-green-400 border border-green-500/20 text-[10px] font-bold px-2 py-0.5 rounded">
+                      <span className="bg-green-500/10 text-green-400 border border-green-500/20 text-2xs font-bold px-2 py-0.5 rounded">
                         ${pa.status}
                       </span>
                     </div>
@@ -1697,7 +1697,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                     <div className="grid grid-cols-2 gap-2 text-xs text-slate-400 border-t border-slate-800 pt-2.5 font-mono">
                       <div>Approved Limit: <span className="text-slate-200 font-bold">KES ${pa.approved_amount.toFixed(2)}</span></div>
                       <div>Member ID: <span className="text-slate-202">${pa.member_id || 'N/A'}</span></div>
-                      <div className="col-span-2 text-[10px] text-slate-400 leading-normal">
+                      <div className="col-span-2 text-2xs text-slate-400 leading-normal">
                         Notes: ${pa.notes || 'No extra diagnosis noted.'}
                       </div>
                       <div className="col-span-2 text-[9px] text-teal-400 flex items-center gap-1 border-t border-slate-800/40 pt-1.5 font-sans">
@@ -1732,7 +1732,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
               
               <div className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Service Name *</label>
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Service Name *</label>
                   <input
                     type="text"
                     value={newServiceName}
@@ -1742,7 +1742,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Category *</label>
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Category *</label>
                   <select
                     value={newServiceCategory}
                     onChange={(e) => setNewServiceCategory(e.target.value)}
@@ -1756,7 +1756,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Price (KES) *</label>
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Price (KES) *</label>
                   <input
                     type="number"
                     value={newServicePrice}
@@ -1798,12 +1798,12 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                 Current Services Catalog (${facilityServices.length})
               </h3>
               
-              <div className="space-y-2.5 max-h-[400px] overflow-y-auto pr-1 font-sans">
+              <div className="space-y-2.5 max-h-100 overflow-y-auto pr-1 font-sans">
                 {facilityServices.map((svc, i) => (
                   <div key={i} className="bg-slate-900 border border-slate-800/80 rounded-xl p-3.5 flex justify-between items-center hover:border-teal-505/20 transition">
                     <div>
                       <span className="font-bold text-slate-202 text-xs block">${svc.name}</span>
-                      <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">${svc.category}</span>
+                      <span className="text-2xs text-slate-500 uppercase tracking-wider font-bold">${svc.category}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <input
@@ -1822,7 +1822,7 @@ export default function Billing({ user, onComplete, showNotification, initialSub
                         onClick={async () => {
                           await updateServicesCatalog(facilityServices);
                         }}
-                        className="text-[10px] bg-teal-500/10 hover:bg-teal-500/20 text-teal-404 border border-teal-500/20 py-1.5 px-3 rounded-lg transition"
+                        className="text-2xs bg-teal-500/10 hover:bg-teal-500/20 text-teal-404 border border-teal-500/20 py-1.5 px-3 rounded-lg transition"
                       >
                         Save Price
                       </button>

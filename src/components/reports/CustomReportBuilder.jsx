@@ -41,7 +41,7 @@ export default function CustomReportBuilder({
           <div className="space-y-4">
             {/* Category Selection */}
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">1. Select Report Category</label>
+              <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-2">1. Select Report Category</label>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: 'outpatient', label: 'Outpatient', icon: Activity },
@@ -60,7 +60,7 @@ export default function CustomReportBuilder({
                       }`}
                     >
                       <Icon size={18} className="mb-1.5" />
-                      <span className="text-[10px] font-bold leading-tight">{cat.label}</span>
+                      <span className="text-2xs font-bold leading-tight">{cat.label}</span>
                     </button>
                   );
                 })}
@@ -69,7 +69,7 @@ export default function CustomReportBuilder({
 
             {/* Branding Scope Selection */}
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">2. Branding & Logo Identity</label>
+              <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-2">2. Branding & Logo Identity</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setBrandingMode('platform')}
@@ -105,7 +105,7 @@ export default function CustomReportBuilder({
             {/* Date Ranges */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">3. Start Date</label>
+                <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">3. Start Date</label>
                 <div className="relative">
                   <Calendar size={12} className="absolute left-3 top-2.5 text-slate-550" />
                   <input
@@ -117,7 +117,7 @@ export default function CustomReportBuilder({
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">4. End Date</label>
+                <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">4. End Date</label>
                 <div className="relative">
                   <Calendar size={12} className="absolute left-3 top-2.5 text-slate-555" />
                   <input
@@ -132,7 +132,7 @@ export default function CustomReportBuilder({
 
             {/* Columns Checklist */}
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">5. Selected Report Fields (Preview Grid Columns)</label>
+              <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-2">5. Selected Report Fields (Preview Grid Columns)</label>
               <div className="bg-slate-955 border border-slate-855 rounded-xl p-3 grid grid-cols-2 gap-2 text-xs font-bold">
                 {Object.keys(selectedFields[reportCategory]).map(field => {
                   const isChecked = selectedFields[reportCategory][field];
@@ -157,7 +157,7 @@ export default function CustomReportBuilder({
 
             {/* File Format Selection */}
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">6. Download Extension</label>
+              <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-2">6. Download Extension</label>
               <div className="flex gap-4 text-xs font-bold">
                 <label className="flex items-center gap-2 text-slate-400 cursor-pointer select-none hover:text-white transition">
                   <input
@@ -214,7 +214,7 @@ export default function CustomReportBuilder({
         
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex gap-2.5 items-start">
           <Info size={16} className="text-teal-400 shrink-0 mt-0.5" />
-          <p className="text-[10px] text-slate-450 leading-relaxed font-medium">
+          <p className="text-2xs text-slate-450 leading-relaxed font-medium">
             Clicking "Generate & Download" sends the parameters to a Supabase Edge Function, which runs server-side compilation, writes an outbox email compliance notice using your Titan SMTP credentials, and records the event in the system audit database.
           </p>
         </div>
@@ -227,7 +227,7 @@ export default function CustomReportBuilder({
             <Eye size={14} className="text-teal-400" /> Interactive Report Preview Canvas
           </span>
           
-          <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[10px]">
+          <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-2xs">
             <button
               onClick={() => setPreviewTheme('light')}
               className={`px-3 py-1 font-bold rounded transition ${previewTheme === 'light' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
@@ -270,19 +270,19 @@ export default function CustomReportBuilder({
                   <h4 className="font-extrabold text-sm tracking-tight leading-tight uppercase">
                     {brandingMode === 'platform' ? 'Eagle Tech Solutions Ltd' : facilityInfo.name}
                   </h4>
-                  <p className="text-[10px] font-semibold text-slate-500 mt-0.5">
+                  <p className="text-2xs font-semibold text-slate-500 mt-0.5">
                     {brandingMode === 'platform' 
                       ? 'HQ: 12th Floor, Eagle Tech Tower, Avenue Rd, Nairobi' 
                       : `Address: ${facilityInfo.address || 'N/A'} | Code: ${facilityInfo.code}`}
                   </p>
-                  <p className="text-[10px] font-semibold text-slate-400">
+                  <p className="text-2xs font-semibold text-slate-400">
                     Email: {brandingMode === 'platform' ? 'info@eagletechsolutions.tech' : `info@${facilityInfo.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`}
                   </p>
                 </div>
               </div>
 
               <div className="text-right">
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">
+                <span className="text-2xs uppercase font-bold tracking-wider px-2 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">
                   Draft Preview
                 </span>
                 <h3 className="font-black text-sm uppercase tracking-wide mt-2">
@@ -292,7 +292,7 @@ export default function CustomReportBuilder({
             </div>
 
             {/* Sub-Header Metadata */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 text-[10px] border-b border-dashed border-slate-300/40">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 text-2xs border-b border-dashed border-slate-300/40">
               <div>
                 <span className="text-slate-400 block font-semibold">Report Period</span>
                 <span className="font-bold">{startDate} to {endDate}</span>
@@ -313,7 +313,7 @@ export default function CustomReportBuilder({
 
             {/* Preview Table */}
             <div className="mt-5 overflow-x-auto">
-              <table className="w-full text-left border-collapse text-[10px]">
+              <table className="w-full text-left border-collapse text-2xs">
                 <thead>
                   <tr className="border-b border-slate-300/60 uppercase font-black text-slate-500 tracking-wider">
                     {customActiveColumns.map(col => (
@@ -363,7 +363,7 @@ export default function CustomReportBuilder({
           </div>
 
           {/* Bottom Totals Summary */}
-          <div className="border-t pt-4 border-slate-300/60 flex flex-col md:flex-row justify-between gap-4 text-[10px] font-extrabold uppercase mt-6">
+          <div className="border-t pt-4 border-slate-300/60 flex flex-col md:flex-row justify-between gap-4 text-2xs font-extrabold uppercase mt-6">
             <div className="flex gap-4">
               <span>Total Records: <span className="text-teal-600">{customFilteredData.length}</span></span>
               

@@ -440,7 +440,7 @@ Sign up now and protect your family's health security!
           </div>
           <div>
             <h1 className="text-sm font-black tracking-wider uppercase text-slate-100">Eagle Patient Portal</h1>
-            <span className="text-[10px] text-slate-500">Secure Healthcare Ledger Dashboard</span>
+            <span className="text-2xs text-slate-500">Secure Healthcare Ledger Dashboard</span>
           </div>
         </div>
 
@@ -540,7 +540,7 @@ Sign up now and protect your family's health security!
               </div>
 
               <div className="space-y-3.5 text-xs">
-                <h4 className="font-bold text-slate-400 uppercase tracking-wider text-[10px] pb-1 border-b border-slate-850/40">Demographics</h4>
+                <h4 className="font-bold text-slate-400 uppercase tracking-wider text-2xs pb-1 border-b border-slate-850/40">Demographics</h4>
                 <div className="grid grid-cols-2 gap-y-2.5">
                   <div>
                     <span className="text-slate-500 block text-[9px]">Gender</span>
@@ -574,7 +574,7 @@ Sign up now and protect your family's health security!
               </div>
 
               <div className="space-y-3.5 text-xs pt-2">
-                <h4 className="font-bold text-slate-400 uppercase tracking-wider text-[10px] pb-1 border-b border-slate-850/40">Next of Kin</h4>
+                <h4 className="font-bold text-slate-400 uppercase tracking-wider text-2xs pb-1 border-b border-slate-850/40">Next of Kin</h4>
                 <div className="space-y-2">
                   <div>
                     <span className="text-slate-500 block text-[9px]">Name</span>
@@ -604,28 +604,28 @@ Sign up now and protect your family's health security!
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                     <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
                       <div>
-                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Total Visits</span>
+                        <span className="text-2xs text-slate-500 font-bold uppercase tracking-wider block">Total Visits</span>
                         <span className="text-xl font-bold text-slate-200">{visits.length}</span>
                       </div>
                       <Calendar size={18} className="text-slate-600" />
                     </div>
                     <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
                       <div>
-                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Diagnoses</span>
+                        <span className="text-2xs text-slate-500 font-bold uppercase tracking-wider block">Diagnoses</span>
                         <span className="text-xl font-bold text-slate-200">{consultations.length}</span>
                       </div>
                       <FileText size={18} className="text-slate-600" />
                     </div>
                     <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
                       <div>
-                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Lab Tests</span>
+                        <span className="text-2xs text-slate-500 font-bold uppercase tracking-wider block">Lab Tests</span>
                         <span className="text-xl font-bold text-slate-200">{orders.filter(o => o.type === 'lab').length}</span>
                       </div>
                       <FlaskConical size={18} className="text-slate-600" />
                     </div>
                     <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
                       <div>
-                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Outstanding Invoices</span>
+                        <span className="text-2xs text-slate-500 font-bold uppercase tracking-wider block">Outstanding Invoices</span>
                         <span className="text-xl font-bold text-teal-400 font-mono">
                           {invoices.filter(i => i.status !== 'paid').reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)}/-
                         </span>
@@ -687,7 +687,7 @@ Sign up now and protect your family's health security!
                                       <p><span className="text-slate-500 font-medium">Subjective History:</span> {consult.history}</p>
                                       <p><span className="text-slate-500 font-medium">Objective Exam:</span> {consult.examination}</p>
                                     </div>
-                                    <div className="border-t border-slate-850/45 pt-1.5 flex justify-between items-center text-[10px]">
+                                    <div className="border-t border-slate-850/45 pt-1.5 flex justify-between items-center text-2xs">
                                       <span>MOH ICD-10 Diagnosis:</span>
                                       <span className="bg-teal-500/5 border border-teal-500/20 text-teal-400 font-bold px-2 py-0.5 rounded">{consult.diagnosis_icd10}</span>
                                     </div>
@@ -716,7 +716,7 @@ Sign up now and protect your family's health security!
                                               </div>
                                               {(o.status === 'released' || o.status === 'completed') && (
                                                 <div className="bg-slate-900/60 p-1.5 rounded border border-slate-850/65 mt-1 font-sans">
-                                                  <p className="text-[10px] text-slate-200 font-medium">Result: {meta.values || o.results}</p>
+                                                  <p className="text-2xs text-slate-200 font-medium">Result: {meta.values || o.results}</p>
                                                   {meta.verifier && <p className="text-[8px] text-teal-400 mt-0.5">Verified by: {meta.verifier}</p>}
                                                 </div>
                                               )}
@@ -732,7 +732,7 @@ Sign up now and protect your family's health security!
                                         {vOrders.filter(o => o.type === 'prescription').map(o => (
                                           <div key={o.id} className="border-b border-slate-800/40 pb-1.5 last:border-0 last:pb-0 text-[11px]">
                                             <span className="font-semibold text-slate-350 block">{o.item_name}</span>
-                                            <span className="text-slate-500 text-[10px]">{o.instructions}</span>
+                                            <span className="text-slate-500 text-2xs">{o.instructions}</span>
                                           </div>
                                         ))}
                                       </div>
@@ -741,7 +741,7 @@ Sign up now and protect your family's health security!
                                 )}
 
                                 {invoice && (
-                                  <div className="flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-850/60 pt-2.5 font-mono">
+                                  <div className="flex justify-between items-center text-2xs text-slate-500 border-t border-slate-850/60 pt-2.5 font-mono">
                                     <span>Invoice Status: <span className={invoice.status === 'paid' ? 'text-green-400 font-bold' : 'text-red-400 font-bold'}>{invoice.status.toUpperCase()}</span></span>
                                     <span>Total Settled Bill: <span className="text-slate-350 font-bold">{parseFloat(invoice.amount_paid).toFixed(2)}/-</span></span>
                                   </div>
@@ -852,7 +852,7 @@ Sign up now and protect your family's health security!
                     </div>
 
                     <div className="border-t border-slate-850 pt-4 space-y-4">
-                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Payment & Insurance details</h4>
+                      <h4 className="text-2xs font-bold text-slate-400 uppercase tracking-wider">Payment & Insurance details</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Primary Insurance Provider</label>
@@ -883,7 +883,7 @@ Sign up now and protect your family's health security!
                     </div>
 
                     <div className="border-t border-slate-850 pt-4 space-y-4">
-                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Next of Kin Contact</h4>
+                      <h4 className="text-2xs font-bold text-slate-400 uppercase tracking-wider">Next of Kin Contact</h4>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">FullName</label>
@@ -933,11 +933,11 @@ Sign up now and protect your family's health security!
                   
                   {/* Wallet balances grid */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-gradient-to-br from-purple-900/30 to-indigo-950/20 border border-purple-500/20 p-5 rounded-2xl relative overflow-hidden shadow-lg shadow-purple-500/5">
+                    <div className="bg-linear-to-br from-purple-900/30 to-indigo-950/20 border border-purple-500/20 p-5 rounded-2xl relative overflow-hidden shadow-lg shadow-purple-500/5">
                       <div className="absolute top-2 right-2 p-1.5 bg-purple-500/10 rounded-lg text-purple-400">
                         <Wallet size={16} />
                       </div>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Wallet Balance</span>
+                      <span className="text-2xs text-slate-400 font-bold uppercase tracking-wider block">Wallet Balance</span>
                       <div className="flex items-baseline gap-2 mt-2">
                         <span className="text-3xl font-black text-white font-serif">{egcBalance.toFixed(2)}</span>
                         <span className="text-xs text-purple-400 font-bold">EGC</span>
@@ -947,14 +947,14 @@ Sign up now and protect your family's health security!
 
                     <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
                       <div>
-                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Inflation Shield Status</span>
+                        <span className="text-2xs text-slate-500 font-bold uppercase tracking-wider block">Inflation Shield Status</span>
                         <span className="text-base font-bold text-green-400 mt-2 flex items-center gap-1.5"><ShieldCheck size={18} /> Deflationary Locked</span>
-                        <p className="text-[10px] text-slate-400 mt-1">EGC peg shields you from clinical price increases. Medical fees are locked to static coin values.</p>
+                        <p className="text-2xs text-slate-400 mt-1">EGC peg shields you from clinical price increases. Medical fees are locked to static coin values.</p>
                       </div>
                     </div>
 
                     <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Faucet Reward (Marketing Bonus)</span>
+                      <span className="text-2xs text-slate-500 font-bold uppercase tracking-wider block">Faucet Reward (Marketing Bonus)</span>
                       <div className="mt-2">
                         <button
                           onClick={handleClaimFaucet}
@@ -1054,7 +1054,7 @@ Sign up now and protect your family's health security!
                       <TrendingUp className="text-green-400" size={18} />
                       <div>
                         <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Eagle Coin Inflation Deflector</h4>
-                        <p className="text-[10px] text-slate-500 leading-normal">Compare cash inflation increases vs locked on-chain coin redemption values.</p>
+                        <p className="text-2xs text-slate-500 leading-normal">Compare cash inflation increases vs locked on-chain coin redemption values.</p>
                       </div>
                     </div>
 
@@ -1107,7 +1107,7 @@ Sign up now and protect your family's health security!
                           <div className="font-mono text-purple-400 font-bold">{egcCost} EGC</div>
                         </div>
 
-                        <div className="mt-4 p-2 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] text-center rounded font-sans">
+                        <div className="mt-4 p-2 bg-green-500/10 border border-green-500/20 text-green-400 text-2xs text-center rounded font-sans">
                           🎉 Locking service with Eagle Coin saves you <strong>KES {cashYr5 - cashYr1}</strong> (Cash cost grows by <strong>{((cashYr5 - cashYr1)/cashYr1*100).toFixed(0)}%</strong> while EGC cost stays locked!)
                         </div>
                       </div>
@@ -1121,13 +1121,13 @@ Sign up now and protect your family's health security!
                         <h4 className="text-xs font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5"><Lock size={14} className="text-purple-400" /> Solidity ERC-20 Smart Contract</h4>
                         <button
                           onClick={() => copyToClipboard(solidityCode, 'code')}
-                          className="text-[10px] text-teal-400 font-bold bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded hover:bg-teal-500/25 transition cursor-pointer flex items-center gap-1"
+                          className="text-2xs text-teal-400 font-bold bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded hover:bg-teal-500/25 transition cursor-pointer flex items-center gap-1"
                         >
                           {copiedCode ? <Check size={10} /> : <Copy size={10} />}
                           {copiedCode ? 'Copied' : 'Copy'}
                         </button>
                       </div>
-                      <p className="text-[10px] text-slate-400 leading-relaxed font-sans">
+                      <p className="text-2xs text-slate-400 leading-relaxed font-sans">
                         You can deploy and register this smart contract code to testnets or L2 chains (such as Sepolia, Arbitrum, or Base) using Remix IDE.
                       </p>
                       <pre className="w-full bg-slate-950 border border-slate-850 p-3 rounded-lg text-[9px] font-mono text-purple-300 max-h-[220px] overflow-y-auto overflow-x-auto leading-normal">
@@ -1150,13 +1150,13 @@ Sign up now and protect your family's health security!
                           <h4 className="text-xs font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5"><Activity size={14} className="text-teal-400" /> Social Marketing Post</h4>
                           <button
                             onClick={() => copyToClipboard(marketingPost, 'post')}
-                            className="text-[10px] text-teal-400 font-bold bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded hover:bg-teal-500/25 transition cursor-pointer flex items-center gap-1"
+                            className="text-2xs text-teal-400 font-bold bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded hover:bg-teal-500/25 transition cursor-pointer flex items-center gap-1"
                           >
                             {copiedPost ? <Check size={10} /> : <Copy size={10} />}
                             {copiedPost ? 'Copied' : 'Copy'}
                           </button>
                         </div>
-                        <p className="text-[10px] text-slate-400 leading-relaxed font-sans mt-2">
+                        <p className="text-2xs text-slate-400 leading-relaxed font-sans mt-2">
                           Copy this ready-to-share social media post to promote Eagle Coin and get patient leads.
                         </p>
                         <blockquote className="w-full bg-slate-950 border border-slate-850 p-3 rounded-lg text-[9.5px] font-sans text-slate-400 italic max-h-[220px] overflow-y-auto leading-normal whitespace-pre-wrap">

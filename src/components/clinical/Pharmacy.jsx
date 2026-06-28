@@ -1057,7 +1057,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
           </div>
 
           {/* Queue Items */}
-          <div className="space-y-2 max-h-[450px] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-112.5 overflow-y-auto pr-1">
             {pharmVisits.map((item) => (
               <button
                 key={item.id}
@@ -1089,7 +1089,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                     {item.priority}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-[10px] text-slate-500 w-full font-mono">
+                <div className="flex justify-between items-center text-2xs text-slate-500 w-full font-mono">
                   <span>{item.patient?.facility_id_code}</span>
                   <span>
                     {new Date(item.created_at).toLocaleTimeString([], {
@@ -1199,7 +1199,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                           <h4 className="font-bold text-slate-100 text-sm">
                             {drugName}
                           </h4>
-                          <div className="flex flex-wrap gap-2 text-[10px] text-slate-450 uppercase font-semibold">
+                          <div className="flex flex-wrap gap-2 text-2xs text-slate-450 uppercase font-semibold">
                             <span>Qty Prescribed: {qtyNeeded}</span>
                             <span>·</span>
                             <span>Prescribed on: {new Date(presc.created_at).toLocaleDateString()}</span>
@@ -1213,7 +1213,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                             return (
                               itemInventory && (
                                 <div className="space-y-1">
-                                  <span className="text-[10px] text-slate-500 font-mono block">
+                                  <span className="text-2xs text-slate-500 font-mono block">
                                     Current Stock: {itemInventory.totalStock} {itemInventory.unit}
                                   </span>
                                   {itemInventory.nearExpiryBatches.length > 0 && (
@@ -1229,7 +1229,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                           {/* Dispensing Instructions Input */}
                           {!isDispensed && state === "approved" && (
                             <div className="space-y-2 mt-3 p-2.5 bg-slate-900/60 rounded-lg border border-slate-850 w-full max-w-sm">
-                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Custom Printed Directions Label</label>
+                              <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wide">Custom Printed Directions Label</label>
                               <input
                                 type="text"
                                 value={customInstructions[presc.id] !== undefined ? customInstructions[presc.id] : presc.instructions}
@@ -1265,7 +1265,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                           )}
 
                           {isDispensed && parseOrderMeta(presc.results).custom_instructions && (
-                            <p className="text-[10px] text-teal-400 font-semibold mt-1.5">
+                            <p className="text-2xs text-teal-400 font-semibold mt-1.5">
                               Printed label directions: "{parseOrderMeta(presc.results).custom_instructions}"
                             </p>
                           )}
@@ -1340,7 +1340,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
 
                           {/* FEFO Allocation Output */}
                           {!isDispensed && state !== "cancelled" && (
-                            <div className="bg-slate-900/40 p-2.5 rounded border border-slate-850/60 text-[10px] space-y-1.5 font-sans">
+                            <div className="bg-slate-900/40 p-2.5 rounded border border-slate-850/60 text-2xs space-y-1.5 font-sans">
                               <span className="font-bold text-teal-400 flex items-center gap-1">
                                 <CornerDownRight size={10} /> Automated FEFO Rotation Allocation:
                               </span>
@@ -1373,13 +1373,13 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                                 <>
                                   <button
                                     onClick={() => handleReviewStatus(presc.id, "approved")}
-                                    className="bg-teal-500/10 hover:bg-teal-500/25 border border-teal-500/30 text-teal-400 font-bold py-1 px-2.5 rounded text-[10px] transition cursor-pointer"
+                                    className="bg-teal-500/10 hover:bg-teal-500/25 border border-teal-500/30 text-teal-400 font-bold py-1 px-2.5 rounded text-2xs transition cursor-pointer"
                                   >
                                     Approve Review
                                   </button>
                                   <button
                                     onClick={() => handleReviewStatus(presc.id, "cancelled")}
-                                    className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold py-1 px-2.5 rounded text-[10px] transition cursor-pointer"
+                                    className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold py-1 px-2.5 rounded text-2xs transition cursor-pointer"
                                   >
                                     Cancel Order
                                   </button>
@@ -1388,7 +1388,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
 
                               {state === "approved" && (
                                 <div className="flex items-center gap-2">
-                                  <label className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold cursor-pointer">
+                                  <label className="flex items-center gap-1.5 text-2xs text-slate-400 font-semibold cursor-pointer">
                                     <input
                                       type="checkbox"
                                       checked={doubleChecked[presc.id] || false}
@@ -1401,7 +1401,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                                   <button
                                     onClick={() => handleDispense(presc.id)}
                                     disabled={!doubleChecked[presc.id] || allocation.status === "out_of_stock"}
-                                    className="bg-teal-400 hover:bg-teal-300 disabled:opacity-40 disabled:pointer-events-none text-slate-955 font-extrabold py-1.5 px-3 rounded text-[10px] shadow transition active:scale-[0.97] cursor-pointer"
+                                    className="bg-teal-400 hover:bg-teal-300 disabled:opacity-40 disabled:pointer-events-none text-slate-955 font-extrabold py-1.5 px-3 rounded text-2xs shadow transition active:scale-[0.97] cursor-pointer"
                                   >
                                     Dispense & Release
                                   </button>
@@ -1426,7 +1426,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
               <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 font-sans">
                 <Package size={14} className="text-teal-400" /> Formulary Inventory
               </h3>
-              <p className="text-[10px] text-slate-500 mt-0.5 font-sans">FEFO Stock Lot Rotations</p>
+              <p className="text-2xs text-slate-500 mt-0.5 font-sans">FEFO Stock Lot Rotations</p>
             </div>
             <button
               onClick={() => setShowRestockModal(true)}
@@ -1447,12 +1447,12 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
             <Search size={11} className="absolute left-2.5 top-2.5 text-slate-600" />
           </div>
 
-          <div className="space-y-2.5 max-h-[400px] overflow-y-auto pr-1">
+          <div className="space-y-2.5 max-h-100 overflow-y-auto pr-1">
             {filteredFormulary.map((item, idx) => (
               <div key={idx} className="bg-slate-950 border border-slate-850 p-2.5 rounded-xl space-y-2">
                 <div className="flex justify-between items-start gap-1 font-sans">
                   <span className="font-bold text-slate-200 text-xs truncate max-w-[75%]">{item.name}</span>
-                  <span className={`font-mono text-[10px] font-bold px-1.5 py-0.2 rounded shrink-0 ${
+                  <span className={`font-mono text-2xs font-bold px-1.5 py-0.2 rounded shrink-0 ${
                     item.isLow ? "text-red-400 bg-red-500/5 border border-red-500/15" : "text-slate-400 bg-slate-850"
                   }`}>
                     {item.totalStock} {item.unit}
@@ -1498,12 +1498,12 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900 border border-teal-500/15 p-5 rounded-2xl">
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">POS Sales Console</div>
+            <div className="text-2xs font-bold uppercase tracking-widest text-teal-400">POS Sales Console</div>
             <h1 className="font-['Instrument_Serif',serif] text-2xl sm:text-3xl text-slate-100 font-normal mt-0.5">Pharmacy Sales Entry</h1>
             <p className="text-[11px] text-slate-500 mt-0.5 font-sans">Manage walk-in medicine sales, inventory checkouts, and custom invoice routing</p>
           </div>
           <div className="bg-emerald-500/10 border border-emerald-500/30 px-5 py-3 rounded-xl flex flex-col items-end">
-            <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Subtotal KES</span>
+            <span className="text-2xs uppercase font-bold text-emerald-400 tracking-wider">Subtotal KES</span>
             <span className="font-['JetBrains_Mono',monospace] text-2xl font-black text-emerald-400 leading-none mt-1">
               KES {amountPayable.toFixed(2)}
             </span>
@@ -1538,7 +1538,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
               <div className="overflow-x-auto min-h-[380px]">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-800 text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+                    <tr className="border-b border-slate-800 text-2xs uppercase font-bold text-slate-400 tracking-widest">
                       <th className="py-3 px-3">Code</th>
                       <th className="py-3 px-3">Item Description</th>
                       <th className="py-3 px-3 text-center">Av_Qty</th>
@@ -1555,7 +1555,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                           <td className="py-3 px-3">
                             <div>
                               <div className="font-bold text-slate-100">{item.name}</div>
-                              <div className="text-[10px] text-slate-500 uppercase">{item.category}</div>
+                              <div className="text-2xs text-slate-500 uppercase">{item.category}</div>
                             </div>
                           </td>
                           <td className="py-3 px-3 text-center">
@@ -1657,7 +1657,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                 </div>
                 <button
                   onClick={handleClearCart}
-                  className="text-[10px] font-bold uppercase text-rose-400 hover:text-rose-300 transition-colors cursor-pointer font-sans"
+                  className="text-2xs font-bold uppercase text-rose-400 hover:text-rose-300 transition-colors cursor-pointer font-sans"
                 >
                   Clear Cart
                 </button>
@@ -1669,7 +1669,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                   <div key={item.id} className="bg-slate-950/40 border border-slate-850 p-2.5 rounded-xl flex justify-between items-center text-xs">
                     <div>
                       <div className="font-bold text-slate-200">{item.name}</div>
-                      <div className="text-[10px] text-slate-400 font-['JetBrains_Mono',monospace]">
+                      <div className="text-2xs text-slate-400 font-['JetBrains_Mono',monospace]">
                         {item.qty} x KES {item.price.toFixed(2)}
                       </div>
                     </div>
@@ -1695,7 +1695,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
 
               {/* Sales To Toggle */}
               <div className="border-t border-slate-800 pt-4 space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sales To</label>
+                <label className="text-2xs font-bold uppercase tracking-wider text-slate-400">Sales To</label>
                 <div className="grid grid-cols-2 gap-2 bg-slate-950/60 border border-slate-800 p-1 rounded-xl">
                   <button
                     onClick={() => { setSalesToType("General Client"); setSelectedPatient(null); }}
@@ -1720,7 +1720,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
               {salesToType === "Registered Patient" && (
                 <div className="bg-slate-950/40 border border-slate-805 p-3 rounded-xl space-y-2 relative">
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] uppercase font-bold text-slate-400">Target Patient Profile</span>
+                    <span className="text-2xs uppercase font-bold text-slate-400">Target Patient Profile</span>
                     {selectedPatient && (
                       <button onClick={() => setSelectedPatient(null)} className="text-[9px] font-semibold text-rose-400 hover:text-rose-300 cursor-pointer">
                         Change
@@ -1764,11 +1764,11 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                                 className="w-full text-left p-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 block transition-colors cursor-pointer"
                               >
                                 <span className="font-bold text-slate-200">{p.name}</span>
-                                <span className="text-[10px] text-slate-500 ml-2">({p.facility_id_code})</span>
+                                <span className="text-2xs text-slate-500 ml-2">({p.facility_id_code})</span>
                               </button>
                             ))}
                           {patients.filter((p) => p.name.toLowerCase().includes(patientSearchQuery.toLowerCase())).length === 0 && (
-                            <div className="p-2 text-center text-slate-600 text-[10px]">No patients found.</div>
+                            <div className="p-2 text-center text-slate-600 text-2xs">No patients found.</div>
                           )}
                         </div>
                       )}
@@ -1780,7 +1780,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
               {/* Discounting */}
               <div className="border-t border-slate-800 pt-4 grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Discount Type</label>
+                  <label className="text-2xs uppercase font-bold text-slate-400 block mb-1">Discount Type</label>
                   <select
                     value={discountType}
                     onChange={(e) => { setDiscountType(e.target.value); setDiscountValue(0); }}
@@ -1792,7 +1792,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Discount Value</label>
+                  <label className="text-2xs uppercase font-bold text-slate-400 block mb-1">Discount Value</label>
                   <input
                     type="number"
                     min="0"
@@ -1807,7 +1807,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
               {/* Transaction Settings */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Transaction Type</label>
+                  <label className="text-2xs uppercase font-bold text-slate-400 block mb-1">Transaction Type</label>
                   <select
                     value={transactionType}
                     onChange={(e) => setTransactionType(e.target.value)}
@@ -1818,7 +1818,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Payment Options</label>
+                  <label className="text-2xs uppercase font-bold text-slate-400 block mb-1">Payment Options</label>
                   <select
                     value={paymentOption}
                     onChange={(e) => setPaymentOption(e.target.value)}
@@ -1862,7 +1862,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
               <div className="space-y-3 pt-2">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Narration / Ref</label>
+                    <label className="text-2xs uppercase font-bold text-slate-400 block mb-1">Narration / Ref</label>
                     <input
                       type="text"
                       placeholder="Enter ref/notes..."
@@ -1872,7 +1872,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Amount to be Paid</label>
+                    <label className="text-2xs uppercase font-bold text-slate-400 block mb-1">Amount to be Paid</label>
                     <input
                       type="text"
                       placeholder="Enter amount..."
@@ -1927,7 +1927,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
     return (
       <div className="space-y-6 font-sans">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-orange-400">Held Invoices</div>
+          <div className="text-2xs font-bold uppercase tracking-widest text-orange-400">Held Invoices</div>
           <h2 className="font-['Instrument_Serif',serif] text-xl sm:text-2xl text-slate-100 font-normal mt-0.5">Suspended Sales Queue</h2>
           <p className="text-[11px] text-slate-500 mt-1 font-sans">Review sales placed on hold, restore them to active cart, or discard them</p>
 
@@ -1937,10 +1937,10 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                 <div>
                   <div className="flex justify-between items-center">
                     <span className="text-[9px] font-bold text-orange-400 uppercase tracking-widest">Suspended Cart</span>
-                    <span className="text-[10px] text-slate-500 font-mono font-bold">{h.time}</span>
+                    <span className="text-2xs text-slate-500 font-mono font-bold">{h.time}</span>
                   </div>
                   <div className="text-slate-100 font-extrabold text-base mt-2 font-mono">KES {h.total.toFixed(2)}</div>
-                  <div className="text-[10px] text-slate-400 mt-1 font-sans">
+                  <div className="text-2xs text-slate-400 mt-1 font-sans">
                     {h.cart.length} items · {h.salesToType}
                   </div>
                   <div className="text-[9px] text-slate-500 mt-2 line-clamp-2">
@@ -1990,7 +1990,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
     return (
       <div className="space-y-6 font-sans">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">Billing Log</div>
+          <div className="text-2xs font-bold uppercase tracking-widest text-teal-400">Billing Log</div>
           <h2 className="font-['Instrument_Serif',serif] text-xl sm:text-2xl text-slate-100 font-normal mt-0.5">Pharmacy POS Receive Cash</h2>
           <p className="text-[11px] text-slate-500 mt-1 font-sans">Review all settled payments, verify transaction receipts, or export logs</p>
 
@@ -2038,7 +2038,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
           <div className="overflow-x-auto mt-6">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-800 text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+                <tr className="border-b border-slate-800 text-2xs uppercase font-bold text-slate-400 tracking-widest">
                   <th className="py-3 px-3">Date</th>
                   <th className="py-3 px-3">Patient/Customer</th>
                   <th className="py-3 px-3">Ref/Receipt</th>
@@ -2059,11 +2059,11 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
 
                   return (
                     <tr key={inv.id} className="hover:bg-slate-800/10 transition-colors">
-                      <td className="py-3 px-3 font-mono text-[10px] text-slate-500">{dateStr}</td>
+                      <td className="py-3 px-3 font-mono text-2xs text-slate-500">{dateStr}</td>
                       <td className="py-3 px-3 font-bold text-slate-100">{custName}</td>
                       <td className="py-3 px-3 font-mono text-teal-400">{inv.receipt_number || inv.id.slice(-6)}</td>
-                      <td className="py-3 px-3 uppercase text-[10px] font-bold text-slate-450 font-sans">CASH SALE</td>
-                      <td className="py-3 px-3 uppercase font-mono text-[10px] text-slate-400">{inv.payment_method || "CASH"}</td>
+                      <td className="py-3 px-3 uppercase text-2xs font-bold text-slate-450 font-sans">CASH SALE</td>
+                      <td className="py-3 px-3 uppercase font-mono text-2xs text-slate-400">{inv.payment_method || "CASH"}</td>
                       <td className="py-3 px-3 text-right font-bold font-mono">KES {parseFloat(inv.total_amount).toFixed(2)}</td>
                       <td className="py-3 px-3 text-right font-mono text-slate-500 font-bold">
                         KES {Math.max(0, parseFloat(inv.total_amount) - parseFloat(inv.amount_paid)).toFixed(2)}
@@ -2196,7 +2196,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                 <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wide flex items-center gap-1.5 font-sans">
                   <Package size={16} className="text-teal-400" /> Restock Medicine Inventory
                 </h3>
-                <p className="text-[10px] text-slate-500 mt-0.5 font-sans">Add a new batch or top up existing lots</p>
+                <p className="text-2xs text-slate-500 mt-0.5 font-sans">Add a new batch or top up existing lots</p>
               </div>
               <button 
                 onClick={() => setShowRestockModal(false)}
@@ -2313,7 +2313,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                 <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wide font-sans">
                   Payment Receipt
                 </h3>
-                <p className="text-[10px] text-slate-500 mt-0.5 font-mono">
+                <p className="text-2xs text-slate-500 mt-0.5 font-mono">
                   Receipt #{selectedReceipt.receipt_number || "Draft"}
                 </p>
               </div>
@@ -2361,7 +2361,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
                   {user?.facility_name || "Egesa Pharmacy"}
                 </h4>
                 {user?.facility_address && (
-                  <p className="text-[10px] text-slate-500">{user.facility_address}</p>
+                  <p className="text-2xs text-slate-500">{user.facility_address}</p>
                 )}
                 <p className="text-[9px] text-slate-450">
                   Tel: +254 700 000 000 | Email: contact@eagletechsolutions.tech
@@ -2369,7 +2369,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
               </div>
 
               {/* Invoice Metadata */}
-              <div className="grid grid-cols-2 gap-2 text-[10px] py-1">
+              <div className="grid grid-cols-2 gap-2 text-2xs py-1">
                 <div>
                   <p className="text-slate-450">Customer Details:</p>
                   <p className="font-semibold text-slate-805">
@@ -2394,7 +2394,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
               </div>
 
               {/* Table of Items */}
-              <table className="w-full text-left text-[10px] border-collapse">
+              <table className="w-full text-left text-2xs border-collapse">
                 <thead>
                   <tr className="border-b border-slate-300 text-slate-455 uppercase tracking-wider font-bold">
                     <th className="py-1">Description</th>
@@ -2420,7 +2420,7 @@ export default function Pharmacy({ user, onComplete, showNotification, initialSu
               </table>
 
               {/* Total Summary */}
-              <div className="border-t border-dashed border-slate-300 pt-3 space-y-1.5 text-right text-[10px]">
+              <div className="border-t border-dashed border-slate-300 pt-3 space-y-1.5 text-right text-2xs">
                 <div className="flex justify-between font-semibold text-slate-600">
                   <span>Subtotal:</span>
                   <span className="font-mono">

@@ -538,7 +538,7 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
 
             {/* Theme selection dropdown */}
             <div className="space-y-2">
-              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Card Style Theme</label>
+              <label className="text-2xs text-slate-400 font-bold uppercase tracking-wider block">Card Style Theme</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'teal', label: 'Teal & Cyan', color: 'bg-teal-400' },
@@ -566,7 +566,7 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
             <div className="space-y-4 pt-4 border-t border-slate-850">
               <div className="flex items-center gap-2 mb-2">
                 <Printer size={13} className="text-teal-400" />
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Print Layout Settings</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase tracking-wider block">Print Layout Settings</label>
               </div>
 
               {/* Paper Size */}
@@ -644,7 +644,7 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
             </div>
 
             {/* Info Box */}
-            <div className="bg-teal-500/5 border border-teal-500/10 p-3.5 rounded-xl text-[10px] text-slate-400 leading-relaxed font-sans">
+            <div className="bg-teal-500/5 border border-teal-500/10 p-3.5 rounded-xl text-2xs text-slate-400 leading-relaxed font-sans">
               <span className="font-bold text-slate-300 block mb-1">💡 Professional Printing Tips</span>
               <ul className="list-disc list-inside space-y-1 text-[9.5px]">
                 <li>Paper size and orientation are set automatically.</li>
@@ -687,7 +687,7 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
                   <p className="text-[10.5px]">
                     To print double-sided card sheets exactly back-to-back:
                   </p>
-                  <ol className="list-decimal list-inside text-[10px] pl-1 space-y-1">
+                  <ol className="list-decimal list-inside text-2xs pl-1 space-y-1">
                     <li>Margins are perfectly centered on the horizontal axis (Left & Right margins are symmetric).</li>
                     <li>Select **Landscape Orientation** and set **Margins to None** (or Default borderless).</li>
                     <li>Choose **Print on Both Sides** (Duplex), selecting **Flip on Long Edge**.</li>
@@ -713,7 +713,7 @@ export default function BusinessCards({ onBackToLanding, onNavigateToLogin }) {
                       <button
                         key={side.id}
                         onClick={() => setSheetSide(side.id)}
-                        className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition tracking-wide cursor-pointer ${
+                        className={`px-3 py-1 rounded-lg text-2xs font-bold uppercase transition tracking-wide cursor-pointer ${
                           sheetSide === side.id
                             ? 'bg-teal-500/10 border border-teal-500/20 text-teal-405'
                             : 'bg-slate-950 border border-slate-850 text-slate-450 hover:text-slate-350'

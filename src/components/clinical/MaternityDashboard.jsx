@@ -5,7 +5,7 @@ import {
   Baby, Activity, Bed, Users, ShieldAlert, CheckCircle, RefreshCw,
   PlusCircle, Trash2, Edit2, Search, Sliders, Calendar, DollarSign,
   Package, LayoutDashboard, ChevronDown, ChevronRight, X, UserCheck,
-  TrendingUp, Shield, BarChart3, Thermometer, Clock, Heart, Printer
+  TrendingUp, Shield, BarChart3, Thermometer, Clock, Heart, Printer, Home
 } from 'lucide-react';
 
 export default function MaternityDashboard({ user, onClose, showNotification, initialSubTab }) {
@@ -667,7 +667,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
           </div>
           <div>
             <div className="font-bold text-slate-100 text-sm tracking-wider uppercase font-mono">HOSI POA</div>
-            <div className="text-[10px] text-teal-400 font-semibold uppercase tracking-widest">Maternity Setup</div>
+            <div className="text-2xs text-teal-400 font-semibold uppercase tracking-widest">Maternity Setup</div>
           </div>
         </div>
 
@@ -817,7 +817,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
             <Baby size={22} className="text-white" />
             <div>
               <h1 className="text-lg font-bold tracking-tight">Maternity Care Console</h1>
-              <p className="text-[10px] text-sky-100 font-semibold tracking-wider uppercase">
+              <p className="text-2xs text-sky-100 font-semibold tracking-wider uppercase">
                 {activeTab === 'dashboard' && 'Dashboard Overview'}
                 {activeTab === 'blocks' && 'Maternity Blocks Setup'}
                 {activeTab === 'wards' && 'Maternity Wards Management'}
@@ -953,7 +953,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                       <Sliders size={22} />
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-500">Maternity Blocks</div>
+                      <div className="text-2xs uppercase font-bold text-slate-500">Maternity Blocks</div>
                       <div className="text-2xl font-mono font-bold text-slate-200">{totalBlocks}</div>
                     </div>
                   </div>
@@ -963,7 +963,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                       <Home size={22} />
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-500">Maternity Wards</div>
+                      <div className="text-2xs uppercase font-bold text-slate-500">Maternity Wards</div>
                       <div className="text-2xl font-mono font-bold text-slate-200">{totalWards}</div>
                     </div>
                   </div>
@@ -973,7 +973,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                       <Bed size={22} />
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-500">Available Beds</div>
+                      <div className="text-2xs uppercase font-bold text-slate-500">Available Beds</div>
                       <div className="text-2xl font-mono font-bold text-teal-400">{availableBeds} <span className="text-xs text-slate-500">/ {totalBeds}</span></div>
                     </div>
                   </div>
@@ -983,7 +983,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                       <Users size={22} />
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-500">Queued Patients</div>
+                      <div className="text-2xs uppercase font-bold text-slate-500">Queued Patients</div>
                       <div className="text-2xl font-mono font-bold text-emerald-400">{queue.length}</div>
                     </div>
                   </div>
@@ -995,7 +995,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                     <div className="flex justify-between items-center">
                       <div>
                         <h3 className="font-bold text-slate-200 text-sm">Active Maternity Queue</h3>
-                        <p className="text-[10px] text-slate-500">Admitted or waiting for ANC/Delivery care</p>
+                        <p className="text-2xs text-slate-500">Admitted or waiting for ANC/Delivery care</p>
                       </div>
                       <button onClick={() => setActiveTab('queue')} className="text-xs font-bold text-teal-400 hover:text-teal-300">View Queue</button>
                     </div>
@@ -1078,7 +1078,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-md font-bold text-slate-200">Maternity Blocks Setup</h2>
-                    <p className="text-[10px] text-slate-500">Configure building wings or clinical blocks</p>
+                    <p className="text-2xs text-slate-500">Configure building wings or clinical blocks</p>
                   </div>
                   <button
                     onClick={() => {
@@ -1156,7 +1156,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-md font-bold text-slate-200">Maternity Wards Management</h2>
-                    <p className="text-[10px] text-slate-500">Configure distinct ward rooms within maternity blocks</p>
+                    <p className="text-2xs text-slate-500">Configure distinct ward rooms within maternity blocks</p>
                   </div>
                   <button
                     onClick={() => {
@@ -1254,7 +1254,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                                   />
                                   <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
                                 </label>
-                                <span className={`text-[10px] font-bold ${w.status === 'Active' ? 'text-teal-400' : 'text-slate-500'}`}>{w.status}</span>
+                                <span className={`text-2xs font-bold ${w.status === 'Active' ? 'text-teal-400' : 'text-slate-500'}`}>{w.status}</span>
                               </div>
                             </td>
                             <td className="px-4 py-3.5 text-right space-x-2">
@@ -1294,7 +1294,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-md font-bold text-slate-200">Bed Types Classification</h2>
-                    <p className="text-[10px] text-slate-500">Define general or private bed charges</p>
+                    <p className="text-2xs text-slate-500">Define general or private bed charges</p>
                   </div>
                   <button
                     onClick={() => {
@@ -1366,7 +1366,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-md font-bold text-slate-200">Beds Management Setup</h2>
-                    <p className="text-[10px] text-slate-500">Map specific beds to wards and types with billing pricing</p>
+                    <p className="text-2xs text-slate-500">Map specific beds to wards and types with billing pricing</p>
                   </div>
                   <button
                     onClick={() => {
@@ -1444,7 +1444,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                             <td className="px-4 py-3.5 font-bold text-slate-200">{b.name_code}</td>
                             <td className="px-4 py-3.5 text-slate-400">{b.bed_type}</td>
                             <td className="px-4 py-3.5 text-slate-300 font-bold">{b.ward_name}</td>
-                            <td className="px-4 py-3.5 text-slate-500 italic max-w-[150px] truncate">{b.description || 'No notes'}</td>
+                            <td className="px-4 py-3.5 text-slate-500 italic max-w-37.5 truncate">{b.description || 'No notes'}</td>
                             <td className="px-4 py-3.5">
                               <span className={`px-2.5 py-0.5 rounded text-[9px] font-bold font-mono uppercase tracking-wider ${
                                 b.availability === 'Available' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
@@ -1467,7 +1467,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                                   setBedForm(b);
                                   setShowBedModal(true);
                                 }}
-                                className="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ml-auto"
+                                className="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-2xs font-bold transition-all cursor-pointer flex items-center gap-1 ml-auto"
                               >
                                 <Edit2 size={10} />
                                 Update
@@ -1476,7 +1476,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                             <td className="px-4 py-3.5 text-right">
                               <button
                                 onClick={() => handleDeleteBed(b.id, b.name_code)}
-                                className="px-2 py-1 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded text-[10px] font-bold transition-all cursor-pointer ml-auto"
+                                className="px-2 py-1 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded text-2xs font-bold transition-all cursor-pointer ml-auto"
                               >
                                 <Trash2 size={10} />
                               </button>
@@ -1500,7 +1500,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
               >
                 <div>
                   <h2 className="text-md font-bold text-slate-200">Maternity Department Patient Registration</h2>
-                  <p className="text-[10px] text-slate-500">Admit a prenatal or maternal patient into isolated maternity records</p>
+                  <p className="text-2xs text-slate-500">Admit a prenatal or maternal patient into isolated maternity records</p>
                 </div>
 
                 <form onSubmit={handleRegisterPatient} className="bg-slate-900 border border-slate-800/80 rounded-xl p-6 space-y-6">
@@ -1509,7 +1509,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                     <h3 className="text-xs font-bold text-teal-400 border-b border-slate-800 pb-2">1. Demographic Profile</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Patient Full Name</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">Patient Full Name</label>
                         <input
                           type="text"
                           required
@@ -1520,7 +1520,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Date of Birth</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">Date of Birth</label>
                         <input
                           type="date"
                           required
@@ -1530,7 +1530,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Phone Number</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">Phone Number</label>
                         <input
                           type="text"
                           required
@@ -1541,7 +1541,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">National ID</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">National ID</label>
                         <input
                           type="text"
                           value={regForm.national_id}
@@ -1558,7 +1558,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                     <h3 className="text-xs font-bold text-teal-400 border-b border-slate-800 pb-2">2. Social Health Authority (SHA) Coverage</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">SHA Card/Member Number</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">SHA Card/Member Number</label>
                         <input
                           type="text"
                           value={regForm.sha_number}
@@ -1568,7 +1568,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Dependent Type</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">Dependent Type</label>
                         <select
                           value={regForm.sha_dependent_type}
                           onChange={(e) => setRegForm(prev => ({ ...prev, sha_dependent_type: e.target.value }))}
@@ -1580,7 +1580,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                         </select>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">SHA Verification Status</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">SHA Verification Status</label>
                         <select
                           value={regForm.sha_status}
                           onChange={(e) => setRegForm(prev => ({ ...prev, sha_status: e.target.value }))}
@@ -1599,7 +1599,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                     <h3 className="text-xs font-bold text-teal-400 border-b border-slate-800 pb-2">3. Maternal & Clinical Indicators</h3>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="space-y-1 md:col-span-2">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Last Menstrual Period (LMP)</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">Last Menstrual Period (LMP)</label>
                         <input
                           type="date"
                           value={regForm.lmp_date}
@@ -1608,7 +1608,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Gravida</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">Gravida</label>
                         <input
                           type="number"
                           min="1"
@@ -1618,7 +1618,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Parity</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">Parity</label>
                         <input
                           type="number"
                           min="0"
@@ -1628,7 +1628,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                         />
                       </div>
                       <div className="space-y-1 md:col-span-2">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Estimated Date of Delivery (EDD)</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">Estimated Date of Delivery (EDD)</label>
                         <input
                           type="date"
                           readOnly
@@ -1644,7 +1644,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                     <h3 className="text-xs font-bold text-teal-400 border-b border-slate-800 pb-2">4. Next of Kin Demographics</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Contact Name</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">Contact Name</label>
                         <input
                           type="text"
                           value={regForm.nok_name}
@@ -1654,7 +1654,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Phone Number</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">Phone Number</label>
                         <input
                           type="text"
                           value={regForm.nok_phone}
@@ -1664,7 +1664,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Relation</label>
+                        <label className="text-2xs text-slate-400 font-bold uppercase">Relation</label>
                         <select
                           value={regForm.nok_relation}
                           onChange={(e) => setRegForm(prev => ({ ...prev, nok_relation: e.target.value }))}
@@ -1711,7 +1711,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
               >
                 <div>
                   <h2 className="text-md font-bold text-slate-200">Active Inpatient & Maternity Queue</h2>
-                  <p className="text-[10px] text-slate-500">Perform admissions triage vitals check-ins and bed configurations</p>
+                  <p className="text-2xs text-slate-500">Perform admissions triage vitals check-ins and bed configurations</p>
                 </div>
 
                 <div className="bg-slate-900 border border-slate-800/80 rounded-xl overflow-hidden shadow-sm">
@@ -1755,7 +1755,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                                   {v.patient?.sha_status || 'unverified'}
                                 </span>
                               </td>
-                              <td className="px-4 py-3.5 font-mono text-[10px] text-slate-400">
+                              <td className="px-4 py-3.5 font-mono text-2xs text-slate-400">
                                 {contact.lmp ? (
                                   <>
                                     <div>LMP: {contact.lmp}</div>
@@ -1779,7 +1779,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                                     setSelectedQueueVisit(v);
                                     setShowTriageModal(true);
                                   }}
-                                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded text-[10px] font-bold transition-all cursor-pointer inline-flex items-center gap-1"
+                                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded text-2xs font-bold transition-all cursor-pointer inline-flex items-center gap-1"
                                 >
                                   <Activity size={10} />
                                   Triage
@@ -1790,7 +1790,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                                       setSelectedAssignVisit(v);
                                       setShowAssignBedModal(true);
                                     }}
-                                    className="px-2 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded text-[10px] font-bold transition-all cursor-pointer inline-flex items-center gap-1"
+                                    className="px-2 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded text-2xs font-bold transition-all cursor-pointer inline-flex items-center gap-1"
                                   >
                                     <Bed size={10} />
                                     Assign Bed
@@ -1798,7 +1798,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                                 ) : (
                                   <button
                                     onClick={() => handleDischargePatient(v)}
-                                    className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-[10px] font-bold transition-all cursor-pointer inline-flex items-center gap-1"
+                                    className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-2xs font-bold transition-all cursor-pointer inline-flex items-center gap-1"
                                   >
                                     <Trash2 size={10} />
                                     Discharge
@@ -1825,7 +1825,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
               >
                 <div>
                   <h2 className="text-md font-bold text-slate-200">Maternity Supplies & Drug Stock</h2>
-                  <p className="text-[10px] text-slate-500">Monitor active pharmaceutical stocks and neonatal kit supplies</p>
+                  <p className="text-2xs text-slate-500">Monitor active pharmaceutical stocks and neonatal kit supplies</p>
                 </div>
 
                 <div className="bg-slate-900 border border-slate-800/80 rounded-xl overflow-hidden shadow-sm">
@@ -1848,7 +1848,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                         inventory.map(item => (
                           <tr key={item.id} className="hover:bg-slate-800/30">
                             <td className="px-5 py-3.5 font-bold text-slate-300">{item.name}</td>
-                            <td className="px-5 py-3.5 text-slate-400 uppercase text-[10px] tracking-wider">{item.category}</td>
+                            <td className="px-5 py-3.5 text-slate-400 uppercase text-2xs tracking-wider">{item.category}</td>
                             <td className={`px-5 py-3.5 font-bold ${
                               item.quantity_in_stock <= item.min_reorder_level ? 'text-amber-400' : 'text-slate-200'
                             }`}>{item.quantity_in_stock} {item.unit_of_measure}</td>
@@ -1884,12 +1884,12 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 <div className="flex justify-between items-center pb-2 border-b border-slate-800">
                   <div>
                     <h2 className="text-md font-bold text-slate-200">Outcome Analysis & ANC Stats</h2>
-                    <p className="text-[10px] text-slate-500">View real-time department statistics and health outcomes</p>
+                    <p className="text-2xs text-slate-500">View real-time department statistics and health outcomes</p>
                   </div>
                   <button
                     type="button"
                     onClick={handlePrintMaternityStats}
-                    className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 hover:border-teal-500/30 text-slate-400 hover:text-teal-400 font-bold text-[10px] px-3.5 py-2 rounded-lg transition active:scale-[0.97] cursor-pointer shadow"
+                    className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 hover:border-teal-500/30 text-slate-400 hover:text-teal-400 font-bold text-2xs px-3.5 py-2 rounded-lg transition active:scale-[0.97] cursor-pointer shadow"
                   >
                     <Printer size={12} /> Print Stats
                   </button>
@@ -1903,19 +1903,19 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                     </h3>
                     <div className="grid grid-cols-2 gap-4 pt-2">
                       <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-center">
-                        <div className="text-[10px] text-slate-500 uppercase font-bold">Total Deliveries</div>
+                        <div className="text-2xs text-slate-500 uppercase font-bold">Total Deliveries</div>
                         <div className="text-3xl font-mono font-bold text-slate-100 mt-1">42</div>
                       </div>
                       <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-center">
-                        <div className="text-[10px] text-slate-500 uppercase font-bold">Normal Vaginal (SVD)</div>
+                        <div className="text-2xs text-slate-500 uppercase font-bold">Normal Vaginal (SVD)</div>
                         <div className="text-3xl font-mono font-bold text-teal-400 mt-1">35</div>
                       </div>
                       <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-center">
-                        <div className="text-[10px] text-slate-500 uppercase font-bold">Caesarean Sections</div>
+                        <div className="text-2xs text-slate-500 uppercase font-bold">Caesarean Sections</div>
                         <div className="text-3xl font-mono font-bold text-rose-400 mt-1">7</div>
                       </div>
                       <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-center">
-                        <div className="text-[10px] text-slate-500 uppercase font-bold">Live Births</div>
+                        <div className="text-2xs text-slate-500 uppercase font-bold">Live Births</div>
                         <div className="text-3xl font-mono font-bold text-emerald-400 mt-1">42</div>
                       </div>
                     </div>
@@ -1975,7 +1975,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
             </div>
             <form onSubmit={handleSaveBlock} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Block Name</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Block Name</label>
                 <input
                   type="text"
                   required
@@ -1986,7 +1986,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Description</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Description</label>
                 <input
                   type="text"
                   value={blockForm.description}
@@ -1996,7 +1996,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Status</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Status</label>
                 <select
                   value={blockForm.status}
                   onChange={(e) => setBlockForm(prev => ({ ...prev, status: e.target.value }))}
@@ -2024,7 +2024,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
             </div>
             <form onSubmit={handleSaveWard} className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Select Block</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Select Block</label>
                 <select
                   value={wardForm.block_name}
                   onChange={(e) => setWardForm(prev => ({ ...prev, block_name: e.target.value }))}
@@ -2036,7 +2036,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Ward Name</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Ward Name</label>
                 <input
                   type="text"
                   required
@@ -2047,7 +2047,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1 col-span-2">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Description</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Description</label>
                 <input
                   type="text"
                   value={wardForm.description}
@@ -2057,7 +2057,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Drug Dispensing Store</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Drug Dispensing Store</label>
                 <input
                   type="text"
                   value={wardForm.drug_store}
@@ -2066,7 +2066,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Consumables Dispensing Store</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Consumables Dispensing Store</label>
                 <input
                   type="text"
                   value={wardForm.consumable_store}
@@ -2075,7 +2075,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Gender Preference</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Gender Preference</label>
                 <select
                   value={wardForm.gender}
                   onChange={(e) => setWardForm(prev => ({ ...prev, gender: e.target.value }))}
@@ -2087,7 +2087,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Visiting Hours</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Visiting Hours</label>
                 <input
                   type="text"
                   value={wardForm.visiting_hours}
@@ -2116,7 +2116,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
             </div>
             <form onSubmit={handleSaveBedType} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Bed Type Name</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Bed Type Name</label>
                 <input
                   type="text"
                   required
@@ -2127,7 +2127,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Description</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Description</label>
                 <input
                   type="text"
                   value={bedTypeForm.description}
@@ -2137,7 +2137,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Status</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Status</label>
                 <select
                   value={bedTypeForm.status}
                   onChange={(e) => setBedTypeForm(prev => ({ ...prev, status: e.target.value }))}
@@ -2165,7 +2165,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
             </div>
             <form onSubmit={handleSaveBed} className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Name / Code</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Name / Code</label>
                 <input
                   type="text"
                   required
@@ -2176,7 +2176,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Bed Type</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Bed Type</label>
                 <select
                   value={bedForm.bed_type}
                   onChange={(e) => setBedForm(prev => ({ ...prev, bed_type: e.target.value }))}
@@ -2188,7 +2188,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Select Ward</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Select Ward</label>
                 <select
                   value={bedForm.ward_name}
                   onChange={(e) => setBedForm(prev => ({ ...prev, ward_name: e.target.value }))}
@@ -2200,7 +2200,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Description / Allocation</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Description / Allocation</label>
                 <input
                   type="text"
                   value={bedForm.description}
@@ -2210,7 +2210,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Cash Price (Ksh)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Cash Price (Ksh)</label>
                 <input
                   type="number"
                   required
@@ -2221,7 +2221,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Corporate Price (Ksh)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Corporate Price (Ksh)</label>
                 <input
                   type="number"
                   required
@@ -2232,7 +2232,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Availability</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Availability</label>
                 <select
                   value={bedForm.availability}
                   onChange={(e) => setBedForm(prev => ({ ...prev, availability: e.target.value }))}
@@ -2245,7 +2245,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Status</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Status</label>
                 <select
                   value={bedForm.status}
                   onChange={(e) => setBedForm(prev => ({ ...prev, status: e.target.value }))}
@@ -2281,7 +2281,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
             </div>
             <form onSubmit={handleSaveTriage} className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Systolic BP (mmHg)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Systolic BP (mmHg)</label>
                 <input
                   type="number"
                   value={triageForm.systolic}
@@ -2291,7 +2291,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Diastolic BP (mmHg)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Diastolic BP (mmHg)</label>
                 <input
                   type="number"
                   value={triageForm.diastolic}
@@ -2301,7 +2301,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Pulse Rate (bpm)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Pulse Rate (bpm)</label>
                 <input
                   type="number"
                   value={triageForm.heart_rate}
@@ -2311,7 +2311,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Temperature (°C)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Temperature (°C)</label>
                 <input
                   type="text"
                   value={triageForm.temperature}
@@ -2321,7 +2321,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Respiratory Rate</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Respiratory Rate</label>
                 <input
                   type="number"
                   value={triageForm.resp_rate}
@@ -2331,7 +2331,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Oxygen Saturation (SPO2 %)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Oxygen Saturation (SPO2 %)</label>
                 <input
                   type="number"
                   value={triageForm.spo2}
@@ -2343,7 +2343,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
 
               {/* Fetal Heart Rate & Fundal Height */}
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Fetal Heart Rate (FHR bpm)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Fetal Heart Rate (FHR bpm)</label>
                 <input
                   type="number"
                   value={triageForm.fetal_heart_rate}
@@ -2353,7 +2353,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Fundal Height (cm)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Fundal Height (cm)</label>
                 <input
                   type="number"
                   value={triageForm.fundal_height}
@@ -2364,7 +2364,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
               </div>
 
               <div className="space-y-1 col-span-2">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Complaints / Notes</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Complaints / Notes</label>
                 <textarea
                   value={triageForm.notes}
                   onChange={(e) => setTriageForm(prev => ({ ...prev, notes: e.target.value }))}
@@ -2399,7 +2399,7 @@ export default function MaternityDashboard({ user, onClose, showNotification, in
                 <div className="font-bold text-slate-200 text-sm mt-0.5">{selectedAssignVisit?.patient?.name}</div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Select Available Bed</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Select Available Bed</label>
                 <select
                   required
                   value={selectedBedId}

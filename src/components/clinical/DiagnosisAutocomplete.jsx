@@ -134,7 +134,7 @@ export default function DiagnosisAutocomplete({
                     <span className="font-semibold text-slate-200">{disease.name}</span>
                   </div>
                   {disease.category && (
-                    <span className="text-[10px] text-slate-500 block mt-1">Category: {disease.category}</span>
+                    <span className="text-2xs text-slate-500 block mt-1">Category: {disease.category}</span>
                   )}
                 </div>
                 {isSpecialty && (

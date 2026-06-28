@@ -359,12 +359,12 @@ export default function POS({ user, onComplete, showNotification }) {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900 border border-teal-500/15 p-5 rounded-2xl">
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">POS Sales Console</div>
+          <div className="text-2xs font-bold uppercase tracking-widest text-teal-400">POS Sales Console</div>
           <h1 className="font-['Instrument_Serif',serif] text-2xl sm:text-3xl text-slate-100 font-normal mt-0.5">Pharmacy Sales Entry</h1>
           <p className="text-[11px] text-slate-500 mt-0.5">Manage walk-in medicine sales, inventory checkouts, and custom invoice routing</p>
         </div>
         <div className="bg-emerald-500/10 border border-emerald-500/30 px-5 py-3 rounded-xl flex flex-col items-end">
-          <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Subtotal KES</span>
+          <span className="text-2xs uppercase font-bold text-emerald-400 tracking-wider">Subtotal KES</span>
           <span className="font-['JetBrains_Mono',monospace] text-2xl font-black text-emerald-400 leading-none mt-1">
             KES {amountPayable.toFixed(2)}
           </span>
@@ -399,7 +399,7 @@ export default function POS({ user, onComplete, showNotification }) {
             <div className="overflow-x-auto min-h-[380px]">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-teal-500/10 text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+                  <tr className="border-b border-teal-500/10 text-2xs uppercase font-bold text-slate-400 tracking-widest">
                     <th className="py-3 px-3">Code</th>
                     <th className="py-3 px-3">Item Description</th>
                     <th className="py-3 px-3 text-center">Av_Qty</th>
@@ -417,7 +417,7 @@ export default function POS({ user, onComplete, showNotification }) {
                         <td className="py-3 px-3">
                           <div>
                             <div className="font-bold text-slate-100">{item.name}</div>
-                            <div className="text-[10px] text-slate-500 uppercase">{item.category}</div>
+                            <div className="text-2xs text-slate-500 uppercase">{item.category}</div>
                           </div>
                         </td>
                         <td className="py-3 px-3 text-center">
@@ -507,19 +507,19 @@ export default function POS({ user, onComplete, showNotification }) {
           {/* Held Carts Section */}
           {heldCarts.length > 0 && (
             <div className="bg-slate-900 border border-teal-500/12 rounded-2xl p-5 shadow-sm">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-orange-400">Held Invoices</div>
+              <div className="text-2xs font-bold uppercase tracking-widest text-orange-400">Held Invoices</div>
               <h3 className="font-['Instrument_Serif',serif] text-lg text-slate-100 font-normal mt-0.5">Suspended Sales Queue</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3.5">
                 {heldCarts.map((h) => (
                   <div key={h.id} className="border border-orange-500/20 bg-orange-500/5 p-3 rounded-xl flex justify-between items-center">
                     <div>
-                      <div className="text-[10px] font-bold text-orange-400 uppercase">Suspended ({h.time})</div>
+                      <div className="text-2xs font-bold text-orange-400 uppercase">Suspended ({h.time})</div>
                       <div className="text-slate-200 font-bold text-xs mt-0.5">Total KES {h.total.toFixed(2)}</div>
                       <div className="text-[9px] text-slate-400 mt-0.5">{h.cart.length} items · {h.salesToType}</div>
                     </div>
                     <button
                       onClick={() => handleRestoreHeld(h)}
-                      className="bg-orange-400 hover:bg-orange-300 text-slate-950 font-bold text-[10px] px-2.5 py-1 rounded transition"
+                      className="bg-orange-400 hover:bg-orange-300 text-slate-950 font-bold text-2xs px-2.5 py-1 rounded transition"
                     >
                       Restore
                     </button>
@@ -540,7 +540,7 @@ export default function POS({ user, onComplete, showNotification }) {
               </div>
               <button
                 onClick={handleClearCart}
-                className="text-[10px] font-bold uppercase text-rose-400 hover:text-rose-300 transition-colors"
+                className="text-2xs font-bold uppercase text-rose-400 hover:text-rose-300 transition-colors"
               >
                 Clear Cart
               </button>
@@ -552,7 +552,7 @@ export default function POS({ user, onComplete, showNotification }) {
                 <div key={item.id} className="bg-slate-950/40 border border-teal-500/10 p-2.5 rounded-xl flex justify-between items-center text-xs">
                   <div>
                     <div className="font-bold text-slate-200">{item.name}</div>
-                    <div className="text-[10px] text-slate-400 font-['JetBrains_Mono',monospace]">
+                    <div className="text-2xs text-slate-400 font-['JetBrains_Mono',monospace]">
                       {item.qty} x KES {item.price.toFixed(2)}
                     </div>
                   </div>
@@ -578,7 +578,7 @@ export default function POS({ user, onComplete, showNotification }) {
 
             {/* Sales To Toggle */}
             <div className="border-t border-teal-500/10 pt-4 space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sales To</label>
+              <label className="text-2xs font-bold uppercase tracking-wider text-slate-400">Sales To</label>
               <div className="grid grid-cols-2 gap-2 bg-slate-950/60 border border-teal-500/10 p-1 rounded-xl">
                 <button
                   onClick={() => { setSalesToType("General Client"); setSelectedPatient(null); }}
@@ -603,7 +603,7 @@ export default function POS({ user, onComplete, showNotification }) {
             {salesToType === "Registered Patient" && (
               <div className="bg-slate-950/40 border border-teal-500/10 p-3 rounded-xl space-y-2 relative">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Target Patient Profile</span>
+                  <span className="text-2xs uppercase font-bold text-slate-400">Target Patient Profile</span>
                   {selectedPatient && (
                     <button onClick={() => setSelectedPatient(null)} className="text-[9px] font-semibold text-rose-400 hover:text-rose-300">
                       Change
@@ -647,11 +647,11 @@ export default function POS({ user, onComplete, showNotification }) {
                               className="w-full text-left p-2 hover:bg-slate-800 rounded-lg text-xs text-slate-300 block transition-colors"
                             >
                               <span className="font-bold text-slate-200">{p.name}</span>
-                              <span className="text-[10px] text-slate-500 ml-2">({p.facility_id_code})</span>
+                              <span className="text-2xs text-slate-500 ml-2">({p.facility_id_code})</span>
                             </button>
                           ))}
                         {patients.filter((p) => p.name.toLowerCase().includes(patientSearchQuery.toLowerCase())).length === 0 && (
-                          <div className="p-2 text-center text-slate-600 text-[10px]">No patients found.</div>
+                          <div className="p-2 text-center text-slate-600 text-2xs">No patients found.</div>
                         )}
                       </div>
                     )}
@@ -663,7 +663,7 @@ export default function POS({ user, onComplete, showNotification }) {
             {/* Discounting */}
             <div className="border-t border-teal-500/10 pt-4 grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Discount Type</label>
+                <label className="text-2xs uppercase font-bold text-slate-400 block mb-1">Discount Type</label>
                 <select
                   value={discountType}
                   onChange={(e) => { setDiscountType(e.target.value); setDiscountValue(0); }}
@@ -675,7 +675,7 @@ export default function POS({ user, onComplete, showNotification }) {
                 </select>
               </div>
               <div>
-                <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Discount Value</label>
+                <label className="text-2xs uppercase font-bold text-slate-400 block mb-1">Discount Value</label>
                 <input
                   type="number"
                   min="0"
@@ -690,7 +690,7 @@ export default function POS({ user, onComplete, showNotification }) {
             {/* Transaction Settings */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Transaction Type</label>
+                <label className="text-2xs uppercase font-bold text-slate-400 block mb-1">Transaction Type</label>
                 <select
                   value={transactionType}
                   onChange={(e) => setTransactionType(e.target.value)}
@@ -701,7 +701,7 @@ export default function POS({ user, onComplete, showNotification }) {
                 </select>
               </div>
               <div>
-                <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Payment Options</label>
+                <label className="text-2xs uppercase font-bold text-slate-400 block mb-1">Payment Options</label>
                 <select
                   value={paymentOption}
                   onChange={(e) => setPaymentOption(e.target.value)}
@@ -745,7 +745,7 @@ export default function POS({ user, onComplete, showNotification }) {
             <div className="space-y-3 pt-2">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Narration / Ref</label>
+                  <label className="text-2xs uppercase font-bold text-slate-400 block mb-1">Narration / Ref</label>
                   <input
                     type="text"
                     placeholder="Enter ref/notes..."
@@ -755,7 +755,7 @@ export default function POS({ user, onComplete, showNotification }) {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Amount to be Paid</label>
+                  <label className="text-2xs uppercase font-bold text-slate-400 block mb-1">Amount to be Paid</label>
                   <input
                     type="text"
                     placeholder="Enter amount..."

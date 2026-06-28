@@ -1064,7 +1064,7 @@ export default function Orders({ user, onComplete, showNotification }) {
 
     return (
       <div className="overflow-x-auto mt-1.5 border border-slate-800/60 rounded-lg bg-slate-950/60 max-w-xl">
-        <table className="w-full text-left border-collapse text-[10px]">
+        <table className="w-full text-left border-collapse text-2xs">
           <thead>
             <tr className="bg-slate-900 text-slate-400 font-bold border-b border-slate-800">
               <th className="p-2">Parameter</th>
@@ -1297,7 +1297,7 @@ export default function Orders({ user, onComplete, showNotification }) {
       color = 'text-yellow-450 bg-yellow-500/10 border-yellow-500/20';
     }
     return (
-      <span className={`text-[10px] px-2 py-0.5 rounded border font-mono font-semibold flex items-center gap-1 ${color}`}>
+      <span className={`text-2xs px-2 py-0.5 rounded border font-mono font-semibold flex items-center gap-1 ${color}`}>
         <Clock size={10} /> {mins}m
       </span>
     );
@@ -1343,7 +1343,7 @@ export default function Orders({ user, onComplete, showNotification }) {
         </div>
 
         {/* Tab filters */}
-        <div className="flex border-b border-slate-800 text-[10px] uppercase font-bold tracking-wide">
+        <div className="flex border-b border-slate-800 text-2xs uppercase font-bold tracking-wide">
           <button
             onClick={() => setActiveTab('active')}
             className={`flex-1 pb-2 text-center border-b-2 transition ${
@@ -1393,7 +1393,7 @@ export default function Orders({ user, onComplete, showNotification }) {
         </div>
 
         {/* Queue Items */}
-        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-125 overflow-y-auto pr-1">
           {activeTab === 'catalog' ? (
             <div className="text-xs text-slate-400 bg-slate-950/40 p-4 border border-slate-800 rounded-xl space-y-2.5 font-sans leading-relaxed">
               <p className="font-bold text-slate-200">Catalog Editor</p>
@@ -1431,7 +1431,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                   <span className="font-semibold text-slate-200 text-xs truncate max-w-[65%]">{item.patient?.name}</span>
                   {renderTAT(item)}
                 </div>
-                <div className="flex justify-between items-center text-[10px] text-slate-500 w-full font-mono">
+                <div className="flex justify-between items-center text-2xs text-slate-500 w-full font-mono">
                   <div className="flex items-center gap-1.5">
                     <span>{item.patient?.facility_id_code}</span>
                     {item.service_type === 'laboratory-only' && (
@@ -1508,7 +1508,7 @@ export default function Orders({ user, onComplete, showNotification }) {
             <div className="flex-1 overflow-y-auto max-h-[550px] border border-slate-800 rounded-xl">
               <table className="w-full text-left text-xs border-collapse font-sans">
                 <thead>
-                  <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-[10px] uppercase font-bold sticky top-0 z-10">
+                  <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-2xs uppercase font-bold sticky top-0 z-10">
                     <th className="py-3 px-4">Test Name & Description</th>
                     <th className="py-3 px-4">Test Classification</th>
                     <th className="py-3 px-4">Preceding Workflow & Sample</th>
@@ -1524,7 +1524,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                         <tr key={test.id} className="hover:bg-slate-955/40 transition">
                           <td className="py-3 px-4">
                             <span className="font-bold text-slate-100 block">{test.name}</span>
-                            <span className="text-[10px] text-slate-500 leading-relaxed block mt-0.5">{test.description}</span>
+                            <span className="text-2xs text-slate-500 leading-relaxed block mt-0.5">{test.description}</span>
                           </td>
                           <td className="py-3 px-4">
                             <span className="bg-teal-500/10 text-teal-400 border border-teal-500/15 px-2 py-0.5 rounded text-[8px] uppercase font-black font-mono">
@@ -1532,7 +1532,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                             </span>
                           </td>
                           <td className="py-3 px-4 space-y-1">
-                            <div className="text-[10px] text-amber-400 font-semibold">
+                            <div className="text-2xs text-amber-400 font-semibold">
                               {test.precedingWorkflow}
                             </div>
                             <div className="text-[9px] text-slate-500 font-mono">
@@ -1595,7 +1595,7 @@ export default function Orders({ user, onComplete, showNotification }) {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider mb-1 font-sans">
+                      <label className="block text-2xs font-bold text-slate-550 uppercase tracking-wider mb-1 font-sans">
                         Interface Type
                       </label>
                       <select
@@ -1611,7 +1611,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                     {analyzerProtocol === 'serial' ? (
                       <>
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1 font-sans">
+                          <label className="block text-2xs font-bold text-slate-555 uppercase tracking-wider mb-1 font-sans">
                             Baud Rate
                           </label>
                           <select
@@ -1626,7 +1626,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                           </select>
                         </div>
                         <div className="col-span-2">
-                          <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1 font-sans">
+                          <label className="block text-2xs font-bold text-slate-555 uppercase tracking-wider mb-1 font-sans">
                             COM / Serial Port
                           </label>
                           <input
@@ -1641,7 +1641,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                     ) : (
                       <>
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1 font-sans">
+                          <label className="block text-2xs font-bold text-slate-555 uppercase tracking-wider mb-1 font-sans">
                             Host IP Address
                           </label>
                           <input
@@ -1653,7 +1653,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1 font-sans">
+                          <label className="block text-2xs font-bold text-slate-555 uppercase tracking-wider mb-1 font-sans">
                             Network Port
                           </label>
                           <input
@@ -1681,7 +1681,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                     type="button"
                     onClick={handleTestAnalyzerConnection}
                     disabled={testingConnection}
-                    className="bg-teal-400 hover:bg-teal-500 disabled:opacity-40 text-slate-955 font-black text-[10px] py-1 px-3 rounded-lg shadow-md transition active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
+                    className="bg-teal-400 hover:bg-teal-500 disabled:opacity-40 text-slate-955 font-black text-2xs py-1 px-3 rounded-lg shadow-md transition active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
                   >
                     {testingConnection ? <RefreshCw size={10} className="animate-spin" /> : null}
                     Test Handshake (Ping)
@@ -1718,12 +1718,12 @@ export default function Orders({ user, onComplete, showNotification }) {
                 <p className="text-xs text-slate-505">{selectedVisit.patient?.facility_id_code} | Age: {new Date().getFullYear() - new Date(selectedVisit.patient?.dob).getFullYear()} yrs | Gender: <span className="capitalize">{selectedVisit.patient?.gender}</span></p>
               </div>
               <div className="flex flex-wrap items-center gap-2.5">
-                <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-850 rounded px-2.5 py-1 text-[10px] text-slate-400 font-medium">
+                <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-850 rounded px-2.5 py-1 text-2xs text-slate-400 font-medium">
                   <span className="font-bold text-slate-400 uppercase tracking-wider text-[8.5px]">Route Patient To:</span>
                   <select
                     value={routeTarget}
                     onChange={(e) => setRouteTarget(e.target.value)}
-                    className="bg-slate-900 border border-slate-800 rounded py-0.5 px-2 text-[10px] text-slate-200 focus:outline-none focus:border-teal-500 font-sans cursor-pointer"
+                    className="bg-slate-900 border border-slate-800 rounded py-0.5 px-2 text-2xs text-slate-200 focus:outline-none focus:border-teal-500 font-sans cursor-pointer"
                   >
                     <option value="billing">Cashier / Billing Desk</option>
                     <option value="consultation">Clinician / Consultation</option>
@@ -1733,12 +1733,12 @@ export default function Orders({ user, onComplete, showNotification }) {
                 {pendingOrders.some(o => ['completed', 'verified', 'released'].includes(o.status)) && (
                   <button
                     onClick={() => handlePrintLabReport(null)}
-                    className="flex items-center gap-1.5 bg-slate-950 border border-slate-850 hover:bg-slate-850 text-slate-350 text-[10px] font-bold py-1 px-2.5 rounded transition active:scale-[0.98] cursor-pointer"
+                    className="flex items-center gap-1.5 bg-slate-950 border border-slate-850 hover:bg-slate-850 text-slate-350 text-2xs font-bold py-1 px-2.5 rounded transition active:scale-[0.98] cursor-pointer"
                   >
                     <Printer size={12} className="text-teal-400" /> Print Full Lab Report
                   </button>
                 )}
-                <span className="text-[10px] text-yellow-500 bg-yellow-500/5 border border-yellow-500/15 font-mono font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                <span className="text-2xs text-yellow-500 bg-yellow-500/5 border border-yellow-500/15 font-mono font-bold px-2 py-0.5 rounded flex items-center gap-1">
                   Urgency: {selectedVisit.priority.toUpperCase()}
                 </span>
                 {renderTAT(selectedVisit)}
@@ -1777,7 +1777,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                               </span>
                             )}
                           </div>
-                          <span className="text-[10px] text-slate-500 font-medium">Price: {ord.price || 0}/-</span>
+                          <span className="text-2xs text-slate-500 font-medium">Price: {ord.price || 0}/-</span>
                         </div>
                         <div className="flex flex-col items-end gap-1.5">
                           {/* Colored State Pill */}
@@ -1819,7 +1819,7 @@ export default function Orders({ user, onComplete, showNotification }) {
 
                       {/* Dynamic Workflow Actions */}
                       <div className="bg-slate-900/40 p-3 rounded-lg border border-slate-850/50 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-2xs text-slate-400">
                           {/* Collected state info */}
                           {ord.status === 'collected' && (
                             <p>Sample collected by <span className="text-white font-bold">{meta.collected_by}</span>. Accessioning clerk check-in pending.</p>
@@ -1843,7 +1843,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                           {/* Completed results info */}
                           {ord.status === 'completed' && (
                             <div className="space-y-2">
-                              <span className="text-[10px] text-slate-500 font-semibold block uppercase">Lab Diagnostic Findings</span>
+                              <span className="text-2xs text-slate-500 font-semibold block uppercase">Lab Diagnostic Findings</span>
                               {renderFindingsTable(ord, meta)}
                               <p className="text-slate-500 text-[9px]">Awaiting supervisor/senior verifier sign-off.</p>
                             </div>
@@ -1851,7 +1851,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                           {/* Verified info */}
                           {ord.status === 'verified' && (
                             <div className="space-y-2">
-                              <span className="text-[10px] text-slate-500 font-semibold block uppercase">Verified Lab Findings</span>
+                              <span className="text-2xs text-slate-500 font-semibold block uppercase">Verified Lab Findings</span>
                               {renderFindingsTable(ord, meta)}
                               <p className="text-teal-400 text-[9px] font-bold">Verified by {meta.verifier}. Ready for medical release.</p>
                             </div>
@@ -1859,7 +1859,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                           {/* Released state */}
                           {ord.status === 'released' && (
                             <div className="space-y-2">
-                              <span className="text-[10px] text-slate-500 font-semibold block uppercase">Released Findings</span>
+                              <span className="text-2xs text-slate-500 font-semibold block uppercase">Released Findings</span>
                               {renderFindingsTable(ord, meta)}
                               <p className="text-slate-500 text-[9px]">Released by {meta.released_by || 'Technician'} | Verified: {meta.verifier}</p>
                             </div>
@@ -1876,7 +1876,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                           {['completed', 'verified', 'released'].includes(ord.status) && (
                             <button
                               onClick={() => handlePrintLabReport(ord)}
-                              className="bg-slate-950 border border-slate-850 hover:bg-slate-850 text-slate-300 font-bold text-[10px] py-1.5 px-3 rounded shadow transition active:scale-[0.97] flex items-center gap-1 cursor-pointer"
+                              className="bg-slate-950 border border-slate-850 hover:bg-slate-850 text-slate-300 font-bold text-2xs py-1.5 px-3 rounded shadow transition active:scale-[0.97] flex items-center gap-1 cursor-pointer"
                             >
                               <Printer size={11} className="text-teal-400" /> Print Test
                             </button>
@@ -1885,8 +1885,8 @@ export default function Orders({ user, onComplete, showNotification }) {
                           {/* Phlebotomy: Collect */}
                           {(!ord.status || ord.status === 'ordered' || ord.status === 'pending') && (
                             <div className="flex flex-col gap-2 bg-slate-950/80 p-3.5 rounded-xl border border-slate-850 w-full max-w-sm">
-                              <span className="text-[10px] font-bold text-slate-350 uppercase tracking-wide block mb-1">Specimen Collection Checklist</span>
-                              <label className="flex items-center gap-2 text-[10px] text-slate-305 cursor-pointer">
+                              <span className="text-2xs font-bold text-slate-350 uppercase tracking-wide block mb-1">Specimen Collection Checklist</span>
+                              <label className="flex items-center gap-2 text-2xs text-slate-305 cursor-pointer">
                                 <input
                                   type="checkbox"
                                   checked={!!collectionChecklist[ord.id]?.volume}
@@ -1898,7 +1898,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                                 />
                                 Volume Adequate (at least 3-5mL)
                               </label>
-                              <label className="flex items-center gap-2 text-[10px] text-slate-305 cursor-pointer">
+                              <label className="flex items-center gap-2 text-2xs text-slate-305 cursor-pointer">
                                 <input
                                   type="checkbox"
                                   checked={!!collectionChecklist[ord.id]?.labeled}
@@ -1919,7 +1919,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                                       ...collectionChecklist,
                                       [ord.id]: { ...(collectionChecklist[ord.id] || {}), temp: e.target.value }
                                     })}
-                                    className="bg-slate-900 border border-slate-800 text-[10px] text-white py-1 px-2 rounded w-full focus:outline-none focus:border-teal-500"
+                                    className="bg-slate-900 border border-slate-800 text-2xs text-white py-1 px-2 rounded w-full focus:outline-none focus:border-teal-500"
                                   >
                                     <option value="room_temp">Room Temp (20-25°C)</option>
                                     <option value="iced">Iced / Chilled (2-4°C)</option>
@@ -1934,7 +1934,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                                       ...collectionChecklist,
                                       [ord.id]: { ...(collectionChecklist[ord.id] || {}), fasting: e.target.value }
                                     })}
-                                    className="bg-slate-900 border border-slate-800 text-[10px] text-white py-1 px-2 rounded w-full focus:outline-none focus:border-teal-500"
+                                    className="bg-slate-900 border border-slate-800 text-2xs text-white py-1 px-2 rounded w-full focus:outline-none focus:border-teal-500"
                                   >
                                     <option value="na">N/A</option>
                                     <option value="fasting">Fasting</option>
@@ -1951,14 +1951,14 @@ export default function Orders({ user, onComplete, showNotification }) {
                                     ...collectionChecklist,
                                     [ord.id]: { ...(collectionChecklist[ord.id] || {}), barcode: e.target.value }
                                   })}
-                                  className="bg-slate-900 border border-slate-800 text-[10px] text-white py-1 px-2 rounded w-full focus:outline-none focus:border-teal-500 font-mono"
+                                  className="bg-slate-900 border border-slate-800 text-2xs text-white py-1 px-2 rounded w-full focus:outline-none focus:border-teal-500 font-mono"
                                   placeholder="Scan or type barcode..."
                                 />
                               </div>
                               <button
                                 disabled={loading || !collectionChecklist[ord.id]?.volume || !collectionChecklist[ord.id]?.labeled}
                                 onClick={() => handleCollectSample(ord.id)}
-                                className="bg-teal-500 hover:bg-teal-600 disabled:opacity-40 text-slate-950 font-bold text-[10px] py-2 px-3 rounded shadow transition mt-2.5 w-full flex items-center justify-center gap-1 active:scale-[0.98]"
+                                className="bg-teal-500 hover:bg-teal-600 disabled:opacity-40 text-slate-950 font-bold text-2xs py-2 px-3 rounded shadow transition mt-2.5 w-full flex items-center justify-center gap-1 active:scale-[0.98]"
                               >
                                 <Barcode size={12} /> Confirm & Register Sample
                               </button>
@@ -1970,7 +1970,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                             <button
                               disabled={loading}
                               onClick={() => handleReceiveSample(ord.id)}
-                              className="bg-blue-500 hover:bg-blue-600 text-white font-bold text-[10px] py-1.5 px-3 rounded shadow transition active:scale-[0.97]"
+                              className="bg-blue-500 hover:bg-blue-600 text-white font-bold text-2xs py-1.5 px-3 rounded shadow transition active:scale-[0.97]"
                             >
                               Accession / Receive Sample
                             </button>
@@ -1982,14 +1982,14 @@ export default function Orders({ user, onComplete, showNotification }) {
                               <button
                                 disabled={loading}
                                 onClick={() => handleAcceptSample(ord.id)}
-                                className="bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] py-1.5 px-3 rounded shadow transition active:scale-[0.97]"
+                                className="bg-green-500 hover:bg-green-600 text-white font-bold text-2xs py-1.5 px-3 rounded shadow transition active:scale-[0.97]"
                               >
                                 Accept Sample
                               </button>
                               <button
                                 disabled={loading}
                                 onClick={() => setShowRejectForm({ ...showRejectForm, [ord.id]: true })}
-                                className="bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 font-bold text-[10px] py-1.5 px-3 rounded transition"
+                                className="bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 font-bold text-2xs py-1.5 px-3 rounded transition"
                               >
                                 Reject Sample
                               </button>
@@ -2003,7 +2003,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                               <div className="flex gap-2">
                                 <select
                                   id={`reject-select-${ord.id}`}
-                                  className="bg-slate-900 border border-slate-800 text-[10px] text-white p-1 rounded focus:outline-none"
+                                  className="bg-slate-900 border border-slate-800 text-2xs text-white p-1 rounded focus:outline-none"
                                 >
                                   {rejectionReasons.map((r, i) => (
                                     <option key={i} value={r}>{r}</option>
@@ -2033,7 +2033,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                             <button
                               disabled={loading}
                               onClick={() => handleRecollect(ord.id)}
-                              className="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold text-[10px] py-1.5 px-3 rounded shadow transition active:scale-[0.97] flex items-center gap-1"
+                              className="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold text-2xs py-1.5 px-3 rounded shadow transition active:scale-[0.97] flex items-center gap-1"
                             >
                               <RefreshCw size={11} /> Recollect Sample
                             </button>
@@ -2044,7 +2044,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                             <button
                               disabled={loading}
                               onClick={() => handleStartProcess(ord.id)}
-                              className="bg-purple-500 hover:bg-purple-600 text-white font-bold text-[10px] py-1.5 px-3 rounded shadow transition active:scale-[0.97]"
+                              className="bg-purple-500 hover:bg-purple-600 text-white font-bold text-2xs py-1.5 px-3 rounded shadow transition active:scale-[0.97]"
                             >
                               Process / Load Analyzer
                             </button>
@@ -2057,7 +2057,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                               <div className="w-full flex flex-col gap-4 bg-slate-950/20 border border-slate-900/60 p-4 rounded-xl">
                                 <div className="bg-slate-950/40 border border-slate-850/60 p-3 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                                   <div>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Results Entry Method</span>
+                                    <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider block">Results Entry Method</span>
                                     <span className="text-[9px] text-slate-500">Choose manual input or pull data from LIS analyzer</span>
                                   </div>
                                   <div className="flex gap-2">
@@ -2121,7 +2121,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                                           </button>
                                         </div>
                                       ) : (
-                                        <div className="text-[10px] text-yellow-500/80 italic font-medium">No barcode registered for this sample.</div>
+                                        <div className="text-2xs text-yellow-500/80 italic font-medium">No barcode registered for this sample.</div>
                                       )}
                                     </div>
 
@@ -2148,7 +2148,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                                               type="button"
                                               disabled={runningAnalyzerOrderId === ord.id}
                                               onClick={() => handleSimulateAnalyzerRun(ord.id, ord.item_name)}
-                                              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold py-1.5 px-3 rounded flex items-center justify-center gap-1 transition active:scale-[0.98]"
+                                              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-2xs font-bold py-1.5 px-3 rounded flex items-center justify-center gap-1 transition active:scale-[0.98]"
                                             >
                                               {runningAnalyzerOrderId === ord.id ? (
                                                 <>
@@ -2182,7 +2182,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                                 {/* Vitals / Results fields (Always visible & editable for verification/override) */}
                                 <div className="space-y-2 border-t border-slate-900 pt-3">
                                   <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block">Diagnostic Parameter Entries</span>
+                                    <span className="text-2xs font-bold text-slate-450 uppercase tracking-wider block">Diagnostic Parameter Entries</span>
                                     {labCaptureMethod === 'analyzer' && (
                                       <span className="text-[9px] text-teal-450/80 bg-teal-500/10 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Device Sync Enabled (Overrides allowed)</span>
                                     )}
@@ -2212,7 +2212,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                                           return (
                                             <div key={pIdx} className="bg-slate-950 p-2.5 rounded-lg border border-slate-900 flex flex-col gap-1 w-full">
                                               <div className="flex justify-between items-center gap-2">
-                                                <span className="text-[10px] text-slate-355 font-bold">{p.name}</span>
+                                                <span className="text-2xs text-slate-355 font-bold">{p.name}</span>
                                                 <div className="flex items-center gap-1.5">
                                                   {badge}
                                                   <span className="text-[8px] text-slate-500">Ref: {p.range} {p.unit}</span>
@@ -2224,7 +2224,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                                                   value={currentVal}
                                                   onChange={(e) => handleStructuredResultChange(ord.id, p.name, e.target.value)}
                                                   placeholder={`Value...`}
-                                                  className={`bg-slate-900 border rounded text-[10px] py-1 px-2 w-full focus:outline-none ${statusColor}`}
+                                                  className={`bg-slate-900 border rounded text-2xs py-1 px-2 w-full focus:outline-none ${statusColor}`}
                                                   required
                                                 />
                                                 {p.unit && <span className="text-[9px] text-slate-550 shrink-0 font-medium">{p.unit}</span>}
@@ -2237,7 +2237,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                                         <button
                                           disabled={loading}
                                           onClick={() => handleSaveResults(ord.id)}
-                                          className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1.5 px-4 rounded transition active:scale-[0.97]"
+                                          className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-2xs py-1.5 px-4 rounded transition active:scale-[0.97]"
                                         >
                                           Submit Structured Results
                                         </button>
@@ -2250,13 +2250,13 @@ export default function Orders({ user, onComplete, showNotification }) {
                                         value={typeof resultsInputs[ord.id] === 'string' ? resultsInputs[ord.id] : ''}
                                         onChange={(e) => handleResultChange(ord.id, e.target.value)}
                                         placeholder="Enter diagnostic findings..."
-                                        className="bg-slate-955 border border-slate-855 rounded text-[10px] py-1.5 px-2 text-white placeholder:text-slate-700 w-full focus:outline-none focus:border-teal-500"
+                                        className="bg-slate-955 border border-slate-855 rounded text-2xs py-1.5 px-2 text-white placeholder:text-slate-700 w-full focus:outline-none focus:border-teal-500"
                                         required
                                       />
                                       <button
                                         disabled={loading}
                                         onClick={() => handleSaveResults(ord.id)}
-                                        className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1.5 px-3 rounded shrink-0 transition"
+                                        className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-2xs py-1.5 px-3 rounded shrink-0 transition"
                                       >
                                         Submit Results
                                       </button>
@@ -2276,7 +2276,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                             return (
                               <div className="flex flex-col gap-1.5 w-full bg-slate-950/65 p-3 rounded-lg border border-slate-900 mt-2">
                                 {isCritical && (
-                                  <span className="text-[10px] text-red-400 font-bold bg-red-500/10 border border-red-500/20 px-2 py-1 rounded flex items-center gap-1">
+                                  <span className="text-2xs text-red-400 font-bold bg-red-500/10 border border-red-500/20 px-2 py-1 rounded flex items-center gap-1">
                                     <ShieldAlert size={12} className="shrink-0 animate-bounce" /> Warning: Critical Value Detected! Please double-check and verify findings.
                                   </span>
                                 )}
@@ -2288,7 +2288,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                                     <button
                                       disabled={loading}
                                       onClick={() => handleVerifyResults(ord.id)}
-                                      className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold text-[10px] py-1.5 px-3 rounded shadow transition active:scale-[0.97] flex items-center gap-1 shrink-0"
+                                      className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold text-2xs py-1.5 px-3 rounded shadow transition active:scale-[0.97] flex items-center gap-1 shrink-0"
                                     >
                                       <UserCheck size={12} /> Authorize Results (Pathologist)
                                     </button>
@@ -2317,7 +2317,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                             <button
                               disabled={loading}
                               onClick={() => handleReleaseResults(ord.id)}
-                              className="bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] py-1.5 px-4 rounded shadow transition active:scale-[0.97] flex items-center gap-1"
+                              className="bg-green-500 hover:bg-green-600 text-white font-bold text-2xs py-1.5 px-4 rounded shadow transition active:scale-[0.97] flex items-center gap-1"
                             >
                               <Send size={11} /> Release Results
                             </button>
@@ -2338,7 +2338,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                       <h4 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 font-sans">
                         <FlaskConical size={14} className="text-teal-400" /> Issue Direct/Walk-in Laboratory Test
                       </h4>
-                      <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+                      <p className="text-2xs text-slate-500 leading-relaxed font-sans">
                         This patient checked in directly without going through a clinician consultation. Select a custom lab service from your facility's catalog to create a test order.
                       </p>
                       
@@ -2387,7 +2387,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                             </h5>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-semibold">
+                                <label className="text-2xs font-bold text-slate-400 uppercase tracking-wider block font-semibold">
                                   Custom Test Name
                                 </label>
                                 <input
@@ -2400,7 +2400,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                                 />
                               </div>
                               <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-semibold">
+                                <label className="text-2xs font-bold text-slate-400 uppercase tracking-wider block font-semibold">
                                   Test Classification (Kind)
                                 </label>
                                 <input
@@ -2413,7 +2413,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                                 />
                               </div>
                               <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-semibold">
+                                <label className="text-2xs font-bold text-slate-400 uppercase tracking-wider block font-semibold">
                                   Sample Type Required
                                 </label>
                                 <input
@@ -2426,7 +2426,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                                 />
                               </div>
                               <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-semibold">
+                                <label className="text-2xs font-bold text-slate-400 uppercase tracking-wider block font-semibold">
                                   Preceding Workflow
                                 </label>
                                 <input
@@ -2440,7 +2440,7 @@ export default function Orders({ user, onComplete, showNotification }) {
                               </div>
                             </div>
                             <div className="space-y-2">
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-semibold">
+                              <label className="text-2xs font-bold text-slate-400 uppercase tracking-wider block font-semibold">
                                 Test Description / Special Instructions
                               </label>
                               <textarea
@@ -2463,20 +2463,20 @@ export default function Orders({ user, onComplete, showNotification }) {
                               </h5>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
                                 <div className="bg-slate-900/60 p-2.5 rounded border border-slate-900/80">
-                                  <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-semibold">Test Classification</span>
+                                  <span className="text-2xs text-slate-500 uppercase tracking-wider block font-semibold">Test Classification</span>
                                   <span className="text-slate-200 font-bold mt-0.5 block">{meta.testKind || 'General'}</span>
                                 </div>
                                 <div className="bg-slate-900/60 p-2.5 rounded border border-slate-900/80">
-                                  <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-semibold">Sample Type Required</span>
+                                  <span className="text-2xs text-slate-500 uppercase tracking-wider block font-semibold">Sample Type Required</span>
                                   <span className="text-slate-200 font-semibold mt-0.5 block">{meta.sampleType || 'Not specified'}</span>
                                 </div>
                                 <div className="bg-slate-900/60 p-2.5 rounded border border-slate-900/80">
-                                  <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-semibold">Preceding Workflow</span>
+                                  <span className="text-2xs text-slate-500 uppercase tracking-wider block font-semibold">Preceding Workflow</span>
                                   <span className="text-slate-300 italic mt-0.5 block">{meta.precedingWorkflow || 'None'}</span>
                                 </div>
                               </div>
                               {meta.description && (
-                                <p className="text-[10px] text-slate-400 italic pt-1 leading-relaxed border-t border-slate-900/50 mt-1">
+                                <p className="text-2xs text-slate-400 italic pt-1 leading-relaxed border-t border-slate-900/50 mt-1">
                                   {meta.description}
                                 </p>
                               )}

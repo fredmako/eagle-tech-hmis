@@ -1252,7 +1252,7 @@ export default function Ward({ user, showNotification }) {
           <div className="flex gap-1.5 self-end sm:self-auto bg-slate-950 p-1 border border-slate-850 rounded-lg shadow-inner shrink-0 select-none">
             <button
               onClick={() => setViewModeTab('map')}
-              className={`px-3 py-1 rounded-md text-[10px] font-bold cursor-pointer transition ${
+              className={`px-3 py-1 rounded-md text-2xs font-bold cursor-pointer transition ${
                 viewModeTab === 'map'
                   ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20'
                   : 'text-slate-400 border border-transparent hover:text-slate-200'
@@ -1262,7 +1262,7 @@ export default function Ward({ user, showNotification }) {
             </button>
             <button
               onClick={() => setViewModeTab('list')}
-              className={`px-3 py-1 rounded-md text-[10px] font-bold cursor-pointer transition ${
+              className={`px-3 py-1 rounded-md text-2xs font-bold cursor-pointer transition ${
                 viewModeTab === 'list'
                   ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20'
                   : 'text-slate-400 border border-transparent hover:text-slate-200'
@@ -1278,7 +1278,7 @@ export default function Ward({ user, showNotification }) {
             {Array.from(new Set(beds.map(b => b.room_name).filter(Boolean))).filter(r => r !== 'Unassigned').sort().map((room) => (
               <div key={room} className="space-y-3">
                 <div className="border-b border-slate-850 pb-1.5 flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                     <MapPin size={11} className="text-teal-450" /> {room}
                   </span>
                   <span className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider">
@@ -1341,7 +1341,7 @@ export default function Ward({ user, showNotification }) {
                                   setSelectedAdmission(occupant);
                                   setShowVitalsModal(true);
                                 }}
-                                className="flex-1 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 font-bold text-[10px] py-1.5 px-2 rounded-lg transition active:scale-[0.97] cursor-pointer"
+                                className="flex-1 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 font-bold text-2xs py-1.5 px-2 rounded-lg transition active:scale-[0.97] cursor-pointer"
                               >
                                 Log Vitals
                               </button>
@@ -1351,7 +1351,7 @@ export default function Ward({ user, showNotification }) {
                                   setSelectedAdmission(occupant);
                                   setShowDischargeModal(true);
                                 }}
-                                className="flex-1 bg-slate-800 hover:bg-slate-750 text-red-400 font-bold text-[10px] py-1.5 px-2 rounded-lg transition active:scale-[0.97] cursor-pointer"
+                                className="flex-1 bg-slate-800 hover:bg-slate-750 text-red-400 font-bold text-2xs py-1.5 px-2 rounded-lg transition active:scale-[0.97] cursor-pointer"
                               >
                                 Discharge
                               </button>
@@ -1372,7 +1372,7 @@ export default function Ward({ user, showNotification }) {
                                 <button
                                   type="button"
                                   onClick={() => updateBedStatus(bed.id, 'clean')}
-                                  className="w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold text-[10px] py-1.5 rounded-lg transition cursor-pointer"
+                                  className="w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold text-2xs py-1.5 rounded-lg transition cursor-pointer"
                                 >
                                   Mark as Clean
                                 </button>
@@ -1383,7 +1383,7 @@ export default function Ward({ user, showNotification }) {
                                     setTargetBedId(bed.id);
                                     setShowAdmissionModal(true);
                                   }}
-                                  className="w-full bg-teal-500 hover:bg-teal-650 text-slate-950 font-bold text-[10px] py-1.5 rounded-lg transition active:scale-[0.97] cursor-pointer shadow-sm"
+                                  className="w-full bg-teal-500 hover:bg-teal-650 text-slate-950 font-bold text-2xs py-1.5 rounded-lg transition active:scale-[0.97] cursor-pointer shadow-sm"
                                 >
                                   Admit Patient
                                 </button>
@@ -1411,7 +1411,7 @@ export default function Ward({ user, showNotification }) {
                 <button
                   key={room}
                   onClick={() => setActiveRoomTab(room)}
-                  className={`px-3 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg text-2xs font-bold whitespace-nowrap transition cursor-pointer ${
                     activeRoomTab === room
                       ? 'bg-slate-800 border border-slate-700 text-teal-400'
                       : 'text-slate-400 hover:text-slate-200'
@@ -1482,7 +1482,7 @@ export default function Ward({ user, showNotification }) {
                       
                       {/* Bed Label */}
                       <div className="text-center mt-1">
-                        <span className="text-[10px] font-bold block text-slate-100 font-mono truncate leading-none">{bed.bed_number}</span>
+                        <span className="text-2xs font-bold block text-slate-100 font-mono truncate leading-none">{bed.bed_number}</span>
                         <span className="text-[8px] truncate max-w-full font-semibold block mt-1 text-slate-400 leading-none">
                           {occupant ? occupant.patient?.name.split(' ')[0] : bed.bed_status === 'maintenance' ? 'Maint' : 'Vacant'}
                         </span>
@@ -1505,7 +1505,7 @@ export default function Ward({ user, showNotification }) {
             {/* Unassigned / Palette beds */}
             {beds.filter(b => b.room_name === 'Unassigned' || (!b.x_position && !b.y_position)).length > 0 && (
               <div className="mt-4 pt-4 border-t border-slate-800 space-y-2">
-                <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Unassigned Beds (Palette)</h4>
+                <h4 className="text-2xs font-bold text-slate-450 uppercase tracking-wider">Unassigned Beds (Palette)</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
                   {beds.filter(b => b.room_name === 'Unassigned' || (!b.x_position && !b.y_position)).map(bed => {
                     const occupant = admissions.find(a => a.bed_id === bed.id);
@@ -1534,7 +1534,7 @@ export default function Ward({ user, showNotification }) {
                         className={`border rounded-lg p-2 flex flex-col justify-between text-center min-h-[90px] transition cursor-pointer ${statusBg}`}
                       >
                         <Bed size={16} className="mx-auto opacity-85" />
-                        <span className="text-[10px] font-bold block text-slate-100 font-mono mt-1 leading-none">{bed.bed_number}</span>
+                        <span className="text-2xs font-bold block text-slate-100 font-mono mt-1 leading-none">{bed.bed_number}</span>
                         <span className="text-[8px] truncate block opacity-75 mt-0.5">
                           {occupant ? occupant.patient?.name.split(' ')[0] : bed.bed_status === 'maintenance' ? 'Maint' : 'Vacant'}
                         </span>
@@ -1571,7 +1571,7 @@ export default function Ward({ user, showNotification }) {
 
           <form onSubmit={handleAdmit} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Select Patient</label>
+              <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Select Patient</label>
               <select
                 value={selectedPatientId}
                 onChange={(e) => setSelectedPatientId(e.target.value)}
@@ -1586,7 +1586,7 @@ export default function Ward({ user, showNotification }) {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Assign Bed</label>
+              <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Assign Bed</label>
               <select
                 value={targetBedId}
                 onChange={(e) => setTargetBedId(e.target.value)}
@@ -1621,14 +1621,14 @@ export default function Ward({ user, showNotification }) {
             <div className="space-y-5">
               <div className="flex justify-between items-center pb-2 border-b border-slate-850">
                 <div>
-                  <span className={`text-[10px] ${getThemeColor('primary-text')} font-bold uppercase tracking-wider`}>{selectedAdmission.bed} Inpatient File</span>
+                  <span className={`text-2xs ${getThemeColor('primary-text')} font-bold uppercase tracking-wider`}>{selectedAdmission.bed} Inpatient File</span>
                   <h4 className="text-sm font-bold text-slate-100">{selectedAdmission.patient?.name}</h4>
-                  <span className="text-[10px] text-slate-500 font-mono">{selectedAdmission.patient?.facility_id_code}</span>
+                  <span className="text-2xs text-slate-500 font-mono">{selectedAdmission.patient?.facility_id_code}</span>
                 </div>
                 <button
                   type="button"
                   onClick={handlePrintInpatientFile}
-                  className="flex items-center gap-1.5 bg-slate-950 border border-slate-850 hover:border-teal-500/30 text-slate-400 hover:text-teal-400 font-bold text-[10px] px-3 py-1.5 rounded-lg transition active:scale-[0.97] cursor-pointer"
+                  className="flex items-center gap-1.5 bg-slate-950 border border-slate-850 hover:border-teal-500/30 text-slate-400 hover:text-teal-400 font-bold text-2xs px-3 py-1.5 rounded-lg transition active:scale-[0.97] cursor-pointer"
                 >
                   Print File
                 </button>
@@ -1666,7 +1666,7 @@ export default function Ward({ user, showNotification }) {
               {/* Clinical Progress Calendar */}
               <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-3 font-sans">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                  <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-sans">
                     Clinical Progress Calendar (Check-in Compliance)
                   </span>
                   {customCareDate && (
@@ -1741,7 +1741,7 @@ export default function Ward({ user, showNotification }) {
                 {/* Observations Logger */}
                 <form onSubmit={handleLogObservation} className="space-y-3.5">
                   <div className="flex justify-between items-center font-sans">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block flex items-center gap-1.5 font-sans">
+                    <span className="text-2xs font-bold text-slate-400 uppercase tracking-wide block flex items-center gap-1.5 font-sans">
                       <Thermometer size={12} className={getThemeColor('primary-text')} /> Observation Vitals Chart
                     </span>
                     {customCareDate && (
@@ -1876,7 +1876,7 @@ export default function Ward({ user, showNotification }) {
 
                 {/* Discharge Panel */}
                 <form onSubmit={handleDischargeClick} className="space-y-3.5 border-t md:border-t-0 md:border-l border-slate-855/80 pt-4 md:pt-0 md:pl-6">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Discharge Patient Summary</span>
+                  <span className="text-2xs font-bold text-slate-400 uppercase tracking-wide block">Discharge Patient Summary</span>
                   
                   <div>
                     <label className="block text-[9px] text-slate-500 uppercase tracking-wider mb-1">Discharge Diagnoses & Instructions</label>
@@ -1901,7 +1901,7 @@ export default function Ward({ user, showNotification }) {
 
               {/* Rounds History & Trend Visualizer */}
               <div className="border-t border-slate-850 pt-4 space-y-3">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block flex items-center gap-1.5">
+                <span className="text-2xs font-bold text-slate-400 uppercase tracking-wide block flex items-center gap-1.5">
                   <Activity size={12} className={getThemeColor('primary-text')} /> Vitals History & Trends ({observations.length} rounds logged)
                 </span>
                 {observations.length > 0 ? (
@@ -1909,7 +1909,7 @@ export default function Ward({ user, showNotification }) {
                     {observations.map((obs, idx) => (
                       <div key={obs.id} className="bg-slate-955/60 border border-slate-850 rounded-lg p-2.5 text-xs flex justify-between items-center gap-4">
                         <div className="space-y-0.5">
-                          <span className="text-[10px] text-slate-550 block font-semibold">ROUND #{idx + 1} - {new Date(obs.created_at).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
+                          <span className="text-2xs text-slate-550 block font-semibold">ROUND #{idx + 1} - {new Date(obs.created_at).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
                           <p className="text-slate-300 italic text-[11px] font-medium">"{obs.observations_notes || 'No notes entered.'}"</p>
                         </div>
                         <div className="flex gap-3 text-right shrink-0">
@@ -1939,11 +1939,11 @@ export default function Ward({ user, showNotification }) {
               {/* Automatic Discharge Summary Live Preview */}
               {dischargeNotes.trim() && (
                 <div className="border-t border-slate-850 pt-4 space-y-2">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Automated Discharge Summary (Draft Preview)</span>
+                  <span className="text-2xs font-bold text-slate-400 uppercase tracking-wide block">Automated Discharge Summary (Draft Preview)</span>
                   <div className={`bg-slate-955 border ${getThemeColor('primary-border')} rounded-xl p-4 text-xs font-sans text-slate-300 space-y-2.5`}>
                     <div className="flex justify-between items-center pb-2 border-b border-slate-850">
                       <span className="font-bold text-slate-200">EGOTECH GENERAL HOSPITAL</span>
-                      <span className="font-mono text-[10px] text-slate-400 font-bold">CASE SUMMARY: {selectedAdmission.id.toUpperCase()}</span>
+                      <span className="font-mono text-2xs text-slate-400 font-bold">CASE SUMMARY: {selectedAdmission.id.toUpperCase()}</span>
                     </div>
                     <div className="space-y-1">
                       <p><span className="text-slate-500">Patient:</span> <span className="font-bold text-slate-200">{selectedAdmission.patient?.name}</span> ({selectedAdmission.patient?.gender}, Age {getPatientAge(selectedAdmission.patient?.dob)})</p>
@@ -1954,9 +1954,9 @@ export default function Ward({ user, showNotification }) {
                       {observations.length > 0 && (
                         <p><span className="text-slate-500">Last Vitals recorded:</span> Temp: {observations[observations.length - 1].temperature}°C, BP: {observations[observations.length - 1].bp_systolic}/{observations[observations.length - 1].bp_diastolic} mmHg, Pulse: {observations[observations.length - 1].pulse_rate} bpm</p>
                       )}
-                      <p className="pt-1.5 border-t border-slate-850"><span className="text-slate-200 font-bold block uppercase text-[10px]">Discharge Notes & Instructions:</span> "{dischargeNotes}"</p>
+                      <p className="pt-1.5 border-t border-slate-850"><span className="text-slate-200 font-bold block uppercase text-2xs">Discharge Notes & Instructions:</span> "{dischargeNotes}"</p>
                     </div>
-                    <div className="flex justify-between items-center text-[10px] text-slate-400 pt-2 border-t border-slate-850">
+                    <div className="flex justify-between items-center text-2xs text-slate-400 pt-2 border-t border-slate-850">
                       <span>Sync Target: Ministry of Health (HIE)</span>
                       <span>Authorized by: Dr. {user.full_name}</span>
                     </div>
@@ -1971,13 +1971,13 @@ export default function Ward({ user, showNotification }) {
                   {/* Caretakers List Section */}
                   <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                         <Users size={12} className="text-teal-450" /> Authorized Caretakers & Allowed Visitors
                       </span>
                       <button
                         type="button"
                         onClick={() => setShowAddCaretaker(!showAddCaretaker)}
-                        className="text-[10px] text-teal-400 border border-teal-500/20 bg-teal-500/5 hover:bg-teal-500/10 px-2 py-1 rounded cursor-pointer transition font-bold font-sans"
+                        className="text-2xs text-teal-400 border border-teal-500/20 bg-teal-500/5 hover:bg-teal-500/10 px-2 py-1 rounded cursor-pointer transition font-bold font-sans"
                       >
                         {showAddCaretaker ? 'Cancel' : '+ Add Authorized Person'}
                       </button>
@@ -2067,7 +2067,7 @@ export default function Ward({ user, showNotification }) {
                                   {c.relationship}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                              <div className="flex items-center gap-3 text-2xs text-slate-500">
                                 <span>Phone: <span className="font-mono text-slate-400">{c.phone_number}</span></span>
                               </div>
                               <div className="flex gap-1.5 pt-0.5">
@@ -2108,13 +2108,13 @@ export default function Ward({ user, showNotification }) {
                   {/* Visitor Logs Section */}
                   <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                         <Activity size={12} className="text-teal-450" /> Security Visitor Tracking Logs
                       </span>
                       <button
                         type="button"
                         onClick={() => setShowCheckInVisitor(!showCheckInVisitor)}
-                        className="text-[10px] text-teal-400 border border-teal-500/20 bg-teal-500/5 hover:bg-teal-500/10 px-2 py-1 rounded cursor-pointer transition font-bold font-sans"
+                        className="text-2xs text-teal-400 border border-teal-500/20 bg-teal-500/5 hover:bg-teal-500/10 px-2 py-1 rounded cursor-pointer transition font-bold font-sans"
                       >
                         {showCheckInVisitor ? 'Cancel' : 'Log Visitor Check-In'}
                       </button>
@@ -2212,7 +2212,7 @@ export default function Ward({ user, showNotification }) {
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[10px] text-slate-500 flex flex-wrap gap-x-3 gap-y-1">
+                                <div className="text-2xs text-slate-500 flex flex-wrap gap-x-3 gap-y-1">
                                   <span>Phone: <span className="font-mono text-slate-400">{log.visitor_phone}</span></span>
                                   <span>Relation: <span className="text-slate-400">{log.relationship_to_patient}</span></span>
                                   <span>In: <span className="text-teal-400 font-mono">{new Date(log.check_in_datetime).toLocaleTimeString()}</span></span>
@@ -2226,7 +2226,7 @@ export default function Ward({ user, showNotification }) {
                               <button
                                 type="button"
                                 onClick={() => handleVisitorCheckOut(log.id)}
-                                className="px-3 py-1 bg-slate-800 hover:bg-slate-750 border border-slate-700 text-[10px] font-bold rounded-lg transition-all cursor-pointer text-slate-350 self-end sm:self-auto"
+                                className="px-3 py-1 bg-slate-800 hover:bg-slate-750 border border-slate-700 text-2xs font-bold rounded-lg transition-all cursor-pointer text-slate-350 self-end sm:self-auto"
                               >
                                 Check Out
                               </button>
@@ -2234,7 +2234,7 @@ export default function Ward({ user, showNotification }) {
                           ))}
                         </div>
                       ) : (
-                        <div className="text-[10px] text-slate-500 italic p-3 text-center border border-dashed border-slate-850 rounded bg-slate-900/10">
+                        <div className="text-2xs text-slate-500 italic p-3 text-center border border-dashed border-slate-850 rounded bg-slate-900/10">
                           No active visitors currently in the ward.
                         </div>
                       )}
@@ -2264,7 +2264,7 @@ export default function Ward({ user, showNotification }) {
                           ))}
                         </div>
                       ) : (
-                        <div className="text-[10px] text-slate-500 italic p-3 text-center">
+                        <div className="text-2xs text-slate-500 italic p-3 text-center">
                           No history visitor logs recorded for this admission.
                         </div>
                       )}
@@ -2285,7 +2285,7 @@ export default function Ward({ user, showNotification }) {
                 <h3 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
                   <Activity size={16} className={getThemeColor('primary-text')} /> Ministry of Health (MOH) Inpatient Sync
                 </h3>
-                <p className="text-[10px] text-slate-500 mt-0.5">Kenya Health Information Exchange (HIE) Compliance check</p>
+                <p className="text-2xs text-slate-500 mt-0.5">Kenya Health Information Exchange (HIE) Compliance check</p>
               </div>
               <button 
                 type="button" 
@@ -2349,7 +2349,7 @@ export default function Ward({ user, showNotification }) {
                   <div className="grid grid-cols-2 gap-3">
                     {/* Temperature */}
                     <div className="space-y-1">
-                      <div className="flex justify-between text-[10px]">
+                      <div className="flex justify-between text-2xs">
                         <span className="text-slate-400">Temperature (°C) *</span>
                         {mohTemp ? <span className="text-green-400 font-bold">✓</span> : <span className="text-red-400 font-bold">⚠️</span>}
                       </div>
@@ -2366,7 +2366,7 @@ export default function Ward({ user, showNotification }) {
 
                     {/* Weight */}
                     <div className="space-y-1">
-                      <div className="flex justify-between text-[10px]">
+                      <div className="flex justify-between text-2xs">
                         <span className="text-slate-400">Weight (kg) *</span>
                         {mohWeight ? <span className="text-green-400 font-bold">✓</span> : <span className="text-red-400 font-bold">⚠️</span>}
                       </div>
@@ -2385,7 +2385,7 @@ export default function Ward({ user, showNotification }) {
                   {/* BP for Adults */}
                   {getPatientAge(selectedAdmission.patient?.dob) >= 18 && (
                     <div className="space-y-1.5 border-t border-slate-850/60 pt-2.5">
-                      <div className="flex justify-between text-[10px] font-sans">
+                      <div className="flex justify-between text-2xs font-sans">
                         <span className="text-slate-400 font-bold">Blood Pressure (Required for Adults &gt;= 18 yrs) *</span>
                         {(mohSystolic && mohDiastolic) ? <span className="text-green-400 font-bold">✓</span> : <span className="text-red-400 font-bold">⚠️</span>}
                       </div>
@@ -2460,7 +2460,7 @@ export default function Ward({ user, showNotification }) {
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-sans">
                   Day {selectedCalendarDay.dayNumber} Check-in Logs
                 </h4>
-                <span className="text-[10px] text-slate-500 font-mono">Target Date: {selectedCalendarDay.date}</span>
+                <span className="text-2xs text-slate-500 font-mono">Target Date: {selectedCalendarDay.date}</span>
               </div>
               <button
                 type="button"
@@ -2482,19 +2482,19 @@ export default function Ward({ user, showNotification }) {
                   <div className="grid grid-cols-3 gap-2 text-center font-mono">
                     <div className="bg-slate-900 p-1.5 rounded">
                       <span className="text-[8px] text-slate-500 block">TEMP</span>
-                      <span className={`text-[10px] font-bold ${obs.temperature >= 38 ? 'text-red-400' : getThemeColor('primary-text')}`}>
+                      <span className={`text-2xs font-bold ${obs.temperature >= 38 ? 'text-red-400' : getThemeColor('primary-text')}`}>
                         {obs.temperature ? `${obs.temperature}°C` : 'N/A'}
                       </span>
                     </div>
                     <div className="bg-slate-900 p-1.5 rounded">
                       <span className="text-[8px] text-slate-500 block">BP</span>
-                      <span className="text-[10px] font-bold text-slate-200">
+                      <span className="text-2xs font-bold text-slate-200">
                         {obs.bp_systolic && obs.bp_diastolic ? `${obs.bp_systolic}/${obs.bp_diastolic}` : 'N/A'}
                       </span>
                     </div>
                     <div className="bg-slate-900 p-1.5 rounded">
                       <span className="text-[8px] text-slate-500 block">PULSE</span>
-                      <span className="text-[10px] font-bold text-slate-200">
+                      <span className="text-2xs font-bold text-slate-200">
                         {obs.pulse_rate ? `${obs.pulse_rate} bpm` : 'N/A'}
                       </span>
                     </div>
@@ -2512,7 +2512,7 @@ export default function Ward({ user, showNotification }) {
                   </div>
 
                   {(obs.medications_given || obs.fluids_administered) && (
-                    <div className="bg-slate-900/60 p-2 rounded text-[10px] space-y-1">
+                    <div className="bg-slate-900/60 p-2 rounded text-2xs space-y-1">
                       {obs.medications_given && (
                         <div>
                           <strong className="text-slate-450">Meds:</strong> <span className="text-slate-300">{obs.medications_given}</span>
@@ -2559,7 +2559,7 @@ export default function Ward({ user, showNotification }) {
                 <h3 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
                   <Thermometer size={16} className="text-teal-400" /> Chart Observations: {selectedAdmission.bed}
                 </h3>
-                <p className="text-[10px] text-slate-500 mt-0.5">Patient: {selectedAdmission.patient?.name}</p>
+                <p className="text-2xs text-slate-500 mt-0.5">Patient: {selectedAdmission.patient?.name}</p>
               </div>
               <button 
                 type="button" 
@@ -2791,7 +2791,7 @@ export default function Ward({ user, showNotification }) {
               className="space-y-4 text-xs"
             >
               <div>
-                <span className="text-[10px] text-slate-500 block">Patient Name</span>
+                <span className="text-2xs text-slate-500 block">Patient Name</span>
                 <div className="font-bold text-slate-200 mt-0.5">{selectedAdmission.patient?.name}</div>
               </div>
 

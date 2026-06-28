@@ -36,7 +36,7 @@ export function Hero({
         <motion.div className="absolute inset-0" initial={{ scale: 1 }} animate={reduced ? {} : { scale: 1.06 }} transition={{ duration: 18, ease: 'easeOut' }}>
           <SafeImage src={PHOTO_HERO} alt="Clinician using a digital health system" className="w-full h-full object-cover clinical-photo" />
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/85 to-background/60" />
+        <div className="absolute inset-0 bg-linear-to-r from-background/95 via-background/85 to-background/60" />
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 80% at 15% 50%, color-mix(in oklab, var(--primary) 8%, transparent), transparent 60%)' }} />
       </div>
       <div className="relative max-w-7xl mx-auto px-6 py-24 md:py-32 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -84,7 +84,7 @@ export function Hero({
                       )}
                       {userFacilities.length > 0 ? (
                         <>
-                          <div className="px-3 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          <div className="px-3 py-1.5 text-2xs font-bold text-slate-500 uppercase tracking-wider">
                             Hospital Portals
                           </div>
                           {userFacilities.map((fac) => (
@@ -185,12 +185,12 @@ export function Hero({
             className="relative bg-slate-900/80 border border-teal-500/20 backdrop-blur-md rounded-2xl p-6 shadow-2xl shadow-teal-500/5 overflow-hidden"
           >
             {/* Shimmer light effect inside card */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-teal-500/5 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-linear-to-tr from-transparent via-teal-500/5 to-transparent pointer-events-none" />
 
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest font-mono">Live Clinic Monitor</span>
+                <span className="text-2xs font-bold text-slate-300 uppercase tracking-widest font-mono">Live Clinic Monitor</span>
               </div>
               <span className="text-[9px] bg-teal-500/10 text-teal-400 border border-teal-500/20 font-black px-2 py-0.5 rounded-full uppercase tracking-wider font-mono">Sandbox Active</span>
             </div>
@@ -198,7 +198,7 @@ export function Hero({
             <div className="space-y-4 pt-4">
               {/* Patient Queue Tracker */}
               <div className="space-y-2">
-                <div className="flex justify-between text-[10px] text-slate-500 font-bold uppercase">
+                <div className="flex justify-between text-2xs text-slate-500 font-bold uppercase">
                   <span>General Queue</span>
                   <span className="text-teal-400">4 Patients Waiting</span>
                 </div>
@@ -241,7 +241,7 @@ export function Hero({
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Patient Vitals (#102)</span>
                   <div className="flex items-center gap-1.5 text-rose-400">
                     <Activity size={12} className="animate-pulse" />
-                    <span className="text-[10px] font-bold font-mono">72 BPM</span>
+                    <span className="text-2xs font-bold font-mono">72 BPM</span>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center">
@@ -260,7 +260,7 @@ export function Hero({
 
               {/* Bed Occupancy Grid */}
               <div className="space-y-2">
-                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Inpatient Ward Bed Grid</div>
+                <div className="text-2xs text-slate-500 font-bold uppercase tracking-wider">Inpatient Ward Bed Grid</div>
                 <div className="grid grid-cols-4 gap-2">
                   {[
                     { id: "A1", status: "occupied" },

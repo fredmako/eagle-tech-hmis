@@ -157,7 +157,7 @@ export default function ModulesConfig({ user, onClose }) {
             <Sliders size={13} className="text-teal-400" />
             System Module Settings
           </h4>
-          <p className="text-[10px] text-slate-500 mt-0.5">
+          <p className="text-2xs text-slate-500 mt-0.5">
             Selectively activate or deactivate features across Eagle Tech HMIS based on your facility's requirements.
           </p>
         </div>
@@ -166,7 +166,7 @@ export default function ModulesConfig({ user, onClose }) {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-2">
           <div className="animate-spin rounded-full h-6 w-6 border-2 border-teal-500 border-t-transparent" />
-          <span className="text-[10px] font-mono">Loading module configurations...</span>
+          <span className="text-2xs font-mono">Loading module configurations...</span>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 pt-1">
@@ -214,7 +214,7 @@ export default function ModulesConfig({ user, onClose }) {
           <div className="h-4 w-4 rounded-full bg-slate-900 flex items-center justify-center shrink-0">
             {toast.type === 'error' ? <ShieldAlert size={10} className="text-red-400" /> : <Check size={10} className="text-teal-400" />}
           </div>
-          <span className="text-[10px] font-bold font-sans">{toast.message}</span>
+          <span className="text-2xs font-bold font-sans">{toast.message}</span>
         </div>
       )}
     </div>

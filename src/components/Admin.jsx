@@ -1486,7 +1486,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                 >
                   <Mail size={13} /> Email Delivery Logs
                   {emailLogs.length > 0 && (
-                    <span className="bg-slate-950 text-[10px] text-teal-400 font-bold px-1.5 py-0.5 rounded-full border border-teal-500/20">
+                    <span className="bg-slate-950 text-2xs text-teal-400 font-bold px-1.5 py-0.5 rounded-full border border-teal-500/20">
                       {emailLogs.length}
                     </span>
                   )}
@@ -1543,7 +1543,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                 >
                   <PhoneCall size={13} /> Help Desk
                   {supportTicketsCount > 0 && (
-                    <span className="bg-amber-500/20 text-[10px] text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
+                    <span className="bg-amber-500/20 text-2xs text-amber-400 font-bold px-1.5 py-0.5 rounded-full border border-amber-500/25">
                       {supportTicketsCount}
                     </span>
                   )}
@@ -1567,7 +1567,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                       return false;
                     }
                   }).length > 0 && (
-                    <span className="bg-red-500/20 text-[10px] text-red-400 font-bold px-1.5 py-0.5 rounded-full border border-red-500/25 ml-1">
+                    <span className="bg-red-500/20 text-2xs text-red-400 font-bold px-1.5 py-0.5 rounded-full border border-red-500/25 ml-1">
                       {
                         afyalinkLogs.filter((l) => {
                           try {
@@ -1637,7 +1637,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
           </div>
 
           {/* Tab Contents */}
-          <div className="flex-1 overflow-y-auto max-h-[500px] pr-1 space-y-4">
+          <div className="flex-1 overflow-y-auto max-h-125 pr-1 space-y-4">
             {(activeSubTab === "modules_config" && !isAdminRole) ||
             (activeSubTab !== "overview" &&
               activeSubTab !== "delegation" &&
@@ -1649,7 +1649,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                 <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                   Access Denied
                 </h4>
-                <p className="text-[10px] text-slate-500 max-w-xs mx-auto">
+                <p className="text-2xs text-slate-500 max-w-xs mx-auto">
                   You do not have administrative clearance to access this
                   settings panel.
                 </p>
@@ -1764,7 +1764,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                         />{" "}
                         DHA Kenya AfyaLink HIE System Integration
                       </h4>
-                      <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold font-sans">
+                      <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-2xs font-bold font-sans">
                         Status: Connected (UAT Approved)
                       </span>
                     </div>
@@ -1790,7 +1790,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                         </h5>
                         <button
                           onClick={() => setRevealSecret(!revealSecret)}
-                          className="text-[10px] text-teal-400 hover:text-teal-300 font-bold font-sans"
+                          className="text-2xs text-teal-400 hover:text-teal-300 font-bold font-sans"
                         >
                           {revealSecret ? "Hide Secrets" : "Reveal Credentials"}
                         </button>
@@ -1879,11 +1879,11 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                         >
                           <div className="flex items-center gap-2 text-teal-400 mb-2">
                             <FileText size={14} />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">
+                            <span className="text-2xs font-bold uppercase tracking-wider">
                               {doc.label}
                             </span>
                           </div>
-                          <p className="text-[10px] text-slate-450 leading-relaxed font-semibold">
+                          <p className="text-2xs text-slate-450 leading-relaxed font-semibold">
                             {doc.desc}
                           </p>
                         </div>
@@ -1895,7 +1895,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                         <h5 className="text-[11px] font-bold text-slate-300 uppercase tracking-wider font-sans">
                           Create SHA Claim Record
                         </h5>
-                        <span className="text-[10px] text-slate-500 font-semibold">
+                        <span className="text-2xs text-slate-500 font-semibold">
                           Facility-scoped claim document index
                         </span>
                       </div>
@@ -2048,7 +2048,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                         </h5>
                         <button
                           onClick={fetchAdminData}
-                          className="text-[10px] text-teal-400 hover:text-teal-300 flex items-center gap-1 font-bold font-sans cursor-pointer"
+                          className="text-2xs text-teal-400 hover:text-teal-300 flex items-center gap-1 font-bold font-sans cursor-pointer"
                         >
                           <RefreshCw size={10} /> Refresh Queue
                         </button>
@@ -2084,26 +2084,26 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                                   key={claim.id}
                                   className="hover:bg-slate-850/40 transition"
                                 >
-                                  <td className="py-2.5 px-3 text-slate-400 text-[10px]">
+                                  <td className="py-2.5 px-3 text-slate-400 text-2xs">
                                     {new Date(
                                       claim.created_at ||
                                         claim.updated_at ||
                                         Date.now(),
                                     ).toLocaleString()}
                                   </td>
-                                  <td className="py-2.5 px-3 font-mono text-[10px] text-teal-500">
+                                  <td className="py-2.5 px-3 font-mono text-2xs text-teal-500">
                                     {claim.claim_reference || claim.id}
                                   </td>
                                   <td className="py-2.5 px-3 text-[11px]">
                                     <div className="font-semibold">
                                       {claim.patient_id || "Patient ID N/A"}
                                     </div>
-                                    <div className="text-[10px] text-slate-500">
+                                    <div className="text-2xs text-slate-500">
                                       Visit: {claim.visit_id || "N/A"} |
                                       Invoice: {claim.invoice_id || "N/A"}
                                     </div>
                                   </td>
-                                  <td className="py-2.5 px-3 text-[10px] text-slate-400">
+                                  <td className="py-2.5 px-3 text-2xs text-slate-400">
                                     <div>
                                       Form:{" "}
                                       {claim.claim_form_url
@@ -2159,7 +2159,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                         </h5>
                         <button
                           onClick={fetchAdminData}
-                          className="text-[10px] text-teal-400 hover:text-teal-300 flex items-center gap-1 font-bold font-sans cursor-pointer"
+                          className="text-2xs text-teal-400 hover:text-teal-300 flex items-center gap-1 font-bold font-sans cursor-pointer"
                         >
                           <RefreshCw size={10} /> Refresh Logs
                         </button>
@@ -2206,19 +2206,19 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                                     key={log.id}
                                     className="hover:bg-slate-850/40 transition"
                                   >
-                                    <td className="py-2.5 px-3 text-slate-400 text-[10px]">
+                                    <td className="py-2.5 px-3 text-slate-400 text-2xs">
                                       {new Date(
                                         log.created_at,
                                       ).toLocaleString()}
                                     </td>
-                                    <td className="py-2.5 px-3 font-mono text-[10px] text-teal-500">
+                                    <td className="py-2.5 px-3 font-mono text-2xs text-teal-500">
                                       {details.patientCode || "N/A"}
                                     </td>
                                     <td className="py-2.5 px-3 font-semibold text-[11px]">
                                       {details.patientName || "N/A"}
                                     </td>
                                     <td
-                                      className="py-2.5 px-3 truncate max-w-[150px]"
+                                      className="py-2.5 px-3 truncate max-w-37.5"
                                       title={details.diagnosis}
                                     >
                                       {details.diagnosis || "N/A"}
@@ -2239,7 +2239,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                                         onClick={() =>
                                           setSelectedPayloadLog(details.payload)
                                         }
-                                        className="text-[10px] text-teal-400 hover:text-teal-300 underline font-bold cursor-pointer font-sans"
+                                        className="text-2xs text-teal-400 hover:text-teal-300 underline font-bold cursor-pointer font-sans"
                                       >
                                         View Payload
                                       </button>
@@ -2247,7 +2247,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                                         <button
                                           onClick={() => handleRetrySync(log)}
                                           disabled={retryingLogId === log.id}
-                                          className="text-[10px] text-yellow-400 hover:text-yellow-300 font-bold bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded cursor-pointer transition disabled:opacity-50 font-sans"
+                                          className="text-2xs text-yellow-400 hover:text-yellow-300 font-bold bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded cursor-pointer transition disabled:opacity-50 font-sans"
                                         >
                                           {retryingLogId === log.id
                                             ? "Retrying..."
@@ -2292,7 +2292,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                     <form onSubmit={handleSaveDomain} className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-sans">
+                          <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1 font-sans">
                             Preferred Subdomain Prefix
                           </label>
                           <div className="flex bg-slate-950 border border-slate-800 rounded-lg overflow-hidden focus-within:border-teal-500 transition">
@@ -2321,7 +2321,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
 
                         <div>
                           <div className="flex justify-between items-center mb-1">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-sans">
+                            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider font-sans">
                               Custom Outer Domain (Optional)
                             </label>
                             {customDomain && (
@@ -2360,10 +2360,10 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
 
                       {/* Landing Page Template Selector */}
                       <div className="border-t border-slate-800 pt-6">
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 font-sans">
+                        <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-2 font-sans">
                           Public Landing Page Design Template
                         </label>
-                        <p className="text-[10px] text-slate-500 mb-4 font-sans leading-relaxed">
+                        <p className="text-2xs text-slate-500 mb-4 font-sans leading-relaxed">
                           Select a layout template for your subdomain landing
                           page. Each template is fully responsive, optimized for
                           conversions, and includes animated sections.
@@ -2500,14 +2500,14 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                         </h5>
                       </div>
 
-                      <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+                      <p className="text-2xs text-slate-500 leading-relaxed font-sans">
                         To point your subdomain or custom domain to your Eagle
                         Tech portal, sign in to your DNS provider control panel
                         and configure the following DNS records:
                       </p>
 
                       <div className="overflow-x-auto border border-slate-900 rounded-lg">
-                        <table className="w-full text-left text-[10px] border-collapse font-mono">
+                        <table className="w-full text-left text-2xs border-collapse font-mono">
                           <thead>
                             <tr className="bg-slate-900/60 text-slate-500 font-bold border-b border-slate-900 text-[9px] uppercase">
                               <th className="py-2 px-2.5">Record Type</th>
@@ -2563,13 +2563,13 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                       <h5 className="text-[11px] font-bold text-slate-305 uppercase tracking-wider font-sans">
                         Outbound SMTP Custom Email Branding
                       </h5>
-                      <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+                      <p className="text-2xs text-slate-500 leading-relaxed font-sans">
                         By default, system notification mailers (user
                         invitations, password resets, phlebotomy rejections,
                         pharmacy dispensations) are dispatched using{" "}
                         <strong>admin@eagletechsolutions.tech</strong>.
                       </p>
-                      <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+                      <p className="text-2xs text-slate-500 leading-relaxed font-sans">
                         To authenticate and white-label your custom email
                         identity (e.g.{" "}
                         <code>
@@ -2577,7 +2577,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                         </code>
                         ):
                       </p>
-                      <ol className="list-decimal list-inside text-[10px] text-slate-500 pl-1 space-y-1 pt-1 font-sans">
+                      <ol className="list-decimal list-inside text-2xs text-slate-500 pl-1 space-y-1 pt-1 font-sans">
                         <li>
                           Configure SPF, DKIM, and MX records at your domain DNS
                           registrar to delegate Titan Email auth.
@@ -2627,7 +2627,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                     <FileText size={16} className="text-teal-400" /> Outbound
                     SMTP Dispatch Review
                   </h3>
-                  <p className="text-[10px] text-slate-500 mt-0.5">
+                  <p className="text-2xs text-slate-500 mt-0.5">
                     Message unique ID: {selectedLogBody.id} | Event:{" "}
                     {selectedLogBody.event}
                   </p>
@@ -2641,7 +2641,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
               </div>
 
               {/* Log Metadata Details */}
-              <div className="grid grid-cols-2 gap-4 bg-slate-950 border border-slate-850 p-3 rounded-lg text-[10px] shrink-0 font-mono">
+              <div className="grid grid-cols-2 gap-4 bg-slate-950 border border-slate-850 p-3 rounded-lg text-2xs shrink-0 font-mono">
                 <div className="space-y-1">
                   <div>
                     <span className="text-slate-500">From Identity:</span>{" "}
@@ -2688,7 +2688,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
 
               {/* Error banner if failed */}
               {selectedLogBody.error_message && (
-                <div className="bg-red-500/5 border border-red-500/20 text-red-400 p-2.5 rounded text-[10px] shrink-0 flex items-start gap-2">
+                <div className="bg-red-500/5 border border-red-500/20 text-red-400 p-2.5 rounded text-2xs shrink-0 flex items-start gap-2">
                   <AlertTriangle size={12} className="shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold">
@@ -2729,7 +2729,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                     <FileText size={16} className="text-teal-400" /> DHA FHIR
                     Transaction Payload
                   </h3>
-                  <p className="text-[10px] text-slate-500 mt-0.5 font-sans">
+                  <p className="text-2xs text-slate-500 mt-0.5 font-sans">
                     Clinical bundle resource details
                   </p>
                 </div>
@@ -2743,7 +2743,7 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
 
               {/* Rendered JSON Payload Panel */}
               <div className="flex-1 overflow-y-auto bg-slate-950 border border-slate-850 rounded-xl p-4 min-h-[300px]">
-                <pre className="text-[10px] text-teal-400 font-mono whitespace-pre-wrap overflow-x-auto">
+                <pre className="text-2xs text-teal-400 font-mono whitespace-pre-wrap overflow-x-auto">
                   {JSON.stringify(selectedPayloadLog, null, 2)}
                 </pre>
               </div>

@@ -41,7 +41,7 @@ export default function StaffOnboarding({
 
         <form onSubmit={handleSendInvite} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Staff Email Address</label>
+            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Staff Email Address</label>
             <input
               type="email"
               value={inviteEmail}
@@ -53,7 +53,7 @@ export default function StaffOnboarding({
           </div>
 
           <div className="md:col-span-3">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Operational Roles (Select one or more)</label>
+            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-2">Operational Roles (Select one or more)</label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-900 border border-slate-800 p-4 rounded-lg">
               {[
                 { id: 'receptionist', label: 'Receptionist' },
@@ -96,7 +96,7 @@ export default function StaffOnboarding({
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Department</label>
+            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Department</label>
             <select
               value={inviteDept}
               onChange={(e) => setInviteDept(e.target.value)}
@@ -137,7 +137,7 @@ export default function StaffOnboarding({
           <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5 font-sans">
             <Mail size={14} className="text-teal-400" /> Active & Sent Onboarding Invites
           </h4>
-          <span className="text-[10px] text-slate-500 font-semibold font-sans">
+          <span className="text-2xs text-slate-500 font-semibold font-sans">
             Total Sent: {invitationsList.length}
           </span>
         </div>
@@ -154,7 +154,7 @@ export default function StaffOnboarding({
           <div className="overflow-x-auto border border-slate-900 rounded-lg">
             <table className="w-full text-left text-xs border-collapse font-sans">
               <thead>
-                <tr className="bg-slate-900 text-slate-400 border-b border-slate-900 text-[10px] uppercase font-bold">
+                <tr className="bg-slate-900 text-slate-400 border-b border-slate-900 text-2xs uppercase font-bold">
                   <th className="py-2.5 px-3">Email Address</th>
                   <th className="py-2.5 px-3">Role</th>
                   <th className="py-2.5 px-3">Department</th>
@@ -168,11 +168,11 @@ export default function StaffOnboarding({
                 {invitationsList.map((invite) => (
                   <tr key={invite.id || invite.$id} className="hover:bg-slate-900/40 transition">
                     <td className="py-2.5 px-3 font-semibold text-slate-100 font-mono">{invite.email}</td>
-                    <td className="py-2.5 px-3 uppercase text-[10px] font-mono text-teal-400">{invite.role}</td>
-                    <td className="py-2.5 px-3 capitalize text-[10px] font-mono text-slate-400">{invite.department}</td>
-                    <td className="py-2.5 px-3 font-mono text-[10px] text-slate-500">{invite.invited_by || 'Admin'}</td>
+                    <td className="py-2.5 px-3 uppercase text-2xs font-mono text-teal-400">{invite.role}</td>
+                    <td className="py-2.5 px-3 capitalize text-2xs font-mono text-slate-400">{invite.department}</td>
+                    <td className="py-2.5 px-3 font-mono text-2xs text-slate-500">{invite.invited_by || 'Admin'}</td>
                     <td className="py-2.5 px-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                      <span className={`px-2 py-0.5 rounded text-2xs font-mono font-bold uppercase ${
                         invite.status === 'pending' ? 'bg-amber-400/10 text-amber-400 border border-amber-500/20' :
                         invite.status === 'accepted' ? 'bg-green-400/10 text-green-400 border border-green-500/20' :
                         'bg-red-400/10 text-red-400 border border-red-500/20'
@@ -184,7 +184,7 @@ export default function StaffOnboarding({
                       <div className="flex flex-col gap-1">
                         <span
                           title={invite.mail_error || (invite.mail_sent_at ? `Sent ${new Date(invite.mail_sent_at).toLocaleString()}` : 'Awaiting delivery confirmation')}
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase w-fit ${
+                          className={`px-2 py-0.5 rounded text-2xs font-mono font-bold uppercase w-fit ${
                             invite.mail_status === 'sent' ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-500/20' :
                             invite.mail_status === 'failed' ? 'bg-red-400/10 text-red-400 border border-red-500/20' :
                             'bg-slate-400/10 text-slate-400 border border-slate-500/20'
@@ -193,24 +193,24 @@ export default function StaffOnboarding({
                           {invite.mail_status || 'queued'}
                         </span>
                         {invite.mail_error && (
-                          <span className="text-[9px] text-red-300 max-w-[220px] truncate" title={invite.mail_error}>
+                          <span className="text-[9px] text-red-300 max-w-55 truncate" title={invite.mail_error}>
                             {invite.mail_error}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="py-2.5 px-3 font-mono text-[10px]">
+                    <td className="py-2.5 px-3 font-mono text-2xs">
                       {invite.status === 'pending' ? (
                         <div className="flex items-center justify-center">
                           <button
                             onClick={() => handleRevokeInvite(invite.id || invite.$id, invite.email)}
-                            className="bg-slate-850 hover:bg-slate-850 border border-slate-700 text-red-400 hover:text-red-300 font-bold text-[10px] py-1 px-2.5 rounded transition active:scale-[0.96] flex items-center gap-1 cursor-pointer"
+                            className="bg-slate-850 hover:bg-slate-850 border border-slate-700 text-red-400 hover:text-red-300 font-bold text-2xs py-1 px-2.5 rounded transition active:scale-[0.96] flex items-center gap-1 cursor-pointer"
                           >
                             <Trash2 size={10} /> Revoke
                           </button>
                         </div>
                       ) : (
-                        <div className="text-center text-[10px] text-slate-500 italic uppercase font-bold">
+                        <div className="text-center text-2xs text-slate-500 italic uppercase font-bold">
                           {invite.status}
                         </div>
                       )}

@@ -58,7 +58,7 @@ export default function KnowledgeBasePanel() {
           <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
             <Tag size={16} className="text-teal-400" /> AI Knowledge Base
           </h3>
-          <p className="text-[10px] text-slate-500 mt-0.5">
+          <p className="text-2xs text-slate-500 mt-0.5">
             Manage reference data used by EagleBot. Entries here are injected into chat and report prompts.
           </p>
         </div>

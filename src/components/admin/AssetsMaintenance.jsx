@@ -266,7 +266,7 @@ export default function AssetsMaintenance({ user }) {
             <h4 className="text-xs font-bold text-slate-100 uppercase tracking-wider font-sans">
               Clinical Equipment & Asset Maintenance
             </h4>
-            <p className="text-[10px] text-slate-500 font-medium">Track medical machinery health, next calibrations, and departmental logs</p>
+            <p className="text-2xs text-slate-500 font-medium">Track medical machinery health, next calibrations, and departmental logs</p>
           </div>
         </div>
 
@@ -423,10 +423,10 @@ export default function AssetsMaintenance({ user }) {
                       </td>
                       <td className="py-3 px-4 font-mono">
                         <span className="text-slate-300 font-semibold block">{item.serial_number}</span>
-                        <span className="text-[10px] text-slate-500">{item.manufacturer} - {item.model}</span>
+                        <span className="text-2xs text-slate-500">{item.manufacturer} - {item.model}</span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="font-bold text-slate-350 bg-slate-950 border border-slate-900 px-2 py-0.5 rounded text-[10px]">
+                        <span className="font-bold text-slate-350 bg-slate-950 border border-slate-900 px-2 py-0.5 rounded text-2xs">
                           {item.location_ward}
                         </span>
                       </td>
@@ -456,7 +456,7 @@ export default function AssetsMaintenance({ user }) {
                       <td className="py-3 px-4 text-right">
                         <button
                           onClick={() => openCalibrateModal(item)}
-                          className="bg-slate-950 hover:bg-slate-900 border border-slate-800 text-teal-400 hover:text-teal-300 font-bold text-[10px] py-1 px-2.5 rounded transition cursor-pointer"
+                          className="bg-slate-950 hover:bg-slate-900 border border-slate-800 text-teal-400 hover:text-teal-300 font-bold text-2xs py-1 px-2.5 rounded transition cursor-pointer"
                         >
                           ⚙ Log Service
                         </button>

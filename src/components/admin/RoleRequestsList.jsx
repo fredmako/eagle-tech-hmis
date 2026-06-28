@@ -19,7 +19,7 @@ export default function RoleRequestsList({
             <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
               <UserCheck size={14} className="text-teal-400" /> Pending Staff Access Requests
             </h4>
-            <p className="text-[10px] text-slate-400 mt-1">
+            <p className="text-2xs text-slate-400 mt-1">
               Review and approve pending access requests from staff members wishing to join your hospital workspace.
             </p>
           </div>
@@ -53,13 +53,13 @@ export default function RoleRequestsList({
           <div className="text-center py-10 text-slate-500 text-xs flex flex-col items-center justify-center">
             <Clock size={28} className="mb-2 text-slate-700" />
             <span className="font-bold text-slate-400">No Pending Requests</span>
-            <span className="text-[10px] text-slate-500 mt-1 text-center">Staff members requesting access to this facility will appear here.</span>
+            <span className="text-2xs text-slate-500 mt-1 text-center">Staff members requesting access to this facility will appear here.</span>
           </div>
         ) : (
           <div className="overflow-x-auto border border-slate-950 rounded-lg">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-slate-950/60 text-slate-400 border-b border-slate-950 text-[10px] uppercase font-bold">
+                <tr className="bg-slate-950/60 text-slate-400 border-b border-slate-950 text-2xs uppercase font-bold">
                   <th className="py-2.5 px-3">Staff Name</th>
                   <th className="py-2.5 px-3">Email Address</th>
                   <th className="py-2.5 px-3">Category & Requested Roles</th>
@@ -86,7 +86,7 @@ export default function RoleRequestsList({
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-3 text-slate-500 font-mono text-[10px]">
+                    <td className="py-3 px-3 text-slate-500 font-mono text-2xs">
                       {new Date(req.created_at).toLocaleString()}
                     </td>
                     <td className="py-3 px-3 text-center">
@@ -94,7 +94,7 @@ export default function RoleRequestsList({
                         <button
                           onClick={() => handleApproveRequest(req)}
                           disabled={requestsLoading}
-                          className="bg-teal-400 hover:bg-teal-350 text-slate-950 font-bold text-[10px] py-1.5 px-3 rounded-lg shadow active:scale-[0.97] transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          className="bg-teal-400 hover:bg-teal-350 text-slate-950 font-bold text-2xs py-1.5 px-3 rounded-lg shadow active:scale-[0.97] transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
                         >
                           <CheckCircle2 size={11} />
                           <span>Approve</span>
@@ -102,7 +102,7 @@ export default function RoleRequestsList({
                         <button
                           onClick={() => handleRejectRequest(req)}
                           disabled={requestsLoading}
-                          className="bg-slate-850 hover:bg-slate-800 text-red-450 border border-slate-750 hover:border-red-500/25 font-bold text-[10px] py-1.5 px-3 rounded-lg shadow active:scale-[0.97] transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          className="bg-slate-850 hover:bg-slate-800 text-red-450 border border-slate-750 hover:border-red-500/25 font-bold text-2xs py-1.5 px-3 rounded-lg shadow active:scale-[0.97] transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
                         >
                           <XCircle size={11} />
                           <span>Reject</span>

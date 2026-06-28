@@ -12,7 +12,7 @@ export default function AuditTrail({
         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">System Activity Logs</h4>
         <button
           onClick={fetchAdminData}
-          className="text-[10px] text-teal-455 hover:text-teal-400 font-semibold flex items-center gap-1"
+          className="text-2xs text-teal-455 hover:text-teal-400 font-semibold flex items-center gap-1"
         >
           <RefreshCw size={10} /> Refresh Log
         </button>
@@ -32,7 +32,7 @@ export default function AuditTrail({
                 {log.details}
               </p>
 
-              <div className="text-[10px] text-slate-500">
+              <div className="text-2xs text-slate-500">
                 Transaction Agent: <span className="text-slate-400 font-semibold">{actor}</span>
               </div>
             </div>

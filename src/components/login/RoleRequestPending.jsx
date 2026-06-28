@@ -14,7 +14,7 @@ export default function RoleRequestPending({
     <div className="min-h-screen bg-slate-955 flex flex-col justify-center items-center p-4 font-sans">
       <div className="flex flex-col items-center mb-6">
         <img src="/logo.png" alt="Eagle Tech Logo" className="h-28 object-contain" />
-        <span className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-2">HMIS SECURITY LAYER</span>
+        <span className="text-2xs text-teal-400 font-bold tracking-widest uppercase mt-2">HMIS SECURITY LAYER</span>
       </div>
 
       <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">

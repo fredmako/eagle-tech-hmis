@@ -567,7 +567,7 @@ export default function PatientPortal() {
                   <div key={visit.id} className="bg-slate-950 border border-slate-850 p-4 rounded-xl space-y-3 shadow-lg">
                     <div className="flex justify-between items-center flex-wrap gap-2 pb-2 border-b border-slate-900">
                       <div>
-                        <span className="text-[10px] font-bold text-slate-500 block uppercase font-mono">{new Date(visit.created_at).toLocaleString()}</span>
+                        <span className="text-2xs font-bold text-slate-500 block uppercase font-mono">{new Date(visit.created_at).toLocaleString()}</span>
                         <span className="text-xs font-bold text-slate-200">Department: {visit.department.toUpperCase()}</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -626,7 +626,7 @@ export default function PatientPortal() {
               </h2>
               <button
                 onClick={() => setShowBookingModal(true)}
-                className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-black text-[10px] py-1 px-2.5 rounded shadow-lg flex items-center gap-1 transition"
+                className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-black text-2xs py-1 px-2.5 rounded shadow-lg flex items-center gap-1 transition"
               >
                 📅 Book Slot
               </button>
@@ -639,7 +639,7 @@ export default function PatientPortal() {
                   <div key={app.id} className="bg-slate-950 border border-slate-850 p-3 rounded-xl space-y-2 shadow-lg">
                     <div className="flex justify-between items-start">
                       <div>
-                        <span className="text-[10px] font-bold text-slate-200 block">
+                        <span className="text-2xs font-bold text-slate-200 block">
                           {doc ? `Dr. ${doc.name}` : 'Clinician'}
                         </span>
                         <span className="text-[9px] text-slate-500 font-bold block font-mono">
@@ -696,7 +696,7 @@ export default function PatientPortal() {
                     {inv.status === 'unpaid' && (
                       <button
                         onClick={() => triggerOnlineCheckout(inv)}
-                        className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-black text-[10px] py-1.5 px-3 rounded-lg shadow-lg flex items-center gap-1 transition"
+                        className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-black text-2xs py-1.5 px-3 rounded-lg shadow-lg flex items-center gap-1 transition"
                       >
                         <CreditCard size={12} /> Pay Online
                       </button>
@@ -720,7 +720,7 @@ export default function PatientPortal() {
             </p>
 
             {supportStatus && (
-              <div className={`p-3 rounded text-[10px] font-semibold leading-relaxed ${
+              <div className={`p-3 rounded text-2xs font-semibold leading-relaxed ${
                 supportStatus.type === 'success' ? 'bg-emerald-500/10 border border-emerald-550/20 text-emerald-400' : 'bg-rose-500/10 border border-rose-550/20 text-rose-400'
               }`}>
                 {supportStatus.text}
@@ -946,18 +946,18 @@ export default function PatientPortal() {
                   Available Time Slots
                 </label>
                 {loadingSlots ? (
-                  <div className="py-2 text-center text-[10px] text-slate-500 flex items-center justify-center gap-1.5">
+                  <div className="py-2 text-center text-2xs text-slate-500 flex items-center justify-center gap-1.5">
                     <div className="h-3 w-3 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
                     <span>Checking availability...</span>
                   </div>
                 ) : availableSlots.length > 0 ? (
-                  <div className="grid grid-cols-4 gap-1.5 max-h-[120px] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-4 gap-1.5 max-h-30 overflow-y-auto pr-1">
                     {availableSlots.map(slot => (
                       <button
                         key={slot}
                         type="button"
                         onClick={() => setSelectedSlot(slot)}
-                        className={`py-1 text-[10px] font-bold font-mono border rounded transition ${
+                        className={`py-1 text-2xs font-bold font-mono border rounded transition ${
                           selectedSlot === slot
                             ? 'bg-teal-500/10 border-teal-500 text-teal-400'
                             : 'border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200'
@@ -968,7 +968,7 @@ export default function PatientPortal() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-amber-400 italic bg-amber-500/5 border border-amber-550/15 p-2 rounded text-center">
+                  <p className="text-2xs text-amber-400 italic bg-amber-500/5 border border-amber-550/15 p-2 rounded text-center">
                     No available time slots on this date.
                   </p>
                 )}
@@ -1007,7 +1007,7 @@ export default function PatientPortal() {
       )}
 
       {/* Footer */}
-      <footer className="bg-slate-900 border-t border-slate-850 py-3 text-center text-[10px] text-slate-600 shrink-0 font-sans">
+      <footer className="bg-slate-900 border-t border-slate-850 py-3 text-center text-2xs text-slate-600 shrink-0 font-sans">
         © 2026 Eagle Tech HMIS Solutions. All rights reserved. Secure Outpatient Payment Portal.
       </footer>
     </div>

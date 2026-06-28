@@ -69,7 +69,7 @@ export default function OperationalDashboard({
         ].map((card, i) => (
           <div key={i} className="border border-slate-800 bg-slate-900/40 p-4 rounded-xl flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{card.label}</span>
+              <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider block">{card.label}</span>
               <span className="text-2xl font-black text-white block mt-2">{card.val}</span>
             </div>
             <span className="text-[9px] text-slate-500 mt-2 block font-medium">{card.desc}</span>

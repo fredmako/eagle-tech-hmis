@@ -22,7 +22,7 @@ export default function RoleRequestForm({
   setRequestFacility
 }) {
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-[#060b14] via-[#091526] to-[#040910] flex items-center justify-center p-4 md:p-8 font-sans overflow-hidden">
+    <div className="min-h-screen relative bg-linear-to-br from-[#060b14] via-[#091526] to-[#040910] flex items-center justify-center p-4 md:p-8 font-sans overflow-hidden">
       
       {/* Radial Ambient Glow Backgrounds */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -42,7 +42,7 @@ export default function RoleRequestForm({
             <img src="/logo.png" alt="Eagle Tech Logo" className="h-40 object-contain relative z-10" />
           </div>
           <div className="space-y-2">
-            <span className="text-[10px] text-teal-450 font-black tracking-widest uppercase block">HMIS Security Layer</span>
+            <span className="text-2xs text-teal-450 font-black tracking-widest uppercase block">HMIS Security Layer</span>
             <h1 className="font-serif text-3xl md:text-4xl text-fg-strong leading-tight font-normal">
               Eagle Tech <br/><span className="text-primary font-serif">Workspace Access</span>
             </h1>
@@ -84,7 +84,7 @@ export default function RoleRequestForm({
 
           <form onSubmit={handleRoleRequestSubmit} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                 Full Name
               </label>
               <input
@@ -98,7 +98,7 @@ export default function RoleRequestForm({
             </div>
 
             <div className="relative">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                 Search & Select Target Facility
               </label>
               <input
@@ -130,7 +130,7 @@ export default function RoleRequestForm({
                         }}
                         className="w-full text-left px-3 py-2 text-xs hover:bg-slate-800 transition text-slate-300 hover:text-white cursor-pointer"
                       >
-                        <span className="font-bold">{fac.name}</span> <span className="text-[10px] text-slate-505">({fac.code})</span>
+                        <span className="font-bold">{fac.name}</span> <span className="text-2xs text-slate-505">({fac.code})</span>
                       </button>
                     ))
                   ) : (
@@ -143,7 +143,7 @@ export default function RoleRequestForm({
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                 Select Access Category
               </label>
               <div className="grid grid-cols-2 gap-2 mb-4">
@@ -177,7 +177,7 @@ export default function RoleRequestForm({
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                 Requested Roles (Select one or more)
               </label>
               

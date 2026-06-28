@@ -457,14 +457,14 @@ export default function HospitalProfile({ user }) {
             <h4 className="text-xs font-bold text-slate-100 uppercase tracking-wider">
               Hospital Profile & System Settings
             </h4>
-            <p className="text-[10px] text-slate-500 font-medium">Manage facility credentials, integration gateways, and operational overrides</p>
+            <p className="text-2xs text-slate-500 font-medium">Manage facility credentials, integration gateways, and operational overrides</p>
           </div>
         </div>
 
         <button 
           onClick={handleSaveAll}
           disabled={saving}
-          className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-[10px] py-2 px-4 rounded-lg flex items-center gap-1.5 transition active:scale-[0.98] cursor-pointer shadow-md uppercase tracking-wider"
+          className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-2xs py-2 px-4 rounded-lg flex items-center gap-1.5 transition active:scale-[0.98] cursor-pointer shadow-md uppercase tracking-wider"
         >
           <Save size={13} />
           {saving ? 'Saving...' : 'Save Configuration'}
@@ -483,7 +483,7 @@ export default function HospitalProfile({ user }) {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-2">
           <div className="animate-spin rounded-full h-6 w-6 border-2 border-teal-500 border-t-transparent" />
-          <span className="text-[10px] font-mono">Retrieving hospital profile context...</span>
+          <span className="text-2xs font-mono">Retrieving hospital profile context...</span>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
@@ -523,7 +523,7 @@ export default function HospitalProfile({ user }) {
             </button>
           </div>
 
-          <div className="lg:col-span-4 max-h-[500px] overflow-y-auto pr-1 space-y-6">
+          <div className="lg:col-span-4 max-h-125 overflow-y-auto pr-1 space-y-6">
             
             {activeTab === 'profile' && (
               <div className="bg-slate-900 border border-slate-850 p-5 rounded-xl space-y-6">
@@ -531,7 +531,7 @@ export default function HospitalProfile({ user }) {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Hospital / Clinic Name</label>
+                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Hospital / Clinic Name</label>
                     <input
                       type="text"
                       value={facility.name}
@@ -543,7 +543,7 @@ export default function HospitalProfile({ user }) {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">MOH Identifier / Code</label>
+                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">MOH Identifier / Code</label>
                     <input
                       type="text"
                       value={facility.code}
@@ -553,7 +553,7 @@ export default function HospitalProfile({ user }) {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Physical / Postal Address</label>
+                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Physical / Postal Address</label>
                     <input
                       type="text"
                       value={facility.address}
@@ -564,7 +564,7 @@ export default function HospitalProfile({ user }) {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Official Contact Email</label>
+                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Official Contact Email</label>
                     <input
                       type="email"
                       value={facility.contact_email}
@@ -575,7 +575,7 @@ export default function HospitalProfile({ user }) {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Official Contact Phone</label>
+                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Official Contact Phone</label>
                     <input
                       type="text"
                       value={facility.contact_phone}
@@ -586,7 +586,7 @@ export default function HospitalProfile({ user }) {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Registration / License Number</label>
+                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Registration / License Number</label>
                     <input
                       type="text"
                       value={facility.registration_number}
@@ -597,7 +597,7 @@ export default function HospitalProfile({ user }) {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tax Identification PIN</label>
+                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Tax Identification PIN</label>
                     <input
                       type="text"
                       value={facility.tax_id}
@@ -611,14 +611,14 @@ export default function HospitalProfile({ user }) {
                     <h3 className="text-sm font-bold text-teal-400 font-serif flex items-center gap-1.5 mb-1">
                       <MapPin size={16} /> Attendance Geofencing & Location Settings
                     </h3>
-                    <p className="text-[10px] text-slate-400 mb-4 font-sans">
+                    <p className="text-2xs text-slate-400 mb-4 font-sans">
                       Configure your facility's exact GPS coordinates and geofencing radius. Staff must be within this boundary to register attendance.
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-900/50 border border-slate-800/60 p-5 rounded-2xl">
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Latitude Coordinate</label>
+                          <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Latitude Coordinate</label>
                           <input
                             type="number"
                             step="any"
@@ -629,7 +629,7 @@ export default function HospitalProfile({ user }) {
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Longitude Coordinate</label>
+                          <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Longitude Coordinate</label>
                           <input
                             type="number"
                             step="any"
@@ -640,7 +640,7 @@ export default function HospitalProfile({ user }) {
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Geofence Radius (Meters)</label>
+                          <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Geofence Radius (Meters)</label>
                           <input
                             type="number"
                             value={facility.geofence_radius_meters || 100}
@@ -677,7 +677,7 @@ export default function HospitalProfile({ user }) {
                       </div>
 
                       <div className="md:col-span-2 flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-800/80 pt-4 md:pt-0 md:pl-6">
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Geofence Boundary Visualization</label>
+                        <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-2">Geofence Boundary Visualization</label>
                         <div className="relative h-44 bg-slate-950 border border-slate-850 rounded-xl overflow-hidden flex items-center justify-center">
                           {/* Map Radar Effect */}
                           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-teal-500/5 via-transparent to-transparent pointer-events-none" />
@@ -700,7 +700,7 @@ export default function HospitalProfile({ user }) {
                             <div className="bg-teal-400 text-slate-950 p-2 rounded-full shadow-lg border border-teal-300 animate-bounce" style={{ animationDuration: '4s' }}>
                               <Activity size={18} />
                             </div>
-                            <span className="text-[10px] font-bold text-slate-200 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800">
+                            <span className="text-2xs font-bold text-slate-200 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800">
                               {facility.name || 'Hospital Center'}
                             </span>
                           </div>
@@ -722,7 +722,7 @@ export default function HospitalProfile({ user }) {
                           </a>
                         </div>
 
-                        <p className="text-[10px] text-slate-500 italic mt-2 text-center md:text-left font-sans">
+                        <p className="text-2xs text-slate-500 italic mt-2 text-center md:text-left font-sans">
                           * The Geofence boundary is scaled mock representation. Click "OpenStreetMap" to inspect actual coordinates on a satellite maps provider.
                         </p>
                       </div>
@@ -731,7 +731,7 @@ export default function HospitalProfile({ user }) {
                 </div>
 
                 <div className="bg-slate-955 border border-slate-850 p-4 rounded-lg space-y-3">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Hospital Logo preset or Custom</label>
+                  <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Hospital Logo preset or Custom</label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
                     {Object.keys(logoPresets).map((presetKey) => {
                       const preset = logoPresets[presetKey];
@@ -782,7 +782,7 @@ export default function HospitalProfile({ user }) {
                           type="file" 
                           accept="image/*" 
                           onChange={handleLogoUpload}
-                          className="text-xs text-slate-400 file:mr-3 file:py-1 file:px-2.5 file:rounded file:border file:border-slate-700 file:text-[10px] file:font-bold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-750 file:cursor-pointer" 
+                          className="text-xs text-slate-400 file:mr-3 file:py-1 file:px-2.5 file:rounded file:border file:border-slate-700 file:text-2xs file:font-bold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-750 file:cursor-pointer" 
                         />
                         <span className="block text-[8px] text-slate-500">Supported formats: PNG, JPG (Max resolution 180x180px for layout fit).</span>
                       </div>
@@ -792,7 +792,7 @@ export default function HospitalProfile({ user }) {
 
                 <div className="bg-slate-955 border border-slate-850 p-4 rounded-lg space-y-3">
                   <div className="flex justify-between items-center">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Facility Showcase Gallery (Max 4)</label>
+                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider">Facility Showcase Gallery (Max 4)</label>
                     <span className="text-[9px] text-slate-450 font-semibold bg-slate-900 px-2 py-0.5 rounded">
                       {facility.facility_images?.length || 0} / 4 Images
                     </span>
@@ -804,7 +804,7 @@ export default function HospitalProfile({ user }) {
                     accept="image/*" 
                     onChange={handleGalleryUpload}
                     disabled={(facility.facility_images || []).length >= 4}
-                    className="text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-slate-700 file:text-[10px] file:font-bold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-750 file:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
+                    className="text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-slate-700 file:text-2xs file:font-bold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-750 file:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
                   />
 
                   {facility.facility_images && facility.facility_images.length > 0 && (
@@ -836,7 +836,7 @@ export default function HospitalProfile({ user }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-slate-950 border border-slate-850 p-4 rounded-lg space-y-3">
-                    <h4 className="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Cash Rates Config</h4>
+                    <h4 className="text-2xs font-bold text-teal-400 uppercase tracking-wider">Cash Rates Config</h4>
                     <div className="space-y-3">
                       <div>
                         <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Rate Adjustment Mode</label>
@@ -873,7 +873,7 @@ export default function HospitalProfile({ user }) {
                   </div>
 
                   <div className="bg-slate-955 border border-slate-850 p-4 rounded-lg space-y-3">
-                    <h4 className="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Insurance Rates Config</h4>
+                    <h4 className="text-2xs font-bold text-teal-400 uppercase tracking-wider">Insurance Rates Config</h4>
                     <div className="space-y-3">
                       <div>
                         <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Rate Adjustment Mode</label>
@@ -911,7 +911,7 @@ export default function HospitalProfile({ user }) {
                 </div>
 
                 <div className="bg-slate-950 border border-slate-850 p-4 rounded-lg space-y-4">
-                  <h4 className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Reports Header & Clinical Feedbacks</h4>
+                  <h4 className="text-2xs font-bold text-slate-300 uppercase tracking-wider">Reports Header & Clinical Feedbacks</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reports Header Font Size (px)</label>
@@ -955,7 +955,7 @@ export default function HospitalProfile({ user }) {
                 </div>
 
                 <div className="bg-slate-950 border border-slate-850 p-4 rounded-lg space-y-3">
-                  <h4 className="text-[10px] font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <h4 className="text-2xs font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Smartphone size={12} /> M-Pesa C2B Utilities (Patient Invoicing)
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -999,7 +999,7 @@ export default function HospitalProfile({ user }) {
                 </div>
 
                 <div className="bg-slate-955 border border-slate-850 p-4 rounded-lg space-y-3">
-                  <h4 className="text-[10px] font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <h4 className="text-2xs font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Smartphone size={12} /> M-Pesa Express (STK Push Payments)
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1044,7 +1044,7 @@ export default function HospitalProfile({ user }) {
 
                 <div className="bg-slate-950 border border-slate-850 p-4 rounded-lg space-y-4">
                   <div className="flex justify-between items-center pb-1.5 border-b border-slate-900">
-                    <h4 className="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <h4 className="text-2xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                       <Shield size={12} className="text-teal-400" /> KRA eTIMS Tax Compliances API
                     </h4>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -1087,7 +1087,7 @@ export default function HospitalProfile({ user }) {
             {activeTab === 'integrations' && (
               <div className="bg-slate-900 border border-slate-850 p-5 rounded-xl space-y-6">
                 <div className="bg-slate-950 border border-slate-850 p-4 rounded-lg space-y-4">
-                  <h4 className="text-[10px] font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <h4 className="text-2xs font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Smartphone size={12} /> Africa's Talking SMS Notification Service
                   </h4>
 
@@ -1161,7 +1161,7 @@ export default function HospitalProfile({ user }) {
                             type="button"
                             onClick={handleTestSms}
                             disabled={testingSms}
-                            className="bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-slate-950 font-black text-[10px] px-3 py-1 rounded transition shrink-0 flex items-center gap-1 cursor-pointer"
+                            className="bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-slate-950 font-black text-2xs px-3 py-1 rounded transition shrink-0 flex items-center gap-1 cursor-pointer"
                           >
                             <Send size={10} />
                             <span>{testingSms ? 'Sending...' : 'Test Send'}</span>
@@ -1173,7 +1173,7 @@ export default function HospitalProfile({ user }) {
                 </div>
 
                 <div className="bg-slate-955 border border-slate-850 p-4 rounded-lg space-y-4">
-                  <h4 className="text-[10px] font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <h4 className="text-2xs font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Shield size={12} /> Social Health Authority (SHA) HIE Integration
                   </h4>
 
@@ -1248,7 +1248,7 @@ export default function HospitalProfile({ user }) {
                         placeholder="-----BEGIN PUBLIC KEY-----"
                         value={shaConfig.publicPemKey}
                         onChange={(e) => setShaConfig({ ...shaConfig, publicPemKey: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-[10px] text-slate-100 font-mono focus:outline-none focus:border-teal-500 transition resize-none"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-2xs text-slate-100 font-mono focus:outline-none focus:border-teal-500 transition resize-none"
                       />
                     </div>
                     <div>
@@ -1258,7 +1258,7 @@ export default function HospitalProfile({ user }) {
                         placeholder="-----BEGIN PRIVATE KEY-----"
                         value={shaConfig.privatePemKey}
                         onChange={(e) => setShaConfig({ ...shaConfig, privatePemKey: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-[10px] text-slate-100 font-mono focus:outline-none focus:border-teal-500 transition resize-none"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-2xs text-slate-100 font-mono focus:outline-none focus:border-teal-500 transition resize-none"
                       />
                     </div>
                   </div>

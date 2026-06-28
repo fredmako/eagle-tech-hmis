@@ -1225,14 +1225,14 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
       <div className="w-full max-w-md md:max-w-5xl bg-slate-900 border border-slate-850 rounded-[28px] shadow-2xl relative overflow-hidden grid grid-cols-1 md:grid-cols-[1.15fr_1fr] lg:grid-cols-[1.3fr_1fr] min-h-[550px] md:min-h-[640px] lg:min-h-[680px]">
         
         {/* Left Side: Logo & Branding Showcase (Desktop Only) */}
-        <div className="hidden md:flex flex-col justify-between p-8 lg:p-12 bg-gradient-to-br from-[#0c1e30] via-[#07111e] to-[#040a12] border-r border-slate-850 relative overflow-hidden select-none">
+        <div className="hidden md:flex flex-col justify-between p-8 lg:p-12 bg-linear-to-br from-[#0c1e30] via-[#07111e] to-[#040a12] border-r border-slate-850 relative overflow-hidden select-none">
           {/* Subtle Ambient Glow Effect */}
           <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-teal-500/5 rounded-full blur-[80px] pointer-events-none" />
           <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-80 h-80 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
           
           {/* Top tagline/version badge */}
           <div className="flex items-center gap-2">
-            <span className="text-[10px] bg-teal-500/10 text-teal-400 font-extrabold uppercase px-2.5 py-1 rounded-full border border-teal-500/20 tracking-wider">
+            <span className="text-2xs bg-teal-500/10 text-teal-400 font-extrabold uppercase px-2.5 py-1 rounded-full border border-teal-500/20 tracking-wider">
               Eagle Tech HMIS Enterprise
             </span>
             <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
@@ -1315,7 +1315,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
           <div className="flex-1 flex flex-col justify-center min-h-0 relative">
             {/* Sandbox banner (Mobile Only) */}
             {isSandbox && (
-              <div className="md:hidden mb-4 bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[10px] py-1.5 px-3 rounded-lg flex items-center justify-between animate-pulse">
+              <div className="md:hidden mb-4 bg-teal-500/10 border border-teal-500/20 text-teal-400 text-2xs py-1.5 px-3 rounded-lg flex items-center justify-between animate-pulse">
                 <span className="font-semibold">Local Sandbox Active</span>
                 <span className="bg-teal-500/20 text-teal-300 py-0.5 px-1 rounded uppercase font-bold text-[8px]">Auto-Auth</span>
               </div>
@@ -1419,7 +1419,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                     {renderLogo(resolvedTenant?.logo_url)}
                   </div>
                   <div className="truncate">
-                    <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider block">Resolved Facility</span>
+                    <span className="text-2xs text-teal-400 font-bold uppercase tracking-wider block">Resolved Facility</span>
                     <span className="text-xs font-bold text-white block truncate">{resolvedTenant?.name}</span>
                   </div>
                 </div>
@@ -1492,7 +1492,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                     {renderLogo(resolvedTenant?.logo_url)}
                   </div>
                   <div className="truncate">
-                    <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider block">Resolved Facility</span>
+                    <span className="text-2xs text-teal-400 font-bold uppercase tracking-wider block">Resolved Facility</span>
                     <span className="text-xs font-bold text-white block truncate">{resolvedTenant?.name}</span>
                   </div>
                 </div>
@@ -1543,7 +1543,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                     {renderLogo(resolvedTenant?.logo_url)}
                   </div>
                   <div className="truncate">
-                    <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider block">Staff invitation resolved</span>
+                    <span className="text-2xs text-teal-400 font-bold uppercase tracking-wider block">Staff invitation resolved</span>
                     <span className="text-xs font-bold text-white block truncate">{resolvedTenant?.name}</span>
                   </div>
                 </div>
@@ -1568,7 +1568,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                 )}
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                     Your Full Name
                   </label>
                   <input
@@ -1582,7 +1582,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                     Email Address
                   </label>
                   <input
@@ -1594,7 +1594,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                     Choose A Secure Password (Min 8 chars)
                   </label>
                   <input
@@ -1894,7 +1894,7 @@ export default function Login({ onLoginSuccess, onNavigateToSaaS, onNavigateToLa
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-800"></div>
               </div>
-              <div className="relative flex justify-center text-[10px] uppercase">
+              <div className="relative flex justify-center text-2xs uppercase">
                 <span className="bg-slate-900 px-3 text-slate-500 font-bold">Or register with</span>
               </div>
             </div>

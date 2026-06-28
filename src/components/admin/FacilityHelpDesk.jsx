@@ -190,7 +190,7 @@ export default function FacilityHelpDesk({ user }) {
             <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
               <PhoneCall size={14} className="text-teal-400" /> Facility Help Desk & Patient Inquiries
             </h4>
-            <p className="text-[10px] text-slate-400 mt-1">
+            <p className="text-2xs text-slate-400 mt-1">
               Review and reply to inquiries and support tickets sent directly to your hospital workspace by patients or staff.
             </p>
           </div>
@@ -199,7 +199,7 @@ export default function FacilityHelpDesk({ user }) {
               href={`https://wa.me/${String(facilityWhatsApp).replace(/[^\d]/g, '')}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-500/15 transition"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-2xs font-bold uppercase tracking-wider hover:bg-emerald-500/15 transition"
             >
               Chat on WhatsApp
             </a>
@@ -241,7 +241,7 @@ export default function FacilityHelpDesk({ user }) {
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md transition ${
+                className={`px-3 py-1 text-2xs font-bold uppercase rounded-md transition ${
                   filterStatus === status 
                     ? 'bg-teal-400 text-slate-950 shadow' 
                     : 'text-slate-500 hover:text-slate-300'
@@ -257,7 +257,7 @@ export default function FacilityHelpDesk({ user }) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           
           {/* List panel */}
-          <div className="lg:col-span-1 border border-slate-950 bg-slate-950/20 rounded-xl p-3 flex flex-col h-[400px]">
+          <div className="lg:col-span-1 border border-slate-950 bg-slate-950/20 rounded-xl p-3 flex flex-col h-100">
             <div className="overflow-y-auto space-y-2.5 flex-1 pr-1">
               {loading && tickets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-2">
@@ -268,7 +268,7 @@ export default function FacilityHelpDesk({ user }) {
                 <div className="flex flex-col items-center justify-center h-full text-slate-600 text-center p-4">
                   <Inbox size={28} className="mb-2 opacity-35" />
                   <span className="text-2xs font-bold block">No inquiries found</span>
-                  <span className="text-[10px] text-slate-500 mt-1 block">Patient help desk logs will display here.</span>
+                  <span className="text-2xs text-slate-500 mt-1 block">Patient help desk logs will display here.</span>
                 </div>
               ) : (
                 filteredTickets.map(t => {
@@ -290,7 +290,7 @@ export default function FacilityHelpDesk({ user }) {
                           {t.status}
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-500 mt-1 line-clamp-1 font-medium">{t.message}</p>
+                      <p className="text-2xs text-slate-500 mt-1 line-clamp-1 font-medium">{t.message}</p>
                       <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-900/60 text-[9px] text-slate-650 font-bold">
                         <span>Ref: #{t.id.substring(7, 13)}</span>
                         <span>{new Date(t.created_at).toLocaleDateString()}</span>
@@ -303,14 +303,14 @@ export default function FacilityHelpDesk({ user }) {
           </div>
 
           {/* Details & Actions Panel */}
-          <div className="lg:col-span-2 border border-slate-950 bg-slate-950/20 rounded-xl p-4 min-h-[400px] flex flex-col justify-between">
+          <div className="lg:col-span-2 border border-slate-950 bg-slate-950/20 rounded-xl p-4 min-h-100 flex flex-col justify-between">
             {selectedTicket ? (
               <div className="space-y-4 flex-1 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start border-b border-slate-900 pb-2">
                     <div>
                       <h4 className="text-xs font-bold text-slate-200">{selectedTicket.subject}</h4>
-                      <p className="text-[10px] text-slate-500 mt-1 font-semibold">
+                      <p className="text-2xs text-slate-500 mt-1 font-semibold">
                         From: <span className="text-slate-300 capitalize">{selectedTicket.user_name}</span> ({selectedTicket.user_email})
                       </p>
                     </div>
@@ -387,7 +387,7 @@ export default function FacilityHelpDesk({ user }) {
               <div className="flex-1 flex flex-col items-center justify-center text-slate-600 text-center p-6">
                 <MessageSquare size={44} className="mb-3 opacity-20" />
                 <h4 className="text-xs font-bold text-slate-400">No Inquiry Selected</h4>
-                <p className="text-[10px] text-slate-500 max-w-xs mt-1.5 leading-relaxed">
+                <p className="text-2xs text-slate-500 max-w-xs mt-1.5 leading-relaxed">
                   Select a support ticket from the list pane to review details, view audit references, type resolution emails, or close tickets.
                 </p>
               </div>

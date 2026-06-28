@@ -61,7 +61,7 @@ export default function InstrumentTracker({
   return (
     <div className="bg-slate-950/40 border border-slate-850/60 rounded-xl p-3.5 space-y-3.5">
       <div>
-        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+        <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
           <Compass size={12} className="text-teal-400 animate-pulse" /> Bind Medical Instrument
         </label>
         
@@ -84,7 +84,7 @@ export default function InstrumentTracker({
       </div>
 
       {selectedInst && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[10px] bg-slate-950/70 border border-slate-900 rounded-lg p-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-2xs bg-slate-950/70 border border-slate-900 rounded-lg p-2.5">
           <div>
             <span className="text-slate-500 block">Manufacturer / Model:</span>
             <span className="font-semibold text-slate-350">{selectedInst.manufacturer || 'N/A'} - {selectedInst.model || 'N/A'}</span>

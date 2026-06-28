@@ -556,7 +556,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
           </div>
           <div>
             <div className="font-bold text-slate-100 text-sm tracking-wider uppercase font-mono">HOSI POA</div>
-            <div className="text-[10px] text-teal-400 font-semibold uppercase tracking-widest">MCH Clinic Hub</div>
+            <div className="text-2xs text-teal-400 font-semibold uppercase tracking-widest">MCH Clinic Hub</div>
           </div>
         </div>
 
@@ -659,7 +659,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
             <Heart size={22} className="text-white" />
             <div>
               <h1 className="text-lg font-bold tracking-tight">Mother and Child Health (MCH) Clinic</h1>
-              <p className="text-[10px] text-teal-100 font-semibold tracking-wider uppercase">
+              <p className="text-2xs text-teal-100 font-semibold tracking-wider uppercase">
                 {activeTab === 'dashboard' && 'Clinic Dashboard Summary'}
                 {activeTab === 'anc' && 'Antenatal Care Registry'}
                 {activeTab === 'fp' && 'Family Planning Registry'}
@@ -749,7 +749,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                       <ClipboardList size={22} />
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-500">Active Pregnancies</div>
+                      <div className="text-2xs uppercase font-bold text-slate-500">Active Pregnancies</div>
                       <div className="text-2xl font-mono font-bold text-slate-200">{activePregnancies.length}</div>
                     </div>
                   </div>
@@ -759,7 +759,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                       <Users size={22} />
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-500">ANC Queued</div>
+                      <div className="text-2xs uppercase font-bold text-slate-500">ANC Queued</div>
                       <div className="text-2xl font-mono font-bold text-slate-200">{ancQueue.length}</div>
                     </div>
                   </div>
@@ -769,7 +769,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                       <UserCheck size={22} />
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-500">Active FP Clients</div>
+                      <div className="text-2xs uppercase font-bold text-slate-500">Active FP Clients</div>
                       <div className="text-2xl font-mono font-bold text-teal-400">{fpRecords.length}</div>
                     </div>
                   </div>
@@ -779,7 +779,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                       <Baby size={22} />
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-500">IMM Queued</div>
+                      <div className="text-2xs uppercase font-bold text-slate-500">IMM Queued</div>
                       <div className="text-2xl font-mono font-bold text-emerald-400">{immQueue.length}</div>
                     </div>
                   </div>
@@ -791,42 +791,42 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                     <h3 className="font-bold text-slate-200 text-sm">Active MCH Clinic Registers</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="bg-slate-950 border border-slate-850 p-4 rounded-xl space-y-2">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Antenatal Registry</div>
+                        <div className="text-2xs font-bold text-slate-500 uppercase tracking-wide">Antenatal Registry</div>
                         <p className="text-[11px] text-slate-400">Maternal prenatal care enrollment and monitoring.</p>
                         <button
                           onClick={() => {
                             setAncEnrollForm({ patient_id: '', lmp_date: '', gravida: 1, parity: 0, edd: '', auto_checkin: true });
                             setShowAncEnrollModal(true);
                           }}
-                          className="w-full text-center py-1.5 bg-teal-600/10 hover:bg-teal-600 text-teal-450 hover:text-white rounded text-[10px] font-bold transition-all cursor-pointer"
+                          className="w-full text-center py-1.5 bg-teal-600/10 hover:bg-teal-600 text-teal-450 hover:text-white rounded text-2xs font-bold transition-all cursor-pointer"
                         >
                           Enroll Mother
                         </button>
                       </div>
 
                       <div className="bg-slate-950 border border-slate-850 p-4 rounded-xl space-y-2">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Family Planning</div>
+                        <div className="text-2xs font-bold text-slate-500 uppercase tracking-wide">Family Planning</div>
                         <p className="text-[11px] text-slate-400">Counseling, methods choice, and follow-up logging.</p>
                         <button
                           onClick={() => {
                             setFpEnrollForm({ patient_id: '', counseling_provided: true, method_selected_id: '', medical_eligibility_category: 1, auto_checkin: true });
                             setShowFpEnrollModal(true);
                           }}
-                          className="w-full text-center py-1.5 bg-teal-600/10 hover:bg-teal-600 text-teal-450 hover:text-white rounded text-[10px] font-bold transition-all cursor-pointer"
+                          className="w-full text-center py-1.5 bg-teal-600/10 hover:bg-teal-600 text-teal-450 hover:text-white rounded text-2xs font-bold transition-all cursor-pointer"
                         >
                           Enroll FP Client
                         </button>
                       </div>
 
                       <div className="bg-slate-950 border border-slate-850 p-4 rounded-xl space-y-2">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Child Welfare</div>
+                        <div className="text-2xs font-bold text-slate-500 uppercase tracking-wide">Child Welfare</div>
                         <p className="text-[11px] text-slate-400">Vaccination schedule and pediatric check-ins.</p>
                         <button
                           onClick={() => {
                             setImmEnrollForm({ patient_id: '', vaccine_id: '', dose_number: 1, notes: '', auto_checkin: true });
                             setShowImmEnrollModal(true);
                           }}
-                          className="w-full text-center py-1.5 bg-teal-600/10 hover:bg-teal-600 text-teal-450 hover:text-white rounded text-[10px] font-bold transition-all cursor-pointer"
+                          className="w-full text-center py-1.5 bg-teal-600/10 hover:bg-teal-600 text-teal-450 hover:text-white rounded text-2xs font-bold transition-all cursor-pointer"
                         >
                           Queue for Vaccine
                         </button>
@@ -862,7 +862,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-md font-bold text-slate-200">Antenatal Care (ANC) Queue</h2>
-                    <p className="text-[10px] text-slate-500">Admit enrolled mothers and record clinical ANC logs</p>
+                    <p className="text-2xs text-slate-500">Admit enrolled mothers and record clinical ANC logs</p>
                   </div>
                   <button
                     onClick={() => {
@@ -910,7 +910,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                               </td>
                               <td className="px-5 py-3.5 text-xs">
                                 {activePreg ? (
-                                  <div className="font-mono text-[10px] space-y-0.5">
+                                  <div className="font-mono text-2xs space-y-0.5">
                                     <div>LMP: {activePreg.lmp_date}</div>
                                     <div className="text-teal-400">EDD: {activePreg.estimated_delivery_date}</div>
                                     <div className="text-slate-500">G{activePreg.gravidity} P{activePreg.parity}</div>
@@ -926,7 +926,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                                     setShowAncVisitModal(true);
                                   }}
                                   disabled={!activePreg}
-                                  className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 disabled:bg-slate-850 disabled:text-slate-600 text-white rounded text-[10px] font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
+                                  className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 disabled:bg-slate-850 disabled:text-slate-600 text-white rounded text-2xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
                                 >
                                   <ClipboardList size={11} />
                                   Record ANC Checkup
@@ -953,7 +953,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-md font-bold text-slate-200">Family Planning (FP) Queue</h2>
-                    <p className="text-[10px] text-slate-500">Perform counseling checks and log contraceptive distributions</p>
+                    <p className="text-2xs text-slate-500">Perform counseling checks and log contraceptive distributions</p>
                   </div>
                   <button
                     onClick={() => {
@@ -994,8 +994,8 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                               <td className="px-5 py-3.5">
                                 {activeFp ? (
                                   <div className="space-y-0.5">
-                                    <div className="text-[10px] text-slate-400">Counseling: {activeFp.counseling_provided ? 'Yes' : 'No'}</div>
-                                    <div className="text-[10px] text-slate-500">WHO Category: {activeFp.medical_eligibility_category}</div>
+                                    <div className="text-2xs text-slate-400">Counseling: {activeFp.counseling_provided ? 'Yes' : 'No'}</div>
+                                    <div className="text-2xs text-slate-500">WHO Category: {activeFp.medical_eligibility_category}</div>
                                   </div>
                                 ) : (
                                   <span className="text-amber-500 font-semibold">Not Enrolled in FP Program</span>
@@ -1018,7 +1018,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                                     setShowFpVisitModal(true);
                                   }}
                                   disabled={!activeFp}
-                                  className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 disabled:bg-slate-850 disabled:text-slate-600 text-white rounded text-[10px] font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
+                                  className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 disabled:bg-slate-850 disabled:text-slate-600 text-white rounded text-2xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
                                 >
                                   <ClipboardList size={11} />
                                   Dispense Contraceptives
@@ -1045,7 +1045,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-md font-bold text-slate-200">Welfare & Child Immunization Queue</h2>
-                    <p className="text-[10px] text-slate-500">Record child vaccination schedules and dose logs</p>
+                    <p className="text-2xs text-slate-500">Record child vaccination schedules and dose logs</p>
                   </div>
                   <button
                     onClick={() => {
@@ -1095,7 +1095,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                                   setImmVisitForm({ vaccine_id: vaccines[0]?.id || '', dose_number: '1', date_administered: new Date().toISOString().split('T')[0], notes: '' });
                                   setShowImmVisitModal(true);
                                 }}
-                                className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded text-[10px] font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
+                                className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded text-2xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
                               >
                                 <Baby size={11} />
                                 Administer Vaccine
@@ -1121,7 +1121,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-md font-bold text-slate-200">MOH Reports Log Console</h2>
-                    <p className="text-[10px] text-slate-500">MOH 711 ANC registers and immunization logs</p>
+                    <p className="text-2xs text-slate-500">MOH 711 ANC registers and immunization logs</p>
                   </div>
                   <button
                     onClick={handlePrintMchStats}
@@ -1191,7 +1191,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
             </div>
             <form onSubmit={handleEnrollAnc} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Select Patient</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Select Patient</label>
                 <select
                   required
                   value={ancEnrollForm.patient_id}
@@ -1205,7 +1205,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Last Menstrual Period (LMP)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Last Menstrual Period (LMP)</label>
                 <input
                   type="date"
                   required
@@ -1216,7 +1216,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase">Gravida</label>
+                  <label className="text-2xs text-slate-400 font-bold uppercase">Gravida</label>
                   <input
                     type="number"
                     min="1"
@@ -1227,7 +1227,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase">Parity</label>
+                  <label className="text-2xs text-slate-400 font-bold uppercase">Parity</label>
                   <input
                     type="number"
                     min="0"
@@ -1239,7 +1239,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Estimated Date of Delivery (EDD)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Estimated Date of Delivery (EDD)</label>
                 <input
                   type="date"
                   readOnly
@@ -1274,7 +1274,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
             </div>
             <form onSubmit={handleEnrollFp} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Select Patient</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Select Patient</label>
                 <select
                   required
                   value={fpEnrollForm.patient_id}
@@ -1288,7 +1288,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Initial Contraceptive Method Choice</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Initial Contraceptive Method Choice</label>
                 <select
                   value={fpEnrollForm.method_selected_id}
                   onChange={(e) => setFpEnrollForm(prev => ({ ...prev, method_selected_id: e.target.value }))}
@@ -1301,7 +1301,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">WHO Medical Eligibility Category</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">WHO Medical Eligibility Category</label>
                 <select
                   value={fpEnrollForm.medical_eligibility_category}
                   onChange={(e) => setFpEnrollForm(prev => ({ ...prev, medical_eligibility_category: e.target.value }))}
@@ -1340,7 +1340,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
             </div>
             <form onSubmit={handleEnrollImm} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Select Child Patient</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Select Child Patient</label>
                 <select
                   required
                   value={immEnrollForm.patient_id}
@@ -1374,7 +1374,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
             </div>
             <form onSubmit={handleSaveAncVisit} className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Systolic BP (mmHg)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Systolic BP (mmHg)</label>
                 <input
                   type="number"
                   required
@@ -1385,7 +1385,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Diastolic BP (mmHg)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Diastolic BP (mmHg)</label>
                 <input
                   type="number"
                   required
@@ -1396,7 +1396,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Maternal Weight (kg)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Maternal Weight (kg)</label>
                 <input
                   type="text"
                   required
@@ -1407,7 +1407,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Fundal Height (cm)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Fundal Height (cm)</label>
                 <input
                   type="number"
                   required
@@ -1418,7 +1418,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Fetal Heart Rate (bpm)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Fetal Heart Rate (bpm)</label>
                 <input
                   type="number"
                   required
@@ -1429,7 +1429,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Maternal Temp (°C)</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Maternal Temp (°C)</label>
                 <input
                   type="text"
                   required
@@ -1440,7 +1440,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Tetanus Toxoid Dose</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Tetanus Toxoid Dose</label>
                 <select
                   value={ancVisitForm.tetanus_toxoid_dose}
                   onChange={(e) => setAncVisitForm(prev => ({ ...prev, tetanus_toxoid_dose: e.target.value }))}
@@ -1453,7 +1453,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Risk Level</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Risk Level</label>
                 <select
                   value={ancVisitForm.risk_level}
                   onChange={(e) => setAncVisitForm(prev => ({ ...prev, risk_level: e.target.value }))}
@@ -1464,7 +1464,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 </select>
               </div>
               <div className="space-y-1 col-span-2">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Edema Present</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Edema Present</label>
                 <label className="flex items-center gap-2 text-xs text-slate-350 cursor-pointer pt-1">
                   <input
                     type="checkbox"
@@ -1476,7 +1476,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 </label>
               </div>
               <div className="space-y-1 col-span-2">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Complications / Notes</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Complications / Notes</label>
                 <textarea
                   value={ancVisitForm.complications_notes}
                   onChange={(e) => setAncVisitForm(prev => ({ ...prev, complications_notes: e.target.value }))}
@@ -1506,7 +1506,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
             </div>
             <form onSubmit={handleSaveFpVisit} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Contraceptive Method Provided</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Contraceptive Method Provided</label>
                 <select
                   required
                   value={fpVisitForm.new_method_selected_id}
@@ -1520,7 +1520,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Side Effects Reported</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Side Effects Reported</label>
                 <input
                   type="text"
                   value={fpVisitForm.side_effects}
@@ -1530,7 +1530,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Next Follow-up Date</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Next Follow-up Date</label>
                 <input
                   type="date"
                   required
@@ -1560,7 +1560,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
             </div>
             <form onSubmit={handleSaveImmVisit} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Selected Vaccine</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Selected Vaccine</label>
                 <select
                   required
                   value={immVisitForm.vaccine_id}
@@ -1573,7 +1573,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Dose Number</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Dose Number</label>
                 <select
                   value={immVisitForm.dose_number}
                   onChange={(e) => setImmVisitForm(prev => ({ ...prev, dose_number: e.target.value }))}
@@ -1586,7 +1586,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Date Administered</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Date Administered</label>
                 <input
                   type="date"
                   required
@@ -1596,7 +1596,7 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase">Remarks / Notes</label>
+                <label className="text-2xs text-slate-400 font-bold uppercase">Remarks / Notes</label>
                 <input
                   type="text"
                   value={immVisitForm.notes}

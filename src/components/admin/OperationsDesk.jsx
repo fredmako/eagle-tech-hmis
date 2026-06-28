@@ -1541,7 +1541,7 @@ export default function OperationsDesk({ user }) {
         {/* Stat 1: Low Stocks Alert */}
         <div className="bg-slate-955 border border-slate-855 p-4 rounded-xl flex items-center justify-between shadow-md">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Reorder Alerts</span>
+            <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider">Reorder Alerts</span>
             <h4 className={`text-xl font-black mt-1 font-mono ${totalReorderLevelAlerts > 0 ? 'text-red-400 animate-pulse' : 'text-slate-350'}`}>
               {totalReorderLevelAlerts} <span className="text-xs font-normal text-slate-500">items low</span>
             </h4>
@@ -1554,7 +1554,7 @@ export default function OperationsDesk({ user }) {
         {/* Stat 2: Pending PO Requisitions */}
         <div className="bg-slate-955 border border-slate-855 p-4 rounded-xl flex items-center justify-between shadow-md">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Awaiting PO Approvals</span>
+            <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider">Awaiting PO Approvals</span>
             <h4 className={`text-xl font-black mt-1 font-mono ${pendingPurchasesCount > 0 ? 'text-amber-400' : 'text-slate-350'}`}>
               {pendingPurchasesCount} <span className="text-xs font-normal text-slate-500">pending</span>
             </h4>
@@ -1567,7 +1567,7 @@ export default function OperationsDesk({ user }) {
         {/* Stat 3: Utilities Costs (Paid) */}
         <div className="bg-slate-955 border border-slate-855 p-4 rounded-xl flex items-center justify-between shadow-md">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Utilities Paid</span>
+            <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider">Total Utilities Paid</span>
             <h4 className="text-xl font-black text-blue-400 mt-1 font-mono">
               KES {monthlyUtilityTotalSpend.toLocaleString()}
             </h4>
@@ -1580,7 +1580,7 @@ export default function OperationsDesk({ user }) {
         {/* Stat 4: Outpatient Dynamic Sales */}
         <div className="bg-slate-955 border border-slate-855 p-4 rounded-xl flex items-center justify-between shadow-md">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dynamic Billed Sales (Paid)</span>
+            <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider">Dynamic Billed Sales (Paid)</span>
             <h4 className="text-xl font-black text-teal-400 mt-1 font-mono">
               KES {totalOutpatientSalesSpend.toLocaleString()}
             </h4>
@@ -1647,13 +1647,13 @@ export default function OperationsDesk({ user }) {
                     placeholder="Search stocks..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 pr-3 py-1 bg-slate-900 border border-slate-800 rounded-lg text-[10px] text-slate-300 placeholder-slate-500 focus:outline-none focus:border-teal-500 w-full sm:w-44 font-sans"
+                    className="pl-8 pr-3 py-1 bg-slate-900 border border-slate-800 rounded-lg text-2xs text-slate-300 placeholder-slate-500 focus:outline-none focus:border-teal-500 w-full sm:w-44 font-sans"
                   />
                 </div>
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="bg-slate-900 border border-slate-800 rounded-lg py-1 px-2 text-[10px] text-slate-300 focus:outline-none focus:border-teal-500"
+                  className="bg-slate-900 border border-slate-800 rounded-lg py-1 px-2 text-2xs text-slate-300 focus:outline-none focus:border-teal-500"
                 >
                   <option value="all">All Categories</option>
                   <option value="pharmaceutical">Pharmaceuticals</option>
@@ -1702,7 +1702,7 @@ export default function OperationsDesk({ user }) {
                             KES {parseFloat(item.unit_price).toFixed(2)}
                           </td>
                           <td className="py-3 px-3 text-center font-mono">
-                            <span className={`px-2 py-0.5 rounded font-extrabold text-[10px] ${
+                            <span className={`px-2 py-0.5 rounded font-extrabold text-2xs ${
                               isLow ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse' : 'bg-slate-900 text-slate-400 border border-slate-800'
                             }`}>
                               {item.quantity_in_stock}
@@ -1743,7 +1743,7 @@ export default function OperationsDesk({ user }) {
                 <h5 className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-900 pb-2">
                   <History size={12} /> Stock Adjustment Desk
                 </h5>
-                <p className="text-[10px] text-slate-400 font-sans">
+                <p className="text-2xs text-slate-400 font-sans">
                   Adjusting stock count for <strong className="text-slate-200">"{adjustingItem.name}"</strong>. Current stock: <strong className="text-slate-200">{adjustingItem.quantity_in_stock}</strong>.
                 </p>
 
@@ -1810,7 +1810,7 @@ export default function OperationsDesk({ user }) {
               <h5 className="text-[11px] font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-900 pb-2">
                 <PlusCircle size={12} className="text-teal-400" /> Register Inventory Item
               </h5>
-              <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+              <p className="text-2xs text-slate-500 leading-relaxed font-sans">
                 Register a new medical device, pharmaceutical, or consumable supply into the live facility stock registry.
               </p>
 
@@ -2000,7 +2000,7 @@ export default function OperationsDesk({ user }) {
                       </h5>
                       <button
                         onClick={handlePrintSuppliers}
-                        className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-bold text-slate-300 transition-all flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-2xs font-bold text-slate-300 transition-all flex items-center gap-1 cursor-pointer"
                       >
                         <Printer size={10} /> Print Suppliers
                       </button>
@@ -2026,7 +2026,7 @@ export default function OperationsDesk({ user }) {
                                 <td className="py-3 px-3 font-mono text-slate-400">{s.tax_pin || 'N/A'}</td>
                                 <td className="py-3 px-3">
                                   <span className="block text-slate-300">{s.phone || 'N/A'}</span>
-                                  <span className="block text-[10px] text-slate-500">{s.email || ''}</span>
+                                  <span className="block text-2xs text-slate-500">{s.email || ''}</span>
                                 </td>
                                 <td className="py-3 px-3 text-slate-400">{s.address || 'N/A'}</td>
                                 <td className="py-3 px-3 text-center">
@@ -2049,7 +2049,7 @@ export default function OperationsDesk({ user }) {
                     <h5 className="text-[11px] font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-900 pb-2">
                       <PlusCircle size={12} className="text-teal-400" /> Register Vendor / Supplier
                     </h5>
-                    <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+                    <p className="text-2xs text-slate-500 leading-relaxed font-sans">
                       Register a supplier to raise Local Purchase Orders (LPOs) and record tax-compliant invoices.
                     </p>
                     <form onSubmit={handleAddSupplier} className="space-y-4 font-sans">
@@ -2294,7 +2294,7 @@ export default function OperationsDesk({ user }) {
                     {purchaseOrders.length === 0 ? (
                       <div className="p-8 text-center text-slate-500 text-xs font-sans">No LPOs raised yet.</div>
                     ) : (
-                      <div className="space-y-3 overflow-y-auto max-h-[450px] pr-1.5">
+                      <div className="space-y-3 overflow-y-auto max-h-112.5 pr-1.5">
                         {purchaseOrders.map((po) => (
                           <div
                             key={po.id}
@@ -2316,11 +2316,11 @@ export default function OperationsDesk({ user }) {
                                 {po.status}
                               </span>
                             </div>
-                            <div className="flex justify-between items-center text-[10px] text-slate-400 font-sans">
+                            <div className="flex justify-between items-center text-2xs text-slate-400 font-sans">
                               <span>Supplier: {po.suppliers?.name || 'Unknown'}</span>
                               <span className="font-mono text-slate-500">{po.order_date}</span>
                             </div>
-                            <div className="flex justify-between items-center text-[10px]">
+                            <div className="flex justify-between items-center text-2xs">
                               <span className="text-slate-500">Store: {po.requesting_store}</span>
                               <span className="font-bold text-teal-400 font-mono">KES {parseFloat(po.estimated_total).toLocaleString()}</span>
                             </div>
@@ -2338,12 +2338,12 @@ export default function OperationsDesk({ user }) {
                   <div className="flex items-center justify-between border-b border-slate-900 pb-2">
                     <div>
                       <h4 className="text-xs font-black text-slate-200">LPO DETAILS: <span className="font-mono text-teal-400">{selectedPO.id}</span></h4>
-                      <p className="text-[10px] text-slate-500 font-sans">Raised Date: {selectedPO.order_date} | Supplier: {selectedPO.suppliers?.name || 'N/A'}</p>
+                      <p className="text-2xs text-slate-500 font-sans">Raised Date: {selectedPO.order_date} | Supplier: {selectedPO.suppliers?.name || 'N/A'}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => handlePrintLPO(selectedPO)}
-                        className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-700 text-[10px] text-white font-bold flex items-center gap-1 cursor-pointer transition-all"
+                        className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-700 text-2xs text-white font-bold flex items-center gap-1 cursor-pointer transition-all"
                       >
                         <Printer size={10} /> Print LPO
                       </button>
@@ -2659,7 +2659,7 @@ export default function OperationsDesk({ user }) {
                     {stockReceipts.length === 0 ? (
                       <div className="p-8 text-center text-slate-500 text-xs font-sans">No receipts confirmed yet.</div>
                     ) : (
-                      <div className="space-y-3 overflow-y-auto max-h-[450px] pr-1.5">
+                      <div className="space-y-3 overflow-y-auto max-h-112.5 pr-1.5">
                         {stockReceipts.map((rec) => (
                           <div
                             key={rec.id}
@@ -2674,12 +2674,12 @@ export default function OperationsDesk({ user }) {
                               <span className="text-xs font-bold text-slate-200">Invoice: <span className="font-mono text-teal-400">{rec.invoice_number}</span></span>
                               <span className="text-[9px] text-slate-500 font-mono">{rec.received_date}</span>
                             </div>
-                            <div className="flex justify-between text-[10px] text-slate-400">
+                            <div className="flex justify-between text-2xs text-slate-400">
                               <span>Supplier: {rec.suppliers?.name || 'Unknown'}</span>
                               <span className="text-[9.5px] font-mono text-slate-500">{rec.id}</span>
                             </div>
                             {rec.comments && (
-                              <span className="text-[10px] italic text-slate-500 block truncate">"{rec.comments}"</span>
+                              <span className="text-2xs italic text-slate-500 block truncate">"{rec.comments}"</span>
                             )}
                           </div>
                         ))}
@@ -2695,12 +2695,12 @@ export default function OperationsDesk({ user }) {
                   <div className="flex items-center justify-between border-b border-slate-900 pb-2">
                     <div>
                       <h4 className="text-xs font-black text-slate-200">RECEIPT ITEMS LOGS: INVOICE <span className="font-mono text-teal-400">{selectedReceipt.invoice_number}</span></h4>
-                      <p className="text-[10px] text-slate-500 font-sans">Supplier: {selectedReceipt.suppliers?.name} | Confirmed Date: {selectedReceipt.received_date}</p>
+                      <p className="text-2xs text-slate-500 font-sans">Supplier: {selectedReceipt.suppliers?.name} | Confirmed Date: {selectedReceipt.received_date}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => handlePrintReceipt(selectedReceipt)}
-                        className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-700 text-[10px] text-white font-bold flex items-center gap-1 cursor-pointer transition-all"
+                        className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-700 text-2xs text-white font-bold flex items-center gap-1 cursor-pointer transition-all"
                       >
                         <Printer size={10} /> Print Receipt
                       </button>
@@ -2892,7 +2892,7 @@ export default function OperationsDesk({ user }) {
                     {storeRequisitions.length === 0 ? (
                       <div className="p-8 text-center text-slate-500 text-xs">No requisitions logged yet.</div>
                     ) : (
-                      <div className="space-y-3 overflow-y-auto max-h-[450px] pr-1.5">
+                      <div className="space-y-3 overflow-y-auto max-h-112.5 pr-1.5">
                         {storeRequisitions.map((req) => (
                           <div
                             key={req.id}
@@ -2913,7 +2913,7 @@ export default function OperationsDesk({ user }) {
                                 {req.status}
                               </span>
                             </div>
-                            <div className="text-[10px] text-slate-400 flex justify-between">
+                            <div className="text-2xs text-slate-400 flex justify-between">
                               <span>Dept: {req.requesting_store}</span>
                               <span className="text-[9px] text-slate-500 font-mono">{req.request_date}</span>
                             </div>
@@ -2931,12 +2931,12 @@ export default function OperationsDesk({ user }) {
                   <div className="flex items-center justify-between border-b border-slate-900 pb-2">
                     <div>
                       <h4 className="text-xs font-black text-slate-200">REQUISITION DETAIL: <span className="font-mono text-teal-400">{selectedRequisition.id}</span></h4>
-                      <p className="text-[10px] text-slate-500">Requesting Dept: {selectedRequisition.requesting_store} | Supplying Store: {selectedRequisition.supplying_store}</p>
+                      <p className="text-2xs text-slate-500">Requesting Dept: {selectedRequisition.requesting_store} | Supplying Store: {selectedRequisition.supplying_store}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => handlePrintRequisition(selectedRequisition)}
-                        className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-700 text-[10px] text-white font-bold flex items-center gap-1 cursor-pointer transition-all"
+                        className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-700 text-2xs text-white font-bold flex items-center gap-1 cursor-pointer transition-all"
                       >
                         <Printer size={10} /> Print Voucher
                       </button>
@@ -3004,8 +3004,8 @@ export default function OperationsDesk({ user }) {
                               <tr key={req.id} className="hover:bg-slate-900/10">
                                 <td className="py-3 px-3 text-slate-455 font-mono">{req.request_date}</td>
                                 <td className="py-3 px-3 font-mono font-bold text-slate-200">{req.id}</td>
-                                <td className="py-3 px-3 uppercase text-[10px] text-teal-400">{req.requesting_store}</td>
-                                <td className="py-3 px-3 text-slate-400 text-[10px]">{req.supplying_store}</td>
+                                <td className="py-3 px-3 uppercase text-2xs text-teal-400">{req.requesting_store}</td>
+                                <td className="py-3 px-3 text-slate-400 text-2xs">{req.supplying_store}</td>
                                 <td className="py-3 px-3 text-center">
                                   <span className="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-amber-500/5 text-amber-400 border border-amber-500/20 animate-pulse">
                                     {req.status}
@@ -3036,7 +3036,7 @@ export default function OperationsDesk({ user }) {
                     {selectedRequisition && selectedRequisition.status === 'pending' ? (
                       <div className="space-y-4">
                         <div className="p-3 bg-slate-900/60 rounded-xl space-y-1.5 border border-slate-900">
-                          <span className="text-[10px] font-bold text-slate-500 block uppercase tracking-wider">Selected Request Details</span>
+                          <span className="text-2xs font-bold text-slate-500 block uppercase tracking-wider">Selected Request Details</span>
                           <div className="text-xs text-slate-200">
                             <span className="font-mono block">Req Number: {selectedRequisition.id}</span>
                             <span className="block mt-1">From: <strong className="text-teal-400">{selectedRequisition.requesting_store}</strong></span>
@@ -3060,9 +3060,9 @@ export default function OperationsDesk({ user }) {
                                 <div key={item.id} className="p-3 bg-slate-900/30 border border-slate-900 rounded-xl space-y-2">
                                   <div className="flex justify-between items-start">
                                     <span className="text-xs font-bold text-slate-200 truncate max-w-[170px]" title={item.item_name}>{item.item_name}</span>
-                                    <span className="text-[10px] text-slate-400 font-sans">Requested: <strong className="text-slate-200">{item.quantity_requested}</strong></span>
+                                    <span className="text-2xs text-slate-400 font-sans">Requested: <strong className="text-slate-200">{item.quantity_requested}</strong></span>
                                   </div>
-                                  <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 bg-slate-950/60 p-1.5 rounded-lg border border-slate-900 font-mono">
+                                  <div className="grid grid-cols-2 gap-2 text-2xs text-slate-500 bg-slate-950/60 p-1.5 rounded-lg border border-slate-900 font-mono">
                                     <span>RStoreQty: <strong className="text-slate-350">{rQty}</strong></span>
                                     <span>SStoreQty: <strong className={sQty < item.quantity_requested ? 'text-red-400 font-extrabold' : 'text-teal-400 font-extrabold'}>{sQty}</strong></span>
                                   </div>
@@ -3174,15 +3174,15 @@ export default function OperationsDesk({ user }) {
                           <tbody className="divide-y divide-slate-900 font-semibold text-slate-355">
                             {filtered.map((item) => (
                               <tr key={item.id} className="hover:bg-slate-900/10">
-                                <td className="py-2.5 px-3 text-slate-455 font-mono text-[10px]">{item.stock_receipts?.received_date}</td>
+                                <td className="py-2.5 px-3 text-slate-455 font-mono text-2xs">{item.stock_receipts?.received_date}</td>
                                 <td className="py-2.5 px-3 font-mono font-bold text-slate-200">{item.stock_receipts?.invoice_number}</td>
                                 <td className="py-2.5 px-3 font-mono text-amber-500 text-[10.5px]">{item.batch_number}</td>
                                 <td className="py-2.5 px-3 text-xs text-slate-250 font-bold">{item.item_name}</td>
-                                <td className="py-2.5 px-3 font-mono text-red-400 text-[10px]">{item.expiry_date}</td>
-                                <td className="py-2.5 px-3 text-[10px] text-slate-400">{item.stock_receipts?.suppliers?.name || 'N/A'}</td>
+                                <td className="py-2.5 px-3 font-mono text-red-400 text-2xs">{item.expiry_date}</td>
+                                <td className="py-2.5 px-3 text-2xs text-slate-400">{item.stock_receipts?.suppliers?.name || 'N/A'}</td>
                                 <td className="py-2.5 px-3 text-center font-mono text-slate-250">{item.quantity_received}</td>
                                 <td className="py-2.5 px-3 text-right font-mono text-teal-400">KES {parseFloat(item.buy_price).toFixed(2)}</td>
-                                <td className="py-2.5 px-3 text-slate-455 text-[10px]">Staff Admin</td>
+                                <td className="py-2.5 px-3 text-slate-455 text-2xs">Staff Admin</td>
                               </tr>
                             ))}
                           </tbody>
@@ -3272,7 +3272,7 @@ export default function OperationsDesk({ user }) {
             <h5 className="text-[11px] font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-900 pb-2">
               <PlusCircle size={12} className="text-teal-400" /> Log Utility Expense
             </h5>
-            <p className="text-[10px] text-slate-500 leading-relaxed">
+            <p className="text-2xs text-slate-500 leading-relaxed">
               Track recurring utility invoices (electricity, water, laundry, waste disposal, internet) to monitor facility operations overheads.
             </p>
 
@@ -3345,7 +3345,7 @@ export default function OperationsDesk({ user }) {
           <h5 className="text-[11px] font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-900 pb-2">
             <DollarSign size={12} className="text-teal-400" /> Dynamic Sales Billing Ledger
           </h5>
-          <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+          <p className="text-2xs text-slate-500 leading-relaxed font-sans">
             Lists patient service sales generated dynamically from the facility cashiers and outpatient check-out panels. Only paid receipts count towards dynamic outpatient revenue sums.
           </p>
 
@@ -3368,13 +3368,13 @@ export default function OperationsDesk({ user }) {
                 <tbody className="divide-y divide-slate-900 font-semibold text-slate-300">
                   {invoices.map((inv) => (
                     <tr key={inv.id} className="hover:bg-slate-900/10 transition">
-                      <td className="py-3 px-3 font-mono text-[10px]">
+                      <td className="py-3 px-3 font-mono text-2xs">
                         #{inv.id}
                       </td>
-                      <td className="py-3 px-3 text-slate-450 font-mono text-[10px]">
+                      <td className="py-3 px-3 text-slate-450 font-mono text-2xs">
                         {new Date(inv.created_at).toLocaleString()}
                       </td>
-                      <td className="py-3 px-3 text-slate-400 text-[10px] uppercase font-bold">
+                      <td className="py-3 px-3 text-slate-400 text-2xs uppercase font-bold">
                         {inv.payment_method || 'cash'}
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-[10.5px]">

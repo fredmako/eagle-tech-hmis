@@ -563,7 +563,7 @@ export default function Payroll({ user }) {
         {loading ? (
           <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-2 py-20">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-teal-500 border-t-transparent" />
-            <span className="text-[10px] font-mono">Loading Payroll Ledger...</span>
+            <span className="text-2xs font-mono">Loading Payroll Ledger...</span>
           </div>
         ) : (
           <div className="space-y-5 flex-1 flex flex-col min-w-0">
@@ -576,7 +576,7 @@ export default function Payroll({ user }) {
                   <div className="overflow-x-auto border border-slate-850 rounded-xl bg-slate-900/20">
                     <table className="w-full text-left text-xs border-collapse font-sans">
                       <thead>
-                        <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-[10px] uppercase font-bold">
+                        <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-2xs uppercase font-bold">
                           <th className="py-2.5 px-3">Bank Code</th>
                           <th className="py-2.5 px-3">Bank Name</th>
                           <th className="py-2.5 px-3">Branch</th>
@@ -634,13 +634,13 @@ export default function Payroll({ user }) {
               <div className="space-y-4 max-w-4xl">
                 <div className="pb-2 border-b border-slate-800">
                   <h3 className="text-sm font-bold text-slate-100">PAYE Taxation Setup (Statutory Kenya)</h3>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Define taxable income bands and percentage tax rates computed on gross earnings.</p>
+                  <p className="text-2xs text-slate-500 mt-0.5">Define taxable income bands and percentage tax rates computed on gross earnings.</p>
                 </div>
 
                 <div className="overflow-x-auto border border-slate-850 rounded-xl bg-slate-900/20">
                   <table className="w-full text-left text-xs border-collapse font-sans">
                     <thead>
-                      <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-[10px] uppercase font-bold">
+                      <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-2xs uppercase font-bold">
                         <th className="py-2.5 px-3">Tax Band</th>
                         <th className="py-2.5 px-3">Taxable Income Min (KES)</th>
                         <th className="py-2.5 px-3">Taxable Income Max (KES)</th>
@@ -691,7 +691,7 @@ export default function Payroll({ user }) {
                   <div className="overflow-x-auto border border-slate-850 rounded-xl bg-slate-900/20">
                     <table className="w-full text-left text-xs border-collapse font-sans">
                       <thead>
-                        <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-[10px] uppercase font-bold">
+                        <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-2xs uppercase font-bold">
                           <th className="py-2.5 px-3">Deduction Code</th>
                           <th className="py-2.5 px-3">Description</th>
                           <th className="py-2.5 px-3">Calculation Method</th>
@@ -755,7 +755,7 @@ export default function Payroll({ user }) {
 
             {/* TAB 4: ALLOWANCES SETUP (Active in Screenshot) */}
             {activeTab === 'allowances_setup' && (
-              <div className="space-y-4 flex-grow flex flex-col min-w-0">
+              <div className="space-y-4 grow flex flex-col min-w-0">
                 {/* Secondary Tab selector */}
                 <div className="flex border-b border-slate-800 pb-px gap-1 select-none shrink-0">
                   <button
@@ -809,10 +809,10 @@ export default function Payroll({ user }) {
                       </div>
                     </div>
 
-                    <div className="overflow-x-auto border border-slate-850 rounded-xl bg-slate-900/20 flex-grow">
+                    <div className="overflow-x-auto border border-slate-850 rounded-xl bg-slate-900/20 grow">
                       <table className="w-full text-left text-xs border-collapse font-sans">
                         <thead>
-                          <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-[10px] uppercase font-bold">
+                          <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-2xs uppercase font-bold">
                             <th className="py-2.5 px-3">Code</th>
                             <th className="py-2.5 px-3">Description</th>
                             <th className="py-2.5 px-3">Value</th>
@@ -842,7 +842,7 @@ export default function Payroll({ user }) {
                                   </span>
                                 </td>
                                 <td className="py-2.5 px-3 text-right space-x-1">
-                                  <button onClick={() => handleEditAllowance(al)} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-white border border-rose-500/20 hover:border-rose-500 font-bold text-[10px] px-3.5 py-1 rounded transition duration-200 cursor-pointer">
+                                  <button onClick={() => handleEditAllowance(al)} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-white border border-rose-500/20 hover:border-rose-500 font-bold text-2xs px-3.5 py-1 rounded transition duration-200 cursor-pointer">
                                     ✔ Edit
                                   </button>
                                   <button onClick={() => handleDeleteRecord('payroll_allowances', al.id, al.code)} className="text-slate-600 hover:text-red-400 p-1"><Trash2 size={12} /></button>
@@ -917,7 +917,7 @@ export default function Payroll({ user }) {
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <button type="submit" disabled={saving} className="flex-grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
+                        <button type="submit" disabled={saving} className="grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
                           <Save size={12} /> {saving ? 'Saving...' : 'Save Allowance'}
                         </button>
                         <button type="button" onClick={() => setAllowanceTab('listing')} className="bg-slate-800 hover:bg-slate-755 text-slate-300 font-bold text-xs py-2 px-4 rounded-lg">Cancel</button>
@@ -936,7 +936,7 @@ export default function Payroll({ user }) {
                   <div className="overflow-x-auto border border-slate-850 rounded-xl bg-slate-900/20">
                     <table className="w-full text-left text-xs border-collapse font-sans">
                       <thead>
-                        <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-[10px] uppercase font-bold">
+                        <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-2xs uppercase font-bold">
                           <th className="py-2.5 px-3">Staff Name</th>
                           <th className="py-2.5 px-3">Role</th>
                           <th className="py-2.5 px-3">Basic Salary (KES)</th>
@@ -967,7 +967,7 @@ export default function Payroll({ user }) {
                   <h4 className="text-xs font-bold uppercase text-teal-400 border-b border-slate-850 pb-2">Set Salary Profile</h4>
                   {selectedEmpId ? (
                     <form onSubmit={handleSaveEmployeeSalary} className="space-y-3">
-                      <div className="text-[10px] text-slate-400 bg-slate-950 p-2.5 rounded-lg border border-slate-850 mb-2 leading-relaxed">
+                      <div className="text-2xs text-slate-400 bg-slate-950 p-2.5 rounded-lg border border-slate-850 mb-2 leading-relaxed">
                         Setting salary metrics for: <span className="text-teal-400 font-bold block mt-0.5">{employees.find(e => e.id === selectedEmpId)?.full_name}</span>
                       </div>
                       <div>
@@ -986,14 +986,14 @@ export default function Payroll({ user }) {
                         <input type="text" placeholder="Disbursement account" value={empBankAccount} onChange={e => setBankAccount(e.target.value)} className="w-full bg-slate-955 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-200 font-mono" />
                       </div>
                       <div className="flex gap-2">
-                        <button type="submit" disabled={saving} className="flex-grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
+                        <button type="submit" disabled={saving} className="grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
                           <Save size={12} /> Save Info
                         </button>
                         <button type="button" onClick={clearFields} className="bg-slate-800 hover:bg-slate-755 text-slate-300 font-bold text-xs py-2 px-3 rounded-lg">Cancel</button>
                       </div>
                     </form>
                   ) : (
-                    <div className="text-center py-6 text-slate-500 text-[10px]">
+                    <div className="text-center py-6 text-slate-500 text-2xs">
                       <Users size={20} className="mx-auto text-slate-700 mb-2" />
                       <span>Select an employee edit icon on the left to set wage rates.</span>
                     </div>
@@ -1008,7 +1008,7 @@ export default function Payroll({ user }) {
                 <div className="flex justify-between items-center pb-2 border-b border-slate-800 shrink-0 gap-3">
                   <div>
                     <h3 className="text-sm font-bold text-slate-100">Run Monthly Payroll Batch</h3>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Aggregate Basic Salary + Active Allowances, deduct PAYE tax, and statutory levies.</p>
+                    <p className="text-2xs text-slate-500 mt-0.5">Aggregate Basic Salary + Active Allowances, deduct PAYE tax, and statutory levies.</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <select value={payrollMonth} onChange={e => setPayrollMonth(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-lg py-1 px-3 text-xs font-semibold text-slate-200">
@@ -1024,10 +1024,10 @@ export default function Payroll({ user }) {
                   </div>
                 </div>
 
-                <div className="overflow-x-auto border border-slate-850 rounded-xl bg-slate-900/20 flex-grow">
+                <div className="overflow-x-auto border border-slate-850 rounded-xl bg-slate-900/20 grow">
                   <table className="w-full text-left text-xs border-collapse font-sans">
                     <thead>
-                      <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-[10px] uppercase font-bold">
+                      <tr className="bg-slate-950 text-slate-400 border-b border-slate-850 text-2xs uppercase font-bold">
                         <th className="py-2.5 px-3">Batch Month</th>
                         <th className="py-2.5 px-3">Year</th>
                         <th className="py-2.5 px-3">Staff Evaluated</th>
@@ -1087,7 +1087,7 @@ export default function Payroll({ user }) {
           <div className="h-4 w-4 rounded-full bg-slate-900 flex items-center justify-center shrink-0">
             {toast.type === 'error' ? <ShieldAlert size={10} className="text-red-400" /> : <Check size={10} className="text-teal-400" />}
           </div>
-          <span className="text-[10px] font-bold font-sans">{toast.message}</span>
+          <span className="text-2xs font-bold font-sans">{toast.message}</span>
         </div>
       )}
     </div>

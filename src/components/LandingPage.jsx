@@ -139,10 +139,9 @@ export default function LandingPage({
   ]);
   const [chatTyping, setChatTyping] = useState(false);
   const [chatSessionId, setChatSessionId] = useState(
-    () => `public_chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    () => `public_chat_${globalThis.Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
   );
   const [chatEscalation, setChatEscalation] = useState(null);
-  const Date = globalThis.Date;
 
   const faqs = [
     {
@@ -579,7 +578,7 @@ Bot reply: ${lastBot?.text || ""}`,
                       )}
                       {userFacilities.length > 0 ? (
                         <>
-                          <div className="px-3 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          <div className="px-3 py-1 text-2xs font-bold text-slate-500 uppercase tracking-wider">
                             Hospital Portals
                           </div>
                           {userFacilities.map((fac) => (
@@ -597,7 +596,7 @@ Bot reply: ${lastBot?.text || ""}`,
                                   size={14}
                                   className="text-slate-400"
                                 />
-                                <span className="font-medium truncate max-w-[130px]">
+                                <span className="font-medium truncate max-w-32.5">
                                   {fac.facility_name}
                                 </span>
                               </div>
@@ -746,7 +745,7 @@ Bot reply: ${lastBot?.text || ""}`,
                           )}
                           {userFacilities.length > 0 && (
                             <>
-                              <div className="px-3 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                              <div className="px-3 py-1 text-2xs font-bold text-slate-500 uppercase tracking-wider">
                                 Hospital Portals
                               </div>
                               {userFacilities.map((fac) => (
@@ -765,7 +764,7 @@ Bot reply: ${lastBot?.text || ""}`,
                                       size={14}
                                       className="text-slate-400"
                                     />
-                                    <span className="font-medium truncate max-w-[150px]">
+                                    <span className="font-medium truncate max-w-37.5">
                                       {fac.facility_name}
                                     </span>
                                   </div>
@@ -919,7 +918,7 @@ Bot reply: ${lastBot?.text || ""}`,
                             <span className="text-xs">{cat.name}</span>
                           </div>
                           <span
-                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                            className={`text-2xs px-2 py-0.5 rounded-full font-bold ${
                               isActive
                                 ? "bg-primary/20 text-primary"
                                 : "bg-slate-800/40 text-slate-500"
@@ -968,7 +967,7 @@ Bot reply: ${lastBot?.text || ""}`,
                 </div>
 
                 {/* EagleBot CTA (Desktop only) */}
-                <div className="hidden lg:block p-5 bg-gradient-to-br from-primary/10 to-teal-500/5 rounded-2xl border border-primary/20 space-y-3">
+                <div className="hidden lg:block p-5 bg-linear-to-br from-primary/10 to-teal-500/5 rounded-2xl border border-primary/20 space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0">
                       <MessageSquare size={16} />
@@ -977,7 +976,7 @@ Bot reply: ${lastBot?.text || ""}`,
                       <h4 className="text-xs font-bold text-slate-100">
                         Still have questions?
                       </h4>
-                      <p className="text-[10px] text-slate-400 leading-tight">
+                      <p className="text-2xs text-slate-400 leading-tight">
                         Chat with EagleBot for instant support.
                       </p>
                     </div>
@@ -1013,7 +1012,7 @@ Bot reply: ${lastBot?.text || ""}`,
                         <h4 className="text-xs font-bold text-slate-200 mt-0.5">
                           {doc.title}
                         </h4>
-                        <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5">
+                        <p className="text-2xs text-slate-500 leading-relaxed mt-0.5">
                           {doc.short}
                         </p>
                       </div>
@@ -1076,7 +1075,7 @@ Bot reply: ${lastBot?.text || ""}`,
                       <h4 className="text-xs font-bold text-slate-350">
                         No questions found
                       </h4>
-                      <p className="text-[10px] text-slate-500 max-w-xs mx-auto">
+                      <p className="text-2xs text-slate-500 max-w-xs mx-auto">
                         We couldn't find any FAQs matching "{faqSearch}". Try
                         adjusting your keywords or chat directly with EagleBot.
                       </p>
@@ -1115,7 +1114,7 @@ Bot reply: ${lastBot?.text || ""}`,
                         <h4 className="text-xs font-bold text-slate-200 mt-0.5">
                           {doc.title}
                         </h4>
-                        <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5">
+                        <p className="text-2xs text-slate-500 leading-relaxed mt-0.5">
                           {doc.short}
                         </p>
                       </div>
@@ -1128,13 +1127,13 @@ Bot reply: ${lastBot?.text || ""}`,
 
           {/* Guide Document Details Modal */}
           {selectedDoc && (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 font-sans animate-fadeIn">
+            <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 font-sans animate-fadeIn">
               <div className="w-full max-w-2xl bg-slate-900 border border-slate-850 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-emerald-500 to-primary" />
+                <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-primary via-emerald-500 to-primary" />
 
                 <div className="p-6 border-b border-slate-850 flex justify-between items-start gap-4">
                   <div>
-                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">
+                    <span className="text-2xs font-bold text-primary uppercase tracking-wider block">
                       {selectedDoc.category} Guide
                     </span>
                     <h3 className="text-base font-bold text-slate-100 mt-1">
@@ -1158,7 +1157,7 @@ Bot reply: ${lastBot?.text || ""}`,
                 </div>
 
                 <div className="p-4 bg-slate-950 border-t border-slate-850 flex justify-between items-center gap-4">
-                  <span className="text-[10px] text-slate-500 italic">
+                  <span className="text-2xs text-slate-500 italic">
                     Need further assistance? Submit a ticket below.
                   </span>
                   <button
@@ -1168,7 +1167,7 @@ Bot reply: ${lastBot?.text || ""}`,
                         .getElementById("support")
                         ?.scrollIntoView({ behavior: "smooth" });
                     }}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[10px] py-1.5 px-4 rounded-lg transition cursor-pointer"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-2xs py-1.5 px-4 rounded-lg transition cursor-pointer"
                   >
                     Contact Support Team
                   </button>
@@ -1311,7 +1310,7 @@ Bot reply: ${lastBot?.text || ""}`,
       <Footer />
 
       {/* Floating Chatbot Widget */}
-      <div className="fixed bottom-6 left-6 z-[9999] font-sans">
+      <div className="fixed bottom-6 left-6 z-9999 font-sans">
         {/* Toggle Button */}
         {!chatOpen && (
           <button
@@ -1325,7 +1324,7 @@ Bot reply: ${lastBot?.text || ""}`,
 
         {/* Chat Window */}
         {chatOpen && (
-          <div className="w-80 sm:w-96 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col h-[450px] animate-fadeIn">
+          <div className="w-80 sm:w-96 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col h-112.5 animate-fadeIn">
             {/* Header */}
             <div className="p-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-2">
@@ -1375,7 +1374,7 @@ Bot reply: ${lastBot?.text || ""}`,
               ))}
               {chatTyping && (
                 <div className="flex justify-start">
-                  <div className="bg-slate-955 border border-slate-855 text-slate-450 rounded-2xl rounded-tl-none py-2 px-3 text-[10px] italic flex items-center gap-1.5 font-sans">
+                  <div className="bg-slate-955 border border-slate-855 text-slate-450 rounded-2xl rounded-tl-none py-2 px-3 text-2xs italic flex items-center gap-1.5 font-sans">
                     <span className="h-1 w-1 bg-slate-400 rounded-full animate-bounce" />
                     <span className="h-1 w-1 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]" />
                     <span className="h-1 w-1 bg-slate-400 rounded-full animate-bounce [animation-delay:0.4s]" />
@@ -1388,7 +1387,7 @@ Bot reply: ${lastBot?.text || ""}`,
                   <button
                     type="button"
                     onClick={handleChatCreateTicket}
-                    className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition"
+                    className="text-2xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition"
                   >
                     Create support ticket from this chat
                   </button>
@@ -1420,7 +1419,7 @@ Bot reply: ${lastBot?.text || ""}`,
                   key={chip.label}
                   type="button"
                   onClick={() => handleChatSend(chip.text)}
-                  className="bg-slate-950 border border-slate-850 hover:border-primary/30 text-[10px] text-slate-400 hover:text-primary py-1 px-2.5 rounded-full transition cursor-pointer shrink-0 font-sans"
+                  className="bg-slate-950 border border-slate-850 hover:border-primary/30 text-2xs text-slate-400 hover:text-primary py-1 px-2.5 rounded-full transition cursor-pointer shrink-0 font-sans"
                 >
                   {chip.label}
                 </button>

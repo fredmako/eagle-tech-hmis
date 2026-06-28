@@ -22,7 +22,7 @@ export function About({ onRegister }) {
               className="relative hover-shine group rounded-xl overflow-hidden aspect-[4/3] bg-secondary border border-border-subtle"
             >
               <SafeImage src={PHOTO_ABOUT} alt="Clinical staff in training" className="w-full h-full object-cover clinical-photo-soft group-hover:scale-105 transition-transform duration-1000 ease-out" />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4">
                 <div className="inline-flex items-start gap-3 rounded-xl p-3.5 bg-background/85 border border-border-strong backdrop-blur-sm">
                   <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0"><CheckCircle2 size={14} className="text-primary" /></div>
@@ -50,7 +50,7 @@ export function About({ onRegister }) {
               className="hidden md:block absolute -bottom-8 -right-6 w-44 h-32 rounded-xl overflow-hidden border border-border-strong shadow-overlay hover-shine group/sec cursor-pointer"
             >
               <SafeImage src={PHOTO_ABOUT_SECONDARY} alt="Onboarding session" className="w-full h-full object-cover clinical-photo group-hover/sec:scale-105 transition-transform duration-1000 ease-out" />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-background/60 to-transparent" />
             </motion.div>
           </div>
           <Stagger className="grid grid-cols-2 gap-3 pt-4" stagger={0.06}>

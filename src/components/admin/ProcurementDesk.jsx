@@ -212,7 +212,7 @@ export default function ProcurementDesk({ user }) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-slate-955 border border-slate-855 p-4 rounded-xl flex items-center justify-between shadow-md">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Requisitions</span>
+            <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider">Total Requisitions</span>
             <h4 className="text-xl font-black text-white mt-1 font-mono">{totalOrders}</h4>
           </div>
           <div className="p-2.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg">
@@ -222,7 +222,7 @@ export default function ProcurementDesk({ user }) {
 
         <div className="bg-slate-955 border border-slate-855 p-4 rounded-xl flex items-center justify-between shadow-md">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Awaiting Review</span>
+            <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider">Awaiting Review</span>
             <h4 className={`text-xl font-black mt-1 font-mono ${pendingOrders > 0 ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`}>{pendingOrders}</h4>
           </div>
           <div className={`p-2.5 rounded-lg border ${pendingOrders > 0 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-slate-800/40 border-slate-800 text-slate-500'}`}>
@@ -232,7 +232,7 @@ export default function ProcurementDesk({ user }) {
 
         <div className="bg-slate-955 border border-slate-855 p-4 rounded-xl flex items-center justify-between shadow-md">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Approved Capital Spend</span>
+            <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider">Approved Capital Spend</span>
             <h4 className="text-xl font-black text-teal-400 mt-1 font-mono">${totalSpend.toFixed(2)}</h4>
           </div>
           <div className="p-2.5 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-lg">
@@ -268,12 +268,12 @@ export default function ProcurementDesk({ user }) {
                   {orders.map((o) => (
                     <tr key={o.id} className="hover:bg-slate-900/10 transition">
                       <td className="py-3 px-3">
-                        <span className="text-xs text-slate-200 block truncate max-w-[150px]" title={o.item_name}>
+                        <span className="text-xs text-slate-200 block truncate max-w-37.5" title={o.item_name}>
                           {o.item_name}
                         </span>
-                        <span className="text-[10px] text-slate-500 font-mono">Qty: {o.quantity}</span>
+                        <span className="text-2xs text-slate-500 font-mono">Qty: {o.quantity}</span>
                       </td>
-                      <td className="py-3 px-3 text-slate-400 text-[10px] truncate max-w-[100px]" title={o.supplier}>
+                      <td className="py-3 px-3 text-slate-400 text-2xs truncate max-w-[100px]" title={o.supplier}>
                         {o.supplier}
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-[10.5px]">
@@ -343,7 +343,7 @@ export default function ProcurementDesk({ user }) {
           <h5 className="text-[11px] font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-900 pb-2">
             <PlusCircle size={12} className="text-teal-400" /> New Supply Requisition
           </h5>
-          <p className="text-[10px] text-slate-500 leading-relaxed font-sans">Submit a purchase request for hospital inventory. Approving orders updates your capital expenditure charts.</p>
+          <p className="text-2xs text-slate-500 leading-relaxed font-sans">Submit a purchase request for hospital inventory. Approving orders updates your capital expenditure charts.</p>
 
           <form onSubmit={handleCreateRequisition} className="space-y-4">
             <div>

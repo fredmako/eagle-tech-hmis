@@ -355,11 +355,11 @@ export default function Consultation({ user, onComplete, showNotification }) {
         </div>
         <div className="w-full bg-slate-900 rounded-full h-3.5 border border-slate-800 overflow-hidden p-[2px]">
           <div
-            className={`h-full rounded-full bg-gradient-to-r ${trimesterColor} transition-all duration-500`}
+            className={`h-full rounded-full bg-linear-to-r ${trimesterColor} transition-all duration-500`}
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-        <div className="flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+        <div className="flex justify-between text-2xs text-slate-500 font-bold uppercase tracking-wider">
           <span>LMP: {activePregnancy?.lmp_date}</span>
           <span>EDD: {ancEdd || activePregnancy?.estimated_delivery_date}</span>
         </div>
@@ -386,7 +386,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                 <td className="p-3 font-semibold text-slate-200">
                   {m.method_name}
                 </td>
-                <td className="p-3 uppercase font-mono text-[10px] text-teal-400">
+                <td className="p-3 uppercase font-mono text-2xs text-teal-400">
                   {m.method_code}
                 </td>
                 <td className="p-3 text-slate-400">
@@ -400,7 +400,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                     : "Category 1"}
                 </td>
                 <td
-                  className="p-3 text-[10px] text-slate-500 max-w-xs truncate"
+                  className="p-3 text-2xs text-slate-500 max-w-xs truncate"
                   title={m.side_effects_list?.join(", ")}
                 >
                   {m.side_effects_list?.join(", ") || "None reported"}
@@ -1880,7 +1880,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
             <ClipboardList size={14} className="text-teal-400" /> Consult Queue
             ({queue.length})
           </h2>
-          <p className="text-[10px] text-slate-500 mt-0.5">
+          <p className="text-2xs text-slate-500 mt-0.5">
             Select patient for consultation
           </p>
         </div>
@@ -1959,7 +1959,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
             <div className="bg-slate-950 border border-slate-850/80 p-4 rounded-xl space-y-3">
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                 <div>
-                  <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider">
+                  <span className="text-2xs text-teal-400 font-bold uppercase tracking-wider">
                     Outpatient Consultation
                   </span>
                   <h3 className="text-sm font-bold text-slate-100">
@@ -1972,17 +1972,17 @@ export default function Consultation({ user, onComplete, showNotification }) {
                 <div className="flex flex-wrap items-center gap-3 text-left sm:text-right justify-start sm:justify-end">
                   <button
                     onClick={handlePrintConsultationSummary}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-teal-400 hover:text-teal-300 border border-slate-700 hover:border-teal-500/30 text-[10px] font-bold rounded-lg transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-teal-400 hover:text-teal-300 border border-slate-700 hover:border-teal-500/30 text-2xs font-bold rounded-lg transition-all"
                   >
                     <Printer size={12} />
                     Print Summary
                   </button>
                   <div>
-                    <span className="text-[10px] text-slate-500 block">
+                    <span className="text-2xs text-slate-500 block">
                       Triage Priority Badge
                     </span>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${
+                      className={`text-2xs font-bold px-2 py-0.5 rounded border uppercase ${
                         triageData?.priority_flag === "red"
                           ? "text-red-400 bg-red-950/20 border-red-500/20"
                           : triageData?.priority_flag === "yellow"
@@ -2070,7 +2070,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                       />{" "}
                       Laboratory Examination Results Ready
                     </h4>
-                    <span className="text-[10px] bg-emerald-400/10 text-emerald-400 border border-emerald-400/20 px-2 py-0.5 rounded-full font-bold font-sans">
+                    <span className="text-2xs bg-emerald-400/10 text-emerald-400 border border-emerald-400/20 px-2 py-0.5 rounded-full font-bold font-sans">
                       Released ({currentVisitReleasedLabs.length})
                     </span>
                   </div>
@@ -2118,7 +2118,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                               {parameterValues.map(([param, val], idx) => (
                                 <div
                                   key={idx}
-                                  className="flex justify-between text-[10px] py-0.5 border-b border-slate-950/40 last:border-b-0"
+                                  className="flex justify-between text-2xs py-0.5 border-b border-slate-950/40 last:border-b-0"
                                 >
                                   <span className="text-slate-400 font-medium">
                                     {param}:
@@ -2136,7 +2136,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                           )}
 
                           {lab.notes && (
-                            <p className="text-[10px] text-slate-500 italic">
+                            <p className="text-2xs text-slate-500 italic">
                               Note: {lab.notes}
                             </p>
                           )}
@@ -2159,7 +2159,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 text-xs">
                   {/* Previous Consultations */}
                   <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">
+                    <span className="text-2xs text-slate-400 font-bold uppercase block">
                       SOAP History
                     </span>
                     {patientHistory.consultations.length === 0 ? (
@@ -2217,7 +2217,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
 
                   {/* Vitals Trends Table */}
                   <div className="space-y-2.5">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">
+                    <span className="text-2xs text-slate-400 font-bold uppercase block">
                       Vitals Trends Chart
                     </span>
                     {patientHistory.triages.length === 0 ? (
@@ -2226,7 +2226,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                       </p>
                     ) : (
                       <div className="overflow-x-auto border border-slate-850 rounded-lg bg-slate-950">
-                        <table className="w-full text-left text-[10px] border-collapse font-mono">
+                        <table className="w-full text-left text-2xs border-collapse font-mono">
                           <thead>
                             <tr className="bg-slate-900 border-b border-slate-850 text-slate-400">
                               <th className="p-2">Date</th>
@@ -2278,7 +2278,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
 
                   {/* Previous Diagnostic Findings */}
                   <div className="lg:col-span-2 space-y-2.5 max-h-52 overflow-y-auto pr-1">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">
+                    <span className="text-2xs text-slate-400 font-bold uppercase block">
                       Diagnostic Reports & Released Results
                     </span>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -2329,7 +2329,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                                       : "N/A"}{" "}
                                     | Type: {o.type.toUpperCase()}
                                   </span>
-                                  <p className="text-slate-400 font-mono text-[10px] mt-1 bg-slate-900/50 p-1.5 rounded border border-slate-900">
+                                  <p className="text-slate-400 font-mono text-2xs mt-1 bg-slate-900/50 p-1.5 rounded border border-slate-900">
                                     Result: {formattedResult}
                                   </p>
                                 </div>
@@ -2384,7 +2384,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                     <option value="fp">Family Planning (FP) Template</option>
                   </select>
                 </div>
-                <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider bg-teal-500/10 px-2.5 py-1 rounded">
+                <span className="text-2xs text-teal-400 font-bold uppercase tracking-wider bg-teal-500/10 px-2.5 py-1 rounded">
                   Classification: {selectedVisit.service_type}
                 </span>
               </div>
@@ -2398,7 +2398,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                         Child Weight (kg)
                       </label>
                       <input
@@ -2411,7 +2411,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                         Head Circumference (cm)
                       </label>
                       <input
@@ -2424,7 +2424,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                         Developmental Milestones
                       </label>
                       <select
@@ -2442,7 +2442,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                   </div>
 
                   <div className="border-t border-slate-900 pt-3">
-                    <label className="block text-[10px] font-bold text-slate-405 uppercase tracking-wider mb-2">
+                    <label className="block text-2xs font-bold text-slate-405 uppercase tracking-wider mb-2">
                       Immunizations / Vaccines Administered Today
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -2497,7 +2497,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                         LMP Date *
                       </label>
                       <input
@@ -2509,7 +2509,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                         Gravidity *
                       </label>
                       <input
@@ -2524,7 +2524,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                         Parity *
                       </label>
                       <input
@@ -2539,7 +2539,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                         Abortions *
                       </label>
                       <input
@@ -2578,7 +2578,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                        <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                           ANC Visit Number
                         </label>
                         <input
@@ -2592,7 +2592,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                        <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                           Fundal Height (cm)
                         </label>
                         <input
@@ -2605,7 +2605,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                        <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                           Fetal Heart Rate (bpm)
                         </label>
                         <input
@@ -2617,7 +2617,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                        <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                           Risk Category
                         </label>
                         <select
@@ -2662,7 +2662,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                        <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                           Tetanus Toxoid Dose
                         </label>
                         <select
@@ -2686,7 +2686,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                       </div>
                       {ancTetanusDose && (
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                          <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                             Tetanus Administration Date
                           </label>
                           <input
@@ -2719,7 +2719,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                        <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                           Reproductive History Gravidity
                         </label>
                         <input
@@ -2732,7 +2732,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                        <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                           Reproductive History Parity
                         </label>
                         <input
@@ -2747,7 +2747,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                     </div>
 
                     <div className="border-t border-slate-900 pt-3">
-                      <label className="block text-[10px] font-bold text-slate-405 uppercase tracking-wider mb-2">
+                      <label className="block text-2xs font-bold text-slate-405 uppercase tracking-wider mb-2">
                         WHO Medical Eligibility Screening Risk Factors
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -2807,7 +2807,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-900 pt-3">
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-405 uppercase tracking-wider mb-1.5">
+                        <label className="block text-2xs font-bold text-slate-405 uppercase tracking-wider mb-1.5">
                           Select Contraceptive Method
                         </label>
                         <select
@@ -2828,7 +2828,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
 
                       {fpMethodSelectedId && (
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-405 uppercase tracking-wider mb-1.5">
+                          <label className="block text-2xs font-bold text-slate-405 uppercase tracking-wider mb-1.5">
                             Insertion Date
                           </label>
                           <input
@@ -2858,7 +2858,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                           {fpWhoResult.recommendation}
                         </span>
                         {fpWhoResult.reasons.map((r, i) => (
-                          <span key={i} className="text-[10px] block">
+                          <span key={i} className="text-2xs block">
                             • {r}
                           </span>
                         ))}
@@ -2943,14 +2943,14 @@ export default function Consultation({ user, onComplete, showNotification }) {
               {/* AI Diagnosis Assistant */}
               <div className="mt-4 p-4 rounded-xl border border-slate-800 bg-slate-950/60">
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-[10px] text-teal-400 font-bold uppercase tracking-wider">
+                  <h4 className="text-2xs text-teal-400 font-bold uppercase tracking-wider">
                     AI Diagnosis Assistant
                   </h4>
                   <button
                     type="button"
                     onClick={handleAiDiagnose}
                     disabled={aiLoading}
-                    className="text-[10px] font-bold px-3 py-1.5 rounded-lg bg-teal-500 text-slate-950 hover:bg-teal-400 disabled:opacity-50 transition"
+                    className="text-2xs font-bold px-3 py-1.5 rounded-lg bg-teal-500 text-slate-950 hover:bg-teal-400 disabled:opacity-50 transition"
                   >
                     {aiLoading ? "Analyzing..." : "AI Suggest Diagnosis"}
                   </button>
@@ -2989,11 +2989,11 @@ export default function Consultation({ user, onComplete, showNotification }) {
 
                   return (
                     <div className="bg-slate-950 border border-teal-500/20 p-4 rounded-xl space-y-2 mt-4">
-                      <h4 className="text-[10px] text-teal-400 font-bold uppercase tracking-wider">
+                      <h4 className="text-2xs text-teal-400 font-bold uppercase tracking-wider">
                         ICD-10 Suggested Protocol: {disease.name} (
                         {disease.code})
                       </h4>
-                      <p className="text-[10px] text-slate-405">
+                      <p className="text-2xs text-slate-405">
                         <strong>Typical Symptoms:</strong> {disease.symptoms} |{" "}
                         <strong>Suggested Dept:</strong>{" "}
                         {disease.suggestedDepartment}
@@ -3225,7 +3225,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                       Schedule Follow-up
                     </h4>
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">
+                      <label className="text-2xs text-slate-400 font-semibold uppercase tracking-wide">
                         Review Visit Date
                       </label>
                       <input
@@ -3252,7 +3252,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                     <button
                       type="button"
                       onClick={addPrescriptionRow}
-                      className="text-[10px] text-teal-400 hover:text-teal-300 font-semibold"
+                      className="text-2xs text-teal-400 hover:text-teal-300 font-semibold"
                     >
                       + Add Drug
                     </button>
@@ -3386,7 +3386,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                             }
                             if (warnings.length > 0) {
                               return (
-                                <div className="text-[10px] text-yellow-450 font-bold bg-yellow-950/20 border border-yellow-500/15 py-0.5 px-2 rounded flex flex-col gap-0.5 w-full">
+                                <div className="text-2xs text-yellow-450 font-bold bg-yellow-950/20 border border-yellow-500/15 py-0.5 px-2 rounded flex flex-col gap-0.5 w-full">
                                   {warnings.map((w, wIdx) => (
                                     <span key={wIdx}>⚠️ {w}</span>
                                   ))}
@@ -3407,7 +3407,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                   type="button"
                   onClick={handleAiWriteMedicalReport}
                   disabled={aiMedicalReportLoading}
-                  className="text-[10px] font-bold px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 disabled:opacity-50 transition"
+                  className="text-2xs font-bold px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 disabled:opacity-50 transition"
                 >
                   {aiMedicalReportLoading
                     ? "Writing Report..."
@@ -3442,7 +3442,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
               onClick={() =>
                 navigator.clipboard.writeText(aiMedicalReportResult)
               }
-              className="text-[10px] font-bold text-teal-400 hover:text-teal-300"
+              className="text-2xs font-bold text-teal-400 hover:text-teal-300"
             >
               Copy to clipboard
             </button>
@@ -3458,7 +3458,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                     <Activity size={16} className="text-teal-400" /> Ministry of
                     Health (MOH) Sync Verification
                   </h3>
-                  <p className="text-[10px] text-slate-500 mt-0.5">
+                  <p className="text-2xs text-slate-500 mt-0.5">
                     Kenya Health Information Exchange (HIE) Compliance check
                   </p>
                 </div>
@@ -3545,7 +3545,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
                     <div className="grid grid-cols-2 gap-3">
                       {/* Temperature */}
                       <div className="space-y-1">
-                        <div className="flex justify-between text-[10px]">
+                        <div className="flex justify-between text-2xs">
                           <span className="text-slate-400">
                             Temperature (°C) *
                           </span>
@@ -3570,7 +3570,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
 
                       {/* Weight */}
                       <div className="space-y-1">
-                        <div className="flex justify-between text-[10px]">
+                        <div className="flex justify-between text-2xs">
                           <span className="text-slate-400">Weight (kg) *</span>
                           {mohWeight ? (
                             <span className="text-green-400 font-bold">✓</span>
@@ -3596,7 +3596,7 @@ export default function Consultation({ user, onComplete, showNotification }) {
 
                     {patientAge >= 18 && (
                       <div className="space-y-1.5 border-t border-slate-850/60 pt-2.5">
-                        <div className="flex justify-between text-[10px] font-sans">
+                        <div className="flex justify-between text-2xs font-sans">
                           <span className="text-slate-400 font-bold">
                             Blood Pressure (Required for Adults &gt;= 18 yrs) *
                           </span>

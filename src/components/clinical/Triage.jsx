@@ -650,7 +650,7 @@ export default function Triage({ user, onComplete, showNotification }) {
           <p className="text-[11px] text-slate-500 mt-0.5">Select a patient to enter vital signs</p>
         </div>
 
-        <div className="space-y-2 max-h-[450px] overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-112.5 overflow-y-auto pr-1">
           {queue.map((item) => (
             <button
               key={item.id}
@@ -669,7 +669,7 @@ export default function Triage({ user, onComplete, showNotification }) {
                   'bg-slate-900 border border-slate-800 text-slate-400'
                 }`}>{item.priority}</span>
               </div>
-              <div className="flex justify-between items-center text-[10px] text-slate-400 w-full font-mono">
+              <div className="flex justify-between items-center text-2xs text-slate-400 w-full font-mono">
                 <span>{item.patient?.facility_id_code}</span>
                 <span>{new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
               </div>
@@ -733,7 +733,7 @@ export default function Triage({ user, onComplete, showNotification }) {
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
                   {/* Airway */}
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Airway</label>
+                    <label className="block text-2xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Airway</label>
                     <select
                       value={airwayStatus}
                       onChange={(e) => setAirwayStatus(e.target.value)}
@@ -746,7 +746,7 @@ export default function Triage({ user, onComplete, showNotification }) {
 
                   {/* Breathing */}
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Breathing</label>
+                    <label className="block text-2xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Breathing</label>
                     <select
                       value={breathingStatus}
                       onChange={(e) => setBreathingStatus(e.target.value)}
@@ -760,7 +760,7 @@ export default function Triage({ user, onComplete, showNotification }) {
 
                   {/* Circulation */}
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Circulation</label>
+                    <label className="block text-2xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Circulation</label>
                     <select
                       value={circulationStatus}
                       onChange={(e) => setCirculationStatus(e.target.value)}
@@ -774,7 +774,7 @@ export default function Triage({ user, onComplete, showNotification }) {
 
                   {/* Consciousness */}
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Consciousness (AVPU)</label>
+                    <label className="block text-2xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Consciousness (AVPU)</label>
                     <select
                       value={consciousnessLevel}
                       onChange={(e) => setConsciousnessLevel(e.target.value)}
@@ -790,7 +790,7 @@ export default function Triage({ user, onComplete, showNotification }) {
               </div>
 
               <div className="bg-slate-950/40 border border-slate-850/60 rounded-xl p-3.5 space-y-3">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vitals Data Entry Method</label>
+                <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider">Vitals Data Entry Method</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -834,11 +834,11 @@ export default function Triage({ user, onComplete, showNotification }) {
                   {boundInstrumentId && (
                     <div className="bg-slate-950/65 border border-slate-800/80 p-4 rounded-xl space-y-3 shadow-md font-sans">
                       <div className="flex justify-between items-center pb-2 border-b border-slate-900">
-                        <span className="text-[10px] font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="text-2xs font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5">
                           <Zap size={12} className="text-teal-400" /> Device Connection & Capture Console
                         </span>
                         <div className="flex items-center gap-2">
-                          <label className="text-[10px] text-slate-500 flex items-center gap-1 cursor-pointer select-none">
+                          <label className="text-2xs text-slate-500 flex items-center gap-1 cursor-pointer select-none">
                             <input
                               type="checkbox"
                               checked={simulationMode}
@@ -868,7 +868,7 @@ export default function Triage({ user, onComplete, showNotification }) {
                             <button
                               type="button"
                               onClick={handleConnectDevice}
-                              className="bg-teal-400 hover:bg-teal-500 text-slate-950 font-black text-[10px] py-1.5 px-4 rounded-lg shadow-md transition active:scale-[0.98] cursor-pointer"
+                              className="bg-teal-400 hover:bg-teal-500 text-slate-950 font-black text-2xs py-1.5 px-4 rounded-lg shadow-md transition active:scale-[0.98] cursor-pointer"
                             >
                               Pair & Connect
                             </button>
@@ -877,14 +877,14 @@ export default function Triage({ user, onComplete, showNotification }) {
                               <button
                                 type="button"
                                 onClick={handleCaptureVitals}
-                                className="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[10px] py-1.5 px-4 rounded-lg shadow-md transition active:scale-[0.98] animate-pulse flex items-center gap-1 cursor-pointer"
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-2xs py-1.5 px-4 rounded-lg shadow-md transition active:scale-[0.98] animate-pulse flex items-center gap-1 cursor-pointer"
                               >
                                 <Zap size={11} /> Capture Vitals
                               </button>
                               <button
                                 type="button"
                                 onClick={handleDisconnectDevice}
-                                className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 font-bold text-[10px] py-1.5 px-3 rounded-lg transition active:scale-[0.98] cursor-pointer"
+                                className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 font-bold text-2xs py-1.5 px-3 rounded-lg transition active:scale-[0.98] cursor-pointer"
                               >
                                 Disconnect
                               </button>
@@ -1080,10 +1080,10 @@ export default function Triage({ user, onComplete, showNotification }) {
                 {/* BMI Display */}
                 <div className="bg-slate-950 border border-slate-850 p-4 rounded-xl flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Body Mass Index</span>
+                    <span className="text-2xs text-slate-400 uppercase font-semibold block">Body Mass Index</span>
                     <span className="text-xl font-bold text-white">{bmi || '—'}</span>
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${getBmiBadgeColor(bmi)}`}>
+                  <span className={`text-2xs font-bold px-2 py-0.5 rounded border uppercase ${getBmiBadgeColor(bmi)}`}>
                     {bmi <= 0 ? 'Pending' :
                      bmi < 18.5 ? 'Underweight' :
                      bmi <= 24.9 ? 'Normal' :

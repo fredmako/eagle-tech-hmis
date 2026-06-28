@@ -26,7 +26,7 @@ export default function SmtpSettings({
             <button
               type="button"
               onClick={() => setSmtp(getDefaultSmtpConfig())}
-              className="text-[10px] text-slate-500 hover:text-slate-200 font-bold cursor-pointer"
+              className="text-2xs text-slate-500 hover:text-slate-200 font-bold cursor-pointer"
             >
               Reset Titan Presets
             </button>
@@ -44,7 +44,7 @@ export default function SmtpSettings({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">SMTP Host</label>
+            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">SMTP Host</label>
             <input
               type="text"
               value={smtp.host}
@@ -55,7 +55,7 @@ export default function SmtpSettings({
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">SMTP Port</label>
+            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">SMTP Port</label>
             <input
               type="number"
               value={smtp.port}
@@ -69,7 +69,7 @@ export default function SmtpSettings({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Encryption Protocol</label>
+            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Encryption Protocol</label>
             <select
               value={smtp.encryption}
               onChange={(e) => setSmtp({ ...smtp, encryption: e.target.value })}
@@ -81,7 +81,7 @@ export default function SmtpSettings({
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Timeout Settings (Seconds)</label>
+            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Timeout Settings (Seconds)</label>
             <input
               type="number"
               value={smtp.timeout || 15}
@@ -95,7 +95,7 @@ export default function SmtpSettings({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Sender Email Identity</label>
+            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sender Email Identity</label>
             <input
               type="email"
               value={smtp.sender_email}
@@ -106,7 +106,7 @@ export default function SmtpSettings({
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Sender Name Prefix</label>
+            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sender Name Prefix</label>
             <input
               type="text"
               value={smtp.sender_name}
@@ -120,7 +120,7 @@ export default function SmtpSettings({
 
         <div className="grid grid-cols-2 gap-4 font-mono">
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">SMTP Username</label>
+            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">SMTP Username</label>
             <input
               type="text"
               value={smtp.username}
@@ -131,7 +131,7 @@ export default function SmtpSettings({
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">SMTP Password</label>
+            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">SMTP Password</label>
             <input
               type="password"
               value={smtp.password}
@@ -145,7 +145,7 @@ export default function SmtpSettings({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Retry & Failover Policy</label>
+            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Retry & Failover Policy</label>
             <select
               value={smtp.retry_policy}
               onChange={(e) => setSmtp({ ...smtp, retry_policy: e.target.value })}
@@ -157,7 +157,7 @@ export default function SmtpSettings({
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Log Retention Period (Days)</label>
+            <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Log Retention Period (Days)</label>
             <input
               type="number"
               value={smtp.log_retention || 30}
@@ -171,10 +171,10 @@ export default function SmtpSettings({
 
         {/* Preferences Toggle Matrix */}
         <div className="space-y-3 pt-2">
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">System Notification Preferences Toggles</label>
+          <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider">System Notification Preferences Toggles</label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 bg-slate-955 border border-slate-850 p-4 rounded-xl">
             {Object.keys(smtp.preferences || {}).map((prefKey) => (
-              <label key={prefKey} className="flex items-center gap-2 text-[10px] text-slate-350 cursor-pointer font-bold select-none hover:text-white transition">
+              <label key={prefKey} className="flex items-center gap-2 text-2xs text-slate-350 cursor-pointer font-bold select-none hover:text-white transition">
                 <input
                   type="checkbox"
                   checked={smtp.preferences[prefKey]}
@@ -198,10 +198,10 @@ export default function SmtpSettings({
           <h5 className="text-[11px] font-bold text-slate-355 uppercase tracking-wider flex items-center gap-1.5">
             <Building size={12} className="text-teal-400" /> Custom Google Sign-In Credentials
           </h5>
-          <p className="text-[10px] text-slate-500">Enable and configure hospital-specific Google OAuth credentials to display your logo and brand on the Google Consent Login screen.</p>
+          <p className="text-2xs text-slate-500">Enable and configure hospital-specific Google OAuth credentials to display your logo and brand on the Google Consent Login screen.</p>
           
           <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-3">
-            <label className="flex items-center gap-2 text-[10px] text-slate-300 cursor-pointer font-bold select-none hover:text-white transition">
+            <label className="flex items-center gap-2 text-2xs text-slate-300 cursor-pointer font-bold select-none hover:text-white transition">
               <input
                 type="checkbox"
                 checked={smtp.google_auth_enabled || false}
@@ -217,7 +217,7 @@ export default function SmtpSettings({
             {(smtp.google_auth_enabled) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Google Client ID</label>
+                  <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Google Client ID</label>
                   <input
                     type="text"
                     value={smtp.google_client_id || ''}
@@ -228,7 +228,7 @@ export default function SmtpSettings({
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Google Client Secret</label>
+                  <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Google Client Secret</label>
                   <input
                     type="password"
                     value={smtp.google_client_secret || ''}
@@ -259,7 +259,7 @@ export default function SmtpSettings({
         <h5 className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
           <Send size={11} className="text-teal-400" /> Outbound SMTP Test Utility
         </h5>
-        <p className="text-[10px] text-slate-500">Dispatch a test welcome email using your active Titan credentials above to verify DNS connectivity.</p>
+        <p className="text-2xs text-slate-500">Dispatch a test welcome email using your active Titan credentials above to verify DNS connectivity.</p>
 
         {testMessage.text && (
           <div className={`p-2.5 rounded text-xs flex gap-2 ${
@@ -301,22 +301,22 @@ export default function SmtpSettings({
             type="button"
             onClick={handleCheckDns}
             disabled={dnsChecking}
-            className="text-[10px] text-teal-400 hover:text-teal-300 font-bold flex items-center gap-1 font-sans cursor-pointer"
+            className="text-2xs text-teal-400 hover:text-teal-300 font-bold flex items-center gap-1 font-sans cursor-pointer"
           >
             <RefreshCw size={10} className={dnsChecking ? 'animate-spin' : ''} /> {dnsChecking ? 'Verifying...' : 'Re-check DNS'}
           </button>
         </div>
-        <p className="text-[10px] text-slate-500 font-sans">Configure these DNS records at your domain registrar to authenticate your custom domain and maximize Titan SMTP inbox deliverability.</p>
+        <p className="text-2xs text-slate-500 font-sans">Configure these DNS records at your domain registrar to authenticate your custom domain and maximize Titan SMTP inbox deliverability.</p>
         
         {dnsMessage && (
-          <div className="bg-teal-500/5 border border-teal-500/20 text-teal-400 p-2.5 rounded text-[10px] flex gap-1.5 font-sans">
+          <div className="bg-teal-500/5 border border-teal-500/20 text-teal-400 p-2.5 rounded text-2xs flex gap-1.5 font-sans">
             <CheckCircle size={12} className="shrink-0 mt-0.5" />
             <span>{dnsMessage}</span>
           </div>
         )}
 
         <div className="overflow-x-auto border border-slate-900 rounded-lg">
-          <table className="w-full text-left text-[10px] border-collapse font-mono">
+          <table className="w-full text-left text-2xs border-collapse font-mono">
             <thead>
               <tr className="bg-slate-900/60 text-slate-500 font-bold border-b border-slate-900 text-[9px] uppercase">
                 <th className="py-1.5 px-2.5">Record Type</th>

@@ -102,7 +102,7 @@ export default function AdminDelegation({ user, currentDelegation = {}, onUpdate
           <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 font-sans">
             <Shield size={14} className="text-teal-400" /> Admin Role Delegation & Permissions
           </h3>
-          <p className="text-[10px] text-slate-500 mt-1 max-w-xl leading-relaxed font-sans">
+          <p className="text-2xs text-slate-500 mt-1 max-w-xl leading-relaxed font-sans">
             Delegate specific administration settings and panels under organization management to your team. 
             Checkboxes below control access to each panel tab for different employee roles.
           </p>
@@ -111,7 +111,7 @@ export default function AdminDelegation({ user, currentDelegation = {}, onUpdate
 
       <div className="bg-slate-950/80 border border-slate-850 rounded-xl p-3.5 flex gap-3 items-center">
         <AlertTriangle className="text-yellow-500 shrink-0" size={16} />
-        <span className="text-[10px] text-yellow-500/80 font-medium leading-relaxed font-sans">
+        <span className="text-2xs text-yellow-500/80 font-medium leading-relaxed font-sans">
           <strong>Security Bypass Rule:</strong> The primary Facility Owner (role <strong>'admin'</strong>) always retains full, unrestricted access to all panels and cannot be locked out.
         </span>
       </div>

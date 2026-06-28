@@ -758,7 +758,7 @@ export default function Registration({
                                 new Date(pt.dob).getFullYear()}{" "}
                               yrs
                             </span>
-                            <div className="grid grid-cols-2 gap-x-4 mt-1 text-[10px] text-slate-400">
+                            <div className="grid grid-cols-2 gap-x-4 mt-1 text-2xs text-slate-400">
                               <span>
                                 Code:{" "}
                                 <span className="text-teal-400 font-semibold">
@@ -785,7 +785,7 @@ export default function Registration({
                             <select
                               id={`service-select-${pt.id}`}
                               defaultValue="OPD"
-                              className="bg-slate-900 border border-slate-800 text-[10px] text-white py-1 px-2 rounded focus:outline-none focus:border-teal-500"
+                              className="bg-slate-900 border border-slate-800 text-2xs text-white py-1 px-2 rounded focus:outline-none focus:border-teal-500"
                             >
                               <option value="OPD">General OPD (OPD)</option>
                               <option value="ANC">Antenatal Care (ANC)</option>
@@ -891,11 +891,11 @@ export default function Registration({
 
                         {expandedTimelinePtId === pt.id && (
                           <div className="mt-3 border-t border-slate-900 pt-3 space-y-3">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                            <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider block">
                               Chronological Clinical Health Timeline
                             </span>
                             {loadingTimeline ? (
-                              <div className="py-4 text-center text-slate-500 text-[10px] flex items-center justify-center gap-2">
+                              <div className="py-4 text-center text-slate-500 text-2xs flex items-center justify-center gap-2">
                                 <div className="animate-spin rounded-full h-3.5 w-3.5 border-b border-teal-400" />
                                 <span>Loading timeline...</span>
                               </div>
@@ -925,7 +925,7 @@ export default function Registration({
                                     <div className="text-[11px] font-bold text-slate-200 mt-0.5">
                                       {evt.title}
                                     </div>
-                                    <div className="text-[10px] text-slate-400 leading-normal mt-0.5">
+                                    <div className="text-2xs text-slate-400 leading-normal mt-0.5">
                                       {evt.desc}
                                     </div>
                                   </div>
@@ -963,7 +963,7 @@ export default function Registration({
                 No patients currently admitted in the wards.
               </div>
             ) : (
-              <div className="space-y-2.5 max-h-[450px] overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-112.5 overflow-y-auto pr-1">
                 {admissions.map((adm) => (
                   <div
                     key={adm.id}
@@ -974,7 +974,7 @@ export default function Registration({
                         <span className="font-bold text-slate-200 block text-xs">
                           {adm.patient?.name || "Unknown Patient"}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase">
+                        <span className="text-2xs text-slate-400 font-semibold uppercase">
                           {adm.patient?.gender} | Age:{" "}
                           {adm.patient?.dob
                             ? new Date().getFullYear() -
@@ -987,7 +987,7 @@ export default function Registration({
                         {adm.admission_type}
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 border-t border-slate-900 pt-2 font-mono">
+                    <div className="grid grid-cols-2 gap-2 text-2xs text-slate-400 border-t border-slate-900 pt-2 font-mono">
                       <div>
                         Ward:{" "}
                         <span className="text-slate-300 font-bold">
@@ -1622,7 +1622,7 @@ export default function Registration({
                     PHOTOCOPY - INSURANCE - 10.00
                   </option>
                 </select>
-                <p className="text-[10px] text-slate-500 mt-1">
+                <p className="text-2xs text-slate-500 mt-1">
                   Press Ctrl and click to select multiple options
                 </p>
               </div>

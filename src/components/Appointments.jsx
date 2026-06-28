@@ -360,13 +360,13 @@ export default function Appointments({ user, showNotification }) {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'checked_in':
-        return <span className="bg-teal-500/10 text-teal-400 border border-teal-500/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Checked In</span>;
+        return <span className="bg-teal-500/10 text-teal-400 border border-teal-500/20 px-2 py-0.5 rounded text-2xs font-bold uppercase tracking-wider">Checked In</span>;
       case 'completed':
-        return <span className="bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Completed</span>;
+        return <span className="bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded text-2xs font-bold uppercase tracking-wider">Completed</span>;
       case 'cancelled':
-        return <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Cancelled</span>;
+        return <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded text-2xs font-bold uppercase tracking-wider">Cancelled</span>;
       default:
-        return <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Scheduled</span>;
+        return <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-2xs font-bold uppercase tracking-wider">Scheduled</span>;
     }
   };
 
@@ -532,7 +532,7 @@ export default function Appointments({ user, showNotification }) {
                             >
                               <div className="truncate">
                                 <span className="text-xs font-bold text-slate-100 block truncate">{app.patient_name}</span>
-                                <span className="text-[10px] text-slate-550 block truncate font-medium mt-0.5">{app.patient_phone} • {app.notes || 'No description notes'}</span>
+                                <span className="text-2xs text-slate-550 block truncate font-medium mt-0.5">{app.patient_phone} • {app.notes || 'No description notes'}</span>
                               </div>
                               <div className="shrink-0 flex items-center gap-2">
                                 {getStatusBadge(app.status)}
@@ -564,7 +564,7 @@ export default function Appointments({ user, showNotification }) {
           <div className="pb-2 border-b border-slate-850 flex justify-between items-center flex-wrap gap-2">
             <div>
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Configure Weekly Slot Availability</h4>
-              <p className="text-[10px] text-slate-500 mt-0.5">Define times and active weekdays for appointments bookings.</p>
+              <p className="text-2xs text-slate-500 mt-0.5">Define times and active weekdays for appointments bookings.</p>
             </div>
             <button
               onClick={handleSaveAvailability}
@@ -693,7 +693,7 @@ export default function Appointments({ user, showNotification }) {
                         className="px-3 py-2 text-xs hover:bg-slate-850 cursor-pointer flex justify-between items-center text-slate-350"
                       >
                         <span className="font-semibold text-slate-200">{p.name}</span>
-                        <span className="text-[10px] text-slate-550 font-mono">{p.phone}</span>
+                        <span className="text-2xs text-slate-550 font-mono">{p.phone}</span>
                       </div>
                     ))}
                   </div>
@@ -705,7 +705,7 @@ export default function Appointments({ user, showNotification }) {
                   <UserCheck size={14} className="text-teal-400 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold text-slate-200 block">{selectedPatient.name}</span>
-                    <span className="text-[10px] text-slate-550 font-medium">Contact: {selectedPatient.phone}</span>
+                    <span className="text-2xs text-slate-550 font-medium">Contact: {selectedPatient.phone}</span>
                   </div>
                 </div>
               )}
@@ -762,7 +762,7 @@ export default function Appointments({ user, showNotification }) {
             <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider mb-1 flex items-center gap-1.5">
               <CalIcon size={15} className="text-teal-400" /> Manage Appointment
             </h3>
-            <span className="text-[10px] text-slate-500 block mb-4 border-b border-slate-850 pb-2.5">
+            <span className="text-2xs text-slate-500 block mb-4 border-b border-slate-850 pb-2.5">
               Patient: <strong className="text-slate-350">{activeAppointment.patient_name}</strong> at {activeAppointment.start_time}
             </span>
 

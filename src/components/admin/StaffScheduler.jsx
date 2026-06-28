@@ -593,7 +593,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
               <table className="w-full text-left border-collapse text-[10.5px] min-w-[800px]">
                 <thead>
                   <tr className="bg-slate-950 border-b border-slate-850 text-slate-500 font-bold uppercase tracking-wider">
-                    <th className="p-3 w-[150px]">Employee</th>
+                    <th className="p-3 w-37.5">Employee</th>
                     {daysOfWeek.map(day => (
                       <th key={day} className="p-3 text-center">{day}</th>
                     ))}
@@ -608,7 +608,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
                     profiles.map((emp) => (
                       <tr key={emp.id} className="hover:bg-slate-900/30 text-slate-400">
                         <td className="p-3 whitespace-nowrap font-bold text-slate-200 border-r border-slate-850 flex items-center gap-2">
-                          <div className="h-6 w-6 rounded-full bg-slate-850 flex items-center justify-center font-bold text-[10px] text-teal-400 shrink-0">
+                          <div className="h-6 w-6 rounded-full bg-slate-850 flex items-center justify-center font-bold text-2xs text-teal-400 shrink-0">
                             {emp.full_name?.substring(0, 2).toUpperCase()}
                           </div>
                           <div className="truncate min-w-0">
@@ -683,7 +683,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
 
           <div className="border border-slate-850 rounded-xl overflow-hidden bg-slate-950/40">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-[10px]">
+              <table className="w-full text-left border-collapse text-2xs">
                 <thead>
                   <tr className="bg-slate-950 border-b border-slate-850 text-slate-500 font-bold uppercase tracking-wider">
                     <th className="p-2.5">Date</th>
@@ -766,7 +766,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
           {loadingRoles ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-5 w-5 border-2 border-teal-500 border-t-transparent mx-auto mb-2" />
-              <p className="text-[10px] text-slate-500">Loading role allocations...</p>
+              <p className="text-2xs text-slate-500">Loading role allocations...</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -774,7 +774,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
                 <div className="col-span-full text-center py-12 bg-slate-950/30 border border-slate-850 rounded-xl">
                   <Users size={24} className="mx-auto text-slate-600 mb-2" />
                   <p className="text-xs text-slate-500 font-medium">No role allocations found</p>
-                  <p className="text-[10px] text-slate-600 mt-1">Assign staff to departments from Admin → Dept Activation</p>
+                  <p className="text-2xs text-slate-600 mt-1">Assign staff to departments from Admin → Dept Activation</p>
                 </div>
               ) : (
                 Object.entries(roleAllocations).map(([deptCode, allocations]) => {
@@ -798,7 +798,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
                     <div key={deptCode} className="bg-slate-950/40 border border-slate-850 rounded-xl p-4">
                       <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
                         <h6 className="text-xs font-bold text-slate-300 uppercase">{deptName}</h6>
-                        <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded-full">
+                        <span className="text-2xs text-slate-500 bg-slate-900 px-2 py-0.5 rounded-full">
                           {allocations.length} staff
                         </span>
                       </div>
@@ -808,11 +808,11 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
                           <div key={allocation.id} className="flex items-start justify-between p-2 bg-slate-950/60 rounded-lg border border-slate-850/50 hover:border-slate-800 transition">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <div className="h-6 w-6 rounded-full bg-slate-800 flex items-center justify-center font-bold text-[10px] text-teal-400 shrink-0">
+                                <div className="h-6 w-6 rounded-full bg-slate-800 flex items-center justify-center font-bold text-2xs text-teal-400 shrink-0">
                                   {allocation.name.substring(0, 2).toUpperCase()}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <div className="text-[10px] font-semibold text-slate-200 truncate">{allocation.name}</div>
+                                  <div className="text-2xs font-semibold text-slate-200 truncate">{allocation.name}</div>
                                   <div className="text-[9px] text-slate-500 truncate">{allocation.role} • {allocation.email}</div>
                                 </div>
                               </div>
@@ -857,13 +857,13 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
             </div>
             <div>
               <h5 className="text-[12px] font-bold text-slate-200 uppercase tracking-wide">Staff Punch Console</h5>
-              <p className="text-[10px] text-slate-500">Record check-in time and checkout departure times</p>
+              <p className="text-2xs text-slate-500">Record check-in time and checkout departure times</p>
             </div>
           </div>
 
           {/* Offline Pending Queue Banner */}
           {offlineQueue.length > 0 && (
-            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-[10px] font-sans leading-relaxed animate-pulse">
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-2xs font-sans leading-relaxed animate-pulse">
               ⚠️ You have <strong>{offlineQueue.length} offline punch log(s)</strong> waiting for internet connection to sync.
             </div>
           )}
@@ -876,7 +876,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
                   <span className="text-[8px] font-bold text-blue-300 uppercase tracking-wider flex items-center gap-1">
                     <Clock3 size={10} /> Automatic Shift Detection
                   </span>
-                  <p className="text-[10px] text-slate-300 font-semibold mt-1">
+                  <p className="text-2xs text-slate-300 font-semibold mt-1">
                     Today: {todayRoster.shift_type} shift in {String(todayRoster.department || 'assigned department').toUpperCase()}
                     {todayWindow ? ` (${todayWindow.start}-${todayWindow.end})` : ''}
                   </p>
@@ -890,7 +890,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
                       handleClockIn(autoNote);
                     }}
                     disabled={actionLoading}
-                    className="shrink-0 bg-blue-400 hover:bg-blue-300 text-slate-950 text-[10px] font-black px-3 py-1.5 rounded-lg disabled:opacity-50"
+                    className="shrink-0 bg-blue-400 hover:bg-blue-300 text-slate-950 text-2xs font-black px-3 py-1.5 rounded-lg disabled:opacity-50"
                   >
                     Auto Clock-In
                   </button>
@@ -907,7 +907,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
             <span className="text-[8px] font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1">
               <MapPin size={10} /> Boundary Verification Active
             </span>
-            <p className="text-[10px] text-slate-400 font-sans leading-normal">
+            <p className="text-2xs text-slate-400 font-sans leading-normal">
               Clocking is geofence-restricted. You must be physically present within {facilityGeo?.geofence_radius_meters || 100} meters of the facility to register attendance. Offline clock-ins capture your device coordinates and will be verified by the server upon sync.
             </p>
             {facilityGeo?.latitude && facilityGeo?.longitude && (
@@ -924,7 +924,7 @@ export default function StaffScheduler({ user, profiles = [], fetchAdminData, db
                   href={`https://www.openstreetmap.org/?mlat=${facilityGeo.latitude}&mlon=${facilityGeo.longitude}#map=17/${facilityGeo.latitude}/${facilityGeo.longitude}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] text-teal-400 hover:text-teal-300 font-bold"
+                  className="inline-flex items-center gap-1 text-2xs text-teal-400 hover:text-teal-300 font-bold"
                 >
                   <Navigation size={10} /> Open facility geofence in OpenStreetMap
                 </a>

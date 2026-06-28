@@ -487,7 +487,7 @@ export default function WardSettings({ user }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-slate-955 font-bold text-[10px] py-1.5 px-4 rounded transition flex items-center gap-1 cursor-pointer"
+                  className="bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-slate-955 font-bold text-2xs py-1.5 px-4 rounded transition flex items-center gap-1 cursor-pointer"
                 >
                   <PlusCircle size={12} /> Add Ward
                 </button>
@@ -543,7 +543,7 @@ export default function WardSettings({ user }) {
                 <button
                   type="submit"
                   disabled={loading || !targetWardId}
-                  className="bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-slate-955 font-bold text-[10px] py-1.5 px-4 rounded transition flex items-center gap-1 cursor-pointer"
+                  className="bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-slate-955 font-bold text-2xs py-1.5 px-4 rounded transition flex items-center gap-1 cursor-pointer"
                 >
                   <PlusCircle size={12} /> Add Bed Allocation
                 </button>
@@ -598,7 +598,7 @@ export default function WardSettings({ user }) {
                     <button
                       onClick={() => handleDeleteWard(selectedWard.id)}
                       disabled={loading}
-                      className="text-red-400 hover:text-red-300 transition flex items-center gap-1 text-[10px] cursor-pointer"
+                      className="text-red-400 hover:text-red-300 transition flex items-center gap-1 text-2xs cursor-pointer"
                     >
                       <Trash2 size={11} /> Delete {selectedWard.name}
                     </button>
@@ -711,7 +711,7 @@ export default function WardSettings({ user }) {
                   />
                   <button
                     type="submit"
-                    className="bg-slate-800 hover:bg-slate-700 text-teal-400 border border-slate-700 px-2.5 rounded text-[10px] font-bold transition cursor-pointer"
+                    className="bg-slate-800 hover:bg-slate-700 text-teal-400 border border-slate-700 px-2.5 rounded text-2xs font-bold transition cursor-pointer"
                   >
                     Add
                   </button>
@@ -744,13 +744,13 @@ export default function WardSettings({ user }) {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <span className="text-[9px] block font-bold text-slate-500 uppercase tracking-wider mb-1">Position (X, Y)</span>
-                        <span className="bg-slate-900 border border-slate-850 px-2.5 py-1 rounded text-[10px] block font-mono text-slate-400">
+                        <span className="bg-slate-900 border border-slate-850 px-2.5 py-1 rounded text-2xs block font-mono text-slate-400">
                           {selBed.x_position || 0}px, {selBed.y_position || 0}px
                         </span>
                       </div>
                       <div>
                         <span className="text-[9px] block font-bold text-slate-500 uppercase tracking-wider mb-1">Orientation</span>
-                        <span className="bg-slate-900 border border-slate-850 px-2.5 py-1 rounded text-[10px] block font-mono text-slate-400">
+                        <span className="bg-slate-900 border border-slate-850 px-2.5 py-1 rounded text-2xs block font-mono text-slate-400">
                           {selBed.rotation || 0}°
                         </span>
                       </div>
@@ -759,14 +759,14 @@ export default function WardSettings({ user }) {
                     <div className="flex gap-2">
                       <button
                         onClick={handleRotateSelectedBed}
-                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-teal-400 border border-slate-700 p-1.5 rounded flex items-center justify-center gap-1 text-[10px] font-bold transition cursor-pointer"
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-teal-400 border border-slate-700 p-1.5 rounded flex items-center justify-center gap-1 text-2xs font-bold transition cursor-pointer"
                         title="Rotate Bed 90 degrees clockwise"
                       >
                         <RotateCw size={11} /> Rotate 90°
                       </button>
                       <button
                         onClick={() => handleRemoveFromRoom(selBed.id)}
-                        className="flex-1 bg-red-950/20 hover:bg-red-950/40 text-red-400 border border-red-900/30 p-1.5 rounded flex items-center justify-center gap-1 text-[10px] font-bold transition cursor-pointer"
+                        className="flex-1 bg-red-950/20 hover:bg-red-950/40 text-red-400 border border-red-900/30 p-1.5 rounded flex items-center justify-center gap-1 text-2xs font-bold transition cursor-pointer"
                         title="Remove bed from this room layout"
                       >
                         <Trash2 size={11} /> Remove
@@ -805,7 +805,7 @@ export default function WardSettings({ user }) {
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Grid size={13} className="text-teal-400" /> Room Layout Grid ({activeRoomName})
                 </span>
-                <span className="text-[10px] text-slate-500 italic">Drag beds snap-aligned to arrange them</span>
+                <span className="text-2xs text-slate-500 italic">Drag beds snap-aligned to arrange them</span>
               </div>
 
               {/* Interactive Canvas container */}
@@ -865,7 +865,7 @@ export default function WardSettings({ user }) {
                       
                       {/* Bed Label */}
                       <div className="text-center pointer-events-none mt-1">
-                        <span className="text-[10px] font-bold block text-slate-100 font-mono truncate leading-none">{bed.bed_number}</span>
+                        <span className="text-2xs font-bold block text-slate-100 font-mono truncate leading-none">{bed.bed_number}</span>
                         <span className="text-[7px] block opacity-75 uppercase tracking-wide mt-1">{bed.bed_status === 'clean' ? 'Vacant' : bed.bed_status}</span>
                       </div>
 
@@ -879,7 +879,7 @@ export default function WardSettings({ user }) {
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-slate-500 font-sans">
                     <Move size={28} className="text-slate-700 mb-2 animate-bounce" />
                     <span className="text-xs font-bold">This room is empty!</span>
-                    <span className="text-[10px] opacity-75 mt-1 max-w-[280px]">
+                    <span className="text-2xs opacity-75 mt-1 max-w-[280px]">
                       Use the "Available Beds" sidebar list on the right to place a bed in this room, then drag it to configure.
                     </span>
                   </div>
@@ -922,7 +922,7 @@ export default function WardSettings({ user }) {
                     </div>
                     <button
                       onClick={() => handlePlaceInRoom(b.id)}
-                      className="bg-slate-800 hover:bg-slate-750 text-teal-400 border border-slate-700 px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer"
+                      className="bg-slate-800 hover:bg-slate-750 text-teal-400 border border-slate-700 px-2 py-0.5 rounded text-2xs font-bold transition cursor-pointer"
                     >
                       Place
                     </button>

@@ -175,7 +175,7 @@ export default function PaymentSettings({ user }) {
         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-sans">
           <CreditCard size={14} className="text-teal-400" /> Payments, Services, & Public Landing Page Config
         </h4>
-        <div className="text-[10px] text-slate-500 italic">Facility ID: {user.facility_id}</div>
+        <div className="text-2xs text-slate-500 italic">Facility ID: {user.facility_id}</div>
       </div>
 
       {/* Alert Messaging */}
@@ -311,11 +311,11 @@ export default function PaymentSettings({ user }) {
               <h5 className="text-[11px] font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Layers size={13} /> Offered Facility Services
               </h5>
-              <p className="text-[10px] text-slate-500 mt-1 max-w-2xl">
+              <p className="text-2xs text-slate-500 mt-1 max-w-2xl">
                 Add only the services this facility actually offers. These are the services shown on the public facility landing page.
               </p>
             </div>
-            <span className="text-[10px] font-bold text-slate-400 bg-slate-900 border border-slate-850 px-3 py-1.5 rounded-lg">
+            <span className="text-2xs font-bold text-slate-400 bg-slate-900 border border-slate-850 px-3 py-1.5 rounded-lg">
               {servicesList.length} offered
             </span>
           </div>
@@ -336,7 +336,7 @@ export default function PaymentSettings({ user }) {
                 </div>
               </div>
 
-              <div className="max-h-[280px] overflow-y-auto space-y-2 pr-1">
+              <div className="max-h-70 overflow-y-auto space-y-2 pr-1">
                 {filteredCatalogServices.map((svc) => (
                   <div key={svc.id || svc.name} className="bg-slate-950 border border-slate-850 rounded-lg p-3 flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -347,7 +347,7 @@ export default function PaymentSettings({ user }) {
                     <button
                       type="button"
                       onClick={() => handleAddCatalogService(svc)}
-                      className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-1.5 px-3 rounded flex items-center gap-1 transition shrink-0"
+                      className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-2xs py-1.5 px-3 rounded flex items-center gap-1 transition shrink-0"
                     >
                       <Plus size={12} /> Add
                     </button>
@@ -407,7 +407,7 @@ export default function PaymentSettings({ user }) {
                   <button
                     type="button"
                     onClick={handleAddService}
-                    className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-[10px] py-2 px-3 rounded flex items-center gap-1 transition"
+                    className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-2xs py-2 px-3 rounded flex items-center gap-1 transition"
                   >
                     <Plus size={12} /> Add
                   </button>
@@ -418,7 +418,7 @@ export default function PaymentSettings({ user }) {
 
           {/* Current Catalog Table */}
           <div className="overflow-x-auto border border-slate-900 rounded-lg">
-            <table className="w-full text-left text-[10px] border-collapse font-sans">
+            <table className="w-full text-left text-2xs border-collapse font-sans">
               <thead>
                 <tr className="bg-slate-900/60 text-slate-400 font-bold border-b border-slate-900 text-[8px] uppercase">
                   <th className="py-2 px-3">Offered Service</th>

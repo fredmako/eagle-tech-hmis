@@ -613,7 +613,7 @@ export default function App() {
             <h1 className="font-['Instrument_Serif',serif] text-2xl text-slate-100 leading-none">
               Eagle Tech <span className="text-teal-400">HMIS</span>
             </h1>
-            <p className="text-[10px] text-teal-400 font-bold tracking-widest uppercase mt-1">
+            <p className="text-2xs text-teal-400 font-bold tracking-widest uppercase mt-1">
               Hospital Management Software
             </p>
           </div>
@@ -769,7 +769,7 @@ export default function App() {
               <span className="text-slate-500 font-bold">Admin Email</span>
               <span className="text-slate-300 font-semibold">{user.email}</span>
             </div>
-            <div className="border-t border-teal-500/10 pt-2 text-[10px] text-slate-500 leading-relaxed">
+            <div className="border-t border-teal-500/10 pt-2 text-2xs text-slate-500 leading-relaxed">
               Please contact the platform supervisor at{" "}
               <span className="text-teal-400 font-bold">
                 fredrickmakori102@gmail.com
@@ -1196,7 +1196,7 @@ export default function App() {
                     if (!menuSearch) setIsSearchExpanded(false);
                   }}
                   onChange={(e) => setMenuSearch(e.target.value)}
-                  className="w-full bg-transparent border-none text-[10px] text-slate-100 placeholder-slate-500 focus:outline-none"
+                  className="w-full bg-transparent border-none text-2xs text-slate-100 placeholder-slate-500 focus:outline-none"
                 />
                 {menuSearch ? (
                   <button 
@@ -1234,7 +1234,7 @@ export default function App() {
             {menuSearch ? (
               // Flat Search Results
               searchMenuResults.length === 0 ? (
-                <span className="text-[10px] text-slate-500 italic px-3 py-1">No matching menus found</span>
+                <span className="text-2xs text-slate-500 italic px-3 py-1">No matching menus found</span>
               ) : (
                 <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
                   {searchMenuResults.map((result) => {
@@ -1335,7 +1335,7 @@ export default function App() {
               title={`${user.full_name} (${user.role}) - View Account Preferences & Profile`}
               className="flex items-center border-r border-teal-500/10 pr-3 cursor-pointer hover:opacity-80 transition text-left focus:outline-none"
             >
-              <div className="h-7 w-7 rounded-full bg-slate-800 border border-teal-500/15 flex items-center justify-center overflow-hidden font-bold text-teal-400 text-[10px] shadow shrink-0">
+              <div className="h-7 w-7 rounded-full bg-slate-800 border border-teal-500/15 flex items-center justify-center overflow-hidden font-bold text-teal-400 text-2xs shadow shrink-0">
                 {user.avatar_url ? (
                   <img src={user.avatar_url} alt="Profile" className="h-full w-full object-cover" />
                 ) : (
@@ -1607,7 +1607,7 @@ export default function App() {
                 <span className="text-xs font-bold text-slate-200 block truncate leading-snug">
                   {user.full_name}
                 </span>
-                <span className="font-['JetBrains_Mono',monospace] text-[10px] text-teal-400 font-semibold uppercase block leading-none">
+                <span className="font-['JetBrains_Mono',monospace] text-2xs text-teal-400 font-semibold uppercase block leading-none">
                   {user.role}
                 </span>
               </div>
@@ -1675,7 +1675,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <NotificationBell user={user} onNavigate={handleNavigate} />
             <ThemeToggle themeMode={themeMode} onToggle={toggleLightDark} />
-            <span className="font-['JetBrains_Mono',monospace] text-[10px] text-teal-400 font-semibold uppercase bg-teal-500/10 px-2 py-0.5 rounded">
+            <span className="font-['JetBrains_Mono',monospace] text-2xs text-teal-400 font-semibold uppercase bg-teal-500/10 px-2 py-0.5 rounded">
               {user.role}
             </span>
           </div>
@@ -1872,11 +1872,11 @@ export default function App() {
       </main>
 
       {notification && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 font-sans animate-fadeIn">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 font-sans animate-fadeIn">
           <div className={`w-full max-w-sm bg-slate-900 border rounded-2xl p-6 shadow-2xl relative overflow-hidden transition-all ${
             notification.type === 'success' ? 'border-teal-500/30' : 'border-rose-500/30'
           }`}>
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-650" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-teal-500 via-emerald-500 to-teal-650" />
             
             <div className="flex flex-col items-center text-center mt-2">
               <div className={`p-3 rounded-full mb-4 ${

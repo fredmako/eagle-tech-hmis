@@ -249,7 +249,7 @@ export default function SupportPanel() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">User Name</label>
+                <label className="text-2xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">User Name</label>
                 <div className="relative">
                   <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
@@ -261,7 +261,7 @@ export default function SupportPanel() {
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Email Address</label>
+                <label className="text-2xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Email Address</label>
                 <div className="relative">
                   <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
@@ -275,7 +275,7 @@ export default function SupportPanel() {
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Support Destination</label>
+              <label className="text-2xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Support Destination</label>
               <div className="flex flex-col sm:flex-row gap-4 bg-slate-955 p-3 rounded-lg border border-slate-800/80 mb-3">
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer select-none">
                   <input
@@ -303,7 +303,7 @@ export default function SupportPanel() {
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Query Category</label>
+              <label className="text-2xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Query Category</label>
               <select
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
@@ -318,7 +318,7 @@ export default function SupportPanel() {
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Message / Details</label>
+              <label className="text-2xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Message / Details</label>
               <textarea
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
@@ -377,7 +377,7 @@ export default function SupportPanel() {
                 <div className="flex flex-col items-center justify-center h-full text-slate-600 text-center p-4">
                   <MessageSquare size={28} className="mb-2 opacity-35" />
                   <span className="text-2xs font-bold block">No tickets found</span>
-                  <span className="text-[10px] text-slate-500 mt-1 block">Support queries you submit will appear here.</span>
+                  <span className="text-2xs text-slate-500 mt-1 block">Support queries you submit will appear here.</span>
                 </div>
               ) : (
                 tickets.map((ticket) => {
@@ -398,7 +398,7 @@ export default function SupportPanel() {
                         </span>
                       </div>
                       
-                      <p className="text-[10px] text-slate-500 mt-1 line-clamp-1 font-medium">
+                      <p className="text-2xs text-slate-500 mt-1 line-clamp-1 font-medium">
                         {ticket.message}
                       </p>
 
@@ -421,7 +421,7 @@ export default function SupportPanel() {
                     <h3 className="text-xs font-bold text-slate-200">
                       {selectedTicket.subject}
                     </h3>
-                    <div className="flex items-center gap-2 mt-1.5 text-[10px] text-slate-500">
+                    <div className="flex items-center gap-2 mt-1.5 text-2xs text-slate-500">
                       <span>Ref: <strong className="text-slate-400">#{selectedTicket.id.substring(7, 13)}</strong></span>
                       <span>•</span>
                       <span>Submitted on {new Date(selectedTicket.created_at).toLocaleString()}</span>
@@ -434,7 +434,7 @@ export default function SupportPanel() {
 
                 <div className="space-y-4 flex-1">
                   <div className="bg-slate-955 border border-slate-850 p-4 rounded-xl space-y-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Your Inquiry:</span>
+                    <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider block">Your Inquiry:</span>
                     <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap font-medium">
                       "{selectedTicket.message}"
                     </p>
@@ -444,7 +444,7 @@ export default function SupportPanel() {
                     <div className="bg-emerald-500/5 border border-emerald-500/15 p-4 rounded-xl space-y-2">
                       <div className="flex items-center gap-1.5 text-emerald-400">
                         <CheckCircle2 size={13} />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Super Admin Response:</span>
+                        <span className="text-2xs font-bold uppercase tracking-wider">Super Admin Response:</span>
                       </div>
                       <p className="text-xs text-emerald-300 leading-relaxed whitespace-pre-wrap font-semibold">
                         "{selectedTicket.response}"
@@ -454,7 +454,7 @@ export default function SupportPanel() {
                     <div className="bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl flex items-start gap-3">
                       <Clock className="text-amber-400 shrink-0 mt-0.5 animate-pulse" size={14} />
                       <div>
-                        <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Awaiting Resolution</span>
+                        <span className="text-2xs font-bold text-amber-400 uppercase tracking-wider block">Awaiting Resolution</span>
                         <p className="text-[11px] text-slate-450 mt-1 leading-relaxed font-medium">
                           Your query is currently in queue. A system administrator will review the details and reply. You will receive an automated email notification once resolved.
                         </p>
@@ -467,7 +467,7 @@ export default function SupportPanel() {
               <div className="flex-1 flex flex-col items-center justify-center text-slate-600 text-center p-6">
                 <HelpCircle size={44} className="mb-3 opacity-25" />
                 <h4 className="text-xs font-bold text-slate-400">No Query Selected</h4>
-                <p className="text-[10px] text-slate-500 max-w-xs mt-1.5 leading-relaxed">
+                <p className="text-2xs text-slate-500 max-w-xs mt-1.5 leading-relaxed">
                   Select a support query from the history list to review detailed messages, response logs, and resolution updates.
                 </p>
               </div>

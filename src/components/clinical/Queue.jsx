@@ -634,7 +634,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                     </div>
                     <span className="text-xs font-bold text-slate-200 capitalize tracking-wide">{meta.label}</span>
                   </div>
-                  <span className="text-[10px] bg-slate-950 border border-slate-800 text-slate-400 font-bold px-2 py-0.5 rounded-full shadow-inner">
+                  <span className="text-2xs bg-slate-950 border border-slate-800 text-slate-400 font-bold px-2 py-0.5 rounded-full shadow-inner">
                     {list.length}
                   </span>
                 </div>
@@ -654,7 +654,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                       <div className="flex justify-between items-start gap-2">
                         <div className="truncate flex-1">
                           <span className="font-bold text-slate-200 block truncate leading-snug tracking-wide text-sm">{getPatientName(v.patient_id)}</span>
-                          <span className="text-[10px] text-slate-500 font-mono block mt-0.5">{getPatientCode(v.patient_id)}</span>
+                          <span className="text-2xs text-slate-500 font-mono block mt-0.5">{getPatientCode(v.patient_id)}</span>
                         </div>
                         <button
                           type="button"
@@ -672,7 +672,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                       )}
                       
                       {/* Priority and Time */}
-                      <div className="flex justify-between items-center text-[10px]">
+                      <div className="flex justify-between items-center text-2xs">
                         <span className={`px-2 py-0.5 rounded-full font-bold uppercase tracking-wider text-[8px] border ${
                           v.priority === 'emergency' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
                           v.priority === 'urgent' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
@@ -701,7 +701,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                               handleMovePatient(v.id, e.target.value);
                             }
                           }}
-                          className="w-full bg-slate-900 border border-slate-800 text-[10px] text-slate-300 py-1.5 px-2 rounded-lg focus:outline-none focus:border-teal-500/40 transition cursor-pointer font-medium"
+                          className="w-full bg-slate-900 border border-slate-800 text-2xs text-slate-300 py-1.5 px-2 rounded-lg focus:outline-none focus:border-teal-500/40 transition cursor-pointer font-medium"
                         >
                           <option value="" disabled>Send to department...</option>
                           {depts.filter(d => d !== deptName).map(d => (
@@ -714,7 +714,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                         <button
                           onClick={() => handleCompleteVisitClick(v.id)}
                           disabled={reconciliationLoading}
-                          className="w-full flex items-center justify-center gap-1 text-[10px] font-bold bg-teal-500/10 border border-teal-500/20 hover:border-teal-500 hover:bg-teal-500 hover:text-slate-950 text-teal-400 text-center py-1.5 mt-2 rounded-lg transition duration-200 disabled:opacity-50"
+                          className="w-full flex items-center justify-center gap-1 text-2xs font-bold bg-teal-500/10 border border-teal-500/20 hover:border-teal-500 hover:bg-teal-500 hover:text-slate-950 text-teal-400 text-center py-1.5 mt-2 rounded-lg transition duration-200 disabled:opacity-50"
                         >
                           <Check size={10} />
                           <span>Complete Care</span>
@@ -728,7 +728,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                       <div className="bg-slate-950/40 p-2.5 rounded-full border border-slate-800/40 mb-2">
                         <IconComponent size={14} className="opacity-40" />
                       </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500/80">Queue Empty</span>
+                      <span className="text-2xs font-bold uppercase tracking-wider text-slate-500/80">Queue Empty</span>
                     </div>
                   )}
                 </div>
@@ -742,15 +742,15 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
       {reconciliationVisit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-sans animate-fadeIn">
           <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-teal-500 via-emerald-500 to-teal-500" />
             
             <div className="p-6 border-b border-slate-800 flex justify-between items-start gap-4">
               <div>
-                <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider block">MOH Compliance Check</span>
+                <span className="text-2xs font-bold text-teal-400 uppercase tracking-wider block">MOH Compliance Check</span>
                 <h3 className="text-base font-bold text-slate-100 mt-1">
                   Reconcile Health Records: {getPatientName(reconciliationVisit.patient_id)}
                 </h3>
-                <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                <p className="text-2xs text-slate-500 font-mono mt-0.5">
                   Visit Code: {reconciliationVisit.id.substring(0, 8).toUpperCase()} | Service Type: {SERVICE_TYPE_META[reconciliationVisit.service_type]?.label || reconciliationVisit.service_type}
                 </p>
               </div>
@@ -765,7 +765,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
             <div className="p-6 overflow-y-auto space-y-6 text-xs text-slate-300 leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
               {/* Compliance Checklist */}
               <div className="bg-slate-950/60 border border-slate-850 p-4 rounded-xl space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider border-b border-slate-900 pb-2">
+                <h4 className="text-2xs font-bold text-slate-450 uppercase tracking-wider border-b border-slate-900 pb-2">
                   Clinical Registry Check (MOH Reporting Schemes)
                 </h4>
                 <div className="space-y-2.5">
@@ -773,11 +773,11 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                   <div className="flex items-center justify-between">
                     <span className="text-slate-300">1. Outpatient Triage Vital Signs</span>
                     {complianceChecks.triage ? (
-                      <span className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded text-[10px]">
+                      <span className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded text-2xs">
                         <Check size={12} /> Captured
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1.5 text-amber-400 font-bold bg-amber-500/5 border border-amber-500/10 px-2 py-0.5 rounded text-[10px]">
+                      <span className="flex items-center gap-1.5 text-amber-400 font-bold bg-amber-500/5 border border-amber-500/10 px-2 py-0.5 rounded text-2xs">
                         ⚠️ Missing Triage Vitals
                       </span>
                     )}
@@ -787,11 +787,11 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                   <div className="flex items-center justify-between">
                     <span className="text-slate-300">2. Clinical Diagnosis & SOAP Note</span>
                     {complianceChecks.consult ? (
-                      <span className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded text-[10px]">
+                      <span className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded text-2xs">
                         <Check size={12} /> Captured
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1.5 text-amber-400 font-bold bg-amber-500/5 border border-amber-500/10 px-2 py-0.5 rounded text-[10px]">
+                      <span className="flex items-center gap-1.5 text-amber-400 font-bold bg-amber-500/5 border border-amber-500/10 px-2 py-0.5 rounded text-2xs">
                         ⚠️ Missing Consult SOAP Notes
                       </span>
                     )}
@@ -802,11 +802,11 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                     <div className="flex items-center justify-between">
                       <span className="text-slate-300">3. {complianceChecks.specialRegisterLabel}</span>
                       {complianceChecks.specialRegister ? (
-                        <span className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded text-[10px]">
+                        <span className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded text-2xs">
                           <Check size={12} /> Captured
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1.5 text-amber-400 font-bold bg-amber-500/5 border border-amber-500/10 px-2 py-0.5 rounded text-[10px]">
+                        <span className="flex items-center gap-1.5 text-amber-400 font-bold bg-amber-500/5 border border-amber-500/10 px-2 py-0.5 rounded text-2xs">
                           ⚠️ Missing Register Entry
                         </span>
                       )}
@@ -821,7 +821,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                   <p className="font-bold flex items-center gap-1.5">
                     ⚠️ Reconciliation Overrides Required
                   </p>
-                  <p className="text-slate-400 text-[10px] leading-relaxed">
+                  <p className="text-slate-400 text-2xs leading-relaxed">
                     Some clinical records are incomplete in the system database. To complete care, please ensure these records are manually entered in the physical MOH Daily Register Book (e.g. MOH 717 Outpatient Register, MOH 711 Maternity, etc.) and check the declaration below.
                   </p>
                   <div className="flex items-start gap-2.5 pt-1">
@@ -841,12 +841,12 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
 
               {/* Refer To Section (Outward Referrals) */}
               <div className="space-y-3.5 border-t border-slate-800/80 pt-4">
-                <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider flex items-center gap-1.5">
+                <h4 className="text-2xs font-bold text-slate-450 uppercase tracking-wider flex items-center gap-1.5">
                   🏥 Outward Referral (Referred To)
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Referred To (Facility)</label>
+                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Referred To (Facility)</label>
                     <input
                       type="text"
                       value={referredToFacility}
@@ -856,7 +856,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Referral Reason</label>
+                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Referral Reason</label>
                     <input
                       type="text"
                       value={referredToReason}
@@ -870,7 +870,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
 
               {/* Reconciliation Notes */}
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reconciliation Notes / Comments</label>
+                <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reconciliation Notes / Comments</label>
                 <textarea
                   rows={2}
                   value={reconcilerNotes}

@@ -579,7 +579,7 @@ export default function HumanResources({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Staff Registered</span>
+                <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider">Total Staff Registered</span>
                 <h4 className="text-xl font-black text-white mt-1 font-mono">{totalStaff}</h4>
               </div>
               <div className="p-2.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg">
@@ -589,7 +589,7 @@ export default function HumanResources({
 
             <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Clinical Operators</span>
+                <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider">Clinical Operators</span>
                 <h4 className="text-xl font-black text-teal-400 mt-1 font-mono">{clinicalStaff}</h4>
               </div>
               <div className="p-2.5 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-lg">
@@ -599,7 +599,7 @@ export default function HumanResources({
 
             <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Administrative Officers</span>
+                <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider">Administrative Officers</span>
                 <h4 className="text-xl font-black text-purple-400 mt-1 font-mono">{adminStaff}</h4>
               </div>
               <div className="p-2.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-lg">
@@ -631,7 +631,7 @@ export default function HumanResources({
                       <tr key={prof.id} className="hover:bg-slate-800/10 transition">
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded-full bg-slate-850 border border-slate-850 flex items-center justify-center font-bold text-[10px] text-teal-400 uppercase">
+                            <div className="h-6 w-6 rounded-full bg-slate-850 border border-slate-850 flex items-center justify-center font-bold text-2xs text-teal-400 uppercase">
                               {prof.full_name.substring(0, 2)}
                             </div>
                             <span className="text-xs text-slate-200 block truncate max-w-[120px]" title={prof.full_name}>
@@ -639,12 +639,12 @@ export default function HumanResources({
                             </span>
                           </div>
                         </td>
-                        <td className="py-3 px-3 text-slate-400 font-mono text-[10px] truncate max-w-[150px]" title={prof.email}>
+                        <td className="py-3 px-3 text-slate-400 font-mono text-2xs truncate max-w-37.5" title={prof.email}>
                           {prof.email}
                         </td>
                         <td className="py-3 px-3 relative">
                           <div className="flex items-center gap-1.5 justify-between">
-                            <div className="flex flex-wrap gap-1 max-w-[130px]">
+                            <div className="flex flex-wrap gap-1 max-w-32.5">
                               {(prof.role || '').split(',').map(r => r.trim()).filter(Boolean).map(r => (
                                 <span key={r} className="bg-teal-500/10 text-teal-400 border border-teal-500/15 px-1.5 py-0.5 rounded text-[8px] uppercase font-bold font-mono">
                                   {r === 'lab_tech' ? 'lab tech' : r === 'reporting_officer' ? 'reporting' : r}
@@ -679,7 +679,7 @@ export default function HumanResources({
                                 const rolesList = (prof.role || '').split(',').map(r => r.trim());
                                 const isChecked = rolesList.includes(role.id);
                                 return (
-                                  <label key={role.id} className="flex items-center gap-2 text-[10px] font-bold text-slate-300 cursor-pointer select-none">
+                                  <label key={role.id} className="flex items-center gap-2 text-2xs font-bold text-slate-300 cursor-pointer select-none">
                                     <input
                                       type="checkbox"
                                       checked={isChecked}
@@ -761,7 +761,7 @@ export default function HumanResources({
                                 value={walletDraft}
                                 onChange={(e) => setWalletDraft(e.target.value)}
                                 placeholder="0x... or Solana address"
-                                className="w-44 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[10px] text-slate-200 font-mono focus:border-blue-500 outline-none"
+                                className="w-44 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-2xs text-slate-200 font-mono focus:border-blue-500 outline-none"
                               />
                               <button
                                 type="button"
@@ -786,7 +786,7 @@ export default function HumanResources({
               <h5 className="text-[11px] font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-800/60 pb-2">
                 <UserPlus size={12} className="text-teal-400" /> Direct Profile Creation
               </h5>
-              <p className="text-[10px] text-slate-500 leading-relaxed">Directly create a staff member profile in the database. The user will be authorized to access the system immediately upon registration.</p>
+              <p className="text-2xs text-slate-500 leading-relaxed">Directly create a staff member profile in the database. The user will be authorized to access the system immediately upon registration.</p>
 
               <form onSubmit={handleRegisterStaff} className="space-y-4">
                 <div>
@@ -832,7 +832,7 @@ export default function HumanResources({
                     ].map(role => {
                       const isChecked = Array.isArray(newStaffRole) ? newStaffRole.includes(role.id) : newStaffRole === role.id;
                       return (
-                        <label key={role.id} className="flex items-center gap-2 text-[10px] font-bold text-slate-350 cursor-pointer select-none">
+                        <label key={role.id} className="flex items-center gap-2 text-2xs font-bold text-slate-350 cursor-pointer select-none">
                           <input
                             type="checkbox"
                             checked={isChecked}

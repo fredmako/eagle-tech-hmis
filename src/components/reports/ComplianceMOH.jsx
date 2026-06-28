@@ -28,7 +28,7 @@ export default function ComplianceMOH({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* Navigation Sidebar */}
       <div className="lg:col-span-3 space-y-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl self-start">
-        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 px-1">MOH & Security Registry</span>
+        <span className="text-2xs font-black text-slate-500 uppercase tracking-widest block mb-2 px-1">MOH & Security Registry</span>
         {[
           { id: 'moh_daily_under5', label: 'MOH 204A Outpatient (< 5 yrs)', desk: 'MOH 204A Register' },
           { id: 'moh_daily_over5', label: 'MOH 204B Outpatient (≥ 5 yrs)', desk: 'MOH 204B Register' },
@@ -79,7 +79,7 @@ export default function ComplianceMOH({
               {/* Date selection */}
               <div className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Start Date</label>
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Start Date</label>
                   <div className="relative">
                     <Calendar size={12} className="absolute left-3 top-2.5 text-slate-550" />
                     <input
@@ -91,7 +91,7 @@ export default function ComplianceMOH({
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">End Date</label>
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">End Date</label>
                   <div className="relative">
                     <Calendar size={12} className="absolute left-3 top-2.5 text-slate-550" />
                     <input

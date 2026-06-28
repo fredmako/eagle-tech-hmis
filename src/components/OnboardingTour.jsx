@@ -104,7 +104,7 @@ export default function OnboardingTour({ user, activeTab, setActiveTab, onClose 
   const progressPercent = ((step + 1) / steps.length) * 100;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-end justify-center md:items-center pointer-events-none p-4 md:p-6 select-none">
+    <div className="fixed inset-0 z-9999 flex items-end justify-center md:items-center pointer-events-none p-4 md:p-6 select-none">
       {/* Semi-transparent backdrop only for first and last step to draw attention */}
       {(step === 0 || step === steps.length - 1) && (
         <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm pointer-events-auto transition-all duration-300" />
@@ -124,7 +124,7 @@ export default function OnboardingTour({ user, activeTab, setActiveTab, onClose 
         {/* Progress Bar */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-slate-800">
           <div 
-            className="h-full bg-gradient-to-r from-teal-500 to-emerald-400 transition-all duration-300 ease-out" 
+            className="h-full bg-linear-to-r from-teal-500 to-emerald-400 transition-all duration-300 ease-out" 
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -135,7 +135,7 @@ export default function OnboardingTour({ user, activeTab, setActiveTab, onClose 
             <div className="p-2 rounded-xl bg-teal-950/50 border border-teal-500/20 text-teal-400">
               <StepIcon className="h-5 w-5 animate-pulse" />
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-teal-400 bg-teal-950/30 border border-teal-500/10 px-2 py-0.5 rounded-full">
+            <span className="text-2xs font-bold uppercase tracking-wider text-teal-400 bg-teal-950/30 border border-teal-500/10 px-2 py-0.5 rounded-full">
               {current.highlight}
             </span>
           </div>
@@ -160,7 +160,7 @@ export default function OnboardingTour({ user, activeTab, setActiveTab, onClose 
 
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-slate-800/80 pt-4">
-          <div className="text-[10px] font-medium text-slate-400">
+          <div className="text-2xs font-medium text-slate-400">
             Step <span className="font-bold text-teal-400">{step + 1}</span> of {steps.length}
           </div>
 
@@ -176,7 +176,7 @@ export default function OnboardingTour({ user, activeTab, setActiveTab, onClose 
             
             <button
               onClick={handleNext}
-              className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-650 hover:to-teal-700 text-slate-950 shadow-md shadow-teal-950/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold rounded-lg bg-linear-to-r from-teal-500 to-teal-600 hover:from-teal-650 hover:to-teal-700 text-slate-950 shadow-md shadow-teal-950/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               {step === steps.length - 1 ? (
                 <>Finish <Sparkles className="h-3.5 w-3.5 ml-0.5" /></>

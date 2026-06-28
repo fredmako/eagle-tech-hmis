@@ -228,11 +228,11 @@ export default function Dashboard({ user, onNavigate }) {
     <div className="space-y-6 font-['DM_Sans',system-ui,sans-serif]">
 
       {/* Welcome banner */}
-      <Reveal className="relative overflow-hidden rounded-2xl border border-teal-500/15 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-900/40">
+      <Reveal className="relative overflow-hidden rounded-2xl border border-teal-500/15 bg-linear-to-br from-slate-900 via-slate-900 to-slate-900/40">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_85%_50%,rgba(45,212,191,0.08),transparent_60%)]" />
         <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6">
           <div className="space-y-1">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">
+            <div className="text-2xs font-bold uppercase tracking-widest text-teal-400">
               {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
             </div>
             <h1 className="font-['Instrument_Serif',serif] text-2xl sm:text-3xl text-slate-100 leading-tight font-normal">
@@ -241,7 +241,7 @@ export default function Dashboard({ user, onNavigate }) {
             <p className="text-[12px] text-slate-400">
               <span className="text-slate-300 font-semibold">{user.facility_name}</span>
               <span className="mx-2 text-slate-700">·</span>
-              <span className="font-['JetBrains_Mono',monospace] text-[10px] uppercase tracking-wider bg-teal-500/10 text-teal-400 px-2 py-0.5 rounded">{user.role}</span>
+              <span className="font-['JetBrains_Mono',monospace] text-2xs uppercase tracking-wider bg-teal-500/10 text-teal-400 px-2 py-0.5 rounded">{user.role}</span>
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -282,7 +282,7 @@ export default function Dashboard({ user, onNavigate }) {
             <StaggerItem key={c.label}>
               <motion.button onClick={() => navigateToCard(c)} whileHover={{ y: -3 }} whileTap={{ scale: 0.97 }} transition={{ duration: 0.2, ease: 'easeOut' }} className={`${base} ${a.hover} w-full hover:shadow-lg cursor-pointer`}>
                 <div className="flex justify-between items-start w-full">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-tight">{c.label}</span>
+                  <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider leading-tight">{c.label}</span>
                   <Icon size={14} className={`${a.text} opacity-90 shrink-0`} />
                 </div>
                 <span className={`font-['JetBrains_Mono',monospace] text-2xl sm:text-3xl font-black text-slate-100 mt-3`}>
@@ -297,7 +297,7 @@ export default function Dashboard({ user, onNavigate }) {
       {/* Modules Grid Selector */}
       <Reveal className="space-y-4">
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">Institutional Hub</div>
+          <div className="text-2xs font-bold uppercase tracking-widest text-teal-400">Institutional Hub</div>
           <h2 className="font-['Instrument_Serif',serif] text-2xl text-slate-100 font-normal mt-0.5">Departments & Operational Modules</h2>
           <p className="text-[11px] text-slate-500 mt-0.5">Access specific clinical departments, billing desk, cashier registry, and administration dashboards</p>
         </div>
@@ -352,16 +352,16 @@ export default function Dashboard({ user, onNavigate }) {
                     />
                   )}
                   {/* Subtle Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-slate-900/40 group-hover:from-slate-950 group-hover:via-slate-950/50 group-hover:to-slate-900/20 transition-all duration-500 pointer-events-none" />
+                  <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/75 to-slate-900/40 group-hover:from-slate-950 group-hover:via-slate-950/50 group-hover:to-slate-900/20 transition-all duration-500 pointer-events-none" />
 
                   <div className="relative z-10 flex justify-between items-start w-full">
                     <div className="space-y-1 pr-2">
                       <h3 className="font-bold text-slate-200 text-sm leading-tight group-hover:text-teal-400 transition-colors duration-300">{m.label}</h3>
-                      <p className="text-[10px] text-slate-450 leading-normal group-hover:text-slate-300 transition-colors duration-300">{m.desc}</p>
+                      <p className="text-2xs text-slate-450 leading-normal group-hover:text-slate-300 transition-colors duration-300">{m.desc}</p>
                     </div>
                     <Icon size={18} className="text-teal-400/80 group-hover:text-teal-300 group-hover:scale-110 transition-all duration-300 shrink-0" />
                   </div>
-                  <div className="relative z-10 text-[10px] font-bold text-teal-400 group-hover:text-teal-300 flex items-center gap-1.5 mt-3 transition-colors duration-300">
+                  <div className="relative z-10 text-2xs font-bold text-teal-400 group-hover:text-teal-300 flex items-center gap-1.5 mt-3 transition-colors duration-300">
                     <span>Click to Access Module</span>
                     <ArrowRight size={10} className="group-hover:translate-x-1 transition-transform duration-300" />
                   </div>
@@ -377,7 +377,7 @@ export default function Dashboard({ user, onNavigate }) {
         <Reveal className="lg:col-span-2 bg-slate-900 border border-teal-500/12 rounded-2xl p-5 shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">Live Workspace</div>
+              <div className="text-2xs font-bold uppercase tracking-widest text-teal-400">Live Workspace</div>
               <h2 className="font-['Instrument_Serif',serif] text-xl text-slate-100 font-normal mt-0.5">Active Facility Queue</h2>
               <p className="text-[11px] text-slate-500 mt-0.5">Patient traffic across departments · updated live</p>
             </div>
@@ -395,7 +395,7 @@ export default function Dashboard({ user, onNavigate }) {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-teal-500/10 text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+                  <tr className="border-b border-teal-500/10 text-2xs uppercase font-bold text-slate-400 tracking-widest">
                     <th className="py-2.5">Patient</th>
                     <th className="py-2.5">Dept</th>
                     <th className="py-2.5">Priority</th>
@@ -407,13 +407,13 @@ export default function Dashboard({ user, onNavigate }) {
                     <motion.tr key={q.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: idx * 0.03 }} className="hover:bg-slate-800/30 transition-colors">
                       <td className="py-2.5 pr-2">
                         <span className="font-semibold text-slate-200 block">{q.name}</span>
-                        <span className="font-['JetBrains_Mono',monospace] text-[10px] text-slate-500">{q.idCode}</span>
+                        <span className="font-['JetBrains_Mono',monospace] text-2xs text-slate-500">{q.idCode}</span>
                       </td>
                       <td className="py-2.5">
-                        <span className="font-['JetBrains_Mono',monospace] bg-teal-500/5 border border-teal-500/15 text-teal-400 font-bold px-2 py-0.5 rounded text-[10px]">{q.dept}</span>
+                        <span className="font-['JetBrains_Mono',monospace] bg-teal-500/5 border border-teal-500/15 text-teal-400 font-bold px-2 py-0.5 rounded text-2xs">{q.dept}</span>
                       </td>
                       <td className="py-2.5">
-                        <span className={`capitalize font-semibold text-[10px] px-2 py-0.5 rounded ${q.priority === 'emergency' ? 'bg-red-500/10 text-red-400 border border-red-500/25' : q.priority === 'urgent' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/25' : 'bg-slate-800 text-slate-400 border border-slate-700/50'}`}>{q.priority}</span>
+                        <span className={`capitalize font-semibold text-2xs px-2 py-0.5 rounded ${q.priority === 'emergency' ? 'bg-red-500/10 text-red-400 border border-red-500/25' : q.priority === 'urgent' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/25' : 'bg-slate-800 text-slate-400 border border-slate-700/50'}`}>{q.priority}</span>
                       </td>
                       <td className="py-2.5 text-right text-slate-400 font-['JetBrains_Mono',monospace]">{q.time}</td>
                     </motion.tr>
@@ -426,7 +426,7 @@ export default function Dashboard({ user, onNavigate }) {
 
         <Reveal className="bg-slate-900 border border-teal-500/12 rounded-2xl p-5 shadow-sm space-y-4" delay={0.1}>
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">System Health</div>
+            <div className="text-2xs font-bold uppercase tracking-widest text-teal-400">System Health</div>
             <h2 className="font-['Instrument_Serif',serif] text-xl text-slate-100 font-normal mt-0.5">Notifications</h2>
             <p className="text-[11px] text-slate-500 mt-0.5">MOH reporting and record alerts</p>
           </div>
@@ -622,11 +622,11 @@ function PharmacyDashboard({ user, onNavigate }) {
   return (
     <div className="space-y-6 font-['DM_Sans',system-ui,sans-serif]">
       {/* Welcome banner */}
-      <Reveal className="relative overflow-hidden rounded-2xl border border-teal-500/15 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-900/40">
+      <Reveal className="relative overflow-hidden rounded-2xl border border-teal-500/15 bg-linear-to-br from-slate-900 via-slate-900 to-slate-900/40">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_85%_50%,rgba(45,212,191,0.08),transparent_60%)]" />
         <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6">
           <div className="space-y-1">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">
+            <div className="text-2xs font-bold uppercase tracking-widest text-teal-400">
               {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
             </div>
             <h1 className="font-['Instrument_Serif',serif] text-2xl sm:text-3xl text-slate-100 leading-tight font-normal">
@@ -635,7 +635,7 @@ function PharmacyDashboard({ user, onNavigate }) {
             <p className="text-[12px] text-slate-400">
               <span className="text-slate-300 font-semibold">{user.facility_name}</span>
               <span className="mx-2 text-slate-700">·</span>
-              <span className="bg-teal-500/10 border border-teal-500/20 text-teal-400 px-2 py-0.5 rounded text-[10px] font-bold uppercase font-sans">
+              <span className="bg-teal-500/10 border border-teal-500/20 text-teal-400 px-2 py-0.5 rounded text-2xs font-bold uppercase font-sans">
                 Independent Pharmacy Mode
               </span>
             </p>
@@ -661,7 +661,7 @@ function PharmacyDashboard({ user, onNavigate }) {
               className={`${base} ${a.hover} cursor-pointer`}
             >
               <div className="flex justify-between items-start w-full">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-tight">{c.label}</span>
+                <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider leading-tight">{c.label}</span>
                 <Icon size={14} className={`${a.text} opacity-90 shrink-0`} />
               </div>
               <div className="mt-3 space-y-1">
@@ -682,7 +682,7 @@ function PharmacyDashboard({ user, onNavigate }) {
         <Reveal className="lg:col-span-2 bg-slate-900 border border-teal-500/12 rounded-2xl p-5 shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">POS Sales Ledger</div>
+              <div className="text-2xs font-bold uppercase tracking-widest text-teal-400">POS Sales Ledger</div>
               <h2 className="font-['Instrument_Serif',serif] text-xl text-slate-100 font-normal mt-0.5">Today's Transactions</h2>
               <p className="text-[11px] text-slate-500 mt-0.5">Summary of walk-in POS receipts generated today</p>
             </div>
@@ -700,7 +700,7 @@ function PharmacyDashboard({ user, onNavigate }) {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-teal-500/10 text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+                  <tr className="border-b border-teal-500/10 text-2xs uppercase font-bold text-slate-400 tracking-widest">
                     <th className="py-2.5">Transaction ID</th>
                     <th className="py-2.5">Payment Method</th>
                     <th className="py-2.5">Amount</th>
@@ -712,10 +712,10 @@ function PharmacyDashboard({ user, onNavigate }) {
                     <tr key={sale.id} className="hover:bg-slate-800/30 transition-colors">
                       <td className="py-2.5 pr-2">
                         <span className="font-semibold text-slate-200 block">{sale.client}</span>
-                        <span className="font-['JetBrains_Mono',monospace] text-[10px] text-slate-500">{sale.id}</span>
+                        <span className="font-['JetBrains_Mono',monospace] text-2xs text-slate-500">{sale.id}</span>
                       </td>
                       <td className="py-2.5">
-                        <span className="font-['JetBrains_Mono',monospace] bg-teal-500/5 border border-teal-500/15 text-teal-400 font-bold px-2 py-0.5 rounded text-[10px] uppercase">{sale.method}</span>
+                        <span className="font-['JetBrains_Mono',monospace] bg-teal-500/5 border border-teal-500/15 text-teal-400 font-bold px-2 py-0.5 rounded text-2xs uppercase">{sale.method}</span>
                       </td>
                       <td className="py-2.5">
                         <span className="font-semibold text-slate-200">KES {sale.amount.toLocaleString()}</span>
@@ -731,7 +731,7 @@ function PharmacyDashboard({ user, onNavigate }) {
 
         <Reveal className="bg-slate-900 border border-teal-500/12 rounded-2xl p-5 shadow-sm space-y-4" delay={0.1}>
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-teal-400">Stock Center</div>
+            <div className="text-2xs font-bold uppercase tracking-widest text-teal-400">Stock Center</div>
             <h2 className="font-['Instrument_Serif',serif] text-xl text-slate-100 font-normal mt-0.5">Inventory alerts</h2>
             <p className="text-[11px] text-slate-500 mt-0.5">Expiries and low-level reorder flags</p>
           </div>

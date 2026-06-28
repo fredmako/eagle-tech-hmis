@@ -972,7 +972,7 @@ export default function Radiology({ user, onComplete }) {
         <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm flex flex-col h-[650px] overflow-hidden">
           <h3 className="text-xs font-bold text-slate-350 uppercase tracking-wider border-b border-slate-800 pb-2.5 mb-3 flex justify-between items-center">
             <span>RIS Worklist</span>
-            <span className="bg-teal-500/10 text-teal-400 font-mono px-2 py-0.5 rounded text-[10px] font-bold">{radiologyVisits.length} waiting</span>
+            <span className="bg-teal-500/10 text-teal-400 font-mono px-2 py-0.5 rounded text-2xs font-bold">{radiologyVisits.length} waiting</span>
           </h3>
 
           <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
@@ -997,7 +997,7 @@ export default function Radiology({ user, onComplete }) {
                         visit.priority === 'emergency' ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'
                       }`}>{visit.priority}</span>
                     </div>
-                    <span className="text-[10px] text-teal-500 font-mono block mt-1">{visit.patient?.facility_id_code}</span>
+                    <span className="text-2xs text-teal-500 font-mono block mt-1">{visit.patient?.facility_id_code}</span>
                     <span className="text-[9px] text-slate-505 mt-2 block">{new Date(visit.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                   </button>
                 );
@@ -1057,7 +1057,7 @@ export default function Radiology({ user, onComplete }) {
                     <h4 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5 font-sans">
                       <Camera size={14} className="text-teal-400" /> Issue Direct/Walk-in Radiology Scan
                     </h4>
-                    <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+                    <p className="text-2xs text-slate-500 leading-relaxed font-sans">
                       This patient checked in directly without going through a clinician consultation. Select a custom radiology service from your facility's catalog to create a scan order.
                     </p>
                     
@@ -1096,7 +1096,7 @@ export default function Radiology({ user, onComplete }) {
                 <div className="flex flex-col gap-4 flex-1">
                   <div className="bg-slate-950/40 border border-slate-850/60 p-3 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Radiology Capture Method</span>
+                      <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider block">Radiology Capture Method</span>
                       <span className="text-[9px] text-slate-500">Choose manual preset execution or pull data from DICOM PACS server</span>
                     </div>
                     <div className="flex gap-2">
@@ -1131,7 +1131,7 @@ export default function Radiology({ user, onComplete }) {
                       {radCaptureMethod === 'pacs' && (
                         <div className="bg-slate-950 border border-slate-850 p-3.5 rounded-xl space-y-3 font-sans">
                           <div className="flex justify-between items-center pb-2 border-b border-slate-900">
-                            <span className="text-[10px] font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="text-2xs font-bold text-slate-350 uppercase tracking-wider flex items-center gap-1.5">
                               <SlidersHorizontal size={12} className="text-teal-400 animate-pulse" /> DICOM PACS Configuration & C-ECHO
                             </span>
                             <span className={`h-2 w-2 rounded-full ${pacsConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
@@ -1143,7 +1143,7 @@ export default function Radiology({ user, onComplete }) {
                                 type="text"
                                 value={pacsAetitle}
                                 onChange={(e) => setPacsAetitle(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-800 rounded py-1 px-2 text-[10px] text-slate-300 font-mono"
+                                className="w-full bg-slate-900 border border-slate-800 rounded py-1 px-2 text-2xs text-slate-300 font-mono"
                               />
                             </div>
                             <div className="space-y-1">
@@ -1152,7 +1152,7 @@ export default function Radiology({ user, onComplete }) {
                                 type="text"
                                 value={pacsHost}
                                 onChange={(e) => setPacsHost(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-800 rounded py-1 px-2 text-[10px] text-slate-300 font-mono"
+                                className="w-full bg-slate-900 border border-slate-800 rounded py-1 px-2 text-2xs text-slate-300 font-mono"
                               />
                             </div>
                             <div className="space-y-1">
@@ -1161,7 +1161,7 @@ export default function Radiology({ user, onComplete }) {
                                 type="text"
                                 value={pacsPort}
                                 onChange={(e) => setPacsPort(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-800 rounded py-1 px-2 text-[10px] text-slate-300 font-mono"
+                                className="w-full bg-slate-900 border border-slate-800 rounded py-1 px-2 text-2xs text-slate-300 font-mono"
                               />
                             </div>
                           </div>
@@ -1192,7 +1192,7 @@ export default function Radiology({ user, onComplete }) {
 
                           <div className="border-t border-slate-900 pt-3 space-y-2.5">
                             <div className="flex justify-between items-center">
-                              <span className="text-[10px] font-bold text-slate-350 uppercase tracking-wider">Modality Worklist (MWL) Gateway</span>
+                              <span className="text-2xs font-bold text-slate-350 uppercase tracking-wider">Modality Worklist (MWL) Gateway</span>
                               <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded font-mono uppercase ${mwlEnqueued ? 'bg-teal-500/10 text-teal-400 border border-teal-500/10' : 'bg-yellow-500/10 text-yellow-450 border border-yellow-500/10'}`}>
                                 {mwlEnqueued ? 'Enqueued' : 'Pending'}
                               </span>
@@ -1202,7 +1202,7 @@ export default function Radiology({ user, onComplete }) {
                               type="button"
                               disabled={enqueuingMwl || !pacsConnected}
                               onClick={handleEnqueueMwl}
-                              className="w-full bg-teal-500 hover:bg-teal-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 text-[10px] font-black py-1.5 px-3 rounded flex items-center justify-center gap-1 transition active:scale-[0.98]"
+                              className="w-full bg-teal-500 hover:bg-teal-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 text-2xs font-black py-1.5 px-3 rounded flex items-center justify-center gap-1 transition active:scale-[0.98]"
                             >
                               {enqueuingMwl ? (
                                 <RefreshCw size={11} className="animate-spin" />
@@ -1250,7 +1250,7 @@ export default function Radiology({ user, onComplete }) {
                         <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-10 flex flex-col justify-center items-center p-6 text-center">
                           <Loader2 size={36} className="text-teal-400 animate-spin mb-3" />
                           <span className="text-xs font-mono font-bold text-teal-400 tracking-wider">ACQUIRING DICOM SLICE: {scanProgress}%</span>
-                          <span className="text-[10px] text-slate-500 font-mono mt-1 animate-pulse">{scanStepText}</span>
+                          <span className="text-2xs text-slate-500 font-mono mt-1 animate-pulse">{scanStepText}</span>
                         </div>
                       )}
 
@@ -1261,7 +1261,7 @@ export default function Radiology({ user, onComplete }) {
                           </div>
                           <div>
                             <span className="text-xs font-bold text-slate-300 block">RIS Scanner Connected</span>
-                            <span className="text-[10px] text-slate-505 block mt-0.5">
+                            <span className="text-2xs text-slate-505 block mt-0.5">
                               {radCaptureMethod === 'pacs' && !mwlEnqueued
                                 ? 'Awaiting Modality Worklist (MWL) sync to pull credentials.'
                                 : 'Press button below to execute imaging capture.'}
@@ -1294,7 +1294,7 @@ export default function Radiology({ user, onComplete }) {
                     {/* Interactive Brightness & Contrast adjustment sliders */}
                     {scanImageCaptured && (
                       <div className="bg-slate-950/40 border border-slate-855 p-3 rounded-lg text-xs space-y-3">
-                        <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono border-b border-slate-855 pb-1.5">
+                        <div className="flex justify-between items-center text-2xs text-slate-400 font-mono border-b border-slate-855 pb-1.5">
                           <span className="flex items-center gap-1"><SlidersHorizontal size={10} /> Image Adjustments</span>
                           <button 
                             type="button"

@@ -286,7 +286,7 @@ export default function AdminOverview({
                 A quick read on admin load, support demand, and integration health.
               </p>
             </div>
-            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
+            <div className="flex items-center gap-2 text-2xs font-bold text-slate-400">
               <TrendingUp size={13} className="text-emerald-400" />
               Live overview
             </div>
@@ -304,7 +304,7 @@ export default function AdminOverview({
               return (
                 <div key={metric.label} className="bg-slate-950/70 border border-slate-850 rounded-xl p-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{metric.label}</span>
+                    <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">{metric.label}</span>
                     <div className={`p-1.5 rounded-md border ${toneMap[metric.tone]}`}>
                       <Icon size={12} />
                     </div>
@@ -342,7 +342,7 @@ export default function AdminOverview({
               ];
               return (
                 <div key={row.label} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  <div className="flex items-center justify-between text-2xs font-bold uppercase tracking-wider text-slate-500">
                     <span>{row.label}</span>
                     <span className="text-slate-300">{row.value}</span>
                   </div>

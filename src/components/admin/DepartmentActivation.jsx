@@ -92,7 +92,7 @@ export default function DepartmentActivation({ user, onClose }) {
     <div className="space-y-4">
       <div className="flex justify-between items-center pb-2 border-b border-slate-800">
         <div><h4 className="text-xs font-bold text-slate-300 flex items-center gap-2"><Building2 size={14} className="text-teal-400"/>Department Activation</h4>
-        <p className="text-[10px] text-slate-500 mt-0.5">Activate departments and assign roster managers</p></div>
+        <p className="text-2xs text-slate-500 mt-0.5">Activate departments and assign roster managers</p></div>
         <button onClick={save} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-400 hover:bg-teal-350 text-slate-950 text-xs font-bold rounded-lg disabled:opacity-50">
           <Save size={12}/>{saving?'Saving...':'Save'}
         </button>
@@ -103,18 +103,18 @@ export default function DepartmentActivation({ user, onClose }) {
           const ia=activeModules[dept.key]??false; const rs=deptRoles[dept.key]||[];
           return (<div key={dept.key} className={`p-3 rounded-lg border ${ia?'bg-teal-500/5 border-teal-500/20':'bg-slate-950/40 border-slate-850'}`}>
             <div className="flex items-start justify-between mb-2">
-              <div><div className="text-xs font-semibold text-slate-200">{dept.name}</div><div className="text-[10px] text-slate-500">{dept.desc}</div></div>
+              <div><div className="text-xs font-semibold text-slate-200">{dept.name}</div><div className="text-2xs text-slate-500">{dept.desc}</div></div>
               <button onClick={()=>toggle(dept.key)} className={`w-8 h-4 rounded-full transition-colors cursor-pointer flex items-center ${ia?'bg-teal-400 justify-end':'bg-slate-800 justify-start'}`}><span className="w-3 h-3 rounded-full bg-slate-950 mx-0.5"/></button>
             </div>
             {ia&&<div className="pt-2 border-t border-slate-800">
-              <div className="flex items-center gap-1 mb-1.5"><Users size={10} className="text-slate-500"/><span className="text-[10px] font-bold text-slate-400">Staff ({rs.length})</span></div>
+              <div className="flex items-center gap-1 mb-1.5"><Users size={10} className="text-slate-500"/><span className="text-2xs font-bold text-slate-400">Staff ({rs.length})</span></div>
               {rs.map(r=>(<div key={r.pid} className="flex items-center justify-between p-1.5 bg-slate-950/50 rounded mb-1">
-                <div className="flex-1 min-w-0"><div className="text-[10px] text-slate-300 font-medium truncate">{r.name}</div>
+                <div className="flex-1 min-w-0"><div className="text-2xs text-slate-300 font-medium truncate">{r.name}</div>
                 <div className="flex gap-1.5 mt-0.5"><label className="flex items-center gap-0.5 text-[9px] text-slate-500"><input type="checkbox" checked={r.mgr} onChange={e=>chgPerm(dept.key,r.pid,'mgr',e.target.checked)} className="rounded border-slate-700 text-teal-400"/>Manage</label>
                 <label className="flex items-center gap-0.5 text-[9px] text-slate-500"><input type="checkbox" checked={r.view} onChange={e=>chgPerm(dept.key,r.pid,'view',e.target.checked)} className="rounded border-slate-700 text-teal-400"/>View</label></div></div>
                 <button onClick={()=>remRole(dept.key,r.pid)} className="text-slate-500 hover:text-red-400">×</button>
               </div>))}
-              <select onChange={e=>{addRole(dept.key,e.target.value);e.target.value='';}} className="w-full bg-slate-950 border border-slate-800 text-slate-350 text-[10px] rounded px-2 py-1 mt-1" defaultValue="">
+              <select onChange={e=>{addRole(dept.key,e.target.value);e.target.value='';}} className="w-full bg-slate-950 border border-slate-800 text-slate-350 text-2xs rounded px-2 py-1 mt-1" defaultValue="">
                 <option value="">+ Add staff...</option>
                 {profiles.filter(p=>!rs.some(x=>x.pid===p.id)).map(p=><option key={p.id} value={p.id}>{p.full_name} ({p.role})</option>)}
               </select>

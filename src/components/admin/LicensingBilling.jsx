@@ -22,11 +22,11 @@ export default function LicensingBilling({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-slate-900 border border-slate-850 p-4 rounded-lg space-y-1">
-            <span className="text-[10px] text-slate-500 block uppercase font-bold">Licensing Tier</span>
+            <span className="text-2xs text-slate-500 block uppercase font-bold">Licensing Tier</span>
             <span className="text-sm font-black text-slate-100 uppercase tracking-wide">{license.tier}</span>
           </div>
           <div className="bg-slate-900 border border-slate-850 p-4 rounded-lg space-y-1">
-            <span className="text-[10px] text-slate-500 block uppercase font-bold">Status Badge</span>
+            <span className="text-2xs text-slate-500 block uppercase font-bold">Status Badge</span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={`h-2 w-2 rounded-full ${
                 license.status === 'active' ? 'bg-green-400' :
@@ -39,7 +39,7 @@ export default function LicensingBilling({
             </div>
           </div>
           <div className="bg-slate-900 border border-slate-850 p-4 rounded-lg space-y-1">
-            <span className="text-[10px] text-slate-500 block uppercase font-bold">Trial / Term Expiry</span>
+            <span className="text-2xs text-slate-500 block uppercase font-bold">Trial / Term Expiry</span>
             <span className="text-xs font-mono font-bold text-slate-300 block mt-0.5">
               {new Date(license.expiry).toLocaleDateString()}
             </span>
@@ -61,7 +61,7 @@ export default function LicensingBilling({
         <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
           <AlertTriangle size={14} className="text-yellow-500" /> Entitlement Gate & Compliance Simulator
         </h4>
-        <p className="text-[10px] text-slate-500">Toggle simulation states below to immediately modify active license status and trigger subscription warning notifications.</p>
+        <p className="text-2xs text-slate-500">Toggle simulation states below to immediately modify active license status and trigger subscription warning notifications.</p>
 
         <div className="flex flex-wrap gap-3">
           <button

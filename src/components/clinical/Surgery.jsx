@@ -461,7 +461,7 @@ export default function Surgery({ user, onComplete }) {
         <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm flex flex-col h-[700px] overflow-hidden">
           <h3 className="text-xs font-bold text-slate-350 uppercase tracking-wider border-b border-slate-800 pb-2.5 mb-3 flex justify-between items-center">
             <span>Surgical Waitlist</span>
-            <span className="bg-teal-500/10 text-teal-400 font-mono px-2 py-0.5 rounded text-[10px] font-bold">{surgeryVisits.length} waiting</span>
+            <span className="bg-teal-500/10 text-teal-400 font-mono px-2 py-0.5 rounded text-2xs font-bold">{surgeryVisits.length} waiting</span>
           </h3>
 
           <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
@@ -486,7 +486,7 @@ export default function Surgery({ user, onComplete }) {
                         visit.priority === 'emergency' ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'
                       }`}>{visit.priority}</span>
                     </div>
-                    <span className="text-[10px] text-teal-500 font-mono block mt-1">{visit.patient?.facility_id_code}</span>
+                    <span className="text-2xs text-teal-500 font-mono block mt-1">{visit.patient?.facility_id_code}</span>
                     <span className="text-[9px] text-slate-550 mt-2 block">{new Date(visit.created_at).toLocaleDateString()} at {new Date(visit.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                   </button>
                 );
@@ -557,7 +557,7 @@ export default function Surgery({ user, onComplete }) {
                       </div>
                       <div>
                         <span className="text-xs font-bold text-slate-200 block">Pre-operative Clearance Rating</span>
-                        <span className="text-[10px] text-slate-500 block mt-0.5">Clears Hb levels, typing, infections, and radiology.</span>
+                        <span className="text-2xs text-slate-500 block mt-0.5">Clears Hb levels, typing, infections, and radiology.</span>
                       </div>
                     </div>
 
@@ -568,7 +568,7 @@ export default function Surgery({ user, onComplete }) {
                       <div className="flex justify-between items-start gap-4">
                         <div>
                           <span className="font-semibold text-slate-300 block">Hemoglobin Level (Hb)</span>
-                          <span className="text-[10px] text-slate-500 font-mono mt-0.5">Result: {params.hb.val}</span>
+                          <span className="text-2xs text-slate-500 font-mono mt-0.5">Result: {params.hb.val}</span>
                         </div>
                         <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
                           params.hb.status === 'cleared' ? 'bg-green-500/10 text-green-400 border border-green-500/10' : 'bg-red-500/10 text-red-400 border border-red-500/10'
@@ -579,7 +579,7 @@ export default function Surgery({ user, onComplete }) {
                       <div className="flex justify-between items-start gap-4 border-t border-slate-850 pt-3">
                         <div>
                           <span className="font-semibold text-slate-300 block">Grouping / Cross-match</span>
-                          <span className="text-[10px] text-slate-500 font-mono mt-0.5">Result: {params.bg.val}</span>
+                          <span className="text-2xs text-slate-500 font-mono mt-0.5">Result: {params.bg.val}</span>
                         </div>
                         <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
                           params.bg.status === 'cleared' ? 'bg-green-500/10 text-green-400 border border-green-500/10' : 'bg-red-500/10 text-red-400 border border-red-500/10'
@@ -590,7 +590,7 @@ export default function Surgery({ user, onComplete }) {
                       <div className="flex justify-between items-start gap-4 border-t border-slate-850 pt-3">
                         <div>
                           <span className="font-semibold text-slate-300 block">Infection Screening</span>
-                          <span className="text-[10px] text-slate-500 font-mono mt-0.5">Result: {params.inf.val}</span>
+                          <span className="text-2xs text-slate-500 font-mono mt-0.5">Result: {params.inf.val}</span>
                         </div>
                         <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
                           params.inf.status === 'cleared' ? 'bg-green-500/10 text-green-400 border border-green-500/10' : 'bg-red-500/10 text-red-400 border border-red-500/10'
@@ -601,7 +601,7 @@ export default function Surgery({ user, onComplete }) {
                       <div className="flex justify-between items-start gap-4 border-t border-slate-850 pt-3">
                         <div>
                           <span className="font-semibold text-slate-300 block">Chest X-Ray / Pre-op Imaging</span>
-                          <span className="text-[10px] text-slate-550 font-mono mt-0.5 block truncate max-w-[200px]">{params.rad.val}</span>
+                          <span className="text-2xs text-slate-550 font-mono mt-0.5 block truncate max-w-[200px]">{params.rad.val}</span>
                         </div>
                         <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
                           params.rad.status === 'cleared' ? 'bg-green-500/10 text-green-400 border border-green-500/10' : 'bg-yellow-500/10 text-yellow-450 border border-yellow-500/10'
@@ -622,7 +622,7 @@ export default function Surgery({ user, onComplete }) {
                         />
                         <div>
                           <span className="font-medium text-slate-200 group-hover:text-slate-100">Signed Surgical Consent</span>
-                          <p className="text-[10px] text-slate-500 mt-0.5">Verify physical or digital consent form has been signed.</p>
+                          <p className="text-2xs text-slate-500 mt-0.5">Verify physical or digital consent form has been signed.</p>
                         </div>
                       </label>
 
@@ -635,7 +635,7 @@ export default function Surgery({ user, onComplete }) {
                         />
                         <div>
                           <span className="font-medium text-slate-200 group-hover:text-slate-100">Anesthesia Clearance</span>
-                          <p className="text-[10px] text-slate-500 mt-0.5">Pre-anesthetic evaluation has been successfully passed.</p>
+                          <p className="text-2xs text-slate-500 mt-0.5">Pre-anesthetic evaluation has been successfully passed.</p>
                         </div>
                       </label>
 

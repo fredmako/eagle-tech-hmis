@@ -66,7 +66,7 @@ export default function DemoRequestModal({ isOpen, onClose }) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 font-sans select-none pointer-events-auto">
+      <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 font-sans select-none pointer-events-auto">
         {/* Darkened backdrop */}
         <motion.div 
           initial={{ opacity: 0 }}
@@ -84,7 +84,7 @@ export default function DemoRequestModal({ isOpen, onClose }) {
           className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl z-10"
         >
           {/* Top glow stripes */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 via-teal-400 to-emerald-500" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-teal-500 via-teal-400 to-emerald-500" />
           <div className="absolute top-4 right-4 z-20">
             <button 
               onClick={onClose} 
@@ -139,7 +139,7 @@ export default function DemoRequestModal({ isOpen, onClose }) {
             // Form State
             <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-4">
               <div className="space-y-1.5">
-                <div className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-widest text-teal-450">
+                <div className="flex items-center gap-1 text-2xs uppercase font-bold tracking-widest text-teal-450">
                   <Sparkles size={12} />
                   <span>Request Live Demo</span>
                 </div>

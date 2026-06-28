@@ -727,7 +727,7 @@ export default function LaboratoryManagement({ user, onClose }) {
             <Sliders size={13} className="text-teal-400" />
             Laboratory Management Desk
           </h4>
-          <p className="text-[10px] text-slate-500 mt-0.5">
+          <p className="text-2xs text-slate-500 mt-0.5">
             Configure lab services, specimens, sub-tests, eTIMS pricing tariffs, and physiological reference ranges.
           </p>
         </div>
@@ -756,7 +756,7 @@ export default function LaboratoryManagement({ user, onClose }) {
         })}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 pt-1 max-h-[500px] overflow-y-auto pr-1">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 pt-1 max-h-125 overflow-y-auto pr-1">
         
         {/* Left Column: Data Grid */}
         <div className="xl:col-span-3 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col min-h-[350px]">
@@ -787,12 +787,12 @@ export default function LaboratoryManagement({ user, onClose }) {
           </div>
 
           {loading ? (
-            <div className="flex-grow flex flex-col items-center justify-center text-slate-500 gap-2 py-10">
+            <div className="grow flex flex-col items-center justify-center text-slate-500 gap-2 py-10">
               <div className="animate-spin rounded-full h-5 w-5 border-2 border-teal-500 border-t-transparent" />
-              <span className="text-[10px] font-mono">Fetching catalog...</span>
+              <span className="text-2xs font-mono">Fetching catalog...</span>
             </div>
           ) : (
-            <div className="flex-grow flex flex-col justify-between">
+            <div className="grow flex flex-col justify-between">
               
               {/* Tables switcher */}
               <div className="overflow-x-auto">
@@ -907,7 +907,7 @@ export default function LaboratoryManagement({ user, onClose }) {
                             {t.name}
                             {t.is_sha_pay && <span className="ml-1.5 bg-blue-500/10 text-blue-400 text-[8px] font-black border border-blue-500/15 px-1 py-0.5 rounded">SHA</span>}
                           </td>
-                          <td className="py-2.5 px-3 font-mono text-[10px] text-slate-500">{t.etims_code || '—'}</td>
+                          <td className="py-2.5 px-3 font-mono text-2xs text-slate-500">{t.etims_code || '—'}</td>
                           <td className="py-2.5 px-3 font-mono font-bold text-teal-400">{t.cash_amount ? `${Number(t.cash_amount).toFixed(2)}` : '0.00'}</td>
                           <td className="py-2.5 px-3 font-mono font-bold text-slate-400">{t.insurance_amount ? `${Number(t.insurance_amount).toFixed(2)}` : '0.00'}</td>
                           <td className="py-2.5 px-3">
@@ -989,7 +989,7 @@ export default function LaboratoryManagement({ user, onClose }) {
                             <td className="py-2.5 px-3 text-right">
                               <button 
                                 onClick={() => openReferenceRangeDrawer(sub)}
-                                className={`text-[10px] font-bold px-3 py-1 rounded transition duration-200 ${
+                                className={`text-2xs font-bold px-3 py-1 rounded transition duration-200 ${
                                   selectedSubTest?.id === sub.id 
                                     ? 'bg-teal-500 text-slate-950 shadow-md' 
                                     : 'bg-rose-500/10 border border-rose-550/20 text-rose-400 hover:bg-rose-500/20'
@@ -1043,7 +1043,7 @@ export default function LaboratoryManagement({ user, onClose }) {
               <div className="flex justify-between items-start pb-2 border-b border-slate-850">
                 <div>
                   <h3 className="text-xs font-bold uppercase tracking-wider text-teal-400">Reference Ranges</h3>
-                  <p className="text-[9.5px] text-slate-500 font-semibold truncate mt-0.5 max-w-[150px]">{selectedSubTest.name}</p>
+                  <p className="text-[9.5px] text-slate-500 font-semibold truncate mt-0.5 max-w-37.5">{selectedSubTest.name}</p>
                 </div>
                 <button onClick={() => setSelectedSubTest(null)} className="text-slate-555 hover:text-slate-300"><X size={14} /></button>
               </div>
@@ -1135,7 +1135,7 @@ export default function LaboratoryManagement({ user, onClose }) {
                 <span className="text-[8.5px] font-bold text-slate-550 uppercase tracking-wider block">Configured Ranges</span>
                 <div className="space-y-1 max-h-[140px] overflow-y-auto pr-0.5">
                   {referenceRanges.map(rng => (
-                    <div key={rng.id} className="flex justify-between items-center bg-slate-955/60 p-2 border border-slate-850 rounded-lg text-[10px]">
+                    <div key={rng.id} className="flex justify-between items-center bg-slate-955/60 p-2 border border-slate-850 rounded-lg text-2xs">
                       <div className="space-y-0.5">
                         <span className="font-bold text-slate-300 uppercase">{rng.gender} ({rng.age_min}–{rng.age_max}y)</span>
                         <div className="font-mono text-teal-400">
@@ -1146,7 +1146,7 @@ export default function LaboratoryManagement({ user, onClose }) {
                     </div>
                   ))}
                   {referenceRanges.length === 0 && (
-                    <div className="text-center py-4 text-slate-600 text-[10px]">No ranges configured.</div>
+                    <div className="text-center py-4 text-slate-600 text-2xs">No ranges configured.</div>
                   )}
                 </div>
               </div>
@@ -1198,7 +1198,7 @@ export default function LaboratoryManagement({ user, onClose }) {
                     </select>
                   </div>
                   <div className="flex gap-2 pt-1.5">
-                    <button type="submit" disabled={saving} className="flex-grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 transition active:scale-[0.98] cursor-pointer shadow-md">
+                    <button type="submit" disabled={saving} className="grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 transition active:scale-[0.98] cursor-pointer shadow-md">
                       <Save size={13} /> {saving ? 'Saving...' : 'Save'}
                     </button>
                     {editingId && (
@@ -1253,7 +1253,7 @@ export default function LaboratoryManagement({ user, onClose }) {
                     </select>
                   </div>
                   <div className="flex gap-2 pt-1.5">
-                    <button type="submit" disabled={saving} className="flex-grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 transition active:scale-[0.98] cursor-pointer shadow-md">
+                    <button type="submit" disabled={saving} className="grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 transition active:scale-[0.98] cursor-pointer shadow-md">
                       <Save size={13} /> {saving ? 'Saving...' : 'Save'}
                     </button>
                     {editingId && (
@@ -1287,7 +1287,7 @@ export default function LaboratoryManagement({ user, onClose }) {
                     </select>
                   </div>
                   <div className="flex gap-2 pt-1.5">
-                    <button type="submit" disabled={saving} className="flex-grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 transition active:scale-[0.98] cursor-pointer shadow-md">
+                    <button type="submit" disabled={saving} className="grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 transition active:scale-[0.98] cursor-pointer shadow-md">
                       <Save size={13} /> {saving ? 'Saving...' : 'Save'}
                     </button>
                     {editingId && (
@@ -1466,7 +1466,7 @@ export default function LaboratoryManagement({ user, onClose }) {
                   </div>
 
                   <div className="flex gap-2 pt-2">
-                    <button type="submit" disabled={saving} className="flex-grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded flex items-center justify-center gap-1 cursor-pointer">
+                    <button type="submit" disabled={saving} className="grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded flex items-center justify-center gap-1 cursor-pointer">
                       <Save size={12} /> {saving ? 'Saving...' : 'Save'}
                     </button>
                     {editingId && (
@@ -1545,7 +1545,7 @@ export default function LaboratoryManagement({ user, onClose }) {
                     </select>
                   </div>
                   <div className="flex gap-2 pt-1.5">
-                    <button type="submit" disabled={saving} className="flex-grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button type="submit" disabled={saving} className="grow bg-teal-400 hover:bg-teal-350 disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer">
                       <Save size={13} /> {saving ? 'Saving...' : 'Save'}
                     </button>
                     {editingId && (
@@ -1571,7 +1571,7 @@ export default function LaboratoryManagement({ user, onClose }) {
           <div className="h-4 w-4 rounded-full bg-slate-900 flex items-center justify-center shrink-0">
             {toast.type === 'error' ? <ShieldAlert size={10} className="text-red-400" /> : <Check size={10} className="text-teal-400" />}
           </div>
-          <span className="text-[10px] font-bold font-sans">{toast.message}</span>
+          <span className="text-2xs font-bold font-sans">{toast.message}</span>
         </div>
       )}
     </div>

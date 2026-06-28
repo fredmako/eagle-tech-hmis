@@ -29,7 +29,7 @@ export default function DepartmentReports({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* Navigation Sidebar (3/12 width) */}
       <div className="lg:col-span-3 space-y-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl self-start">
-        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 px-1">Clinic Departments</span>
+        <span className="text-2xs font-black text-slate-500 uppercase tracking-widest block mb-2 px-1">Clinic Departments</span>
         {[
           { id: 'reg_daily', label: 'Patient Register', desk: 'Front Office' },
           { id: 'clinical_encounter', label: 'Encounter Log', desk: 'Consultation' },
@@ -80,7 +80,7 @@ export default function DepartmentReports({
               {/* Date selection */}
               <div className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Start Date</label>
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Start Date</label>
                   <div className="relative">
                     <Calendar size={12} className="absolute left-3 top-2.5 text-slate-500" />
                     <input
@@ -92,7 +92,7 @@ export default function DepartmentReports({
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">End Date</label>
+                  <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">End Date</label>
                   <div className="relative">
                     <Calendar size={12} className="absolute left-3 top-2.5 text-slate-550" />
                     <input
@@ -107,7 +107,7 @@ export default function DepartmentReports({
 
               {/* Identity branding selection */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Branding Scope</label>
+                <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Branding Scope</label>
                 <select
                   value={brandingMode}
                   onChange={(e) => setBrandingMode(e.target.value)}

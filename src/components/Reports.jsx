@@ -1777,7 +1777,7 @@ export default function Reports({ user }) {
     let logoHtml = "";
     if (brandingMode === "platform") {
       logoHtml = `
-        <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); display: flex; align-items: center; justify-content: center; shrink: 0;">
           <svg style="width: 24px; height: 24px; color: #0d9488;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             <path d="M8 11h8" />
@@ -1789,7 +1789,7 @@ export default function Reports({ user }) {
       const logoUrl = facilityInfo.logo_url;
       if (!logoUrl) {
         logoHtml = `
-          <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #0d9488; font-size: 14px; flex-shrink: 0;">
+          <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #0d9488; font-size: 14px; shrink: 0;">
             ${(facilityInfo.name || "EM").substring(0, 2).toUpperCase()}
           </div>
         `;
@@ -1797,7 +1797,7 @@ export default function Reports({ user }) {
         const presetKey = logoUrl.split(":")[1];
         if (presetKey === "shield") {
           logoHtml = `
-            <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; shrink: 0;">
               <svg style="width: 24px; height: 24px; color: #3b82f6;" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 12c-2.33 0-4.31-1.17-5.46-2.93.03-1.81 3.63-2.82 5.46-2.82 1.82 0 5.42 1.01 5.46 2.82-1.15 1.76-3.13 2.93-5.46 2.93z"/>
               </svg>
@@ -1805,7 +1805,7 @@ export default function Reports({ user }) {
           `;
         } else if (presetKey === "cross") {
           logoHtml = `
-            <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; shrink: 0;">
               <svg style="width: 24px; height: 24px; color: #ef4444;" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z"/>
               </svg>
@@ -1813,7 +1813,7 @@ export default function Reports({ user }) {
           `;
         } else {
           logoHtml = `
-            <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; shrink: 0;">
               <svg style="width: 24px; height: 24px; color: #10b981;" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
               </svg>
@@ -1822,7 +1822,7 @@ export default function Reports({ user }) {
         }
       } else {
         logoHtml = `
-          <img src="${logoUrl}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid #cbd5e1; flex-shrink: 0;" onerror="this.src='https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=128&auto=format&fit=crop&q=60'" />
+          <img src="${logoUrl}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid #cbd5e1; shrink: 0;" onerror="this.src='https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=128&auto=format&fit=crop&q=60'" />
         `;
       }
     }
@@ -1931,7 +1931,7 @@ export default function Reports({ user }) {
     let logoHtml = "";
     if (!logoUrl) {
       logoHtml = `
-        <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #0d9488; font-size: 14px; flex-shrink: 0;">
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #0d9488; font-size: 14px; shrink: 0;">
           ${(facilityInfo.name || "EM").substring(0, 2).toUpperCase()}
         </div>
       `;
@@ -1939,7 +1939,7 @@ export default function Reports({ user }) {
       const presetKey = logoUrl.split(":")[1];
       if (presetKey === "shield") {
         logoHtml = `
-          <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; shrink: 0;">
             <svg style="width: 24px; height: 24px; color: #3b82f6;" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 12c-2.33 0-4.31-1.17-5.46-2.93.03-1.81 3.63-2.82 5.46-2.82 1.82 0 5.42 1.01 5.46 2.82-1.15 1.76-3.13 2.93-5.46 2.93z"/>
             </svg>
@@ -1947,7 +1947,7 @@ export default function Reports({ user }) {
         `;
       } else if (presetKey === "cross") {
         logoHtml = `
-          <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; shrink: 0;">
             <svg style="width: 24px; height: 24px; color: #ef4444;" fill="currentColor" viewBox="0 0 24 24">
               <path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z"/>
             </svg>
@@ -1955,7 +1955,7 @@ export default function Reports({ user }) {
         `;
       } else {
         logoHtml = `
-          <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; shrink: 0;">
             <svg style="width: 24px; height: 24px; color: #10b981;" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
@@ -1964,7 +1964,7 @@ export default function Reports({ user }) {
       }
     } else {
       logoHtml = `
-        <img src="${logoUrl}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid #cbd5e1; flex-shrink: 0;" onerror="this.src='https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=128&auto=format&fit=crop&q=60'" />
+        <img src="${logoUrl}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid #cbd5e1; shrink: 0;" onerror="this.src='https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=128&auto=format&fit=crop&q=60'" />
       `;
     }
     const printWindow = window.open("", "_blank");

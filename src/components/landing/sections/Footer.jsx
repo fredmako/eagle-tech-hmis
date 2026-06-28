@@ -97,13 +97,13 @@ export function Footer() {
 
       {/* Document Modal */}
       {activeModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 font-sans animate-fadeIn">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 font-sans animate-fadeIn">
           <div className="w-full max-w-2xl bg-slate-900 border border-slate-850 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-emerald-500 to-primary" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-primary via-emerald-500 to-primary" />
             
             <div className="p-6 border-b border-slate-850 flex justify-between items-start gap-4">
               <div>
-                <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">Legal & Compliance Documentation</span>
+                <span className="text-2xs font-bold text-primary uppercase tracking-wider block">Legal & Compliance Documentation</span>
                 <h3 className="text-base font-bold text-slate-100 mt-1">
                   {activeModal === 'privacy' ? 'Privacy Policy' : 'Service Agreement (SLA & ToS)'}
                 </h3>
@@ -186,7 +186,7 @@ export function Footer() {
                     Eagle Tech Solutions<br />
                     Email: <a href="mailto:info@eagletechsolutions.tech" className="text-teal-400 hover:underline">info@eagletechsolutions.tech</a>
                   </p>
-                  <p className="mt-2 text-[10px]">
+                  <p className="mt-2 text-2xs">
                     You also have the right to lodge a complaint directly with the <strong>Office of the Data Protection Commissioner (ODPC)</strong> of Kenya.
                   </p>
                 </>
@@ -241,7 +241,7 @@ export function Footer() {
               <span className="text-[9px] text-slate-500 italic text-center sm:text-left">Eagle Tech Legal Compliance. Certified HIPAA & Data Protection Act 2019.</span>
               <button
                 onClick={closeModal}
-                className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[10px] py-1.5 px-5 rounded-lg transition cursor-pointer"
+                className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-2xs py-1.5 px-5 rounded-lg transition cursor-pointer"
               >
                 Accept & Close
               </button>

@@ -164,7 +164,7 @@ export default function BroadcastPanel({ user, profiles = [], fetchAdminData }) 
         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-sans">
           <ShieldAlert size={14} className="text-teal-400" /> Administrative Alerts & Broadcasts
         </h4>
-        <span className="bg-teal-500/10 border border-teal-500/20 text-teal-400 px-2 py-0.5 rounded text-[10px] font-bold font-sans">
+        <span className="bg-teal-500/10 border border-teal-500/20 text-teal-400 px-2 py-0.5 rounded text-2xs font-bold font-sans">
           Notification Engine
         </span>
       </div>
@@ -188,7 +188,7 @@ export default function BroadcastPanel({ user, profiles = [], fetchAdminData }) 
           <form onSubmit={handleSendBroadcast} className="space-y-3.5">
             {/* Target Selector */}
             <div className="space-y-1">
-              <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Target Audience</label>
+              <label className="text-2xs text-slate-500 font-bold uppercase tracking-wider block">Target Audience</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'all', label: 'All Staff', icon: Users },
@@ -218,7 +218,7 @@ export default function BroadcastPanel({ user, profiles = [], fetchAdminData }) 
             {/* Dynamic Target Selection Dropdowns */}
             {targetType === 'role' && (
               <div className="space-y-1 animate-fadeIn">
-                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Select Role Group</label>
+                <label className="text-2xs text-slate-500 font-bold uppercase tracking-wider block">Select Role Group</label>
                 <select
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value)}
@@ -233,7 +233,7 @@ export default function BroadcastPanel({ user, profiles = [], fetchAdminData }) 
 
             {targetType === 'single' && (
               <div className="space-y-1 animate-fadeIn">
-                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Select Employee</label>
+                <label className="text-2xs text-slate-500 font-bold uppercase tracking-wider block">Select Employee</label>
                 <select
                   value={selectedUserId}
                   onChange={(e) => setSelectedUserId(e.target.value)}
@@ -249,7 +249,7 @@ export default function BroadcastPanel({ user, profiles = [], fetchAdminData }) 
 
             {/* Title Input */}
             <div className="space-y-1">
-              <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
+              <label className="text-2xs text-slate-500 font-bold uppercase tracking-wider block">
                 {targetType === 'support' ? 'Support Ticket Subject' : 'Alert Title'}
               </label>
               <input
@@ -263,7 +263,7 @@ export default function BroadcastPanel({ user, profiles = [], fetchAdminData }) 
 
             {/* Message Input */}
             <div className="space-y-1">
-              <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Message Details</label>
+              <label className="text-2xs text-slate-500 font-bold uppercase tracking-wider block">Message Details</label>
               <textarea
                 rows={4}
                 placeholder={targetType === 'support' ? 'Detail the issue and steps to reproduce. Our technical support will investigate immediately.' : 'Compose your broadcast notification details here...'}
@@ -301,7 +301,7 @@ export default function BroadcastPanel({ user, profiles = [], fetchAdminData }) 
 
           <div className="border border-slate-850 rounded-lg overflow-hidden bg-slate-950/40">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-[10px]">
+              <table className="w-full text-left border-collapse text-2xs">
                 <thead>
                   <tr className="bg-slate-950 border-b border-slate-850 text-slate-500 font-bold uppercase tracking-wider">
                     <th className="p-2.5">Date</th>
@@ -330,7 +330,7 @@ export default function BroadcastPanel({ user, profiles = [], fetchAdminData }) 
                           {getTargetLabel(log)}
                         </td>
                         <td className="p-2.5 font-bold text-slate-200">{log.title}</td>
-                        <td className="p-2.5 max-w-[150px] truncate" title={log.message}>
+                        <td className="p-2.5 max-w-37.5 truncate" title={log.message}>
                           {log.message}
                         </td>
                         <td className="p-2.5 whitespace-nowrap">

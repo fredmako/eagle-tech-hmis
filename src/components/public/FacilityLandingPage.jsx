@@ -994,7 +994,7 @@ Bot reply: ${lastBot?.text || ""}`,
         </div>
       </div>
       <div className="flex items-center gap-4 text-xs font-semibold">
-        <span className="text-slate-400 flex items-center gap-1.5 hidden sm:flex">
+        <span className="hidden sm:inline-flex items-center gap-1.5 text-slate-400">
           <MapPin
             size={14}
             className={
@@ -1005,7 +1005,7 @@ Bot reply: ${lastBot?.text || ""}`,
         </span>
         <button
           onClick={() => setShowPublicBookingModal(true)}
-          className={`font-black text-[10px] py-1.5 px-3.5 rounded-lg border cursor-pointer active:scale-[0.98] transition ${
+          className={`font-black text-2xs py-1.5 px-3.5 rounded-lg border cursor-pointer active:scale-[0.98] transition ${
             template === "wellness"
               ? "bg-purple-500 hover:bg-purple-650 text-white border-purple-500/20 shadow-lg shadow-purple-500/10"
               : "bg-teal-500 hover:bg-teal-600 text-slate-950 border-teal-500/20 shadow-lg shadow-teal-500/10"
@@ -1032,7 +1032,7 @@ Bot reply: ${lastBot?.text || ""}`,
             setIsStaffLogin(false);
             setAuthError("");
           }}
-          className={`flex-1 pb-3 text-center text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+          className={`flex-1 pb-3 text-center text-2xs sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
             isLoginTab && !isStaffLogin
               ? `border-b-2 ${template === "wellness" ? "border-purple-500 text-purple-400" : "border-teal-500 text-teal-400"}`
               : "text-slate-500 hover:text-slate-300"
@@ -1046,7 +1046,7 @@ Bot reply: ${lastBot?.text || ""}`,
             setIsStaffLogin(false);
             setAuthError("");
           }}
-          className={`flex-1 pb-3 text-center text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+          className={`flex-1 pb-3 text-center text-2xs sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
             !isLoginTab && !isStaffLogin
               ? `border-b-2 ${template === "wellness" ? "border-purple-500 text-purple-400" : "border-teal-500 text-teal-400"}`
               : "text-slate-500 hover:text-slate-300"
@@ -1059,7 +1059,7 @@ Bot reply: ${lastBot?.text || ""}`,
             setIsStaffLogin(true);
             setAuthError("");
           }}
-          className={`flex-1 pb-3 text-center text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+          className={`flex-1 pb-3 text-center text-2xs sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
             isStaffLogin
               ? `border-b-2 ${template === "wellness" ? "border-purple-500 text-purple-400" : "border-teal-500 text-teal-400"}`
               : "text-slate-500 hover:text-slate-300"
@@ -1131,11 +1131,11 @@ Bot reply: ${lastBot?.text || ""}`,
           </button>
 
           <div className="relative flex py-2 items-center">
-            <div className="flex-grow border-t border-slate-800"></div>
-            <span className="flex-shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">
+            <div className="grow border-t border-slate-800"></div>
+            <span className="shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">
               or
             </span>
-            <div className="flex-grow border-t border-slate-800"></div>
+            <div className="grow border-t border-slate-800"></div>
           </div>
 
           <button
@@ -1216,11 +1216,11 @@ Bot reply: ${lastBot?.text || ""}`,
           </button>
 
           <div className="relative flex py-2 items-center">
-            <div className="flex-grow border-t border-slate-800"></div>
-            <span className="flex-shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">
+            <div className="grow border-t border-slate-800"></div>
+            <span className="shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">
               or
             </span>
-            <div className="flex-grow border-t border-slate-800"></div>
+            <div className="grow border-t border-slate-800"></div>
           </div>
 
           <button
@@ -1344,11 +1344,11 @@ Bot reply: ${lastBot?.text || ""}`,
           </button>
 
           <div className="relative flex py-2 items-center">
-            <div className="flex-grow border-t border-slate-800"></div>
-            <span className="flex-shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">
+            <div className="grow border-t border-slate-800"></div>
+            <span className="shrink mx-4 text-[9px] text-slate-550 font-bold uppercase tracking-wider">
               or
             </span>
-            <div className="flex-grow border-t border-slate-800"></div>
+            <div className="grow border-t border-slate-800"></div>
           </div>
 
           <button
@@ -1384,7 +1384,7 @@ Bot reply: ${lastBot?.text || ""}`,
         <button
           type="button"
           onClick={() => setShowPublicBookingModal(true)}
-          className={`text-[10px] font-bold uppercase tracking-wider underline hover:text-white transition cursor-pointer ${
+          className={`text-2xs font-bold uppercase tracking-wider underline hover:text-white transition cursor-pointer ${
             template === "wellness" ? "text-purple-400" : "text-teal-400"
           }`}
         >
@@ -1404,7 +1404,7 @@ Bot reply: ${lastBot?.text || ""}`,
         >
           <PhoneCall size={16} /> Contact & Inquiry Help Desk
         </h3>
-        <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+        <p className="text-2xs text-slate-400 mt-1 leading-relaxed">
           Have a question or request for {facility.name}? Submit your query
           below and our team will get in touch.
         </p>
@@ -1514,7 +1514,7 @@ Bot reply: ${lastBot?.text || ""}`,
         {/* Welcome Card */}
         <div className="bg-slate-900 border border-slate-850 p-6 rounded-2xl space-y-4">
           <div className="flex justify-between items-start flex-wrap gap-4">
-            <div className="space-y-2 flex-1 min-w-[250px]">
+            <div className="space-y-2 flex-1 min-w-62.5">
               <h2 className="text-xl font-black text-white font-sans tracking-tight">
                 Our Services & Specialities
               </h2>
@@ -1539,7 +1539,7 @@ Bot reply: ${lastBot?.text || ""}`,
           <div className="space-y-6">
             {categories.map((cat) => (
               <div key={cat} className="space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 border-l-2 border-teal-500">
+                <h4 className="text-2xs font-bold text-slate-400 uppercase tracking-wider pl-1 border-l-2 border-teal-500">
                   {cat}
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1556,7 +1556,7 @@ Bot reply: ${lastBot?.text || ""}`,
                             alt={svc.name}
                             className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-955/80 to-transparent" />
+                          <div className="absolute inset-0 bg-linear-to-t from-slate-955/80 to-transparent" />
                           <span className="absolute bottom-2 left-2 text-[8px] font-bold text-teal-400 bg-teal-950/80 border border-teal-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
                             {svc.category}
                           </span>
@@ -1566,7 +1566,7 @@ Bot reply: ${lastBot?.text || ""}`,
                             {svc.name}
                           </h5>
                           <div className="flex justify-between items-center mt-1">
-                            <span className="text-[10px] text-slate-400 font-medium">
+                            <span className="text-2xs text-slate-400 font-medium">
                               Standard Fee
                             </span>
                             <span className="font-mono font-bold text-teal-400 bg-teal-500/10 border border-teal-500/10 px-2.5 py-1 rounded-lg">
@@ -1614,13 +1614,13 @@ Bot reply: ${lastBot?.text || ""}`,
         {/* Modern Hero Section */}
         <section className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-8">
           <div className="lg:col-span-7 space-y-6 animate-slideUp">
-            <span className="text-[10px] font-bold text-teal-400 uppercase tracking-widest bg-teal-500/10 border border-teal-500/20 px-4 py-1.5 rounded-full inline-flex items-center gap-1.5 select-none">
+            <span className="text-2xs font-bold text-teal-400 uppercase tracking-widest bg-teal-500/10 border border-teal-500/20 px-4 py-1.5 rounded-full inline-flex items-center gap-1.5 select-none">
               <Sparkles size={12} className="animate-pulse" /> Premium
               Healthcare
             </span>
             <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight font-serif">
               Next-Gen Intelligent Healthcare for{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-teal-400 to-emerald-400">
                 Your Family
               </span>
             </h2>
@@ -1632,7 +1632,7 @@ Bot reply: ${lastBot?.text || ""}`,
             <div className="flex flex-wrap gap-4 pt-2">
               <button
                 onClick={() => setShowPublicBookingModal(true)}
-                className="bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-black text-xs px-6 py-3 rounded-xl shadow-lg hover:shadow-teal-500/10 hover:scale-[1.02] transition active:scale-[0.98] cursor-pointer"
+                className="bg-linear-to-r from-teal-500 to-emerald-500 text-slate-950 font-black text-xs px-6 py-3 rounded-xl shadow-lg hover:shadow-teal-500/10 hover:scale-[1.02] transition active:scale-[0.98] cursor-pointer"
               >
                 📅 Book Appointment
               </button>
@@ -1655,7 +1655,7 @@ Bot reply: ${lastBot?.text || ""}`,
             <img
               src="/modern_hospital_hero.png"
               alt="Healthcare Vector illustration"
-              className="w-full max-w-md rounded-2xl shadow-2xl border border-slate-850 transform hover:scale-[1.02] transition duration-500 shadow-teal-500/5 object-cover h-[280px]"
+              className="w-full max-w-md rounded-2xl shadow-2xl border border-slate-850 transform hover:scale-[1.02] transition duration-500 shadow-teal-500/5 object-cover h-70"
             />
           </div>
         </section>
@@ -1722,7 +1722,7 @@ Bot reply: ${lastBot?.text || ""}`,
                     alt={`Facility view ${idx + 1}`}
                     className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-t from-slate-950/60 to-transparent" />
                 </div>
               ))}
             </div>
@@ -1766,7 +1766,7 @@ Bot reply: ${lastBot?.text || ""}`,
               <button
                 key={cat}
                 onClick={() => setActiveCategoryTab(cat)}
-                className={`text-[10px] font-bold tracking-wider uppercase px-4 py-2 rounded-lg transition-all cursor-pointer ${
+                className={`text-2xs font-bold tracking-wider uppercase px-4 py-2 rounded-lg transition-all cursor-pointer ${
                   activeCategoryTab === cat
                     ? "bg-teal-500 text-slate-950"
                     : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200"
@@ -1790,7 +1790,7 @@ Bot reply: ${lastBot?.text || ""}`,
                     alt={svc.name}
                     className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-t from-slate-950/80 to-transparent" />
                   <span className="absolute bottom-2.5 left-3 text-[8px] font-black text-teal-400 bg-teal-950/85 border border-teal-500/20 px-2 py-0.5 rounded-md uppercase tracking-widest">
                     {svc.category}
                   </span>
@@ -1800,7 +1800,7 @@ Bot reply: ${lastBot?.text || ""}`,
                     {svc.name}
                   </h4>
                   <div className="flex justify-between items-center mt-1">
-                    <span className="text-[10px] text-slate-455 font-bold uppercase tracking-wider font-sans">
+                    <span className="text-2xs text-slate-455 font-bold uppercase tracking-wider font-sans">
                       Service Fee
                     </span>
                     <span className="font-mono font-bold text-teal-400 bg-teal-500/5 border border-teal-500/15 px-3 py-1 rounded-lg">
@@ -1859,13 +1859,13 @@ Bot reply: ${lastBot?.text || ""}`,
       {/* Wellness Hero Section */}
       <section className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-8">
         <div className="lg:col-span-7 space-y-6 animate-slideUp">
-          <div className="inline-flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold tracking-widest uppercase px-4 py-1.5 rounded-full select-none">
+          <div className="inline-flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-2xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full select-none">
             <Activity size={12} className="animate-pulse" /> Compassionate
             Clinical Care
           </div>
           <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight font-serif">
             Providing Calming Care &{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-purple-400 to-indigo-400">
               Wellness Solutions
             </span>
           </h2>
@@ -1894,7 +1894,7 @@ Bot reply: ${lastBot?.text || ""}`,
           <img
             src="/wellness_clinic_hero.png"
             alt="Wellness illustration"
-            className="w-full max-w-md rounded-2xl shadow-2xl border border-slate-800 transform hover:scale-[1.02] transition duration-500 shadow-purple-500/5 object-cover h-[280px]"
+            className="w-full max-w-md rounded-2xl shadow-2xl border border-slate-800 transform hover:scale-[1.02] transition duration-500 shadow-purple-500/5 object-cover h-70"
           />
         </div>
       </section>
@@ -1909,7 +1909,7 @@ Bot reply: ${lastBot?.text || ""}`,
             <h4 className="text-xs font-bold text-slate-200">
               Certified Operations
             </h4>
-            <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+            <p className="text-2xs text-slate-500 leading-relaxed font-sans">
               Full integrations with Kenyan MOH registers, verified licensing
               numbers, and audit logs.
             </p>
@@ -1923,7 +1923,7 @@ Bot reply: ${lastBot?.text || ""}`,
             <h4 className="text-xs font-bold text-slate-200">
               Patient-Centric Portal
             </h4>
-            <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+            <p className="text-2xs text-slate-500 leading-relaxed font-sans">
               Allows patient login, direct accessions tracking, invoice
               verification, and vaccine rosters.
             </p>
@@ -1937,7 +1937,7 @@ Bot reply: ${lastBot?.text || ""}`,
             <h4 className="text-xs font-bold text-slate-200">
               Automated LIS Tracker
             </h4>
-            <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+            <p className="text-2xs text-slate-500 leading-relaxed font-sans">
               Lab results sync automatically from diagnostic equipment
               handshakes, reducing delays.
             </p>
@@ -1949,7 +1949,7 @@ Bot reply: ${lastBot?.text || ""}`,
       {facility.facility_images && facility.facility_images.length > 0 && (
         <section className="max-w-4xl mx-auto px-6 space-y-6 animate-slideUp">
           <div className="text-center space-y-2">
-            <h3 className="text-xl font-bold font-serif text-white font-normal">
+            <h3 className="text-xl font-bold font-serif text-white">
               Explore Our Premises
             </h3>
             <p className="text-xs text-slate-455 max-w-lg mx-auto">
@@ -1969,7 +1969,7 @@ Bot reply: ${lastBot?.text || ""}`,
                   alt={`Wellness Space ${idx + 1}`}
                   className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-slate-950/65 to-transparent" />
               </div>
             ))}
           </div>
@@ -2008,7 +2008,7 @@ Bot reply: ${lastBot?.text || ""}`,
                           alt={svc.name}
                           className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-955/85 to-transparent" />
+                        <div className="absolute inset-0 bg-linear-to-t from-slate-955/85 to-transparent" />
                         <span className="absolute bottom-2 left-2 text-[8px] font-bold text-purple-400 bg-purple-950/80 border border-purple-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
                           {svc.category}
                         </span>
@@ -2018,7 +2018,7 @@ Bot reply: ${lastBot?.text || ""}`,
                           {svc.name}
                         </span>
                         <div className="flex justify-between items-center mt-1">
-                          <span className="text-[10px] text-slate-500 font-medium font-sans">
+                          <span className="text-2xs text-slate-500 font-medium font-sans">
                             Standard Charge
                           </span>
                           <span className="font-mono text-purple-400 font-bold bg-purple-500/10 border border-purple-500/10 px-2.5 py-1 rounded-lg">
@@ -2089,7 +2089,7 @@ Bot reply: ${lastBot?.text || ""}`,
         title="Chat on WhatsApp"
       >
         <PhoneCall size={20} className="group-hover:rotate-12 duration-300" />
-        <span className="max-w-0 overflow-hidden group-hover:max-w-[150px] transition-all duration-300 text-xs font-black tracking-wide whitespace-nowrap block">
+        <span className="max-w-0 overflow-hidden group-hover:max-w-37.5 transition-all duration-300 text-xs font-black tracking-wide whitespace-nowrap block">
           Chat on WhatsApp
         </span>
       </a>
@@ -2097,7 +2097,7 @@ Bot reply: ${lastBot?.text || ""}`,
   };
 
   const renderFooter = () => (
-    <footer className="bg-slate-950 py-4 px-6 text-center text-[10px] text-slate-600 border-t border-slate-900 shrink-0 font-sans">
+    <footer className="bg-slate-950 py-4 px-6 text-center text-2xs text-slate-600 border-t border-slate-900 shrink-0 font-sans">
       © 2026 Eagle Tech HMIS Solutions. All rights reserved. Managed by{" "}
       {facility.name}.
     </footer>
@@ -2107,7 +2107,7 @@ Bot reply: ${lastBot?.text || ""}`,
     <div
       className={`min-h-screen text-slate-100 flex flex-col justify-between selection:bg-teal-500 selection:text-slate-950 relative font-sans overflow-x-hidden ${
         template === "wellness"
-          ? "bg-gradient-to-br from-slate-950 via-purple-950/10 to-slate-950"
+          ? "bg-linear-to-br from-slate-950 via-purple-950/10 to-slate-950"
           : "bg-slate-950"
       }`}
     >
@@ -2229,18 +2229,18 @@ Bot reply: ${lastBot?.text || ""}`,
                   Available Time Slots
                 </label>
                 {loadingSlots ? (
-                  <div className="py-2 text-center text-[10px] text-slate-500 flex items-center justify-center gap-1.5">
+                  <div className="py-2 text-center text-2xs text-slate-500 flex items-center justify-center gap-1.5">
                     <div className="h-3 w-3 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
                     <span>Checking availability...</span>
                   </div>
                 ) : availableSlots.length > 0 ? (
-                  <div className="grid grid-cols-4 gap-1.5 max-h-[120px] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-4 gap-1.5 max-h-30 overflow-y-auto pr-1">
                     {availableSlots.map((slot) => (
                       <button
                         key={slot}
                         type="button"
                         onClick={() => setSelectedSlot(slot)}
-                        className={`py-1 text-[10px] font-bold font-mono border rounded transition ${
+                        className={`py-1 text-2xs font-bold font-mono border rounded transition ${
                           selectedSlot === slot
                             ? template === "wellness"
                               ? "bg-purple-500/10 border-purple-500 text-purple-400"
@@ -2253,7 +2253,7 @@ Bot reply: ${lastBot?.text || ""}`,
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-amber-400 italic bg-amber-500/5 border border-amber-550/15 p-2 rounded text-center">
+                  <p className="text-2xs text-amber-400 italic bg-amber-500/5 border border-amber-550/15 p-2 rounded text-center">
                     No available time slots on this date.
                   </p>
                 )}
@@ -2297,7 +2297,7 @@ Bot reply: ${lastBot?.text || ""}`,
         </div>
       )}
       {/* Floating Facility Chatbot Widget */}
-      <div className="fixed bottom-6 left-6 z-[9999] font-sans text-slate-100">
+      <div className="fixed bottom-6 left-6 z-9999 font-sans text-slate-100">
         {!chatOpen ? (
           <button
             onClick={() => setChatOpen(true)}
@@ -2311,7 +2311,7 @@ Bot reply: ${lastBot?.text || ""}`,
             <MessageSquare size={22} />
           </button>
         ) : (
-          <div className="w-80 sm:w-96 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col h-[400px] animate-fadeIn">
+          <div className="w-80 sm:w-96 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col h-100 animate-fadeIn">
             {/* Header */}
             <div className="p-3 bg-slate-950 border-b border-slate-800 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-2">
@@ -2378,7 +2378,7 @@ Bot reply: ${lastBot?.text || ""}`,
                   <button
                     type="button"
                     onClick={handleChatCreateTicket}
-                    className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition"
+                    className="text-2xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition"
                   >
                     Create support ticket from this chat
                   </button>

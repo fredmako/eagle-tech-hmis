@@ -931,7 +931,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-slate-500 font-sans leading-relaxed">
+            <p className="text-2xs text-slate-500 font-sans leading-relaxed">
               To comply with Eagle Tech HMIS policies, a single account cannot register more than 2 facilities. Please proceed to your dashboard workspace to manage your existing facilities.
             </p>
             <button
@@ -1032,7 +1032,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
                   <div className="flex items-center justify-center gap-3">
                     <div className="h-[1px] bg-slate-800 flex-1"></div>
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                    <span className="text-2xs text-slate-500 font-bold uppercase tracking-wider">
                       or sign up with email
                     </span>
                     <div className="h-[1px] bg-slate-800 flex-1"></div>
@@ -1048,7 +1048,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                       <span className="font-bold text-slate-200 block leading-snug font-sans">
                         Authenticated with Google
                       </span>
-                      <span className="text-[10px] text-slate-450 block font-medium truncate font-sans">
+                      <span className="text-2xs text-slate-450 block font-medium truncate font-sans">
                         {adminEmail}
                       </span>
                     </div>
@@ -1060,7 +1060,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                       setAdminName("");
                       setAdminEmail("");
                     }}
-                    className="text-[10px] text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700 py-1 px-3 rounded-lg transition font-bold cursor-pointer font-sans"
+                    className="text-2xs text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700 py-1 px-3 rounded-lg transition font-bold cursor-pointer font-sans"
                   >
                     Use Another Account
                   </button>
@@ -1069,7 +1069,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                     Admin Name
                   </label>
                   <input
@@ -1081,7 +1081,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                     Contact Phone
                   </label>
                   <input
@@ -1096,7 +1096,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                     Admin Email
                   </label>
                   <input
@@ -1111,7 +1111,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                     Password
                   </label>
                   <input
@@ -1174,7 +1174,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
               )}
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
+                <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
                   Enter 6-Digit Code
                 </label>
                 <input
@@ -1189,7 +1189,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                   className="w-full bg-slate-900 border border-slate-800 rounded-lg py-3 px-4 text-center text-2xl font-mono text-slate-100 tracking-[0.5em] focus:outline-none focus:border-teal-500 transition"
                   autoFocus
                 />
-                <p className="text-[10px] text-slate-500 mt-2 text-center">
+                <p className="text-2xs text-slate-500 mt-2 text-center">
                   Sandbox mode: use code <span className="font-mono text-teal-400">123456</span>
                 </p>
               </div>
@@ -1266,7 +1266,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                       <span className="text-2xl font-black text-white">
                         {p.price}
                       </span>
-                      <span className="text-[10px] text-slate-500 ml-1.5">
+                      <span className="text-2xs text-slate-500 ml-1.5">
                         {p.billing}
                       </span>
                     </div>
@@ -1277,7 +1277,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                       {p.features.map((f, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center gap-2 text-[10px] text-slate-400 font-medium"
+                          className="flex items-center gap-2 text-2xs text-slate-400 font-medium"
                         >
                           <Check size={12} className="text-teal-400 shrink-0" />
                           <span>{f}</span>
@@ -1329,7 +1329,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                         KMPDC Reg Number
                       </label>
                       <input
@@ -1342,7 +1342,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                         MFL Code (5-Digit)
                       </label>
                       <input
@@ -1366,12 +1366,12 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                       {eCitizenVerifying ? "Verifying with KMFL..." : "Verify via e-Citizen Registry"}
                     </button>
                     {eCitizenVerified && (
-                      <span className="text-[10px] text-green-400 font-extrabold flex items-center gap-1">
+                      <span className="text-2xs text-green-400 font-extrabold flex items-center gap-1">
                         <CheckCircle size={14} /> Verified via e-Citizen Portal (MOH Kenya)
                       </span>
                     )}
                     {eCitizenError && (
-                      <span className="text-[10px] text-red-400 font-bold">
+                      <span className="text-2xs text-red-400 font-bold">
                         {eCitizenError}
                       </span>
                     )}
@@ -1379,7 +1379,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
                   <div className="grid grid-cols-2 gap-4 border-t border-slate-900 pt-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                         KMFL Regulatory Category
                       </label>
                       <select
@@ -1395,7 +1395,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                         LR Number (Land Reference)
                       </label>
                       <input
@@ -1410,7 +1410,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                         County (Kenya)
                       </label>
                       <select
@@ -1431,7 +1431,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                         Sub-County / Constituency
                       </label>
                       <input
@@ -1450,7 +1450,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                         Hospital Name
                       </label>
                       <input
@@ -1462,7 +1462,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1">
+                      <label className="block text-2xs font-bold text-slate-555 uppercase tracking-wider mb-1">
                         Hospital Address
                       </label>
                       <input
@@ -1476,7 +1476,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                       Choose Hospital Logo
                     </label>
                     <div className="grid grid-cols-4 gap-2 mb-3">
@@ -1525,7 +1525,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                                 size={24}
                                 className="mb-2 text-slate-400"
                               />
-                              <p className="text-[10px] text-slate-400 font-bold uppercase">
+                              <p className="text-2xs text-slate-400 font-bold uppercase">
                                 <span className="text-teal-400">
                                   Click to upload
                                 </span>{" "}
@@ -1551,7 +1551,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                               className="w-8 h-8 rounded object-cover border border-slate-700"
                             />
                             <div className="truncate flex-1">
-                              <span className="text-[10px] text-slate-450 block font-bold">
+                              <span className="text-2xs text-slate-450 block font-bold">
                                 Logo Uploaded Successfully
                               </span>
                               <span className="text-[8px] text-slate-500 font-mono block truncate">
@@ -1605,13 +1605,13 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
                     {/* Mock Navigation Menu items */}
                     <div className="space-y-1.5 opacity-60">
-                      <div className="w-full bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold">
+                      <div className="w-full bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center gap-2 px-3 py-1.5 rounded-lg text-2xs font-bold">
                         <Activity size={12} /> Dashboard View
                       </div>
-                      <div className="w-full flex items-center gap-2 px-3 py-1.5 text-slate-550 text-[10px] font-bold">
+                      <div className="w-full flex items-center gap-2 px-3 py-1.5 text-slate-550 text-2xs font-bold">
                         <User size={12} /> Patient Register
                       </div>
-                      <div className="w-full flex items-center gap-2 px-3 py-1.5 text-slate-555 text-[10px] font-bold">
+                      <div className="w-full flex items-center gap-2 px-3 py-1.5 text-slate-555 text-2xs font-bold">
                         <Lock size={12} /> Security Configuration
                       </div>
                     </div>
@@ -1668,7 +1668,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                   </div>
                 </div>
 
-                <div className="border-t border-slate-900 pt-3 space-y-1.5 text-[10px] text-slate-400">
+                <div className="border-t border-slate-900 pt-3 space-y-1.5 text-2xs text-slate-400">
                   <div className="flex justify-between">
                     <span>Parent Outsourced Engine:</span>
                     <span className="font-bold text-slate-300">
@@ -1706,7 +1706,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                 </span>
                 <span className="text-lg font-black text-teal-400">
                   {plans.find((p) => p.id === selectedPlan)?.price}{" "}
-                  <span className="text-[10px] text-slate-500 font-medium">
+                  <span className="text-2xs text-slate-500 font-medium">
                     / month
                   </span>
                 </span>
@@ -1722,7 +1722,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
               <form onSubmit={handleProvisionPortal} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider mb-1">
+                  <label className="block text-2xs font-bold text-slate-550 uppercase tracking-wider mb-1">
                     Card Number
                   </label>
                   <div className="relative">
@@ -1741,7 +1741,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1">
+                    <label className="block text-2xs font-bold text-slate-555 uppercase tracking-wider mb-1">
                       Expiry Date
                     </label>
                     <input
@@ -1752,7 +1752,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider mb-1">
+                    <label className="block text-2xs font-bold text-slate-555 uppercase tracking-wider mb-1">
                       CVC Code
                     </label>
                     <input
@@ -1850,7 +1850,7 @@ export default function SaaSOnboarding({ onBackToLogin }) {
                   {adminEmail}
                 </span>
               </div>
-              <div className="border-t border-slate-900 pt-3 flex gap-2 text-[10px] text-slate-550 leading-relaxed">
+              <div className="border-t border-slate-900 pt-3 flex gap-2 text-2xs text-slate-550 leading-relaxed">
                 <Check size={14} className="text-teal-400 shrink-0" />
                 <span>
                   You can now log in using these credentials to add users, run

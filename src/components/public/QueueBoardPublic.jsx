@@ -209,7 +209,7 @@ export default function QueueBoardPublic() {
         <div className="flex items-center gap-6">
           <button
             onClick={handleSimulateCall}
-            className="flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-teal-400 hover:text-teal-300 border border-slate-700/60 rounded text-[10px] font-bold uppercase tracking-wider transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-teal-400 hover:text-teal-300 border border-slate-700/60 rounded text-2xs font-bold uppercase tracking-wider transition cursor-pointer"
           >
             <Play size={10} /> Test Announcement
           </button>
@@ -225,9 +225,9 @@ export default function QueueBoardPublic() {
       <main className="flex-1 flex md:flex-row flex-col overflow-hidden p-6 gap-6 bg-slate-950">
         {/* Left Column: Now Serving */}
         <section className="flex-1 bg-slate-900/50 border border-slate-900 rounded-2xl p-8 flex flex-col justify-between items-center text-center shadow-inner relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-teal-500 via-sky-500 to-indigo-500" />
+          <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-teal-500 via-sky-500 to-indigo-500" />
           
-          <div className="w-full flex justify-between items-center text-slate-500 text-[10px] uppercase font-bold tracking-widest">
+          <div className="w-full flex justify-between items-center text-slate-500 text-2xs uppercase font-bold tracking-widest">
             <span>Live status</span>
             <span className="flex items-center gap-1 text-emerald-400 animate-pulse">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Online
@@ -237,7 +237,7 @@ export default function QueueBoardPublic() {
           <div className="flex flex-col items-center gap-4 py-8">
             {nowServing ? (
               <>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-950 px-4 py-1.5 rounded-full border border-slate-800 shadow">
+                <span className="text-2xs font-bold text-slate-500 uppercase tracking-widest bg-slate-950 px-4 py-1.5 rounded-full border border-slate-800 shadow">
                   NOW CALLING
                 </span>
                 

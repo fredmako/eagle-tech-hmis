@@ -221,7 +221,8 @@ export default function Registration({
   const [timelineData, setTimelineData] = useState([]);
   const [loadingTimeline, setLoadingTimeline] = useState(false);
   const [expandedTimelinePtId, setExpandedTimelinePtId] = useState(null);
-  const [selectedReceptionPatientId, setSelectedReceptionPatientId] = useState(null);
+  const [selectedReceptionPatientId, setSelectedReceptionPatientId] =
+    useState(null);
 
   const loadPatientTimeline = async (ptId) => {
     setLoadingTimeline(true);
@@ -704,10 +705,12 @@ export default function Registration({
           <>
             <div>
               <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                <Search size={18} className="text-teal-400" /> Search Existing Patient
+                <Search size={18} className="text-teal-400" /> Search Existing
+                Patient
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Lookup patient records by Name, National ID, or Facility Patient Number.
+                Lookup patient records by Name, National ID, or Facility Patient
+                Number.
               </p>
             </div>
 
@@ -1844,11 +1847,15 @@ export default function Registration({
           <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
             <Activity size={16} className="text-teal-400" /> Reception Monitor
           </h3>
-          <p className="text-xs text-slate-400 mt-1">Admissions, recent activity and quick actions</p>
+          <p className="text-xs text-slate-400 mt-1">
+            Admissions, recent activity and quick actions
+          </p>
         </div>
 
         <div>
-          <h4 className="text-2xs uppercase text-slate-500 font-bold tracking-wider mb-2">Current Admissions</h4>
+          <h4 className="text-2xs uppercase text-slate-500 font-bold tracking-wider mb-2">
+            Current Admissions
+          </h4>
           {loadingAdmissions ? (
             <div className="py-6 text-center text-slate-500 text-xs">
               Loading admissions...
@@ -1869,12 +1876,19 @@ export default function Registration({
                       loadPatientTimeline(pid);
                     }
                   }}
-                  className={`bg-slate-950 border rounded-xl p-3 flex items-center justify-between cursor-pointer transition ${selectedReceptionPatientId === (adm.patient?.id) ? 'border-teal-400/60 ring-1 ring-teal-400/10' : 'border-slate-800'}`}>
+                  className={`bg-slate-950 border rounded-xl p-3 flex items-center justify-between cursor-pointer transition ${selectedReceptionPatientId === adm.patient?.id ? "border-teal-400/60 ring-1 ring-teal-400/10" : "border-slate-800"}`}
+                >
                   <div className="min-w-0">
-                    <div className="font-bold text-slate-200 text-sm truncate">{adm.patient?.name || 'Unknown'}</div>
-                    <div className="text-2xs text-slate-400">{adm.ward_name} • {adm.bed_number}</div>
+                    <div className="font-bold text-slate-200 text-sm truncate">
+                      {adm.patient?.name || "Unknown"}
+                    </div>
+                    <div className="text-2xs text-slate-400">
+                      {adm.ward_name} • {adm.bed_number}
+                    </div>
                   </div>
-                  <div className="text-2xs text-slate-400 font-mono">{new Date(adm.admission_datetime).toLocaleString()}</div>
+                  <div className="text-2xs text-slate-400 font-mono">
+                    {new Date(adm.admission_datetime).toLocaleString()}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1882,27 +1896,57 @@ export default function Registration({
         </div>
 
         <div>
-          <h4 className="text-2xs uppercase text-slate-500 font-bold tracking-wider mb-2">Quick Actions</h4>
+          <h4 className="text-2xs uppercase text-slate-500 font-bold tracking-wider mb-2">
+            Quick Actions
+          </h4>
           <div className="grid grid-cols-1 gap-2">
-            <button onClick={() => fetchAdmissions()} className="text-sm text-teal-400 bg-slate-950/30 border border-slate-800 px-3 py-2 rounded-lg text-left">Refresh Admissions</button>
-            <button onClick={() => setActiveTab('search')} className="text-sm text-slate-100 bg-teal-500 hover:bg-teal-600 px-3 py-2 rounded-lg">Go to Search</button>
-            <button onClick={() => setActiveTab('wards')} className="text-sm text-slate-100 bg-amber-500 hover:bg-amber-600 px-3 py-2 rounded-lg">View Wards</button>
+            <button
+              onClick={() => fetchAdmissions()}
+              className="text-sm text-teal-400 bg-slate-950/30 border border-slate-800 px-3 py-2 rounded-lg text-left"
+            >
+              Refresh Admissions
+            </button>
+            <button
+              onClick={() => setActiveTab("search")}
+              className="text-sm text-slate-100 bg-teal-500 hover:bg-teal-600 px-3 py-2 rounded-lg"
+            >
+              Go to Search
+            </button>
+            <button
+              onClick={() => setActiveTab("wards")}
+              className="text-sm text-slate-100 bg-amber-500 hover:bg-amber-600 px-3 py-2 rounded-lg"
+            >
+              View Wards
+            </button>
           </div>
         </div>
 
         {selectedReceptionPatientId && (
           <div>
-            <h4 className="text-2xs uppercase text-slate-500 font-bold tracking-wider mb-2">Selected Patient Timeline</h4>
+            <h4 className="text-2xs uppercase text-slate-500 font-bold tracking-wider mb-2">
+              Selected Patient Timeline
+            </h4>
             {loadingTimeline ? (
-              <div className="py-3 text-center text-slate-500 text-xs">Loading timeline...</div>
+              <div className="py-3 text-center text-slate-500 text-xs">
+                Loading timeline...
+              </div>
             ) : timelineData.length === 0 ? (
-              <div className="border border-dashed border-slate-800 rounded-lg p-3 text-xs text-slate-500">No records for selected patient.</div>
+              <div className="border border-dashed border-slate-800 rounded-lg p-3 text-xs text-slate-500">
+                No records for selected patient.
+              </div>
             ) : (
               <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                 {timelineData.map((evt) => (
-                  <div key={evt.id} className="bg-slate-950 border border-slate-800 rounded-lg p-2">
-                    <div className="text-2xs text-slate-400 font-mono">{new Date(evt.date).toLocaleString()}</div>
-                    <div className="text-xs font-bold text-slate-200">{evt.title}</div>
+                  <div
+                    key={evt.id}
+                    className="bg-slate-950 border border-slate-800 rounded-lg p-2"
+                  >
+                    <div className="text-2xs text-slate-400 font-mono">
+                      {new Date(evt.date).toLocaleString()}
+                    </div>
+                    <div className="text-xs font-bold text-slate-200">
+                      {evt.title}
+                    </div>
                     <div className="text-2xs text-slate-400">{evt.desc}</div>
                   </div>
                 ))}

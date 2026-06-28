@@ -6,6 +6,7 @@ import Dashboard from "./components/Dashboard";
 import Registration from "./components/clinical/Registration";
 import Queue from "./components/clinical/Queue";
 import Triage from "./components/clinical/Triage";
+import Reception from "./components/clinical/Reception";
 import Consultation from "./components/clinical/Consultation";
 import Orders from "./components/clinical/Orders";
 import Pharmacy from "./components/clinical/Pharmacy";
@@ -72,23 +73,30 @@ import {
   Users,
   Wrench,
   CreditCard,
-  Compass
+  Compass,
 } from "lucide-react";
 
 export default function App() {
   const { user, setUser, logout, loading, checkSession } = useAuth();
 
   // Extract subdomain and pathname at top level
-  const hostnameParts = window.location.hostname.split('.');
-  const isSubdomain = hostnameParts.length > 2 && hostnameParts[0] !== 'www' && !window.location.hostname.includes('localhost') && !window.location.hostname.match(/^[0-9.]+$/);
-  
+  const hostnameParts = window.location.hostname.split(".");
+  const isSubdomain =
+    hostnameParts.length > 2 &&
+    hostnameParts[0] !== "www" &&
+    !window.location.hostname.includes("localhost") &&
+    !window.location.hostname.match(/^[0-9.]+$/);
+
   let subdomain = null;
   if (isSubdomain) {
     subdomain = hostnameParts[0];
   } else {
-    const pathParts = window.location.pathname.split('/');
-    const hospitalIndex = pathParts.indexOf('hospital');
-    subdomain = hospitalIndex !== -1 && pathParts[hospitalIndex + 1] ? pathParts[hospitalIndex + 1] : null;
+    const pathParts = window.location.pathname.split("/");
+    const hospitalIndex = pathParts.indexOf("hospital");
+    subdomain =
+      hospitalIndex !== -1 && pathParts[hospitalIndex + 1]
+        ? pathParts[hospitalIndex + 1]
+        : null;
   }
 
   const [subdomainFacility, setSubdomainFacility] = useState(null);
@@ -102,22 +110,32 @@ export default function App() {
       }
       try {
         const { data, error } = await supabase
-          .from('facilities')
-          .select('*')
+          .from("facilities")
+          .select("*")
           .or(`subdomain_prefix.eq.${subdomain},id.eq.${subdomain}`)
           .maybeSingle();
 
         if (data) {
           setSubdomainFacility(data);
           // Verify active user facility context
-          if (user && user.role !== 'super_admin' && user.role !== 'platform_support' && user.facility_id !== data.id) {
-            console.warn('[Subdomain Access] Logged-in user belongs to a different facility. Logging out.', user.facility_id, 'vs', data.id);
+          if (
+            user &&
+            user.role !== "super_admin" &&
+            user.role !== "platform_support" &&
+            user.facility_id !== data.id
+          ) {
+            console.warn(
+              "[Subdomain Access] Logged-in user belongs to a different facility. Logging out.",
+              user.facility_id,
+              "vs",
+              data.id,
+            );
             await logout();
             window.location.reload();
           }
         }
       } catch (err) {
-        console.error('Error loading subdomain facility details:', err);
+        console.error("Error loading subdomain facility details:", err);
       } finally {
         setCheckingSubdomain(false);
       }
@@ -140,6 +158,7 @@ export default function App() {
   const [maternitySubTab, setMaternitySubTab] = useState("dashboard");
   const [adminSubTab, setAdminSubTab] = useState("overview");
   const [hrSubTab, setHrSubTab] = useState("directory");
+  const [receptionSubTab, setReceptionSubTab] = useState("registration");
   const [activeModules, setActiveModules] = useState({});
   const [showTour, setShowTour] = useState(false);
 
@@ -147,9 +166,9 @@ export default function App() {
     if (!user?.facility_id) return;
     try {
       const { data, error } = await supabase
-        .from('facilities')
-        .select('active_modules')
-        .eq('id', user.facility_id)
+        .from("facilities")
+        .select("active_modules")
+        .eq("id", user.facility_id)
         .maybeSingle();
 
       if (error) throw error;
@@ -159,7 +178,7 @@ export default function App() {
         setActiveModules({});
       }
     } catch (err) {
-      console.error('Error fetching facility active modules:', err);
+      console.error("Error fetching facility active modules:", err);
     }
   };
 
@@ -171,8 +190,9 @@ export default function App() {
     const handleModulesUpdate = () => {
       fetchFacilityModules();
     };
-    window.addEventListener('egesa_modules_updated', handleModulesUpdate);
-    return () => window.removeEventListener('egesa_modules_updated', handleModulesUpdate);
+    window.addEventListener("egesa_modules_updated", handleModulesUpdate);
+    return () =>
+      window.removeEventListener("egesa_modules_updated", handleModulesUpdate);
   }, [user?.facility_id]);
 
   const getSubActive = (itemId, subId) => {
@@ -182,10 +202,71 @@ export default function App() {
     if (itemId === "maternity") return maternitySubTab === subId;
     if (itemId === "admin") return adminSubTab === subId;
     if (itemId === "hr") return hrSubTab === subId;
+    if (itemId === "reception") return receptionSubTab === subId;
     return false;
   };
 
+  const mapReceptionSubItemToRoute = (subId) => {
+    const registrationItems = [
+      "new_patient",
+      "update_patient",
+      "patient_insurance",
+      "patients_in_wards",
+      "sha_registrations",
+      "eligibility_sha",
+      "eligibility_patients",
+    ];
+    const triageItems = [
+      "triage",
+      "checkin_patient",
+      "checkin_dependant",
+      "sha_checkins",
+    ];
+    const queueItems = ["reprint_ticket", "manage_queue"];
+    const supportItems = ["send_sms", "send_email", "sms_templates"];
+    const appointmentItems = [
+      "patients_calendar",
+      "doctors_calendar",
+      "schedule_appointments",
+      "appointment_reminders",
+    ];
+    const hospitalFormRoutes = {
+      referral: "consultation",
+      sick_offs: "consultation",
+      surgeon: "surgery",
+      radiology: "radiology",
+      anesthetist: "surgery",
+    };
+
+    if (registrationItems.includes(subId)) {
+      return { tab: "reception", subTab: "registration" };
+    }
+    if (triageItems.includes(subId)) {
+      return { tab: "reception", subTab: "triage" };
+    }
+    if (queueItems.includes(subId)) {
+      return { tab: "reception", subTab: "queue" };
+    }
+    if (supportItems.includes(subId)) {
+      return { tab: "support" };
+    }
+    if (appointmentItems.includes(subId)) {
+      return { tab: "appointments" };
+    }
+    if (hospitalFormRoutes[subId]) {
+      return { tab: hospitalFormRoutes[subId] };
+    }
+    return { tab: "reception", subTab: "registration" };
+  };
+
   const handleSubClick = (itemId, subId) => {
+    if (itemId === "reception") {
+      const route = mapReceptionSubItemToRoute(subId);
+      setActiveTab(route.tab);
+      if (route.subTab) setReceptionSubTab(route.subTab);
+      return;
+    }
+
     setActiveTab(itemId);
     if (itemId === "pharmacy") setPharmacySubTab(subId);
     if (itemId === "billing") setBillingSubTab(subId);
@@ -196,6 +277,13 @@ export default function App() {
   };
 
   const handleNavigate = (tabId, subId = null) => {
+    if (tabId === "reception" && subId) {
+      const route = mapReceptionSubItemToRoute(subId);
+      setActiveTab(route.tab);
+      if (route.subTab) setReceptionSubTab(route.subTab);
+      return;
+    }
+
     setActiveTab(tabId);
     if (!subId) return;
     if (tabId === "pharmacy") setPharmacySubTab(subId);
@@ -204,12 +292,16 @@ export default function App() {
     if (tabId === "maternity") setMaternitySubTab(subId);
     if (tabId === "admin") setAdminSubTab(subId);
     if (tabId === "hr") setHrSubTab(subId);
+    if (tabId === "reception") setReceptionSubTab(subId);
   };
 
   const [preselectedPatient, setPreselectedPatient] = useState(null);
   const [pathname, setPathname] = useState(() => {
     const path = window.location.pathname;
-    if (path.includes("auth/callback") || window.location.hash.includes("access_token")) {
+    if (
+      path.includes("auth/callback") ||
+      window.location.hash.includes("access_token")
+    ) {
       return "/auth/callback";
     }
     return path;
@@ -217,13 +309,18 @@ export default function App() {
   const [publicView, setPublicView] = useState(() => {
     if (typeof window !== "undefined") {
       const path = window.location.pathname;
-      if (path.includes("auth/callback") || window.location.hash.includes("access_token")) {
+      if (
+        path.includes("auth/callback") ||
+        window.location.hash.includes("access_token")
+      ) {
         return "callback";
       }
       if (window.location.hash === "#cards") {
         return "cards";
       }
-      if (sessionStorage.getItem("egesa_health_onboarding_redirect") === "true") {
+      if (
+        sessionStorage.getItem("egesa_health_onboarding_redirect") === "true"
+      ) {
         return "callback";
       }
       const persistedView = sessionStorage.getItem("egesa_public_view");
@@ -255,7 +352,7 @@ export default function App() {
   });
 
   const [menuLayout, setMenuLayout] = useState(
-    () => localStorage.getItem("egesa_menu_layout") || "sidebar"
+    () => localStorage.getItem("egesa_menu_layout") || "sidebar",
   );
 
   const [lang, setLang] = useState(
@@ -264,11 +361,11 @@ export default function App() {
   const [font, setFont] = useState(
     () => localStorage.getItem("egesa_font") || "sans",
   );
-  const [brightness, setBrightness] = useState(
-    () => Number(localStorage.getItem("egesa_brightness") || 100)
+  const [brightness, setBrightness] = useState(() =>
+    Number(localStorage.getItem("egesa_brightness") || 100),
   );
   const [nightVision, setNightVision] = useState(
-    () => localStorage.getItem("egesa_night_vision") === "true"
+    () => localStorage.getItem("egesa_night_vision") === "true",
   );
   const [menuSearch, setMenuSearch] = useState("");
   const [activeCategoryDropdown, setActiveCategoryDropdown] = useState(null);
@@ -278,28 +375,33 @@ export default function App() {
     if (user?.facility_id) {
       const fetchDelegation = async () => {
         try {
-          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-          const token = localStorage.getItem('egesa_health_token');
+          const apiBase =
+            import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+          const token = localStorage.getItem("egesa_health_token");
           const res = await fetch(`${apiBase}/db/query`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-              table: 'facilities',
-              queries: [{ type: 'equal', column: 'id', value: user.facility_id }]
-            })
+              table: "facilities",
+              queries: [
+                { type: "equal", column: "id", value: user.facility_id },
+              ],
+            }),
           });
           if (res.ok) {
             const resData = await res.json();
-            const activeFac = resData.data?.find(f => f.id === user.facility_id);
+            const activeFac = resData.data?.find(
+              (f) => f.id === user.facility_id,
+            );
             if (activeFac) {
               setAdminDelegation(activeFac.admin_delegation || {});
             }
           }
         } catch (e) {
-          console.error('Error fetching admin delegation in App.jsx:', e);
+          console.error("Error fetching admin delegation in App.jsx:", e);
         }
       };
       fetchDelegation();
@@ -308,7 +410,9 @@ export default function App() {
 
   useEffect(() => {
     if (user && user.role) {
-      const tourCompleted = localStorage.getItem(`egesa_tour_completed_${user.id}`);
+      const tourCompleted = localStorage.getItem(
+        `egesa_tour_completed_${user.id}`,
+      );
       if (!tourCompleted) {
         const timer = setTimeout(() => {
           setShowTour(true);
@@ -331,7 +435,10 @@ export default function App() {
   useEffect(() => {
     const root = document.documentElement;
     const classesToRemove = Array.from(root.classList).filter(
-      (c) => c.startsWith("theme-") || c.startsWith("font-") || c.startsWith("mode-")
+      (c) =>
+        c.startsWith("theme-") ||
+        c.startsWith("font-") ||
+        c.startsWith("mode-"),
     );
     classesToRemove.forEach((c) => root.classList.remove(c));
     root.classList.add(`theme-${theme}`);
@@ -349,7 +456,10 @@ export default function App() {
   useEffect(() => {
     const syncPublicViewFromHash = () => {
       const path = window.location.pathname;
-      if (path.includes("auth/callback") || window.location.hash.includes("access_token")) {
+      if (
+        path.includes("auth/callback") ||
+        window.location.hash.includes("access_token")
+      ) {
         setPublicView("callback");
         setPathname("/auth/callback");
         return;
@@ -363,7 +473,8 @@ export default function App() {
     syncPublicViewFromHash();
     window.addEventListener("hashchange", syncPublicViewFromHash);
 
-    return () => window.removeEventListener("hashchange", syncPublicViewFromHash);
+    return () =>
+      window.removeEventListener("hashchange", syncPublicViewFromHash);
   }, []);
 
   useEffect(() => {
@@ -381,60 +492,66 @@ export default function App() {
     }
   }, [user, pathname]);
 
-  const handleUrlAction = useCallback(async (action, facId) => {
-    // Clear URL parameters immediately to avoid repeat execution on refresh
-    window.history.replaceState({}, document.title, window.location.pathname);
+  const handleUrlAction = useCallback(
+    async (action, facId) => {
+      // Clear URL parameters immediately to avoid repeat execution on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
 
-    try {
-      if (action === "approve_facility") {
-        const { error } = await supabase
-          .from("facilities")
-          .update({ is_verified: true })
-          .eq("id", facId);
+      try {
+        if (action === "approve_facility") {
+          const { error } = await supabase
+            .from("facilities")
+            .update({ is_verified: true })
+            .eq("id", facId);
 
-        if (error) throw error;
+          if (error) throw error;
 
-        await supabase.from("audit_logs").insert({
-          facility_id: facId,
-          user_id: user.id,
-          action: "Facility Verified",
-          details: `Verified facility registration for ID ${facId} via email action link.`,
-        });
+          await supabase.from("audit_logs").insert({
+            facility_id: facId,
+            user_id: user.id,
+            action: "Facility Verified",
+            details: `Verified facility registration for ID ${facId} via email action link.`,
+          });
 
-        // Clear active user session cache to force fresh load
-        sessionStorage.removeItem("egesa_health_active_user");
+          // Clear active user session cache to force fresh load
+          sessionStorage.removeItem("egesa_health_active_user");
 
-        alert(`Successfully approved and verified facility ID: ${facId}!`);
-      } else if (action === "reject_facility") {
-        const { error } = await supabase
-          .from("facilities")
-          .update({ is_verified: false })
-          .eq("id", facId);
+          alert(`Successfully approved and verified facility ID: ${facId}!`);
+        } else if (action === "reject_facility") {
+          const { error } = await supabase
+            .from("facilities")
+            .update({ is_verified: false })
+            .eq("id", facId);
 
-        if (error) throw error;
+          if (error) throw error;
 
-        await supabase.from("audit_logs").insert({
-          facility_id: facId,
-          user_id: user.id,
-          action: "Facility Suspended",
-          details: `Suspended/Deactivated facility registration for ID ${facId} via email action link.`,
-        });
+          await supabase.from("audit_logs").insert({
+            facility_id: facId,
+            user_id: user.id,
+            action: "Facility Suspended",
+            details: `Suspended/Deactivated facility registration for ID ${facId} via email action link.`,
+          });
 
-        // Clear active user session cache to force fresh load
-        sessionStorage.removeItem("egesa_health_active_user");
+          // Clear active user session cache to force fresh load
+          sessionStorage.removeItem("egesa_health_active_user");
 
-        alert(`Successfully suspended/rejected facility ID: ${facId}.`);
+          alert(`Successfully suspended/rejected facility ID: ${facId}.`);
+        }
+
+        if (checkSession) await checkSession();
+      } catch (err) {
+        console.error("[App URL Action] Failed:", err);
+        alert(`Action failed: ${err.message}`);
       }
-
-      if (checkSession) await checkSession();
-    } catch (err) {
-      console.error("[App URL Action] Failed:", err);
-      alert(`Action failed: ${err.message}`);
-    }
-  }, [checkSession, user]);
+    },
+    [checkSession, user],
+  );
 
   useEffect(() => {
-    if (user && (user.role === "super_admin" || user.role === "platform_support")) {
+    if (
+      user &&
+      (user.role === "super_admin" || user.role === "platform_support")
+    ) {
       const params = new URLSearchParams(window.location.search);
       const action = params.get("action");
       const facId = params.get("facility_id");
@@ -446,7 +563,10 @@ export default function App() {
   }, [user, handleUrlAction]);
 
   useEffect(() => {
-    if (user && (user.role === "super_admin" || user.role === "platform_support")) {
+    if (
+      user &&
+      (user.role === "super_admin" || user.role === "platform_support")
+    ) {
       if (publicView === "dashboard" && !user.facility_id) {
         setPublicView("landing");
       }
@@ -539,7 +659,11 @@ export default function App() {
   };
 
   const handleLoginSuccess = (loggedInUser) => {
-    if (loggedInUser && (loggedInUser.role === "super_admin" || loggedInUser.role === "platform_support")) {
+    if (
+      loggedInUser &&
+      (loggedInUser.role === "super_admin" ||
+        loggedInUser.role === "platform_support")
+    ) {
       setPublicView("landing");
     } else {
       setPublicView("dashboard");
@@ -552,33 +676,37 @@ export default function App() {
       const sessionRes = await supabase.auth.getSession();
       const clientJwt = sessionRes?.data?.session?.access_token;
       if (!clientJwt) {
-        throw new Error('Supabase session not found. Please log in again.');
+        throw new Error("Supabase session not found. Please log in again.");
       }
 
-      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const backendUrl =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const res = await fetch(`${backendUrl}/auth/supabase-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           access_token: clientJwt,
-          facility_id: facilityId
-        })
+          facility_id: facilityId,
+        }),
       });
 
       const resData = await res.json();
-      if (res.ok && resData.status === 'success') {
-        localStorage.setItem('egesa_active_facility_id', facilityId);
-        localStorage.setItem('egesa_health_token', resData.token);
-        sessionStorage.setItem('egesa_health_active_user', JSON.stringify(resData.user));
+      if (res.ok && resData.status === "success") {
+        localStorage.setItem("egesa_active_facility_id", facilityId);
+        localStorage.setItem("egesa_health_token", resData.token);
+        sessionStorage.setItem(
+          "egesa_health_active_user",
+          JSON.stringify(resData.user),
+        );
         if (checkSession) await checkSession();
         setPublicView("dashboard");
         setActiveTab("dashboard");
       } else {
-        alert(resData.error || 'Failed to switch facility workspace.');
+        alert(resData.error || "Failed to switch facility workspace.");
       }
     } catch (err) {
-      console.error('Error switching facility:', err);
-      alert(err.message || 'An error occurred during workspace selection.');
+      console.error("Error switching facility:", err);
+      alert(err.message || "An error occurred during workspace selection.");
     }
   };
   const handleSignOut = () => {
@@ -627,23 +755,32 @@ export default function App() {
     return <QueueBoardPublic />;
   }
 
-  const isViewingPublic = !user || ["landing", "cards", "callback", "signup", "login"].includes(publicView) || (pathname.startsWith("/hospital/") && !pathname.endsWith("/login"));
+  const isViewingPublic =
+    !user ||
+    ["landing", "cards", "callback", "signup", "login"].includes(publicView) ||
+    (pathname.startsWith("/hospital/") && !pathname.endsWith("/login"));
   if (isViewingPublic) {
     const publicContent = (() => {
-      const isValidPath = 
-        pathname === "/" || 
+      const isValidPath =
+        pathname === "/" ||
         pathname === "/login" ||
-        pathname.startsWith("/auth/callback") || 
-        pathname === "/patient-portal" || 
+        pathname.startsWith("/auth/callback") ||
+        pathname === "/patient-portal" ||
         pathname.startsWith("/hospital/");
 
       if (!isValidPath) {
         return (
           <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-8 text-center font-sans max-w-md mx-auto mt-24 shadow-2xl">
-            <ShieldAlert size={48} className="text-yellow-500 mb-4 animate-bounce" />
-            <h3 className="text-lg font-bold text-slate-100">404 - Page Not Found</h3>
+            <ShieldAlert
+              size={48}
+              className="text-yellow-500 mb-4 animate-bounce"
+            />
+            <h3 className="text-lg font-bold text-slate-100">
+              404 - Page Not Found
+            </h3>
             <p className="text-xs text-slate-400 mt-2 max-w-sm leading-relaxed">
-              The requested page path "{pathname}" is not registered or is unavailable.
+              The requested page path "{pathname}" is not registered or is
+              unavailable.
             </p>
             <button
               onClick={() => {
@@ -659,7 +796,11 @@ export default function App() {
         );
       }
 
-      if (pathname === "/login" || publicView === "login" || (pathname.startsWith("/hospital/") && pathname.endsWith("/login"))) {
+      if (
+        pathname === "/login" ||
+        publicView === "login" ||
+        (pathname.startsWith("/hospital/") && pathname.endsWith("/login"))
+      ) {
         return (
           <Login
             lockedFacilityId={subdomainFacility?.id}
@@ -669,7 +810,10 @@ export default function App() {
           />
         );
       }
-      if ((pathname.startsWith("/hospital/") && !pathname.endsWith("/login")) || (isSubdomain && pathname === "/")) {
+      if (
+        (pathname.startsWith("/hospital/") && !pathname.endsWith("/login")) ||
+        (isSubdomain && pathname === "/")
+      ) {
         return <FacilityLandingPage />;
       }
       if (pathname === "/patient-portal") {
@@ -692,25 +836,27 @@ export default function App() {
           <SaaSOnboarding onBackToLogin={() => setPublicView("landing")} />
         );
       if (publicView === "cards")
+        return (
+          <BusinessCards
+            onBackToLanding={() => setPublicView("landing")}
+            onNavigateToLogin={() => setPublicView("login")}
+          />
+        );
       return (
-        <BusinessCards
-          onBackToLanding={() => setPublicView("landing")}
+        <LandingPage
+          user={user}
           onNavigateToLogin={() => setPublicView("login")}
+          onNavigateToSignup={() => setPublicView("signup")}
+          onNavigateToCards={() => setPublicView("cards")}
+          onNavigateToDashboard={() => setPublicView("dashboard")}
+          onNavigateToSuperAdminDashboard={() =>
+            setPublicView("super_admin_dashboard")
+          }
+          onSwitchFacility={handleSwitchFacility}
+          onSignOut={handleSignOut}
+          theme={themeMode}
+          onToggleTheme={toggleLightDark}
         />
-      );
-      return (
-      <LandingPage
-        user={user}
-        onNavigateToLogin={() => setPublicView("login")}
-        onNavigateToSignup={() => setPublicView("signup")}
-        onNavigateToCards={() => setPublicView("cards")}
-        onNavigateToDashboard={() => setPublicView("dashboard")}
-        onNavigateToSuperAdminDashboard={() => setPublicView("super_admin_dashboard")}
-        onSwitchFacility={handleSwitchFacility}
-        onSignOut={handleSignOut}
-        theme={themeMode}
-        onToggleTheme={toggleLightDark}
-      />
       );
     })();
     return (
@@ -722,12 +868,19 @@ export default function App() {
     );
   }
 
-  if ((user.role === "super_admin" || user.role === "platform_support") && publicView === "super_admin_dashboard") {
+  if (
+    (user.role === "super_admin" || user.role === "platform_support") &&
+    publicView === "super_admin_dashboard"
+  ) {
     return (
       <div
         className={`theme-${theme} mode-${themeMode} font-${font} min-h-screen bg-slate-955 text-slate-100`}
       >
-        <SuperAdminDashboard user={user} onSignOut={handleSignOut} onLogoClick={handleLogoClick} />
+        <SuperAdminDashboard
+          user={user}
+          onSignOut={handleSignOut}
+          onLogoClick={handleLogoClick}
+        />
       </div>
     );
   }
@@ -810,8 +963,11 @@ export default function App() {
     );
   }
 
-  const rolesList = user.role ? user.role.split(',').map(r => r.trim().toLowerCase()) : [];
-  const isAdmin = rolesList.includes('admin') || rolesList.includes('super_admin');
+  const rolesList = user.role
+    ? user.role.split(",").map((r) => r.trim().toLowerCase())
+    : [];
+  const isAdmin =
+    rolesList.includes("admin") || rolesList.includes("super_admin");
 
   const menuItems = [
     {
@@ -819,6 +975,48 @@ export default function App() {
       label: "Dashboard",
       icon: LayoutDashboard,
       roles: ["*"],
+    },
+    {
+      id: "reception",
+      label: "Reception Hub",
+      icon: Users,
+      roles: ["receptionist", "admin"],
+      keywords: [
+        "patients",
+        "checkins",
+        "sms",
+        "email",
+        "appointments",
+        "referral",
+        "sha",
+      ],
+      subItems: [
+        { id: "new_patient", label: "New Patient" },
+        { id: "update_patient", label: "Update Patient" },
+        { id: "patient_insurance", label: "Patient Insurance" },
+        { id: "patients_in_wards", label: "Patients in Wards" },
+        { id: "sha_registrations", label: "SHA Registrations" },
+        { id: "eligibility_sha", label: "SHA Eligibility" },
+        { id: "eligibility_patients", label: "Patient Eligibility" },
+        { id: "triage", label: "Triage" },
+        { id: "checkin_patient", label: "Checkin Patient" },
+        { id: "checkin_dependant", label: "Checkin Dependant" },
+        { id: "sha_checkins", label: "SHA Checkins" },
+        { id: "reprint_ticket", label: "Reprint Ticket" },
+        { id: "manage_queue", label: "Manage Queue" },
+        { id: "send_sms", label: "Send SMS" },
+        { id: "send_email", label: "Send Email" },
+        { id: "sms_templates", label: "SMS Templates" },
+        { id: "patients_calendar", label: "Patients Calendar" },
+        { id: "doctors_calendar", label: "Doctors Calendar" },
+        { id: "schedule_appointments", label: "Schedule Appointments" },
+        { id: "appointment_reminders", label: "Appointment Reminders" },
+        { id: "referral", label: "Referral" },
+        { id: "sick_offs", label: "Sick Offs" },
+        { id: "surgeon", label: "Surgeon" },
+        { id: "radiology", label: "Radiology" },
+        { id: "anesthetist", label: "Anesthetist" },
+      ],
     },
     {
       id: "registration",
@@ -872,8 +1070,8 @@ export default function App() {
         { id: "dispensing", label: "Dispense Queue" },
         { id: "sell", label: "Sell Drug(s)" },
         { id: "modify", label: "Modify Sale" },
-        { id: "paid", label: "Paid Drugs" }
-      ]
+        { id: "paid", label: "Paid Drugs" },
+      ],
     },
     {
       id: "billing",
@@ -884,15 +1082,22 @@ export default function App() {
       subItems: [
         { id: "desk", label: "Billing Desk" },
         { id: "preauth", label: "Pre-Auth Claims" },
-        { id: "setup", label: "Billing Setup" }
-      ]
+        { id: "setup", label: "Billing Setup" },
+      ],
     },
     {
       id: "reports",
       label: "MOH Reports",
       icon: FileSpreadsheet,
       roles: ["admin"],
-      keywords: ["reports", "moh", "compliance", "analytics", "diagnosis", "discharge summary"],
+      keywords: [
+        "reports",
+        "moh",
+        "compliance",
+        "analytics",
+        "diagnosis",
+        "discharge summary",
+      ],
     },
     {
       id: "patient_dashboard",
@@ -920,8 +1125,8 @@ export default function App() {
         { id: "registration", label: "Patient Register" },
         { id: "queue", label: "Treatment Queue" },
         { id: "inventory", label: "Maternal Drugs" },
-        { id: "reports", label: "Outcome Stats" }
-      ]
+        { id: "reports", label: "Outcome Stats" },
+      ],
     },
     {
       id: "mch",
@@ -933,33 +1138,112 @@ export default function App() {
         { id: "anc", label: "Antenatal Care" },
         { id: "fp", label: "Family Planning" },
         { id: "imm", label: "Child Welfare" },
-        { id: "reports", label: "MCH Reports" }
-      ]
+        { id: "reports", label: "MCH Reports" },
+      ],
     },
-    { id: "admin", label: "Admin Settings", icon: Settings, roles: ["admin", "facility_admin", "hr_manager", "marketing_admin", "operations_manager", "it_support"],
-      keywords: ["settings", "smtp", "email delivery", "audit", "license", "facility", "sha", "shira", "claims"],
+    {
+      id: "admin",
+      label: "Admin Settings",
+      icon: Settings,
+      roles: [
+        "admin",
+        "facility_admin",
+        "hr_manager",
+        "marketing_admin",
+        "operations_manager",
+        "it_support",
+      ],
+      keywords: [
+        "settings",
+        "smtp",
+        "email delivery",
+        "audit",
+        "license",
+        "facility",
+        "sha",
+        "shira",
+        "claims",
+      ],
       subItems: [
         { id: "audit", label: "Audit Logs" },
-        { id: "smtp_settings", label: "SMTP Settings", keywords: ["smtp", "mail server", "email setup", "google oauth"] },
-        { id: "email_logs", label: "Email Logs", keywords: ["mail delivery", "invites", "delivery status", "failed email"] },
+        {
+          id: "smtp_settings",
+          label: "SMTP Settings",
+          keywords: ["smtp", "mail server", "email setup", "google oauth"],
+        },
+        {
+          id: "email_logs",
+          label: "Email Logs",
+          keywords: [
+            "mail delivery",
+            "invites",
+            "delivery status",
+            "failed email",
+          ],
+        },
         { id: "licensing", label: "Licensing" },
         { id: "facility_profile", label: "Facility Profile" },
-        { id: "afyalink", label: "SHA / DHA HIE Claims", keywords: ["shira", "sha", "claim forms", "invoice", "diagnosis report", "discharge summary"] }
-      ]
+        {
+          id: "afyalink",
+          label: "SHA / DHA HIE Claims",
+          keywords: [
+            "shira",
+            "sha",
+            "claim forms",
+            "invoice",
+            "diagnosis report",
+            "discharge summary",
+          ],
+        },
+      ],
     },
     {
       id: "hr",
       label: "Human Resources",
       icon: Users,
       roles: ["*"],
-      keywords: ["staff", "employees", "permissions", "access", "wallet", "suspend", "delete fired"],
+      keywords: [
+        "staff",
+        "employees",
+        "permissions",
+        "access",
+        "wallet",
+        "suspend",
+        "delete fired",
+      ],
       subItems: [
-        { id: "directory", label: "Staff Directory", keywords: ["employees", "access status", "suspend", "delete", "wallet"] },
-        { id: "roster", label: "Duty Roster", keywords: ["attendance", "clock in", "geofence", "openstreetmap"] },
-        { id: "onboarding", label: "Staff On-boarding", keywords: ["invite", "email delivery", "mail status"] },
-        { id: "requests", label: "Role Requests", keywords: ["permission upgrade", "facility role request", "approval"] },
-        { id: "delegation", label: "Access Delegation Settings", keywords: ["privileges", "permissions", "delegate access"] }
-      ]
+        {
+          id: "directory",
+          label: "Staff Directory",
+          keywords: [
+            "employees",
+            "access status",
+            "suspend",
+            "delete",
+            "wallet",
+          ],
+        },
+        {
+          id: "roster",
+          label: "Duty Roster",
+          keywords: ["attendance", "clock in", "geofence", "openstreetmap"],
+        },
+        {
+          id: "onboarding",
+          label: "Staff On-boarding",
+          keywords: ["invite", "email delivery", "mail status"],
+        },
+        {
+          id: "requests",
+          label: "Role Requests",
+          keywords: ["permission upgrade", "facility role request", "approval"],
+        },
+        {
+          id: "delegation",
+          label: "Access Delegation Settings",
+          keywords: ["privileges", "permissions", "delegate access"],
+        },
+      ],
     },
     {
       id: "payroll",
@@ -1004,44 +1288,44 @@ export default function App() {
       id: "overview",
       label: "Overview & Schedule",
       icon: LayoutDashboard,
-      items: ["dashboard", "appointments"]
+      items: ["dashboard", "appointments"],
     },
     {
       id: "patient_flow",
       label: "Patient Flow",
       icon: UserPlus,
-      items: ["registration", "queue", "triage", "consultation"]
+      items: ["reception", "registration", "queue", "triage", "consultation"],
     },
     {
       id: "medical_depts",
       label: "Medical Departments",
       icon: Bed,
-      items: ["ward", "maternity", "mch", "surgery", "orders"]
+      items: ["ward", "maternity", "mch", "surgery", "orders"],
     },
     {
       id: "mgmt_depts",
       label: "Management Departments",
       icon: Users,
-      items: ["procurement", "hr", "payroll", "maintenance"]
+      items: ["procurement", "hr", "payroll", "maintenance"],
     },
     {
       id: "diagnostics_rx",
       label: "Diagnostics & Rx",
       icon: FlaskConical,
-      items: ["radiology", "pharmacy"]
+      items: ["radiology", "pharmacy"],
     },
     {
       id: "financials",
       label: "Billing & Reports",
       icon: DollarSign,
-      items: ["billing", "reports", "patient_dashboard"]
+      items: ["billing", "reports", "patient_dashboard"],
     },
     {
       id: "system",
       label: "System Control",
       icon: Settings,
-      items: ["admin", "settings", "support"]
-    }
+      items: ["admin", "settings", "support"],
+    },
   ];
 
   const menuModuleKeys = {
@@ -1050,6 +1334,7 @@ export default function App() {
     triage: "reception",
     consultation: "doctors",
     orders: "laboratory",
+    reception: "reception",
     radiology: "radiology",
     pharmacy: "pharmacy",
     pos: "pharmacy",
@@ -1064,7 +1349,7 @@ export default function App() {
     maintenance: "maintenance",
     reports: "reports",
     support: "help",
-    appointments: "appointments"
+    appointments: "appointments",
   };
 
   const visibleMenuItems = menuItems.filter((item) => {
@@ -1083,38 +1368,48 @@ export default function App() {
       ];
       if (!allowedPharmacyTabs.includes(item.id)) return false;
     }
-    
+
     // Decoupled modules custom department/admin access control
-    if (item.id === 'maternity') {
-      const userDept = user.department?.toLowerCase() || '';
-      const isMaternityDept = userDept.includes('maternity');
+    if (item.id === "maternity") {
+      const userDept = user.department?.toLowerCase() || "";
+      const isMaternityDept = userDept.includes("maternity");
       return isAdmin || isMaternityDept;
     }
-    
-    if (item.id === 'mch') {
-      const userDept = user.department?.toLowerCase() || '';
-      const isMchDept = userDept.includes('mch') || userDept.includes('anc') || userDept.includes('antenatal');
+
+    if (item.id === "mch") {
+      const userDept = user.department?.toLowerCase() || "";
+      const isMchDept =
+        userDept.includes("mch") ||
+        userDept.includes("anc") ||
+        userDept.includes("antenatal");
       return isAdmin || isMchDept;
     }
-    
-    if (item.id === 'hr') {
+
+    if (item.id === "hr") {
       return true;
     }
-    
-    if (item.id === 'procurement') {
-      return isAdmin || hasAccess('procurement', user.role, adminDelegation);
+
+    if (item.id === "procurement") {
+      return isAdmin || hasAccess("procurement", user.role, adminDelegation);
     }
 
-    if (item.id === 'maintenance') {
-      return isAdmin || hasAccess('maintenance', user.role, adminDelegation);
+    if (item.id === "maintenance") {
+      return isAdmin || hasAccess("maintenance", user.role, adminDelegation);
     }
-    
-    return item.roles.includes("*") || item.roles.some(r => rolesList.includes(r)) || isAdmin;
+
+    return (
+      item.roles.includes("*") ||
+      item.roles.some((r) => rolesList.includes(r)) ||
+      isAdmin
+    );
   });
 
-  const filteredMenuItems = visibleMenuItems.filter((item) => 
-    item.label.toLowerCase().includes(menuSearch.toLowerCase()) ||
-    (t && t(item.id) ? t(item.id).toLowerCase().includes(menuSearch.toLowerCase()) : false)
+  const filteredMenuItems = visibleMenuItems.filter(
+    (item) =>
+      item.label.toLowerCase().includes(menuSearch.toLowerCase()) ||
+      (t && t(item.id)
+        ? t(item.id).toLowerCase().includes(menuSearch.toLowerCase())
+        : false),
   );
 
   const normalizedMenuSearch = menuSearch.trim().toLowerCase();
@@ -1166,15 +1461,18 @@ export default function App() {
 
   return (
     <div
-      className={`flex h-screen bg-slate-950 text-slate-100 overflow-hidden theme-${theme} mode-${themeMode} font-${font} font-['DM_Sans',system-ui,sans-serif] ${menuLayout === 'topbar' ? 'flex-col' : 'flex-row'}`}
+      className={`flex h-screen bg-slate-950 text-slate-100 overflow-hidden theme-${theme} mode-${themeMode} font-${font} font-['DM_Sans',system-ui,sans-serif] ${menuLayout === "topbar" ? "flex-col" : "flex-row"}`}
     >
-      {menuLayout === 'topbar' && (
+      {menuLayout === "topbar" && (
         <header className="hidden md:flex items-center justify-between px-6 py-2.5 bg-slate-900 border-b border-teal-500/10 z-30 shrink-0">
           <div className="flex items-center gap-4">
-            <div onClick={handleLogoClick} className="flex items-center gap-2.5 cursor-pointer hover:opacity-85 transition active:scale-[0.98]">
+            <div
+              onClick={handleLogoClick}
+              className="flex items-center gap-2.5 cursor-pointer hover:opacity-85 transition active:scale-[0.98]"
+            >
               {renderLogo(user.facility_logo)}
               <div>
-                <span className="font-['Instrument_Serif',serif] text-[13px] text-slate-100 block leading-tight truncate max-w-[200px]">
+                <span className="font-['Instrument_Serif',serif] text-[13px] text-slate-100 block leading-tight truncate max-w-50">
                   {user.facility_name || "Eagle Tech HMIS"}
                 </span>
                 <span className="text-[9px] text-teal-400 font-bold uppercase tracking-wider block mt-0.5 leading-none">
@@ -1186,7 +1484,7 @@ export default function App() {
 
           <div className="flex items-center gap-2 transition-all duration-300 mx-2 shrink-0">
             {isSearchExpanded ? (
-              <div className="flex items-center gap-2 bg-slate-950 border border-teal-500/30 rounded-lg px-2.5 py-1 text-slate-450 w-[180px] transition-all duration-300 animate-fadeIn">
+              <div className="flex items-center gap-2 bg-slate-950 border border-teal-500/30 rounded-lg px-2.5 py-1 text-slate-450 w-45 transition-all duration-300 animate-fadeIn">
                 <Search size={12} className="text-teal-450 shrink-0" />
                 <input
                   type="text"
@@ -1200,8 +1498,8 @@ export default function App() {
                   className="w-full bg-transparent border-none text-2xs text-slate-100 placeholder-slate-500 focus:outline-none"
                 />
                 {menuSearch ? (
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => {
                       setMenuSearch("");
                       setIsSearchExpanded(false);
@@ -1211,8 +1509,8 @@ export default function App() {
                     ✕
                   </button>
                 ) : (
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setIsSearchExpanded(false)}
                     className="text-[9px] text-slate-500 hover:text-slate-200"
                   >
@@ -1235,20 +1533,25 @@ export default function App() {
             {menuSearch ? (
               // Flat Search Results
               searchMenuResults.length === 0 ? (
-                <span className="text-2xs text-slate-500 italic px-3 py-1">No matching menus found</span>
+                <span className="text-2xs text-slate-500 italic px-3 py-1">
+                  No matching menus found
+                </span>
               ) : (
                 <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
                   {searchMenuResults.map((result) => {
                     const item = result.item;
                     const Icon = item.icon;
-                    const isActive = result.type === "sub" ? getSubActive(item.id, result.sub.id) : activeTab === item.id;
+                    const isActive =
+                      result.type === "sub"
+                        ? getSubActive(item.id, result.sub.id)
+                        : activeTab === item.id;
                     return (
                       <button
                         key={`${item.id}-${result.type}-${result.sub?.id || "main"}`}
                         onClick={() => navigateSearchResult(result)}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                          isActive 
-                            ? "bg-teal-400 text-slate-955 shadow shadow-teal-500/15" 
+                          isActive
+                            ? "bg-teal-400 text-slate-955 shadow shadow-teal-500/15"
                             : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
                         }`}
                       >
@@ -1263,30 +1566,43 @@ export default function App() {
               // Categorized Dropdowns
               <div className="flex items-center gap-1.5 z-50">
                 {MENU_CATEGORIES.map((cat) => {
-                  const catItems = filteredMenuItems.filter((item) => cat.items.includes(item.id));
+                  const catItems = filteredMenuItems.filter((item) =>
+                    cat.items.includes(item.id),
+                  );
                   if (catItems.length === 0) return null;
-                  
-                  const isCatActive = catItems.some((item) => item.id === activeTab);
+
+                  const isCatActive = catItems.some(
+                    (item) => item.id === activeTab,
+                  );
                   const isDropdownOpen = activeCategoryDropdown === cat.id;
                   const CatIcon = cat.icon;
 
                   return (
-                    <div 
-                      key={cat.id} 
+                    <div
+                      key={cat.id}
                       className="relative"
                       onMouseLeave={() => setActiveCategoryDropdown(null)}
                     >
                       <button
                         type="button"
-                        onClick={() => setActiveCategoryDropdown(isDropdownOpen ? null : cat.id)}
+                        onClick={() =>
+                          setActiveCategoryDropdown(
+                            isDropdownOpen ? null : cat.id,
+                          )
+                        }
                         onMouseEnter={() => setActiveCategoryDropdown(cat.id)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold tracking-wide transition-all duration-200 cursor-pointer select-none ${
-                          isCatActive 
-                            ? "text-teal-450 bg-slate-800/90 shadow-sm shadow-teal-500/5" 
+                          isCatActive
+                            ? "text-teal-450 bg-slate-800/90 shadow-sm shadow-teal-500/5"
                             : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
                         }`}
                       >
-                        <CatIcon size={13.5} className={isCatActive ? "text-teal-450" : "text-slate-400"} />
+                        <CatIcon
+                          size={13.5}
+                          className={
+                            isCatActive ? "text-teal-450" : "text-slate-400"
+                          }
+                        />
                         <span>{t(cat.id) || cat.label}</span>
                         <span className="text-[7.5px] opacity-60 ml-0.5 select-none transition-transform duration-200">
                           {isDropdownOpen ? "▲" : "▼"}
@@ -1294,7 +1610,7 @@ export default function App() {
                       </button>
 
                       {isDropdownOpen && (
-                        <div 
+                        <div
                           className="absolute top-full left-0 pt-1.5 z-50"
                           onMouseEnter={() => setActiveCategoryDropdown(cat.id)}
                         >
@@ -1315,8 +1631,17 @@ export default function App() {
                                       : "text-slate-400 hover:bg-slate-800/80 hover:text-slate-100"
                                   }`}
                                 >
-                                  <Icon size={13} className={isActive ? "text-slate-955" : "text-slate-400"} />
-                                  <span className="flex-1 truncate">{t(item.id) || item.label}</span>
+                                  <Icon
+                                    size={13}
+                                    className={
+                                      isActive
+                                        ? "text-slate-955"
+                                        : "text-slate-400"
+                                    }
+                                  />
+                                  <span className="flex-1 truncate">
+                                    {t(item.id) || item.label}
+                                  </span>
                                 </button>
                               );
                             })}
@@ -1331,23 +1656,27 @@ export default function App() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setActiveTab('settings')}
+            <button
+              onClick={() => setActiveTab("settings")}
               title={`${user.full_name} (${user.role}) - View Account Preferences & Profile`}
               className="flex items-center border-r border-teal-500/10 pr-3 cursor-pointer hover:opacity-80 transition text-left focus:outline-none"
             >
               <div className="h-7 w-7 rounded-full bg-slate-800 border border-teal-500/15 flex items-center justify-center overflow-hidden font-bold text-teal-400 text-2xs shadow shrink-0">
                 {user.avatar_url ? (
-                  <img src={user.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                  <img
+                    src={user.avatar_url}
+                    alt="Profile"
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   user.full_name?.substring(0, 2).toUpperCase()
                 )}
               </div>
             </button>
-            
+
             <NotificationBell user={user} onNavigate={handleNavigate} />
             <ThemeToggle themeMode={themeMode} onToggle={toggleLightDark} />
-            
+
             <button
               onClick={() => setShowTour(true)}
               className="p-1.5 rounded-lg bg-slate-900 border border-slate-800/80 text-slate-400 hover:text-teal-450 hover:border-teal-500/30 transition cursor-pointer"
@@ -1356,12 +1685,16 @@ export default function App() {
               <Compass className="h-4 w-4" />
             </button>
 
-            {(user.email === "fredrickmakori102@gmail.com" || user.email === "support@egesa.com") && (
+            {(user.email === "fredrickmakori102@gmail.com" ||
+              user.email === "support@egesa.com") && (
               <button
                 onClick={() => {
                   const updatedUser = {
                     ...user,
-                    role: user.email === "support@egesa.com" ? "platform_support" : "super_admin",
+                    role:
+                      user.email === "support@egesa.com"
+                        ? "platform_support"
+                        : "super_admin",
                     facility_id: null,
                     facility_name: "Eagle Tech Systems Control",
                     facility_logo: null,
@@ -1401,13 +1734,16 @@ export default function App() {
 
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-teal-500/10 flex flex-col shrink-0 transition-transform duration-300 transform ${
-          menuLayout === 'topbar'
+          menuLayout === "topbar"
             ? `md:hidden ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`
             : `md:translate-x-0 md:static md:flex ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`
         }`}
       >
         <div className="p-4 border-b border-teal-500/10 flex items-center justify-between gap-2.5">
-          <div onClick={handleLogoClick} className="flex items-center gap-2.5 truncate cursor-pointer hover:opacity-85 transition active:scale-[0.98]">
+          <div
+            onClick={handleLogoClick}
+            className="flex items-center gap-2.5 truncate cursor-pointer hover:opacity-85 transition active:scale-[0.98]"
+          >
             {renderLogo(user.facility_logo)}
             <div className="truncate flex-1">
               <span className="font-['Instrument_Serif',serif] text-[13px] text-slate-100 block truncate leading-tight">
@@ -1437,8 +1773,8 @@ export default function App() {
               className="w-full bg-transparent border-none text-[11px] text-slate-100 placeholder-slate-500 focus:outline-none"
             />
             {menuSearch && (
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setMenuSearch("")}
                 className="text-[9px] hover:text-slate-205"
               >
@@ -1460,16 +1796,22 @@ export default function App() {
                 {searchMenuResults.map((result) => {
                   const item = result.item;
                   const Icon = item.icon;
-                  const isActive = result.type === "sub" ? getSubActive(item.id, result.sub.id) : activeTab === item.id;
+                  const isActive =
+                    result.type === "sub"
+                      ? getSubActive(item.id, result.sub.id)
+                      : activeTab === item.id;
                   const hasSub = false;
                   return (
-                    <div key={`${item.id}-${result.type}-${result.sub?.id || "main"}`} className="space-y-1">
+                    <div
+                      key={`${item.id}-${result.type}-${result.sub?.id || "main"}`}
+                      className="space-y-1"
+                    >
                       <button
                         type="button"
                         onClick={() => navigateSearchResult(result)}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[12px] font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
-                          isActive 
-                            ? "bg-teal-400 text-slate-950 shadow-md shadow-teal-500/15" 
+                          isActive
+                            ? "bg-teal-400 text-slate-950 shadow-md shadow-teal-500/15"
                             : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
                         }`}
                       >
@@ -1483,7 +1825,7 @@ export default function App() {
                           </span>
                         )}
                       </button>
-                      
+
                       {isActive && hasSub && (
                         <div className="ml-5 border-l border-slate-800 pl-3.5 py-1 space-y-1 text-left">
                           {item.subItems.map((sub) => {
@@ -1497,12 +1839,14 @@ export default function App() {
                                   setIsSidebarOpen(false);
                                 }}
                                 className={`w-full text-left block py-1.5 px-2 rounded text-[11px] font-bold tracking-wide transition-all cursor-pointer ${
-                                  isSubActive 
-                                    ? "text-teal-400 font-extrabold bg-teal-500/5 shadow-inner" 
+                                  isSubActive
+                                    ? "text-teal-400 font-extrabold bg-teal-500/5 shadow-inner"
                                     : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/30"
                                 }`}
                               >
-                                <span className="mr-1.5 text-[8px] text-teal-500/60">✳</span>
+                                <span className="mr-1.5 text-[8px] text-teal-500/60">
+                                  ✳
+                                </span>
                                 {sub.label}
                               </button>
                             );
@@ -1517,7 +1861,9 @@ export default function App() {
           ) : (
             // Categorized Sections
             MENU_CATEGORIES.map((cat) => {
-              const catItems = filteredMenuItems.filter((item) => cat.items.includes(item.id));
+              const catItems = filteredMenuItems.filter((item) =>
+                cat.items.includes(item.id),
+              );
               if (catItems.length === 0) return null;
 
               return (
@@ -1539,13 +1885,18 @@ export default function App() {
                               setIsSidebarOpen(false);
                             }}
                             className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[12px] font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
-                              isActive 
-                                ? "bg-teal-400 text-slate-955 shadow-md shadow-teal-500/15" 
+                              isActive
+                                ? "bg-teal-400 text-slate-955 shadow-md shadow-teal-500/15"
                                 : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              <Icon size={14.5} className={isActive ? "text-slate-955" : "text-slate-400"} />
+                              <Icon
+                                size={14.5}
+                                className={
+                                  isActive ? "text-slate-955" : "text-slate-400"
+                                }
+                              />
                               <span>{t(item.id) || item.label}</span>
                             </div>
                             {hasSub && (
@@ -1554,11 +1905,14 @@ export default function App() {
                               </span>
                             )}
                           </button>
-                          
+
                           {isActive && hasSub && (
                             <div className="ml-5 border-l border-slate-800 pl-3.5 py-1 space-y-1 text-left">
                               {item.subItems.map((sub) => {
-                                const isSubActive = getSubActive(item.id, sub.id);
+                                const isSubActive = getSubActive(
+                                  item.id,
+                                  sub.id,
+                                );
                                 return (
                                   <button
                                     key={sub.id}
@@ -1568,12 +1922,14 @@ export default function App() {
                                       setIsSidebarOpen(false);
                                     }}
                                     className={`w-full text-left block py-1.5 px-2 rounded text-[11px] font-bold tracking-wide transition-all cursor-pointer ${
-                                      isSubActive 
-                                        ? "text-teal-400 font-extrabold bg-teal-500/5 shadow-inner" 
+                                      isSubActive
+                                        ? "text-teal-400 font-extrabold bg-teal-500/5 shadow-inner"
                                         : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/30"
                                     }`}
                                   >
-                                    <span className="mr-1.5 text-[8px] text-teal-500/60">✳</span>
+                                    <span className="mr-1.5 text-[8px] text-teal-500/60">
+                                      ✳
+                                    </span>
                                     {sub.label}
                                   </button>
                                 );
@@ -1592,14 +1948,21 @@ export default function App() {
 
         <div className="p-4 border-t border-teal-500/10 bg-slate-950/40 space-y-3">
           <div className="flex items-center gap-3">
-            <button 
-              onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }}
+            <button
+              onClick={() => {
+                setActiveTab("settings");
+                setIsSidebarOpen(false);
+              }}
               title="View Account Preferences & Profile"
               className="flex items-center gap-3 truncate flex-1 cursor-pointer hover:opacity-80 transition text-left focus:outline-none"
             >
               <div className="h-8 w-8 rounded-full bg-slate-800 border border-teal-500/15 flex items-center justify-center overflow-hidden font-bold text-teal-400 text-xs shadow shrink-0">
                 {user.avatar_url ? (
-                  <img src={user.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                  <img
+                    src={user.avatar_url}
+                    alt="Profile"
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   user.full_name?.substring(0, 2).toUpperCase()
                 )}
@@ -1617,12 +1980,16 @@ export default function App() {
             <ThemeToggle themeMode={themeMode} onToggle={toggleLightDark} />
           </div>
 
-          {(user.email === "fredrickmakori102@gmail.com" || user.email === "support@egesa.com") && (
+          {(user.email === "fredrickmakori102@gmail.com" ||
+            user.email === "support@egesa.com") && (
             <button
               onClick={() => {
                 const updatedUser = {
                   ...user,
-                  role: user.email === "support@egesa.com" ? "platform_support" : "super_admin",
+                  role:
+                    user.email === "support@egesa.com"
+                      ? "platform_support"
+                      : "super_admin",
                   facility_id: null,
                   facility_name: "Eagle Tech Systems Control",
                   facility_logo: null,
@@ -1666,9 +2033,12 @@ export default function App() {
             >
               <Menu size={20} />
             </button>
-            <div onClick={handleLogoClick} className="flex items-center gap-2 cursor-pointer hover:opacity-85 transition active:scale-[0.98]">
+            <div
+              onClick={handleLogoClick}
+              className="flex items-center gap-2 cursor-pointer hover:opacity-85 transition active:scale-[0.98]"
+            >
               {renderLogo(user.facility_logo)}
-              <span className="font-['Instrument_Serif',serif] text-[13px] text-slate-100 truncate max-w-[180px]">
+              <span className="font-['Instrument_Serif',serif] text-[13px] text-slate-100 truncate max-w-45">
                 {user.facility_name || "Eagle Tech"}
               </span>
             </div>
@@ -1683,17 +2053,31 @@ export default function App() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
-          <div className={menuLayout === 'topbar' ? 'max-w-7xl mx-auto w-full' : ''}>
+          <div
+            className={
+              menuLayout === "topbar" ? "max-w-7xl mx-auto w-full" : ""
+            }
+          >
             {(() => {
               const moduleKey = menuModuleKeys[activeTab];
-              const isModuleDisabled = moduleKey && activeModules && activeModules[moduleKey] === false;
+              const isModuleDisabled =
+                moduleKey &&
+                activeModules &&
+                activeModules[moduleKey] === false;
               if (isModuleDisabled) {
                 return (
                   <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
-                    <ShieldAlert size={48} className="text-red-500 mb-4 animate-pulse" />
-                    <h3 className="text-lg font-semibold text-slate-100">Module Disabled</h3>
+                    <ShieldAlert
+                      size={48}
+                      className="text-red-500 mb-4 animate-pulse"
+                    />
+                    <h3 className="text-lg font-semibold text-slate-100">
+                      Module Disabled
+                    </h3>
                     <p className="text-sm text-slate-400 mt-2 max-w-md">
-                      This feature module has been disabled in the systems configuration. Please contact the administrator to activate it.
+                      This feature module has been disabled in the systems
+                      configuration. Please contact the administrator to
+                      activate it.
                     </p>
                     <button
                       onClick={() => setActiveTab("dashboard")}
@@ -1709,162 +2093,243 @@ export default function App() {
                   {activeTab === "dashboard" && (
                     <Dashboard user={user} onNavigate={handleNavigate} />
                   )}
-            {activeTab === "registration" && (
-              <Registration
-                user={user}
-                onNavigateToQueue={handleNavigateToQueue}
-                showNotification={showNotification}
-              />
-            )}
-            {activeTab === "queue" && (
-              <Queue
-                preselectedPatient={preselectedPatient}
-                user={user}
-                clearPreselected={clearPreselected}
-              />
-            )}
-            {activeTab === "triage" && (
-              <Triage user={user} onComplete={() => setActiveTab("dashboard")} showNotification={showNotification} />
-            )}
-            {activeTab === "consultation" && (
-              <Consultation
-                user={user}
-                onComplete={() => setActiveTab("dashboard")}
-                showNotification={showNotification}
-              />
-            )}
-            {activeTab === "orders" && (
-              <Orders user={user} onComplete={() => setActiveTab("dashboard")} showNotification={showNotification} />
-            )}
-            {activeTab === "radiology" && (
-              <Radiology
-                user={user}
-                onComplete={() => setActiveTab("dashboard")}
-                showNotification={showNotification}
-              />
-            )}
-            {activeTab === "surgery" && (
-              <Surgery user={user} onComplete={() => setActiveTab("dashboard")} />
-            )}
-            {activeTab === "pharmacy" && (
-              <Pharmacy
-                user={user}
-                initialSubTab={pharmacySubTab}
-                onComplete={() => setActiveTab("dashboard")}
-                showNotification={showNotification}
-              />
-            )}
-            {activeTab === "pos" && (
-              <Pharmacy
-                user={user}
-                initialSubTab="sell"
-                onComplete={() => setActiveTab("dashboard")}
-                showNotification={showNotification}
-              />
-            )}
-            {activeTab === "billing" && (
-              <Billing
-                user={user}
-                initialSubTab={billingSubTab}
-                onComplete={() => setActiveTab("dashboard")}
-                showNotification={showNotification}
-              />
-            )}
-            {activeTab === "reports" && <Reports user={user} />}
-            {activeTab === "patient_dashboard" && <PatientDashboard />}
-            {activeTab === "ward" && <Ward user={user} showNotification={showNotification} />}
-            {activeTab === "maternity" && (
-              (isAdmin || (user.department?.toLowerCase() || '').includes('maternity')) ? (
-                <MaternityDashboard
-                  user={user}
-                  initialSubTab={maternitySubTab}
-                  onClose={() => setActiveTab("dashboard")}
-                  showNotification={showNotification}
-                />
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
-                  <ShieldAlert size={48} className="text-red-500 mb-4 animate-pulse" />
-                  <h3 className="text-lg font-semibold text-slate-100">Access Denied</h3>
-                  <p className="text-sm text-slate-400 mt-2 max-w-md">
-                    You do not have permission to access the Maternity Setup module. Please verify your department assignment with an administrator.
-                  </p>
-                  <button
-                    onClick={() => setActiveTab("dashboard")}
-                    className="mt-6 bg-teal-400 hover:bg-teal-350 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98]"
-                  >
-                    Return to Dashboard
-                  </button>
-                </div>
-              )
-            )}
-            {activeTab === "mch" && (
-              (isAdmin || ['mch', 'anc', 'antenatal'].some(keyword => (user.department?.toLowerCase() || '').includes(keyword))) ? (
-                <MCHDashboard
-                  user={user}
-                  initialSubTab={mchSubTab}
-                  onClose={() => setActiveTab("dashboard")}
-                  showNotification={showNotification}
-                />
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
-                  <ShieldAlert size={48} className="text-red-500 mb-4 animate-pulse" />
-                  <h3 className="text-lg font-semibold text-slate-100">Access Denied</h3>
-                  <p className="text-sm text-slate-400 mt-2 max-w-md">
-                    You do not have permission to access the MCH Clinic module. Please verify your department assignment with an administrator.
-                  </p>
-                  <button
-                    onClick={() => setActiveTab("dashboard")}
-                    className="mt-6 bg-teal-400 hover:bg-teal-350 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98]"
-                  >
-                    Return to Dashboard
-                  </button>
-                </div>
-              )
-            )}
-            {activeTab === "admin" && <Admin user={user} initialSubTab={adminSubTab} onNavigate={handleNavigate} />}
-            {activeTab === "procurement" && <OperationsDesk user={user} />}
-            {activeTab === "hr" && <HumanResourcesWrapper user={user} initialSubTab={hrSubTab} />}
-            {activeTab === "payroll" && <Payroll user={user} />}
-            {activeTab === "maintenance" && <AssetsMaintenance user={user} />}
-            {activeTab === "settings" && (
-              <Preferences
-                currentTheme={theme}
-                onChangeTheme={handleThemeChange}
-                currentThemeMode={themeMode}
-                onChangeThemeMode={handleThemeModeChange}
-                currentMenuLayout={menuLayout}
-                onChangeMenuLayout={handleMenuLayoutChange}
-                currentLang={lang}
-                onChangeLang={handleLangChange}
-                currentFont={font}
-                onChangeFont={handleFontChange}
-                brightness={brightness}
-                onChangeBrightness={handleBrightnessChange}
-                nightVision={nightVision}
-                onChangeNightVision={handleNightVisionChange}
-                user={user}
-                setUser={setUser}
-              />
-            )}
-            {activeTab === "appointments" && (
-              <Appointments user={user} showNotification={showNotification} />
-            )}
-            {activeTab === "support" && <SupportPanel />}
-            {!["dashboard", "registration", "queue", "triage", "consultation", "orders", "radiology", "surgery", "pharmacy", "pos", "billing", "reports", "patient_dashboard", "ward", "maternity", "mch", "admin", "settings", "appointments", "support", "procurement", "hr", "maintenance"].includes(activeTab) && (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-850 rounded-2xl m-4 text-center">
-                <ShieldAlert size={48} className="text-yellow-500 mb-4 animate-bounce" />
-                <h3 className="text-lg font-bold text-slate-100">404 - Page Not Found</h3>
-                <p className="text-xs text-slate-400 mt-2 max-w-md">
-                  The requested module space or page "{activeTab}" is not registered on this system or is unavailable for your account.
-                </p>
-                <button
-                  onClick={() => setActiveTab("dashboard")}
-                  className="mt-6 bg-teal-400 hover:bg-teal-350 text-slate-955 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98] cursor-pointer"
-                >
-                  Return to Dashboard
-                </button>
-              </div>
-            )}
+                  {(activeTab === "registration" ||
+                    activeTab === "triage" ||
+                    activeTab === "queue" ||
+                    activeTab === "reception") && (
+                    <Reception
+                      user={user}
+                      initialSubTab={
+                        activeTab === "reception" ? receptionSubTab : activeTab
+                      }
+                      handleNavigate={(tab, subId) => {
+                        if (tab === "reception" && subId) {
+                          const route = mapReceptionSubItemToRoute(subId);
+                          setActiveTab(route.tab);
+                          if (route.subTab) setReceptionSubTab(route.subTab);
+                        } else {
+                          setActiveTab(tab);
+                        }
+                      }}
+                      preselectedPatient={preselectedPatient}
+                      showNotification={showNotification}
+                    />
+                  )}
+                  {activeTab === "consultation" && (
+                    <Consultation
+                      user={user}
+                      onComplete={() => setActiveTab("dashboard")}
+                      showNotification={showNotification}
+                    />
+                  )}
+                  {activeTab === "orders" && (
+                    <Orders
+                      user={user}
+                      onComplete={() => setActiveTab("dashboard")}
+                      showNotification={showNotification}
+                    />
+                  )}
+                  {activeTab === "radiology" && (
+                    <Radiology
+                      user={user}
+                      onComplete={() => setActiveTab("dashboard")}
+                      showNotification={showNotification}
+                    />
+                  )}
+                  {activeTab === "surgery" && (
+                    <Surgery
+                      user={user}
+                      onComplete={() => setActiveTab("dashboard")}
+                    />
+                  )}
+                  {activeTab === "pharmacy" && (
+                    <Pharmacy
+                      user={user}
+                      initialSubTab={pharmacySubTab}
+                      onComplete={() => setActiveTab("dashboard")}
+                      showNotification={showNotification}
+                    />
+                  )}
+                  {activeTab === "pos" && (
+                    <Pharmacy
+                      user={user}
+                      initialSubTab="sell"
+                      onComplete={() => setActiveTab("dashboard")}
+                      showNotification={showNotification}
+                    />
+                  )}
+                  {activeTab === "billing" && (
+                    <Billing
+                      user={user}
+                      initialSubTab={billingSubTab}
+                      onComplete={() => setActiveTab("dashboard")}
+                      showNotification={showNotification}
+                    />
+                  )}
+                  {activeTab === "reports" && <Reports user={user} />}
+                  {activeTab === "patient_dashboard" && <PatientDashboard />}
+                  {activeTab === "ward" && (
+                    <Ward user={user} showNotification={showNotification} />
+                  )}
+                  {activeTab === "maternity" &&
+                    (isAdmin ||
+                    (user.department?.toLowerCase() || "").includes(
+                      "maternity",
+                    ) ? (
+                      <MaternityDashboard
+                        user={user}
+                        initialSubTab={maternitySubTab}
+                        onClose={() => setActiveTab("dashboard")}
+                        showNotification={showNotification}
+                      />
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
+                        <ShieldAlert
+                          size={48}
+                          className="text-red-500 mb-4 animate-pulse"
+                        />
+                        <h3 className="text-lg font-semibold text-slate-100">
+                          Access Denied
+                        </h3>
+                        <p className="text-sm text-slate-400 mt-2 max-w-md">
+                          You do not have permission to access the Maternity
+                          Setup module. Please verify your department assignment
+                          with an administrator.
+                        </p>
+                        <button
+                          onClick={() => setActiveTab("dashboard")}
+                          className="mt-6 bg-teal-400 hover:bg-teal-350 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98]"
+                        >
+                          Return to Dashboard
+                        </button>
+                      </div>
+                    ))}
+                  {activeTab === "mch" &&
+                    (isAdmin ||
+                    ["mch", "anc", "antenatal"].some((keyword) =>
+                      (user.department?.toLowerCase() || "").includes(keyword),
+                    ) ? (
+                      <MCHDashboard
+                        user={user}
+                        initialSubTab={mchSubTab}
+                        onClose={() => setActiveTab("dashboard")}
+                        showNotification={showNotification}
+                      />
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-2xl m-4 text-center">
+                        <ShieldAlert
+                          size={48}
+                          className="text-red-500 mb-4 animate-pulse"
+                        />
+                        <h3 className="text-lg font-semibold text-slate-100">
+                          Access Denied
+                        </h3>
+                        <p className="text-sm text-slate-400 mt-2 max-w-md">
+                          You do not have permission to access the MCH Clinic
+                          module. Please verify your department assignment with
+                          an administrator.
+                        </p>
+                        <button
+                          onClick={() => setActiveTab("dashboard")}
+                          className="mt-6 bg-teal-400 hover:bg-teal-350 text-slate-950 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98]"
+                        >
+                          Return to Dashboard
+                        </button>
+                      </div>
+                    ))}
+                  {activeTab === "admin" && (
+                    <Admin
+                      user={user}
+                      initialSubTab={adminSubTab}
+                      onNavigate={handleNavigate}
+                    />
+                  )}
+                  {activeTab === "procurement" && (
+                    <OperationsDesk user={user} />
+                  )}
+                  {activeTab === "hr" && (
+                    <HumanResourcesWrapper
+                      user={user}
+                      initialSubTab={hrSubTab}
+                    />
+                  )}
+                  {activeTab === "payroll" && <Payroll user={user} />}
+                  {activeTab === "maintenance" && (
+                    <AssetsMaintenance user={user} />
+                  )}
+                  {activeTab === "settings" && (
+                    <Preferences
+                      currentTheme={theme}
+                      onChangeTheme={handleThemeChange}
+                      currentThemeMode={themeMode}
+                      onChangeThemeMode={handleThemeModeChange}
+                      currentMenuLayout={menuLayout}
+                      onChangeMenuLayout={handleMenuLayoutChange}
+                      currentLang={lang}
+                      onChangeLang={handleLangChange}
+                      currentFont={font}
+                      onChangeFont={handleFontChange}
+                      brightness={brightness}
+                      onChangeBrightness={handleBrightnessChange}
+                      nightVision={nightVision}
+                      onChangeNightVision={handleNightVisionChange}
+                      user={user}
+                      setUser={setUser}
+                    />
+                  )}
+                  {activeTab === "appointments" && (
+                    <Appointments
+                      user={user}
+                      showNotification={showNotification}
+                    />
+                  )}
+                  {activeTab === "support" && <SupportPanel />}
+                  {![
+                    "dashboard",
+                    "registration",
+                    "queue",
+                    "triage",
+                    "consultation",
+                    "orders",
+                    "radiology",
+                    "surgery",
+                    "pharmacy",
+                    "pos",
+                    "billing",
+                    "reports",
+                    "patient_dashboard",
+                    "ward",
+                    "maternity",
+                    "mch",
+                    "admin",
+                    "settings",
+                    "appointments",
+                    "support",
+                    "procurement",
+                    "hr",
+                    "maintenance",
+                  ].includes(activeTab) && (
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-850 rounded-2xl m-4 text-center">
+                      <ShieldAlert
+                        size={48}
+                        className="text-yellow-500 mb-4 animate-bounce"
+                      />
+                      <h3 className="text-lg font-bold text-slate-100">
+                        404 - Page Not Found
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-2 max-w-md">
+                        The requested module space or page "{activeTab}" is not
+                        registered on this system or is unavailable for your
+                        account.
+                      </p>
+                      <button
+                        onClick={() => setActiveTab("dashboard")}
+                        className="mt-6 bg-teal-400 hover:bg-teal-350 text-slate-955 font-bold text-xs py-2 px-6 rounded-lg transition active:scale-[0.98] cursor-pointer"
+                      >
+                        Return to Dashboard
+                      </button>
+                    </div>
+                  )}
                 </>
               );
             })()}
@@ -1874,25 +2339,37 @@ export default function App() {
 
       {notification && (
         <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 font-sans animate-fadeIn">
-          <div className={`w-full max-w-sm bg-slate-900 border rounded-2xl p-6 shadow-2xl relative overflow-hidden transition-all ${
-            notification.type === 'success' ? 'border-teal-500/30' : 'border-rose-500/30'
-          }`}>
+          <div
+            className={`w-full max-w-sm bg-slate-900 border rounded-2xl p-6 shadow-2xl relative overflow-hidden transition-all ${
+              notification.type === "success"
+                ? "border-teal-500/30"
+                : "border-rose-500/30"
+            }`}
+          >
             <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-teal-500 via-emerald-500 to-teal-650" />
-            
+
             <div className="flex flex-col items-center text-center mt-2">
-              <div className={`p-3 rounded-full mb-4 ${
-                notification.type === 'success' ? 'bg-teal-500/10 text-teal-400' : 'bg-rose-500/10 text-rose-400'
-              }`}>
-                {notification.type === 'success' ? (
+              <div
+                className={`p-3 rounded-full mb-4 ${
+                  notification.type === "success"
+                    ? "bg-teal-500/10 text-teal-400"
+                    : "bg-rose-500/10 text-rose-400"
+                }`}
+              >
+                {notification.type === "success" ? (
                   <CheckCircle size={36} className="animate-pulse" />
                 ) : (
                   <ShieldAlert size={36} className="animate-bounce" />
                 )}
               </div>
-              <h3 className="text-base font-bold text-slate-100 mb-1.5">{notification.title}</h3>
-              <p className="text-xs text-slate-400 leading-relaxed mb-6 whitespace-pre-wrap">{notification.message}</p>
+              <h3 className="text-base font-bold text-slate-100 mb-1.5">
+                {notification.title}
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed mb-6 whitespace-pre-wrap">
+                {notification.message}
+              </p>
             </div>
-            
+
             <button
               onClick={() => setNotification(null)}
               className="w-full bg-slate-800 hover:bg-slate-750 text-slate-200 hover:text-white font-bold text-xs py-2.5 rounded-lg border border-slate-700/60 transition active:scale-[0.98] cursor-pointer"

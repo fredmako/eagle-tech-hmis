@@ -139,7 +139,8 @@ export default function LandingPage({
   ]);
   const [chatTyping, setChatTyping] = useState(false);
   const [chatSessionId, setChatSessionId] = useState(
-    () => `public_chat_${globalThis.Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    () =>
+      `public_chat_${globalThis.Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
   );
   const [chatEscalation, setChatEscalation] = useState(null);
 

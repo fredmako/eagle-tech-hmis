@@ -2,7 +2,13 @@ import { useState, useEffect } from "react";
 import Registration from "./Registration";
 import Triage from "./Triage";
 import Queue from "./Queue";
-import { Activity, ArrowRight, ListChecks, Stethoscope, Users } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  ListChecks,
+  Stethoscope,
+  Users,
+} from "lucide-react";
 
 export default function Reception({
   user,
@@ -30,9 +36,12 @@ export default function Reception({
               <Activity size={18} className="text-teal-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-100">Reception Operations</h2>
+              <h2 className="text-lg font-bold text-slate-100">
+                Reception Operations
+              </h2>
               <p className="mt-1 text-xs text-slate-400">
-                Manage patient registration, triage, and live queue flow from one place.
+                Manage patient registration, triage, and live queue flow from
+                one place.
               </p>
             </div>
           </div>
@@ -48,7 +57,9 @@ export default function Reception({
               return (
                 <button
                   key={item.key}
-                  onClick={() => item.key === "queue" ? goToQueue() : setSubTab(item.key)}
+                  onClick={() =>
+                    item.key === "queue" ? goToQueue() : setSubTab(item.key)
+                  }
                   className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${
                     active
                       ? "bg-teal-500 text-slate-950"
@@ -68,19 +79,25 @@ export default function Reception({
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
               <Users size={15} className="text-teal-400" /> Registration
             </div>
-            <p className="mt-1 text-xs text-slate-400">Capture new patients and route them to the correct service.</p>
+            <p className="mt-1 text-xs text-slate-400">
+              Capture new patients and route them to the correct service.
+            </p>
           </div>
           <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
               <Stethoscope size={15} className="text-teal-400" /> Triage
             </div>
-            <p className="mt-1 text-xs text-slate-400">Review patient vitals, priorities, and pending screening tasks.</p>
+            <p className="mt-1 text-xs text-slate-400">
+              Review patient vitals, priorities, and pending screening tasks.
+            </p>
           </div>
           <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
               <ListChecks size={15} className="text-teal-400" /> Queue
             </div>
-            <p className="mt-1 text-xs text-slate-400">Follow active visit flow and manage the clinic line efficiently.</p>
+            <p className="mt-1 text-xs text-slate-400">
+              Follow active visit flow and manage the clinic line efficiently.
+            </p>
           </div>
         </div>
       </div>

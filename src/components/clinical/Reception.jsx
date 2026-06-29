@@ -39,7 +39,7 @@ export default function Reception({
     "patients_in_wards",
     "sha_registrations",
     "eligibility_sha",
-    "eligibility_patients"
+    "eligibility_patients",
   ].includes(selectedSubItem);
 
   if (isRegistrationSubItem) {

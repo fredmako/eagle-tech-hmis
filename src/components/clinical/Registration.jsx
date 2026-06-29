@@ -13,7 +13,7 @@ import {
   Users,
   Check,
   PlusCircle,
-  FolderOpen
+  FolderOpen,
 } from "lucide-react";
 
 export default function Registration({
@@ -131,18 +131,22 @@ export default function Registration({
         .eq("facility_id", user.facility_id);
 
       const enriched = admData
-        ? admData.map((a) => {
-            const p = pts?.find((pt) => pt.id === a.patient_id);
-            const b = bedsData?.find((bd) => bd.id === a.bed_id);
-            return {
-              ...a,
-              patient: p,
-              bed_number: b ? b.id.replace("bed_", "").toUpperCase() : "Bed N/A",
-              ward_name: a.ward_id
-                ? a.ward_id.replace("ward_", "").toUpperCase()
-                : "Ward N/A",
-            };
-          }).filter(a => a.patient) // Only show patients belonging to this facility
+        ? admData
+            .map((a) => {
+              const p = pts?.find((pt) => pt.id === a.patient_id);
+              const b = bedsData?.find((bd) => bd.id === a.bed_id);
+              return {
+                ...a,
+                patient: p,
+                bed_number: b
+                  ? b.id.replace("bed_", "").toUpperCase()
+                  : "Bed N/A",
+                ward_name: a.ward_id
+                  ? a.ward_id.replace("ward_", "").toUpperCase()
+                  : "Ward N/A",
+              };
+            })
+            .filter((a) => a.patient) // Only show patients belonging to this facility
         : [];
       setAdmissions(enriched);
     } catch (err) {
@@ -165,7 +169,9 @@ export default function Registration({
       await new Promise((resolve) => setTimeout(resolve, 1500));
       // Auto-populate patient details if matched or simulate match
       const matchingPt = patientsList.find(
-        (p) => p.national_id === biometricSearchQuery || p.sha_number === biometricSearchQuery
+        (p) =>
+          p.national_id === biometricSearchQuery ||
+          p.sha_number === biometricSearchQuery,
       );
 
       if (matchingPt) {
@@ -189,7 +195,11 @@ export default function Registration({
         setNokRelation(matchingPt.next_of_kin_relation || "");
 
         if (showNotification) {
-          showNotification("success", "Patient Found", "Details filled successfully from SHA database.");
+          showNotification(
+            "success",
+            "Patient Found",
+            "Details filled successfully from SHA database.",
+          );
         }
       } else {
         // Fallback simulate filling mock data
@@ -207,7 +217,11 @@ export default function Registration({
         setNokRelation("spouse");
 
         if (showNotification) {
-          showNotification("success", "SHA Query Match", "Temporary record pre-populated from SHA registry.");
+          showNotification(
+            "success",
+            "SHA Query Match",
+            "Temporary record pre-populated from SHA registry.",
+          );
         }
       }
       setActiveRegTab("register");
@@ -240,22 +254,34 @@ export default function Registration({
 
     setEditPatientId(pt.id);
     setActiveRegTab("register");
-    
+
     // Programmatically trigger redirection/tab switch back to New Patient
     if (showNotification) {
-      showNotification("info", "Edit Mode Active", `Modifying details for ${pt.name}.`);
+      showNotification(
+        "info",
+        "Edit Mode Active",
+        `Modifying details for ${pt.name}.`,
+      );
     }
   };
 
   const handleDeletePatient = async (ptId) => {
-    if (!window.confirm("Are you sure you want to permanently delete this patient record?")) {
+    if (
+      !window.confirm(
+        "Are you sure you want to permanently delete this patient record?",
+      )
+    ) {
       return;
     }
     try {
       const { error } = await supabase.from("patients").delete().eq("id", ptId);
       if (error) throw error;
       if (showNotification) {
-        showNotification("success", "Record Deleted", "Patient details removed successfully.");
+        showNotification(
+          "success",
+          "Record Deleted",
+          "Patient details removed successfully.",
+        );
       }
       fetchPatients();
     } catch (err) {
@@ -277,7 +303,9 @@ export default function Registration({
         .join(" ");
 
       if (!fullName || !dob || !gender || !telephone) {
-        throw new Error("Please fill in all required fields marked with an asterisk (*).");
+        throw new Error(
+          "Please fill in all required fields marked with an asterisk (*).",
+        );
       }
 
       const patientData = {
@@ -309,7 +337,11 @@ export default function Registration({
         if (error) throw error;
 
         if (showNotification) {
-          showNotification("success", "Update Success", "Patient details updated successfully.");
+          showNotification(
+            "success",
+            "Update Success",
+            "Patient details updated successfully.",
+          );
         }
         setEditPatientId(null);
       } else {
@@ -369,7 +401,7 @@ export default function Registration({
           showNotification(
             "success",
             "Registration Success",
-            `Registered successfully! Assigned Code: ${facilityCode}`
+            `Registered successfully! Assigned Code: ${facilityCode}`,
           );
         }
       }
@@ -411,7 +443,11 @@ export default function Registration({
 
   const handleOpenInsuranceModal = (pt) => {
     setManageInsurancePt(pt);
-    setInsuranceCompany(pt.sha_dependent_type === "child" ? "NHIF / SHA Dependent" : "National Health Insurance (SHA)");
+    setInsuranceCompany(
+      pt.sha_dependent_type === "child"
+        ? "NHIF / SHA Dependent"
+        : "National Health Insurance (SHA)",
+    );
     setInsuranceNumber(pt.sha_number || "");
     setInsuranceDependentType(pt.sha_dependent_type || "self");
   };
@@ -430,7 +466,11 @@ export default function Registration({
       if (error) throw error;
 
       if (showNotification) {
-        showNotification("success", "Insurance Saved", "Insurance details updated successfully.");
+        showNotification(
+          "success",
+          "Insurance Saved",
+          "Insurance details updated successfully.",
+        );
       }
       setManageInsurancePt(null);
       fetchPatients();
@@ -481,7 +521,11 @@ export default function Registration({
       if (error) throw error;
 
       if (showNotification) {
-        showNotification("success", "Bed Allocated", "Inpatient bed changed successfully.");
+        showNotification(
+          "success",
+          "Bed Allocated",
+          "Inpatient bed changed successfully.",
+        );
       }
       setChangeBedAdm(null);
       fetchAdmissions();
@@ -507,14 +551,18 @@ export default function Registration({
   const getBreadcrumbs = () => {
     let currentLabel = "New Patient";
     if (selectedSubItem === "update_patient") currentLabel = "Update Patient";
-    else if (selectedSubItem === "patient_insurance") currentLabel = "Patient Insurance";
-    else if (selectedSubItem === "patients_in_wards") currentLabel = "Patients in Wards";
-    else if (selectedSubItem === "sha_registrations") currentLabel = "SHA Registrations";
+    else if (selectedSubItem === "patient_insurance")
+      currentLabel = "Patient Insurance";
+    else if (selectedSubItem === "patients_in_wards")
+      currentLabel = "Patients in Wards";
+    else if (selectedSubItem === "sha_registrations")
+      currentLabel = "SHA Registrations";
     return `Main Home / Module Select > ${currentLabel}`;
   };
 
   const getPageTitle = () => {
-    if (selectedSubItem === "patients_in_wards") return "IN-Patients Visit Queue";
+    if (selectedSubItem === "patients_in_wards")
+      return "IN-Patients Visit Queue";
     if (selectedSubItem === "patient_insurance") return "Patient Insurance";
     return "Patient Registrations";
   };
@@ -524,7 +572,9 @@ export default function Registration({
       {/* Breadcrumbs & Header Title */}
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-fg-strong">{getPageTitle()}</h1>
+          <h1 className="text-xl font-semibold text-fg-strong">
+            {getPageTitle()}
+          </h1>
         </div>
         <div className="rounded-full border border-border-subtle bg-muted px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-fg-muted">
           {getBreadcrumbs()}
@@ -589,7 +639,9 @@ export default function Registration({
                   <div className="md:col-span-3">
                     <button
                       onClick={handleBiometricSearch}
-                      disabled={biometricLoading || !biometricSearchQuery.trim()}
+                      disabled={
+                        biometricLoading || !biometricSearchQuery.trim()
+                      }
                       className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60"
                     >
                       {biometricLoading ? (
@@ -611,7 +663,9 @@ export default function Registration({
               <form onSubmit={handleRegisterSubmit} className="space-y-6">
                 {editPatientId && (
                   <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-xs flex justify-between items-center">
-                    <span className="font-semibold">⚠️ Currently Editing Mode Active for Selected Record.</span>
+                    <span className="font-semibold">
+                      ⚠️ Currently Editing Mode Active for Selected Record.
+                    </span>
                     <button
                       type="button"
                       onClick={() => {
@@ -631,7 +685,9 @@ export default function Registration({
                 {/* Primary Demographic Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">First Name <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      First Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={firstName}
@@ -642,7 +698,9 @@ export default function Registration({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Middle Name</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Middle Name
+                    </label>
                     <input
                       type="text"
                       value={middleName}
@@ -652,7 +710,9 @@ export default function Registration({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Last Name <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Last Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={lastName}
@@ -663,7 +723,9 @@ export default function Registration({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">ID Number <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      ID Number <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={idNumber}
@@ -677,7 +739,9 @@ export default function Registration({
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Gender
+                    </label>
                     <select
                       value={gender}
                       onChange={(e) => setGender(e.target.value)}
@@ -691,7 +755,9 @@ export default function Registration({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Title</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Title
+                    </label>
                     <select
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
@@ -706,7 +772,9 @@ export default function Registration({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Telephone <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Telephone <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={telephone}
@@ -717,7 +785,9 @@ export default function Registration({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Alt Telephone</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Alt Telephone
+                    </label>
                     <input
                       type="text"
                       value={altTelephone}
@@ -730,7 +800,9 @@ export default function Registration({
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Date of Birth</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Date of Birth
+                    </label>
                     <input
                       type="date"
                       value={dob}
@@ -739,7 +811,9 @@ export default function Registration({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Village <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Village <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={village}
@@ -750,7 +824,9 @@ export default function Registration({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Location <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Location <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={location}
@@ -761,7 +837,9 @@ export default function Registration({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Email</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Email
+                    </label>
                     <input
                       type="email"
                       value={email}
@@ -774,7 +852,9 @@ export default function Registration({
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Nearest School</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Nearest School
+                    </label>
                     <input
                       type="text"
                       value={nearestSchool}
@@ -784,7 +864,9 @@ export default function Registration({
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Is Incoming Referral?</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Is Incoming Referral?
+                    </label>
                     <select
                       value={isIncomingReferral}
                       onChange={(e) => setIsIncomingReferral(e.target.value)}
@@ -804,7 +886,9 @@ export default function Registration({
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name <span className="text-red-500">*</span></label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Full Name <span className="text-red-500">*</span>
+                      </label>
                       <input
                         type="text"
                         value={nokName}
@@ -815,7 +899,9 @@ export default function Registration({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Mobile Number <span className="text-red-500">*</span></label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Mobile Number <span className="text-red-500">*</span>
+                      </label>
                       <input
                         type="text"
                         value={nokPhone}
@@ -826,7 +912,9 @@ export default function Registration({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Relationship <span className="text-red-500">*</span></label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Relationship <span className="text-red-500">*</span>
+                      </label>
                       <select
                         value={nokRelation}
                         onChange={(e) => setNokRelation(e.target.value)}
@@ -849,7 +937,9 @@ export default function Registration({
                 <div className="border-t border-slate-200 pt-4">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Select Service Point</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Select Service Point
+                      </label>
                       <select
                         value={servicePoint}
                         onChange={(e) => setServicePoint(e.target.value)}
@@ -867,7 +957,9 @@ export default function Registration({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Service Room</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Service Room
+                      </label>
                       <select
                         value={serviceRoom}
                         onChange={(e) => setServiceRoom(e.target.value)}
@@ -882,20 +974,28 @@ export default function Registration({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Service Provider</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Service Provider
+                      </label>
                       <select
                         value={serviceProvider}
                         onChange={(e) => setServiceProvider(e.target.value)}
                         className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
                       >
                         <option value="">Select Specialist</option>
-                        <option value="dr_arthur">Dr. Arthur Conan (Clinician)</option>
-                        <option value="nurse_jane">Nurse Jane Doe (Triage)</option>
+                        <option value="dr_arthur">
+                          Dr. Arthur Conan (Clinician)
+                        </option>
+                        <option value="nurse_jane">
+                          Nurse Jane Doe (Triage)
+                        </option>
                         <option value="pharmacist_bob">Pharmacist Bob</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Payments <span className="text-red-500">*</span></label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Payments <span className="text-red-500">*</span>
+                      </label>
                       <select
                         value={payments}
                         onChange={(e) => setPayments(e.target.value)}
@@ -905,7 +1005,9 @@ export default function Registration({
                         <option value="">Preferred Payment Option</option>
                         <option value="cash">CASH Payments</option>
                         <option value="sha">SHA Insurance Card</option>
-                        <option value="coporate">Corporate Cover / Invoice</option>
+                        <option value="coporate">
+                          Corporate Cover / Invoice
+                        </option>
                       </select>
                     </div>
                   </div>
@@ -914,27 +1016,47 @@ export default function Registration({
                 {/* Service Point Fees and Visual Media Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-200">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Service Point Fee <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Service Point Fee <span className="text-red-500">*</span>
+                    </label>
                     <select
                       multiple
                       value={servicePointFee}
                       onChange={(e) => {
-                        const vals = Array.from(e.target.selectedOptions, (option) => option.value);
+                        const vals = Array.from(
+                          e.target.selectedOptions,
+                          (option) => option.value,
+                        );
                         setServicePointFee(vals);
                       }}
                       className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-[11px] text-slate-850 h-32 focus:outline-none focus:border-blue-500"
                     >
-                      <option value="OPD_500">CONSULTATION FEE - CASH - 500.00 - INSURANCE - 1000.00</option>
-                      <option value="MO_500">DOCTORS FEE(MO) - CASH - 500.00 - INSURANCE - 500.00</option>
-                      <option value="REV_0">REVIEW - CASH - 0.00 - INSURANCE - 0.00</option>
-                      <option value="AON_1000">AON MINET CONSULTATION FEE - CASH - 0.00 - INSURANCE - 1000.00</option>
-                      <option value="MAT_0">MATERNITY - CASH - 0.00 - INSURANCE - 0.00</option>
+                      <option value="OPD_500">
+                        CONSULTATION FEE - CASH - 500.00 - INSURANCE - 1000.00
+                      </option>
+                      <option value="MO_500">
+                        DOCTORS FEE(MO) - CASH - 500.00 - INSURANCE - 500.00
+                      </option>
+                      <option value="REV_0">
+                        REVIEW - CASH - 0.00 - INSURANCE - 0.00
+                      </option>
+                      <option value="AON_1000">
+                        AON MINET CONSULTATION FEE - CASH - 0.00 - INSURANCE -
+                        1000.00
+                      </option>
+                      <option value="MAT_0">
+                        MATERNITY - CASH - 0.00 - INSURANCE - 0.00
+                      </option>
                     </select>
-                    <span className="text-[10px] text-slate-400 block mt-1 font-mono">press Ctrl and click to select multiple options</span>
+                    <span className="text-[10px] text-slate-400 block mt-1 font-mono">
+                      press Ctrl and click to select multiple options
+                    </span>
                   </div>
 
                   <div className="flex flex-col items-center">
-                    <span className="text-xs font-semibold text-slate-700 self-start mb-1.5">Preview</span>
+                    <span className="text-xs font-semibold text-slate-700 self-start mb-1.5">
+                      Preview
+                    </span>
                     <div className="w-full h-32 bg-slate-50 border border-slate-300 rounded flex flex-col items-center justify-center text-slate-400 font-mono text-xs">
                       <span>No Live Scanner Connected</span>
                       <div className="w-16 h-1 bg-emerald-500 mt-2" />
@@ -942,7 +1064,9 @@ export default function Registration({
                   </div>
 
                   <div className="flex flex-col items-center">
-                    <span className="text-xs font-semibold text-slate-700 self-start mb-1.5 font-bold text-blue-600">Captured</span>
+                    <span className="text-xs font-semibold text-slate-700 self-start mb-1.5 font-bold text-blue-600">
+                      Captured
+                    </span>
                     <div className="w-28 h-28 bg-slate-50 border border-slate-300 rounded-full flex items-center justify-center overflow-hidden">
                       <User size={64} className="text-slate-400" />
                     </div>
@@ -956,7 +1080,11 @@ export default function Registration({
                     disabled={loading}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 px-6 rounded transition active:scale-[0.98] disabled:opacity-50"
                   >
-                    {loading ? "Processing..." : editPatientId ? "Update Patient Details" : "Save Patient & Route to Queue"}
+                    {loading
+                      ? "Processing..."
+                      : editPatientId
+                        ? "Update Patient Details"
+                        : "Save Patient & Route to Queue"}
                   </button>
                 </div>
               </form>
@@ -970,7 +1098,8 @@ export default function Registration({
         <div className="space-y-6">
           <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-card">
             <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-fg-muted">
-              <FileText size={14} className="text-primary" /> Patients Listing (Search & Edit)
+              <FileText size={14} className="text-primary" /> Patients Listing
+              (Search & Edit)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
               <div className="md:col-span-9">
@@ -997,9 +1126,11 @@ export default function Registration({
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div className="px-5 py-3 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
               <Users size={16} className="text-blue-600" />
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Patient Registrations</h3>
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Patient Registrations
+              </h3>
             </div>
-            
+
             <div className="overflow-x-auto min-w-0">
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
@@ -1023,13 +1154,19 @@ export default function Registration({
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {loadingPatients ? (
                     <tr>
-                      <td colSpan={14} className="text-center py-10 text-slate-400 font-mono text-2xs">
+                      <td
+                        colSpan={14}
+                        className="text-center py-10 text-slate-400 font-mono text-2xs"
+                      >
                         Loading registered patient directory...
                       </td>
                     </tr>
                   ) : filteredPatients.length === 0 ? (
                     <tr>
-                      <td colSpan={14} className="text-center py-10 text-slate-400 font-mono text-2xs">
+                      <td
+                        colSpan={14}
+                        className="text-center py-10 text-slate-400 font-mono text-2xs"
+                      >
                         No matching patients found.
                       </td>
                     </tr>
@@ -1037,22 +1174,45 @@ export default function Registration({
                     filteredPatients.map((p) => {
                       const contact = parseContact(p.phone);
                       return (
-                        <tr key={p.id} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                          <td className="py-2.5 px-3 font-semibold text-slate-900">{p.name}</td>
-                          <td className="py-2.5 px-3 font-mono text-2xs">{p.dob}</td>
-                          <td className="py-2.5 px-3 font-mono text-2xs">{contact.phone}</td>
+                        <tr
+                          key={p.id}
+                          className="hover:bg-slate-50 text-slate-700 transition-colors"
+                        >
+                          <td className="py-2.5 px-3 font-semibold text-slate-900">
+                            {p.name}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-2xs">
+                            {p.dob}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-2xs">
+                            {contact.phone}
+                          </td>
                           <td className="py-2.5 px-3">{p.gender}</td>
-                          <td className="py-2.5 px-3 font-bold text-blue-600 font-mono text-2xs">{p.facility_id_code}</td>
-                          <td className="py-2.5 px-3 font-mono text-2xs">{p.national_id || "0"}</td>
-                          <td className="py-2.5 px-3 uppercase text-2xs">{contact.location || "Nairobi"}</td>
-                          <td className="py-2.5 px-3">{p.next_of_kin_name || "—"}</td>
-                          <td className="py-2.5 px-3 font-mono text-2xs">{p.next_of_kin_phone || "—"}</td>
+                          <td className="py-2.5 px-3 font-bold text-blue-600 font-mono text-2xs">
+                            {p.facility_id_code}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-2xs">
+                            {p.national_id || "0"}
+                          </td>
+                          <td className="py-2.5 px-3 uppercase text-2xs">
+                            {contact.location || "Nairobi"}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            {p.next_of_kin_name || "—"}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-2xs">
+                            {p.next_of_kin_phone || "—"}
+                          </td>
                           <td className="py-2.5 px-3 font-mono text-2xs">
                             {new Date(p.created_at).toLocaleDateString("en-GB")}
                           </td>
-                          <td className="py-2.5 px-3 text-slate-500">Support Admin</td>
+                          <td className="py-2.5 px-3 text-slate-500">
+                            Support Admin
+                          </td>
                           <td className="py-2.5 px-3">
-                            <span className="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded text-[10px]">Active</span>
+                            <span className="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded text-[10px]">
+                              Active
+                            </span>
                           </td>
                           <td className="py-2.5 px-3">
                             <button
@@ -1084,11 +1244,17 @@ export default function Registration({
               <div className="flex items-center gap-2">
                 <button className="hover:opacity-80 px-1 font-bold">≪</button>
                 <button className="hover:opacity-80 px-1 font-bold">❮</button>
-                <span className="bg-white text-blue-700 font-extrabold px-2 py-0.5 rounded">1</span>
+                <span className="bg-white text-blue-700 font-extrabold px-2 py-0.5 rounded">
+                  1
+                </span>
                 <span className="hover:opacity-80 px-1 cursor-pointer">2</span>
                 <span className="opacity-70 px-1">...</span>
-                <span className="hover:opacity-80 px-1 cursor-pointer">1352</span>
-                <span className="hover:opacity-80 px-1 cursor-pointer">1353</span>
+                <span className="hover:opacity-80 px-1 cursor-pointer">
+                  1352
+                </span>
+                <span className="hover:opacity-80 px-1 cursor-pointer">
+                  1353
+                </span>
                 <button className="hover:opacity-80 px-1 font-bold">❯</button>
                 <button className="hover:opacity-80 px-1 font-bold">≫</button>
                 <span className="ml-4">Go to page:</span>
@@ -1144,9 +1310,11 @@ export default function Registration({
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div className="px-5 py-3 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
               <Users size={16} className="text-blue-600" />
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Patient Registrations</h3>
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Patient Registrations
+              </h3>
             </div>
-            
+
             <div className="overflow-x-auto min-w-0">
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
@@ -1165,13 +1333,19 @@ export default function Registration({
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {loadingPatients ? (
                     <tr>
-                      <td colSpan={9} className="text-center py-10 text-slate-400 font-mono text-2xs">
+                      <td
+                        colSpan={9}
+                        className="text-center py-10 text-slate-400 font-mono text-2xs"
+                      >
                         Loading insurance logs...
                       </td>
                     </tr>
                   ) : filteredPatients.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="text-center py-10 text-slate-400 font-mono text-2xs">
+                      <td
+                        colSpan={9}
+                        className="text-center py-10 text-slate-400 font-mono text-2xs"
+                      >
                         No patient records found.
                       </td>
                     </tr>
@@ -1179,22 +1353,38 @@ export default function Registration({
                     filteredPatients.map((p) => {
                       const contact = parseContact(p.phone);
                       return (
-                        <tr key={p.id} className="hover:bg-slate-50 text-slate-700 transition-colors">
+                        <tr
+                          key={p.id}
+                          className="hover:bg-slate-50 text-slate-700 transition-colors"
+                        >
                           <td className="py-2 px-3">
                             <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-300 flex items-center justify-center overflow-hidden">
                               <User size={14} className="text-slate-400" />
                             </div>
                           </td>
                           <td className="py-2.5 px-3 font-mono text-2xs">
-                            {new Date(p.created_at).toISOString().replace("T", " ").substring(0, 19)}
+                            {new Date(p.created_at)
+                              .toISOString()
+                              .replace("T", " ")
+                              .substring(0, 19)}
                           </td>
-                          <td className="py-2.5 px-3 font-semibold text-slate-900">{p.name}</td>
-                          <td className="py-2.5 px-3 uppercase text-2xs">{contact.middleName || "—"}</td>
-                          <td className="py-2.5 px-3 font-mono text-2xs">{contact.phone}</td>
+                          <td className="py-2.5 px-3 font-semibold text-slate-900">
+                            {p.name}
+                          </td>
+                          <td className="py-2.5 px-3 uppercase text-2xs">
+                            {contact.middleName || "—"}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-2xs">
+                            {contact.phone}
+                          </td>
                           <td className="py-2.5 px-3">{p.gender}</td>
-                          <td className="py-2.5 px-3 font-bold text-blue-600 font-mono text-2xs">{p.facility_id_code}</td>
+                          <td className="py-2.5 px-3 font-bold text-blue-600 font-mono text-2xs">
+                            {p.facility_id_code}
+                          </td>
                           <td className="py-2.5 px-3">
-                            <span className="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded text-[10px]">Active</span>
+                            <span className="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded text-[10px]">
+                              Active
+                            </span>
                           </td>
                           <td className="py-2.5 px-3">
                             <button
@@ -1217,11 +1407,17 @@ export default function Registration({
               <div className="flex items-center gap-2">
                 <button className="hover:opacity-80 px-1 font-bold">≪</button>
                 <button className="hover:opacity-80 px-1 font-bold">❮</button>
-                <span className="bg-white text-blue-700 font-extrabold px-2 py-0.5 rounded">1</span>
+                <span className="bg-white text-blue-700 font-extrabold px-2 py-0.5 rounded">
+                  1
+                </span>
                 <span className="hover:opacity-80 px-1 cursor-pointer">2</span>
                 <span className="opacity-70 px-1">...</span>
-                <span className="hover:opacity-80 px-1 cursor-pointer">1352</span>
-                <span className="hover:opacity-80 px-1 cursor-pointer">1353</span>
+                <span className="hover:opacity-80 px-1 cursor-pointer">
+                  1352
+                </span>
+                <span className="hover:opacity-80 px-1 cursor-pointer">
+                  1353
+                </span>
                 <button className="hover:opacity-80 px-1 font-bold">❯</button>
                 <button className="hover:opacity-80 px-1 font-bold">≫</button>
                 <span className="ml-4">Go to page:</span>
@@ -1258,7 +1454,7 @@ export default function Registration({
                 <Check size={11} /> Admitted Patients
               </span>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
               <div className="md:col-span-9">
                 <input
@@ -1284,9 +1480,11 @@ export default function Registration({
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div className="px-5 py-3 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
               <Activity size={16} className="text-blue-600" />
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Patients In ❯</h3>
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Patients In ❯
+              </h3>
             </div>
-            
+
             <div className="overflow-x-auto min-w-0">
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
@@ -1308,13 +1506,19 @@ export default function Registration({
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {loadingAdmissions ? (
                     <tr>
-                      <td colSpan={12} className="text-center py-10 text-slate-400 font-mono text-2xs">
+                      <td
+                        colSpan={12}
+                        className="text-center py-10 text-slate-400 font-mono text-2xs"
+                      >
                         Loading inpatient ward roster...
                       </td>
                     </tr>
                   ) : admissions.length === 0 ? (
                     <tr>
-                      <td colSpan={12} className="text-center py-10 text-slate-400 font-mono text-2xs">
+                      <td
+                        colSpan={12}
+                        className="text-center py-10 text-slate-400 font-mono text-2xs"
+                      >
                         No active admissions found.
                       </td>
                     </tr>
@@ -1325,20 +1529,42 @@ export default function Registration({
                         ? "SOCIAL HEALTH AUTHORITY (SHA) - SHA-OUTPATIENT"
                         : "CASH";
                       return (
-                        <tr key={adm.id} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                          <td className="py-2.5 px-3 font-semibold text-slate-900">{adm.patient?.name}</td>
-                          <td className="py-2.5 px-3 uppercase text-2xs">{ptContact.middleName || "—"}</td>
-                          <td className="py-2.5 px-3 font-medium uppercase text-slate-600">{adm.ward_name}</td>
-                          <td className="py-2.5 px-3 font-bold text-teal-600 font-mono">{adm.bed_number}</td>
+                        <tr
+                          key={adm.id}
+                          className="hover:bg-slate-50 text-slate-700 transition-colors"
+                        >
+                          <td className="py-2.5 px-3 font-semibold text-slate-900">
+                            {adm.patient?.name}
+                          </td>
+                          <td className="py-2.5 px-3 uppercase text-2xs">
+                            {ptContact.middleName || "—"}
+                          </td>
+                          <td className="py-2.5 px-3 font-medium uppercase text-slate-600">
+                            {adm.ward_name}
+                          </td>
+                          <td className="py-2.5 px-3 font-bold text-teal-600 font-mono">
+                            {adm.bed_number}
+                          </td>
                           <td className="py-2.5 px-3">{adm.patient?.gender}</td>
                           <td className="py-2.5 px-3 font-mono">
-                            {adm.patient?.dob ? new Date().getFullYear() - new Date(adm.patient.dob).getFullYear() : "—"}
+                            {adm.patient?.dob
+                              ? new Date().getFullYear() -
+                                new Date(adm.patient.dob).getFullYear()
+                              : "—"}
                           </td>
-                          <td className="py-2.5 px-3 font-bold text-slate-800 font-mono text-2xs">{adm.patient?.facility_id_code}</td>
+                          <td className="py-2.5 px-3 font-bold text-slate-800 font-mono text-2xs">
+                            {adm.patient?.facility_id_code}
+                          </td>
                           <td className="py-2.5 px-3 font-mono text-2xs">
-                            {new Date(adm.admission_datetime).toISOString().split("T")[0]}
+                            {
+                              new Date(adm.admission_datetime)
+                                .toISOString()
+                                .split("T")[0]
+                            }
                           </td>
-                          <td className="py-2.5 px-3 font-bold text-slate-500 uppercase text-[9px]">{paymentOption}</td>
+                          <td className="py-2.5 px-3 font-bold text-slate-500 uppercase text-[9px]">
+                            {paymentOption}
+                          </td>
                           <td className="py-2.5 px-3">
                             <button
                               onClick={() => handleOpenBedModal(adm)}
@@ -1350,7 +1576,9 @@ export default function Registration({
                           </td>
                           <td className="py-2.5 px-3">
                             <button
-                              onClick={() => handleOpenInsuranceModal(adm.patient)}
+                              onClick={() =>
+                                handleOpenInsuranceModal(adm.patient)
+                              }
                               className="bg-red-500 hover:bg-red-600 text-white font-bold text-[10px] py-1 px-2.5 rounded transition cursor-pointer"
                             >
                               Manage insurance ❯
@@ -1378,7 +1606,9 @@ export default function Registration({
               <div className="flex items-center gap-2">
                 <button className="hover:opacity-80 px-1 font-bold">≪</button>
                 <button className="hover:opacity-80 px-1 font-bold">❮</button>
-                <span className="bg-white text-blue-700 font-extrabold px-2 py-0.5 rounded">1</span>
+                <span className="bg-white text-blue-700 font-extrabold px-2 py-0.5 rounded">
+                  1
+                </span>
                 <span className="hover:opacity-80 px-1 cursor-pointer">2</span>
                 <span className="hover:opacity-80 px-1 cursor-pointer">3</span>
                 <span className="hover:opacity-80 px-1 cursor-pointer">4</span>
@@ -1398,7 +1628,9 @@ export default function Registration({
                 </select>
               </div>
               <div>
-                <span>Showing 1-{admissions.length} of {admissions.length}</span>
+                <span>
+                  Showing 1-{admissions.length} of {admissions.length}
+                </span>
               </div>
             </div>
           </div>
@@ -1412,16 +1644,29 @@ export default function Registration({
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-fadeIn text-slate-800">
             <div className="bg-blue-600 text-white px-5 py-4 flex items-center justify-between">
-              <h3 className="font-bold text-sm">Manage Patient Insurance Cover</h3>
-              <button onClick={() => setManageInsurancePt(null)} className="hover:opacity-80 text-lg font-bold">✕</button>
+              <h3 className="font-bold text-sm">
+                Manage Patient Insurance Cover
+              </h3>
+              <button
+                onClick={() => setManageInsurancePt(null)}
+                className="hover:opacity-80 text-lg font-bold"
+              >
+                ✕
+              </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">Patient Name</span>
-                <span className="text-sm font-bold text-slate-900 block">{manageInsurancePt.name}</span>
+                <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">
+                  Patient Name
+                </span>
+                <span className="text-sm font-bold text-slate-900 block">
+                  {manageInsurancePt.name}
+                </span>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Insurance Provider</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Insurance Provider
+                </label>
                 <input
                   type="text"
                   value={insuranceCompany}
@@ -1430,7 +1675,9 @@ export default function Registration({
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">SHA Card / Insurance Number</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  SHA Card / Insurance Number
+                </label>
                 <input
                   type="text"
                   value={insuranceNumber}
@@ -1440,7 +1687,9 @@ export default function Registration({
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">SHA Dependent Type</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  SHA Dependent Type
+                </label>
                 <select
                   value={insuranceDependentType}
                   onChange={(e) => setInsuranceDependentType(e.target.value)}
@@ -1476,14 +1725,28 @@ export default function Registration({
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-fadeIn text-slate-800">
             <div className="bg-blue-600 text-white px-5 py-4 flex items-center justify-between">
-              <h3 className="font-bold text-sm">Re-allocate Inpatient Bed Assignment</h3>
-              <button onClick={() => setChangeBedAdm(null)} className="hover:opacity-80 text-lg font-bold">✕</button>
+              <h3 className="font-bold text-sm">
+                Re-allocate Inpatient Bed Assignment
+              </h3>
+              <button
+                onClick={() => setChangeBedAdm(null)}
+                className="hover:opacity-80 text-lg font-bold"
+              >
+                ✕
+              </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">Admitted Patient</span>
-                <span className="text-sm font-bold text-slate-900 block">{changeBedAdm.patient?.name}</span>
-                <span className="text-xs text-slate-500 block">Current Bed: {changeBedAdm.bed_number} ({changeBedAdm.ward_name})</span>
+                <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">
+                  Admitted Patient
+                </span>
+                <span className="text-sm font-bold text-slate-900 block">
+                  {changeBedAdm.patient?.name}
+                </span>
+                <span className="text-xs text-slate-500 block">
+                  Current Bed: {changeBedAdm.bed_number} (
+                  {changeBedAdm.ward_name})
+                </span>
               </div>
 
               {loadingBeds ? (
@@ -1493,7 +1756,9 @@ export default function Registration({
                 </div>
               ) : (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Select New Bed</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Select New Bed
+                  </label>
                   <select
                     value={selectedBedId}
                     onChange={(e) => setSelectedBedId(e.target.value)}
@@ -1502,7 +1767,9 @@ export default function Registration({
                     <option value="">-- Choose Bed --</option>
                     {availableBeds.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.id.replace("bed_", "").toUpperCase()} ({b.bed_status === "occupied" ? "Occupied" : "Available"})
+                        {b.id.replace("bed_", "").toUpperCase()} (
+                        {b.bed_status === "occupied" ? "Occupied" : "Available"}
+                        )
                       </option>
                     ))}
                   </select>

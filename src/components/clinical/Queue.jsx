@@ -1,35 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
-import { 
-  Layers, 
-  PlusCircle, 
-  AlertCircle, 
-  CheckCircle, 
-  HeartPulse, 
-  Stethoscope, 
-  FlaskConical, 
-  Scan, 
-  Activity, 
-  Bed, 
-  Pill, 
-  DollarSign, 
-  RefreshCw, 
-  Clock, 
-  Check, 
+import React, { useState, useEffect } from "react";
+import { supabase } from "../../supabaseClient";
+import {
+  Layers,
+  PlusCircle,
+  AlertCircle,
+  CheckCircle,
+  HeartPulse,
+  Stethoscope,
+  FlaskConical,
+  Scan,
+  Activity,
+  Bed,
+  Pill,
+  DollarSign,
+  RefreshCw,
+  Clock,
+  Check,
   ArrowRightLeft,
-  X
-} from 'lucide-react';
-import { getInitialDepartment } from '../../utils/workflowEngine';
+  X,
+} from "lucide-react";
+import { getInitialDepartment } from "../../utils/workflowEngine";
 
 const SERVICE_TYPE_META = {
-  OPD: { label: 'General OPD', color: 'bg-slate-800/60 text-slate-400 border-slate-800' },
-  ANC: { label: 'Antenatal Care', color: 'bg-teal-500/10 text-teal-400 border-teal-500/20' },
-  FP: { label: 'Family Planning', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
-  IMM: { label: 'Immunization', color: 'bg-sky-500/10 text-sky-400 border-sky-500/20' },
-  LAB: { label: 'Lab-Only', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' },
-  PHA: { label: 'Pharmacy-Only', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
-  IPD: { label: 'Inpatient', color: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20' },
-  EMR: { label: 'Emergency', color: 'bg-rose-500/10 text-rose-400 border-rose-500/20 font-extrabold animate-pulse' }
+  OPD: {
+    label: "General OPD",
+    color: "bg-slate-800/60 text-slate-400 border-slate-800",
+  },
+  ANC: {
+    label: "Antenatal Care",
+    color: "bg-teal-500/10 text-teal-400 border-teal-500/20",
+  },
+  FP: {
+    label: "Family Planning",
+    color: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  },
+  IMM: {
+    label: "Immunization",
+    color: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+  },
+  LAB: {
+    label: "Lab-Only",
+    color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+  },
+  PHA: {
+    label: "Pharmacy-Only",
+    color: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  },
+  IPD: {
+    label: "Inpatient",
+    color: "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20",
+  },
+  EMR: {
+    label: "Emergency",
+    color:
+      "bg-rose-500/10 text-rose-400 border-rose-500/20 font-extrabold animate-pulse",
+  },
 };
 
 export default function Queue({ preselectedPatient, user, clearPreselected }) {
@@ -37,17 +62,17 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
-  const [mobileActiveDept, setMobileActiveDept] = useState('triage');
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const [mobileActiveDept, setMobileActiveDept] = useState("triage");
 
   // Queue ticket form states
-  const [selectedPatientId, setSelectedPatientId] = useState('');
-  const [serviceType, setServiceType] = useState('OPD');
-  const [department, setDepartment] = useState('triage');
-  const [priority, setPriority] = useState('routine');
+  const [selectedPatientId, setSelectedPatientId] = useState("");
+  const [serviceType, setServiceType] = useState("OPD");
+  const [department, setDepartment] = useState("triage");
+  const [priority, setPriority] = useState("routine");
   const [isReferral, setIsReferral] = useState(false);
-  const [referredFromFacility, setReferredFromFacility] = useState('');
-  const [referredFromReason, setReferredFromReason] = useState('');
+  const [referredFromFacility, setReferredFromFacility] = useState("");
+  const [referredFromReason, setReferredFromReason] = useState("");
 
   // Reconciliation states
   const [reconciliationVisit, setReconciliationVisit] = useState(null);
@@ -55,19 +80,19 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
     triage: false,
     consult: false,
     specialRegister: false,
-    specialRegisterLabel: ''
+    specialRegisterLabel: "",
   });
   const [reconciliationLoading, setReconciliationLoading] = useState(false);
   const [confirmReconciled, setConfirmReconciled] = useState(false);
-  const [reconcilerNotes, setReconcilerNotes] = useState('');
-  const [referredToFacility, setReferredToFacility] = useState('');
-  const [referredToReason, setReferredToReason] = useState('');
+  const [reconcilerNotes, setReconcilerNotes] = useState("");
+  const [referredToFacility, setReferredToFacility] = useState("");
+  const [referredToReason, setReferredToReason] = useState("");
 
   // Auto-route based on service type
   useEffect(() => {
     const initDept = getInitialDepartment(serviceType);
     setDepartment(initDept);
-    setPriority(serviceType === 'EMR' ? 'emergency' : 'routine');
+    setPriority(serviceType === "EMR" ? "emergency" : "routine");
   }, [serviceType]);
 
   useEffect(() => {
@@ -80,13 +105,16 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
   const fetchQueueData = async (isManual = false) => {
     if (isManual) setRefreshing(true);
     try {
-      const { data: vsts } = await supabase.from('visits').select('*').order('created_at', { ascending: true });
-      const { data: pts } = await supabase.from('patients').select('*');
-      
+      const { data: vsts } = await supabase
+        .from("visits")
+        .select("*")
+        .order("created_at", { ascending: true });
+      const { data: pts } = await supabase.from("patients").select("*");
+
       setActiveVisits(vsts || []);
       setPatients(pts || []);
     } catch (err) {
-      console.error('Error fetching queue data:', err);
+      console.error("Error fetching queue data:", err);
     } finally {
       if (isManual) setRefreshing(false);
     }
@@ -95,18 +123,22 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
   const handleOpenVisit = async (e) => {
     e.preventDefault();
     if (!selectedPatientId) {
-      setMessage({ type: 'error', text: 'Please select a patient.' });
+      setMessage({ type: "error", text: "Please select a patient." });
       return;
     }
 
     setLoading(true);
-    setMessage({ type: '', text: '' });
+    setMessage({ type: "", text: "" });
 
     try {
       // Check if patient already has an active visit
-      const active = activeVisits.find(v => v.patient_id === selectedPatientId && v.status !== 'completed');
+      const active = activeVisits.find(
+        (v) => v.patient_id === selectedPatientId && v.status !== "completed",
+      );
       if (active) {
-        throw new Error(`Patient already has an active visit in ${active.department.toUpperCase()}.`);
+        throw new Error(
+          `Patient already has an active visit in ${active.department.toUpperCase()}.`,
+        );
       }
 
       const newVisit = {
@@ -114,39 +146,45 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
         facility_id: user.facility_id,
         department,
         priority,
-        status: 'waiting',
+        status: "waiting",
         service_type: serviceType,
         referred_from_facility: isReferral ? referredFromFacility.trim() : null,
-        referred_from_reason: isReferral ? referredFromReason.trim() : null
+        referred_from_reason: isReferral ? referredFromReason.trim() : null,
       };
 
-      const { data: insertedVisits, error } = await supabase.from('visits').insert(newVisit).select();
+      const { data: insertedVisits, error } = await supabase
+        .from("visits")
+        .insert(newVisit)
+        .select();
       if (error) throw error;
 
       // Create record in patient_registrations for MOH reporting compliance
       const newReg = {
         patient_id: selectedPatientId,
         facility_id: user.facility_id,
-        visit_type: isReferral ? 'referral' : 'walk-in',
+        visit_type: isReferral ? "referral" : "walk-in",
         service_type: serviceType,
-        status: 'active',
-        assigned_clinic: department
+        status: "active",
+        assigned_clinic: department,
       };
-      await supabase.from('patient_registrations').insert(newReg);
+      await supabase.from("patient_registrations").insert(newReg);
 
-      setMessage({ type: 'success', text: 'Visit ticket opened successfully!' });
-      
+      setMessage({
+        type: "success",
+        text: "Visit ticket opened successfully!",
+      });
+
       // Clear selection
-      setSelectedPatientId('');
+      setSelectedPatientId("");
       setIsReferral(false);
-      setReferredFromFacility('');
-      setReferredFromReason('');
+      setReferredFromFacility("");
+      setReferredFromReason("");
       if (clearPreselected) clearPreselected();
 
       // Refresh
       fetchQueueData();
     } catch (err) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
@@ -154,81 +192,105 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
 
   const handleMovePatient = async (visitId, nextDept) => {
     try {
-      const { error } = await supabase.from('visits').update({
-        department: nextDept,
-        status: 'waiting'
-      }).eq('id', visitId);
+      const { error } = await supabase
+        .from("visits")
+        .update({
+          department: nextDept,
+          status: "waiting",
+        })
+        .eq("id", visitId);
 
       if (error) throw error;
 
       fetchQueueData();
     } catch (err) {
-      console.error('Error moving patient:', err);
+      console.error("Error moving patient:", err);
     }
   };
 
   const handleCallTicket = async (visit) => {
     try {
-      const ticketCode = `${visit.service_type || 'OPD'}-${visit.id.slice(-4).toUpperCase()}`;
+      const ticketCode = `${visit.service_type || "OPD"}-${visit.id.slice(-4).toUpperCase()}`;
       const patientName = getPatientName(visit.patient_id);
-      
-      const destLabels = {
-        triage: 'Triage Desk',
-        consultation: 'Consultation Desk',
-        lab: 'Laboratory Desk',
-        pharmacy: 'Pharmacy Queue',
-        ward: 'Inpatient Ward',
-        billing: 'Cashier Counter'
-      };
-      const destination = destLabels[visit.department] || 'Reception Desk';
 
-      const { error } = await supabase.from('called_tickets').insert({
+      const destLabels = {
+        triage: "Triage Desk",
+        consultation: "Consultation Desk",
+        lab: "Laboratory Desk",
+        pharmacy: "Pharmacy Queue",
+        ward: "Inpatient Ward",
+        billing: "Cashier Counter",
+      };
+      const destination = destLabels[visit.department] || "Reception Desk";
+
+      const { error } = await supabase.from("called_tickets").insert({
         facility_id: user.facility_id,
         ticket_code: ticketCode,
         patient_name: patientName,
         destination: destination,
-        status: 'called'
+        status: "called",
       });
 
       if (error) throw error;
-      
-      setMessage({ type: 'success', text: `Announced Ticket ${ticketCode} for ${patientName}!` });
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+
+      setMessage({
+        type: "success",
+        text: `Announced Ticket ${ticketCode} for ${patientName}!`,
+      });
+      setTimeout(() => setMessage({ type: "", text: "" }), 3000);
     } catch (err) {
-      console.error('Error calling ticket:', err);
-      setMessage({ type: 'error', text: 'Failed to announce ticket: ' + err.message });
+      console.error("Error calling ticket:", err);
+      setMessage({
+        type: "error",
+        text: "Failed to announce ticket: " + err.message,
+      });
     }
   };
 
   const handleCompleteVisitClick = async (visitId) => {
     setReconciliationLoading(true);
     try {
-      const visit = activeVisits.find(v => v.id === visitId);
+      const visit = activeVisits.find((v) => v.id === visitId);
       if (!visit) return;
 
       // 1. Check Triage Vitals
-      const { data: triages } = await supabase.from('triages').select('id').eq('visit_id', visitId);
+      const { data: triages } = await supabase
+        .from("triages")
+        .select("id")
+        .eq("visit_id", visitId);
       const triageCaptured = !!(triages && triages.length > 0);
 
       // 2. Check Consultation Notes
-      const { data: consults } = await supabase.from('consultations').select('id').eq('visit_id', visitId);
+      const { data: consults } = await supabase
+        .from("consultations")
+        .select("id")
+        .eq("visit_id", visitId);
       const consultCaptured = !!(consults && consults.length > 0);
 
       // 3. Check Special Registers based on service type
       let specialRegisterCaptured = true;
-      let registerLabel = '';
+      let registerLabel = "";
 
-      if (visit.service_type === 'FP') {
-        registerLabel = 'Family Planning Register';
-        const { data: fpRecs } = await supabase.from('family_planning_records').select('id').eq('patient_id', visit.patient_id);
+      if (visit.service_type === "FP") {
+        registerLabel = "Family Planning Register";
+        const { data: fpRecs } = await supabase
+          .from("family_planning_records")
+          .select("id")
+          .eq("patient_id", visit.patient_id);
         specialRegisterCaptured = !!(fpRecs && fpRecs.length > 0);
-      } else if (visit.service_type === 'ANC') {
-        registerLabel = 'Antenatal Care Register (Maternal Care)';
-        const { data: ancRecs } = await supabase.from('anc_visits').select('id').eq('patient_id', visit.patient_id);
+      } else if (visit.service_type === "ANC") {
+        registerLabel = "Antenatal Care Register (Maternal Care)";
+        const { data: ancRecs } = await supabase
+          .from("anc_visits")
+          .select("id")
+          .eq("patient_id", visit.patient_id);
         specialRegisterCaptured = !!(ancRecs && ancRecs.length > 0);
-      } else if (visit.service_type === 'IPD') {
-        registerLabel = 'Inpatient Admission Register';
-        const { data: ipdRecs } = await supabase.from('ward_care_records').select('id').eq('visit_id', visitId);
+      } else if (visit.service_type === "IPD") {
+        registerLabel = "Inpatient Admission Register";
+        const { data: ipdRecs } = await supabase
+          .from("ward_care_records")
+          .select("id")
+          .eq("visit_id", visitId);
         specialRegisterCaptured = !!(ipdRecs && ipdRecs.length > 0);
       }
 
@@ -236,16 +298,16 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
         triage: triageCaptured,
         consult: consultCaptured,
         specialRegister: specialRegisterCaptured,
-        specialRegisterLabel: registerLabel
+        specialRegisterLabel: registerLabel,
       });
 
       setReconciliationVisit(visit);
       setConfirmReconciled(false);
-      setReconcilerNotes('');
-      setReferredToFacility('');
-      setReferredToReason('');
+      setReconcilerNotes("");
+      setReferredToFacility("");
+      setReferredToReason("");
     } catch (err) {
-      console.error('Error during reconciliation check:', err);
+      console.error("Error during reconciliation check:", err);
     } finally {
       setReconciliationLoading(false);
     }
@@ -253,61 +315,136 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
 
   const handleConfirmReconciliation = async () => {
     if (!reconciliationVisit) return;
-    
+
     // Check if user confirmed when there are missing records
-    const isFullyCompliant = complianceChecks.triage && complianceChecks.consult && complianceChecks.specialRegister;
+    const isFullyCompliant =
+      complianceChecks.triage &&
+      complianceChecks.consult &&
+      complianceChecks.specialRegister;
     if (!isFullyCompliant && !confirmReconciled) {
-      alert('Please check the confirmation checkbox to certify manual MOH reconciliation.');
+      alert(
+        "Please check the confirmation checkbox to certify manual MOH reconciliation.",
+      );
       return;
     }
 
     try {
       setLoading(true);
       const updateData = {
-        status: 'completed',
+        status: "completed",
         reconciled_with_moh: true,
-        reconciler_notes: reconcilerNotes.trim() || 'Fully Reconciled.',
+        reconciler_notes: reconcilerNotes.trim() || "Fully Reconciled.",
         referred_to_facility: referredToFacility.trim() || null,
-        referred_to_reason: referredToReason.trim() || null
+        referred_to_reason: referredToReason.trim() || null,
       };
 
-      const { error } = await supabase.from('visits').update(updateData).eq('id', reconciliationVisit.id);
+      const { error } = await supabase
+        .from("visits")
+        .update(updateData)
+        .eq("id", reconciliationVisit.id);
       if (error) throw error;
 
       // Create audit log
-      await supabase.from('audit_logs').insert({
+      await supabase.from("audit_logs").insert({
         facility_id: user.facility_id,
-        user_id: user.id || 'system',
-        action: 'MOH Record Reconciled',
-        details: `Visit ID ${reconciliationVisit.id} reconciled. Outbound Referral to: ${referredToFacility || 'None'}. Notes: ${reconcilerNotes}`
+        user_id: user.id || "system",
+        action: "MOH Record Reconciled",
+        details: `Visit ID ${reconciliationVisit.id} reconciled. Outbound Referral to: ${referredToFacility || "None"}. Notes: ${reconcilerNotes}`,
       });
 
       setReconciliationVisit(null);
       fetchQueueData();
     } catch (err) {
-      console.error('Error saving reconciliation:', err);
-      alert('Failed to complete care reconciliation: ' + err.message);
+      console.error("Error saving reconciliation:", err);
+      alert("Failed to complete care reconciliation: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   // Group visits by department
-  const depts = ['triage', 'consultation', 'lab', 'radiology', 'surgery', 'ward', 'pharmacy', 'billing'];
+  const depts = [
+    "triage",
+    "consultation",
+    "lab",
+    "radiology",
+    "surgery",
+    "ward",
+    "pharmacy",
+    "billing",
+  ];
 
   const DEPT_META = {
-    triage: { label: 'Triage (Vitals)', icon: HeartPulse, color: 'text-sky-400', border: 'border-sky-500/20', badge: 'bg-sky-500/10 text-sky-400', topBorder: 'border-t-2 border-t-sky-500' },
-    consultation: { label: 'OPD Consult', icon: Stethoscope, color: 'text-teal-400', border: 'border-teal-500/20', badge: 'bg-teal-500/10 text-teal-400', topBorder: 'border-t-2 border-t-teal-500' },
-    lab: { label: 'Laboratory', icon: FlaskConical, color: 'text-purple-400', border: 'border-purple-500/20', badge: 'bg-purple-500/10 text-purple-400', topBorder: 'border-t-2 border-t-purple-500' },
-    radiology: { label: 'Radiology', icon: Scan, color: 'text-indigo-400', border: 'border-indigo-500/20', badge: 'bg-indigo-500/10 text-indigo-400', topBorder: 'border-t-2 border-t-indigo-500' },
-    surgery: { label: 'Theatre', icon: Activity, color: 'text-rose-400', border: 'border-rose-500/20', badge: 'bg-rose-500/10 text-rose-400', topBorder: 'border-t-2 border-t-rose-500' },
-    ward: { label: 'Inpatient Ward', icon: Bed, color: 'text-fuchsia-400', border: 'border-fuchsia-500/20', badge: 'bg-fuchsia-500/10 text-fuchsia-400', topBorder: 'border-t-2 border-t-fuchsia-500' },
-    pharmacy: { label: 'Pharmacy', icon: Pill, color: 'text-amber-400', border: 'border-amber-500/20', badge: 'bg-amber-500/10 text-amber-400', topBorder: 'border-t-2 border-t-amber-500' },
-    billing: { label: 'Billing Desk', icon: DollarSign, color: 'text-emerald-400', border: 'border-emerald-500/20', badge: 'bg-emerald-500/10 text-emerald-400', topBorder: 'border-t-2 border-t-emerald-500' }
+    triage: {
+      label: "Triage (Vitals)",
+      icon: HeartPulse,
+      color: "text-sky-400",
+      border: "border-sky-500/20",
+      badge: "bg-sky-500/10 text-sky-400",
+      topBorder: "border-t-2 border-t-sky-500",
+    },
+    consultation: {
+      label: "OPD Consult",
+      icon: Stethoscope,
+      color: "text-teal-400",
+      border: "border-teal-500/20",
+      badge: "bg-teal-500/10 text-teal-400",
+      topBorder: "border-t-2 border-t-teal-500",
+    },
+    lab: {
+      label: "Laboratory",
+      icon: FlaskConical,
+      color: "text-purple-400",
+      border: "border-purple-500/20",
+      badge: "bg-purple-500/10 text-purple-400",
+      topBorder: "border-t-2 border-t-purple-500",
+    },
+    radiology: {
+      label: "Radiology",
+      icon: Scan,
+      color: "text-indigo-400",
+      border: "border-indigo-500/20",
+      badge: "bg-indigo-500/10 text-indigo-400",
+      topBorder: "border-t-2 border-t-indigo-500",
+    },
+    surgery: {
+      label: "Theatre",
+      icon: Activity,
+      color: "text-rose-400",
+      border: "border-rose-500/20",
+      badge: "bg-rose-500/10 text-rose-400",
+      topBorder: "border-t-2 border-t-rose-500",
+    },
+    ward: {
+      label: "Inpatient Ward",
+      icon: Bed,
+      color: "text-fuchsia-400",
+      border: "border-fuchsia-500/20",
+      badge: "bg-fuchsia-500/10 text-fuchsia-400",
+      topBorder: "border-t-2 border-t-fuchsia-500",
+    },
+    pharmacy: {
+      label: "Pharmacy",
+      icon: Pill,
+      color: "text-amber-400",
+      border: "border-amber-500/20",
+      badge: "bg-amber-500/10 text-amber-400",
+      topBorder: "border-t-2 border-t-amber-500",
+    },
+    billing: {
+      label: "Billing Desk",
+      icon: DollarSign,
+      color: "text-emerald-400",
+      border: "border-emerald-500/20",
+      badge: "bg-emerald-500/10 text-emerald-400",
+      topBorder: "border-t-2 border-t-emerald-500",
+    },
   };
 
   const getDeptVisits = (deptName) => {
-    return activeVisits.filter(v => v.department === deptName && v.status !== 'completed');
+    return activeVisits.filter(
+      (v) => v.department === deptName && v.status !== "completed",
+    );
   };
 
   const sortedDepts = [...depts].sort((a, b) => {
@@ -315,61 +452,163 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
   });
 
   const renderQueueWatermark = (deptName) => {
-    const commonClasses = "absolute -bottom-6 -right-6 w-32 h-32 text-slate-800/30 opacity-[0.04] pointer-events-none select-none z-0";
+    const commonClasses =
+      "absolute -bottom-6 -right-6 w-32 h-32 text-slate-800/30 opacity-[0.04] pointer-events-none select-none z-0";
     switch (deptName) {
-      case 'triage':
+      case "triage":
         return (
-          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h3L9 3l3 18 3-12h3l3 3" />
+          <svg
+            className={commonClasses}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3 12h3L9 3l3 18 3-12h3l3 3"
+            />
           </svg>
         );
-      case 'consultation':
+      case "consultation":
         return (
-          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12a3 3 0 106 0 3 3 0 00-6 0z" />
+          <svg
+            className={commonClasses}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 4.5v15m7.5-7.5h-15"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 12a3 3 0 106 0 3 3 0 00-6 0z"
+            />
           </svg>
         );
-      case 'lab':
+      case "lab":
         return (
-          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v13.018a1.982 1.982 0 001.078 1.75l5.586 2.993a.75.75 0 001.086-.66V3.805a.75.75 0 00-1.183-.61l-5.483 3.93a1.982 1.982 0 00-.77 1.543V18.75" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5h15" />
+          <svg
+            className={commonClasses}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9.75 3.104v13.018a1.982 1.982 0 001.078 1.75l5.586 2.993a.75.75 0 001.086-.66V3.805a.75.75 0 00-1.183-.61l-5.483 3.93a1.982 1.982 0 00-.77 1.543V18.75"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4.5 19.5h15"
+            />
           </svg>
         );
-      case 'radiology':
+      case "radiology":
         return (
-          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-            <rect x="3" y="3" width="18" height="18" rx="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7 12h10M12 7v10" />
+          <svg
+            className={commonClasses}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            viewBox="0 0 24 24"
+          >
+            <rect
+              x="3"
+              y="3"
+              width="18"
+              height="18"
+              rx="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M7 12h10M12 7v10"
+            />
             <circle cx="12" cy="12" r="3" />
           </svg>
         );
-      case 'surgery':
+      case "surgery":
         return (
-          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l6 6m0-6l-6 6" />
+          <svg
+            className={commonClasses}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 9l6 6m0-6l-6 6"
+            />
             <circle cx="12" cy="12" r="9" />
           </svg>
         );
-      case 'ward':
+      case "ward":
         return (
-          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v14M21 19v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5M3 10h18M7 14h2M12 14h4" />
+          <svg
+            className={commonClasses}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3 5v14M21 19v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5M3 10h18M7 14h2M12 14h4"
+            />
           </svg>
         );
-      case 'pharmacy':
+      case "pharmacy":
         return (
-          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-            <rect x="5" y="5" width="14" height="14" rx="7" transform="rotate(45 12 12)" strokeLinecap="round" strokeLinejoin="round" />
+          <svg
+            className={commonClasses}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            viewBox="0 0 24 24"
+          >
+            <rect
+              x="5"
+              y="5"
+              width="14"
+              height="14"
+              rx="7"
+              transform="rotate(45 12 12)"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v8" />
           </svg>
         );
-      case 'billing':
+      case "billing":
         return (
-          <svg className={commonClasses} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+          <svg
+            className={commonClasses}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            viewBox="0 0 24 24"
+          >
             <circle cx="12" cy="12" r="9" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v10M9 9h5.5a2.5 2.5 0 010 5H9" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 7v10M9 9h5.5a2.5 2.5 0 010 5H9"
+            />
           </svg>
         );
       default:
@@ -378,17 +617,17 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
   };
 
   const getPatientName = (patientId) => {
-    return patients.find(p => p.id === patientId)?.name || 'Unknown Patient';
+    return patients.find((p) => p.id === patientId)?.name || "Unknown Patient";
   };
 
   const getPatientCode = (patientId) => {
-    return patients.find(p => p.id === patientId)?.facility_id_code || 'N/A';
+    return patients.find((p) => p.id === patientId)?.facility_id_code || "N/A";
   };
 
   const getWaitingTime = (createdAt) => {
     const elapsed = Date.now() - new Date(createdAt).getTime();
     const mins = Math.floor(elapsed / 60000);
-    if (mins < 1) return 'Just now';
+    if (mins < 1) return "Just now";
     if (mins < 60) return `${mins}m ago`;
     const hrs = Math.floor(mins / 60);
     const remMins = mins % 60;
@@ -400,22 +639,36 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
       {/* Visit Ticket Creator Form */}
       <div className="rounded-3xl border border-border bg-card p-6 shadow-card">
         <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-fg-strong">
-          <PlusCircle size={18} className="text-primary" /> Open Clinic Visit (Queue Ticket)
+          <PlusCircle size={18} className="text-primary" /> Open Clinic Visit
+          (Queue Ticket)
         </h2>
 
         {message.text && (
-          <div className={`p-3 rounded-lg border text-xs flex gap-2.5 mb-4 ${
-            message.type === 'success' ? 'bg-green-500/5 border-green-500/20 text-green-400' : 'bg-red-500/5 border-red-500/20 text-red-400'
-          }`}>
-            {message.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+          <div
+            className={`p-3 rounded-lg border text-xs flex gap-2.5 mb-4 ${
+              message.type === "success"
+                ? "bg-green-500/5 border-green-500/20 text-green-400"
+                : "bg-red-500/5 border-red-500/20 text-red-400"
+            }`}
+          >
+            {message.type === "success" ? (
+              <CheckCircle size={16} />
+            ) : (
+              <AlertCircle size={16} />
+            )}
             <span>{message.text}</span>
           </div>
         )}
 
-        <form onSubmit={handleOpenVisit} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+        <form
+          onSubmit={handleOpenVisit}
+          className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end"
+        >
           {/* Patient Selector */}
           <div className="md:col-span-2">
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Select Patient</label>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Select Patient
+            </label>
             <select
               value={selectedPatientId}
               onChange={(e) => setSelectedPatientId(e.target.value)}
@@ -423,15 +676,19 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
               required
             >
               <option value="">-- Select Patient --</option>
-              {patients.map(p => (
-                <option key={p.id} value={p.id}>{p.name} ({p.facility_id_code})</option>
+              {patients.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.facility_id_code})
+                </option>
               ))}
             </select>
           </div>
 
           {/* Service Type Selection */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Service Type</label>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Service Type
+            </label>
             <select
               value={serviceType}
               onChange={(e) => setServiceType(e.target.value)}
@@ -450,7 +707,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
 
           {/* Department Selection */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Direct to Department</label>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Direct to Department
+            </label>
             <select
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
@@ -469,7 +728,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
 
           {/* Priority */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Priority Level</label>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Priority Level
+            </label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
@@ -491,14 +752,19 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                 onChange={(e) => setIsReferral(e.target.checked)}
                 className="rounded border-slate-800 text-teal-500 focus:ring-teal-500 bg-slate-950 h-4 w-4"
               />
-              <label htmlFor="isReferral" className="text-xs font-semibold text-slate-400 cursor-pointer">
+              <label
+                htmlFor="isReferral"
+                className="text-xs font-semibold text-slate-400 cursor-pointer"
+              >
                 Referred from another facility?
               </label>
             </div>
             {isReferral && (
               <>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Referred From (Facility)</label>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Referred From (Facility)
+                  </label>
                   <input
                     type="text"
                     value={referredFromFacility}
@@ -509,7 +775,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Referral Reason</label>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Referral Reason
+                  </label>
                   <input
                     type="text"
                     value={referredFromReason}
@@ -538,7 +806,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
               disabled={loading}
               className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-5 rounded-lg shadow-lg shadow-teal-500/10 transition active:scale-[0.98]"
             >
-              {loading ? 'Opening Visit...' : 'Open Visit'}
+              {loading ? "Opening Visit..." : "Open Visit"}
             </button>
           </div>
         </form>
@@ -550,14 +818,17 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <Layers size={14} className="text-teal-400" /> Clinical Queue Board
           </h3>
-          <button 
-            onClick={() => fetchQueueData(true)} 
+          <button
+            onClick={() => fetchQueueData(true)}
             disabled={refreshing}
             className="flex items-center gap-1.5 rounded-lg border border-border bg-background/70 px-3 py-1.5 text-[11px] font-semibold text-fg-muted transition hover:border-primary/30 hover:text-primary active:scale-[0.97] disabled:opacity-50"
             title="Refresh active visits queue"
           >
-            <RefreshCw size={12} className={refreshing ? 'animate-spin text-teal-400' : ''} />
-            <span>{refreshing ? 'Refreshing...' : 'Refresh Board'}</span>
+            <RefreshCw
+              size={12}
+              className={refreshing ? "animate-spin text-teal-400" : ""}
+            />
+            <span>{refreshing ? "Refreshing..." : "Refresh Board"}</span>
           </button>
         </div>
 
@@ -574,16 +845,18 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                 onClick={() => setMobileActiveDept(deptName)}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer border ${
                   isActive
-                    ? 'bg-teal-500/10 border-teal-500/30 text-teal-400 font-extrabold'
-                    : 'bg-slate-950/40 border-slate-850 text-slate-450 hover:border-slate-850'
+                    ? "bg-teal-500/10 border-teal-500/30 text-teal-400 font-extrabold"
+                    : "bg-slate-950/40 border-slate-850 text-slate-450 hover:border-slate-850"
                 }`}
               >
                 <span>{meta.label}</span>
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold border ${
-                  isActive 
-                    ? 'bg-teal-500/10 text-teal-450 border-teal-500/10' 
-                    : 'bg-slate-950 text-slate-500 border-slate-900'
-                }`}>
+                <span
+                  className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold border ${
+                    isActive
+                      ? "bg-teal-500/10 text-teal-450 border-teal-500/10"
+                      : "bg-slate-950 text-slate-500 border-slate-900"
+                  }`}
+                >
                   {count}
                 </span>
               </button>
@@ -600,10 +873,12 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
             const isMobileActive = mobileActiveDept === deptName;
 
             return (
-              <div 
-                key={deptName} 
-                className={`relative flex h-[520px] shrink-0 flex-col overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-card transition-all duration-350 ${meta.topBorder || ''} ${
-                  isMobileActive ? 'flex w-full md:w-[290px]' : 'hidden md:flex md:w-[290px]'
+              <div
+                key={deptName}
+                className={`relative flex h-[520px] shrink-0 flex-col overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-card transition-all duration-350 ${meta.topBorder || ""} ${
+                  isMobileActive
+                    ? "flex w-full md:w-[290px]"
+                    : "hidden md:flex md:w-[290px]"
                 }`}
               >
                 {renderQueueWatermark(deptName)}
@@ -611,10 +886,14 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                 {/* Dept Title Header */}
                 <div className="mb-4 pb-2.5 border-b border-slate-800/70 flex justify-between items-center relative z-10">
                   <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded-lg ${meta.badge} bg-opacity-10`}>
+                    <div
+                      className={`p-1.5 rounded-lg ${meta.badge} bg-opacity-10`}
+                    >
                       <IconComponent size={14} />
                     </div>
-                    <span className="text-xs font-bold text-slate-200 capitalize tracking-wide">{meta.label}</span>
+                    <span className="text-xs font-bold text-slate-200 capitalize tracking-wide">
+                      {meta.label}
+                    </span>
                   </div>
                   <span className="text-2xs bg-slate-950 border border-slate-800 text-slate-400 font-bold px-2 py-0.5 rounded-full shadow-inner">
                     {list.length}
@@ -627,16 +906,22 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                     <div
                       key={v.id}
                       className={`bg-slate-950 border-y border-r rounded-xl p-3.5 text-xs flex flex-col gap-3 relative hover:-translate-y-[1px] hover:border-slate-700 hover:shadow-md transition-all duration-200 ${
-                        v.priority === 'emergency' ? 'border-l-4 border-l-red-500 border-red-500/20' :
-                        v.priority === 'urgent' ? 'border-l-4 border-l-yellow-500 border-yellow-500/20' :
-                        'border-l-4 border-l-slate-700 border-slate-800'
+                        v.priority === "emergency"
+                          ? "border-l-4 border-l-red-500 border-red-500/20"
+                          : v.priority === "urgent"
+                            ? "border-l-4 border-l-yellow-500 border-yellow-500/20"
+                            : "border-l-4 border-l-slate-700 border-slate-800"
                       }`}
                     >
                       {/* Patient Details */}
                       <div className="flex justify-between items-start gap-2">
                         <div className="truncate flex-1">
-                          <span className="font-bold text-slate-200 block truncate leading-snug tracking-wide text-sm">{getPatientName(v.patient_id)}</span>
-                          <span className="text-2xs text-slate-500 font-mono block mt-0.5">{getPatientCode(v.patient_id)}</span>
+                          <span className="font-bold text-slate-200 block truncate leading-snug tracking-wide text-sm">
+                            {getPatientName(v.patient_id)}
+                          </span>
+                          <span className="text-2xs text-slate-500 font-mono block mt-0.5">
+                            {getPatientCode(v.patient_id)}
+                          </span>
                         </div>
                         <button
                           type="button"
@@ -648,21 +933,27 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                         </button>
                       </div>
                       {v.service_type && SERVICE_TYPE_META[v.service_type] && (
-                        <span className={`inline-block px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${SERVICE_TYPE_META[v.service_type].color}`}>
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${SERVICE_TYPE_META[v.service_type].color}`}
+                        >
                           {SERVICE_TYPE_META[v.service_type].label}
                         </span>
                       )}
-                      
+
                       {/* Priority and Time */}
                       <div className="flex justify-between items-center text-2xs">
-                        <span className={`px-2 py-0.5 rounded-full font-bold uppercase tracking-wider text-[8px] border ${
-                          v.priority === 'emergency' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                          v.priority === 'urgent' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                          'bg-slate-800/60 text-slate-400 border-slate-800'
-                        }`}>
+                        <span
+                          className={`px-2 py-0.5 rounded-full font-bold uppercase tracking-wider text-[8px] border ${
+                            v.priority === "emergency"
+                              ? "bg-red-500/10 text-red-400 border-red-500/20"
+                              : v.priority === "urgent"
+                                ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                                : "bg-slate-800/60 text-slate-400 border-slate-800"
+                          }`}
+                        >
                           {v.priority}
                         </span>
-                        
+
                         <div className="flex items-center gap-1 text-slate-500 font-medium">
                           <Clock size={10} />
                           <span>{getWaitingTime(v.created_at)}</span>
@@ -672,10 +963,15 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                       {/* Dropdown Redirection Selector */}
                       <div className="border-t border-slate-900/60 pt-3 mt-1 space-y-2">
                         <div className="flex items-center gap-1.5">
-                          <ArrowRightLeft size={10} className="text-slate-600" />
-                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Redirect Patient</span>
+                          <ArrowRightLeft
+                            size={10}
+                            className="text-slate-600"
+                          />
+                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                            Redirect Patient
+                          </span>
                         </div>
-                        
+
                         <select
                           value=""
                           onChange={(e) => {
@@ -685,12 +981,16 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                           }}
                           className="w-full bg-slate-900 border border-slate-800 text-2xs text-slate-300 py-1.5 px-2 rounded-lg focus:outline-none focus:border-teal-500/40 transition cursor-pointer font-medium"
                         >
-                          <option value="" disabled>Send to department...</option>
-                          {depts.filter(d => d !== deptName).map(d => (
-                            <option key={d} value={d}>
-                              {DEPT_META[d].label}
-                            </option>
-                          ))}
+                          <option value="" disabled>
+                            Send to department...
+                          </option>
+                          {depts
+                            .filter((d) => d !== deptName)
+                            .map((d) => (
+                              <option key={d} value={d}>
+                                {DEPT_META[d].label}
+                              </option>
+                            ))}
                         </select>
 
                         <button
@@ -710,7 +1010,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                       <div className="bg-slate-950/40 p-2.5 rounded-full border border-slate-800/40 mb-2">
                         <IconComponent size={14} className="opacity-40" />
                       </div>
-                      <span className="text-2xs font-bold uppercase tracking-wider text-slate-500/80">Queue Empty</span>
+                      <span className="text-2xs font-bold uppercase tracking-wider text-slate-500/80">
+                        Queue Empty
+                      </span>
                     </div>
                   )}
                 </div>
@@ -725,19 +1027,26 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-sans animate-fadeIn">
           <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
             <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-teal-500 via-emerald-500 to-teal-500" />
-            
+
             <div className="p-6 border-b border-slate-800 flex justify-between items-start gap-4">
               <div>
-                <span className="text-2xs font-bold text-teal-400 uppercase tracking-wider block">MOH Compliance Check</span>
+                <span className="text-2xs font-bold text-teal-400 uppercase tracking-wider block">
+                  MOH Compliance Check
+                </span>
                 <h3 className="text-base font-bold text-slate-100 mt-1">
-                  Reconcile Health Records: {getPatientName(reconciliationVisit.patient_id)}
+                  Reconcile Health Records:{" "}
+                  {getPatientName(reconciliationVisit.patient_id)}
                 </h3>
                 <p className="text-2xs text-slate-500 font-mono mt-0.5">
-                  Visit Code: {reconciliationVisit.id.substring(0, 8).toUpperCase()} | Service Type: {SERVICE_TYPE_META[reconciliationVisit.service_type]?.label || reconciliationVisit.service_type}
+                  Visit Code:{" "}
+                  {reconciliationVisit.id.substring(0, 8).toUpperCase()} |
+                  Service Type:{" "}
+                  {SERVICE_TYPE_META[reconciliationVisit.service_type]?.label ||
+                    reconciliationVisit.service_type}
                 </p>
               </div>
-              <button 
-                onClick={() => setReconciliationVisit(null)} 
+              <button
+                onClick={() => setReconciliationVisit(null)}
                 className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition focus:outline-none cursor-pointer"
               >
                 <X size={18} />
@@ -753,7 +1062,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                 <div className="space-y-2.5">
                   {/* Triage Vitals */}
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-300">1. Outpatient Triage Vital Signs</span>
+                    <span className="text-slate-300">
+                      1. Outpatient Triage Vital Signs
+                    </span>
                     {complianceChecks.triage ? (
                       <span className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded text-2xs">
                         <Check size={12} /> Captured
@@ -767,7 +1078,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
 
                   {/* Consultation Notes */}
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-300">2. Clinical Diagnosis & SOAP Note</span>
+                    <span className="text-slate-300">
+                      2. Clinical Diagnosis & SOAP Note
+                    </span>
                     {complianceChecks.consult ? (
                       <span className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded text-2xs">
                         <Check size={12} /> Captured
@@ -782,7 +1095,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                   {/* Special Register (if applicable) */}
                   {complianceChecks.specialRegisterLabel && (
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-300">3. {complianceChecks.specialRegisterLabel}</span>
+                      <span className="text-slate-300">
+                        3. {complianceChecks.specialRegisterLabel}
+                      </span>
                       {complianceChecks.specialRegister ? (
                         <span className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10 px-2 py-0.5 rounded text-2xs">
                           <Check size={12} /> Captured
@@ -798,13 +1113,21 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
               </div>
 
               {/* Warnings / Disclaimer if records are not complete */}
-              {!(complianceChecks.triage && complianceChecks.consult && complianceChecks.specialRegister) && (
+              {!(
+                complianceChecks.triage &&
+                complianceChecks.consult &&
+                complianceChecks.specialRegister
+              ) && (
                 <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-3.5 text-[11px] text-amber-400 leading-relaxed space-y-2">
                   <p className="font-bold flex items-center gap-1.5">
                     ⚠️ Reconciliation Overrides Required
                   </p>
                   <p className="text-slate-400 text-2xs leading-relaxed">
-                    Some clinical records are incomplete in the system database. To complete care, please ensure these records are manually entered in the physical MOH Daily Register Book (e.g. MOH 717 Outpatient Register, MOH 711 Maternity, etc.) and check the declaration below.
+                    Some clinical records are incomplete in the system database.
+                    To complete care, please ensure these records are manually
+                    entered in the physical MOH Daily Register Book (e.g. MOH
+                    717 Outpatient Register, MOH 711 Maternity, etc.) and check
+                    the declaration below.
                   </p>
                   <div className="flex items-start gap-2.5 pt-1">
                     <input
@@ -814,8 +1137,12 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                       onChange={(e) => setConfirmReconciled(e.target.checked)}
                       className="rounded border-amber-500/30 text-amber-500 focus:ring-amber-500 bg-slate-950 mt-0.5 h-4 w-4"
                     />
-                    <label htmlFor="confirmReconciled" className="text-slate-300 font-medium select-none cursor-pointer">
-                      I certify that I have manually reconciled and captured these clinical records in the physical MOH Daily Register.
+                    <label
+                      htmlFor="confirmReconciled"
+                      className="text-slate-300 font-medium select-none cursor-pointer"
+                    >
+                      I certify that I have manually reconciled and captured
+                      these clinical records in the physical MOH Daily Register.
                     </label>
                   </div>
                 </div>
@@ -828,7 +1155,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Referred To (Facility)</label>
+                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                      Referred To (Facility)
+                    </label>
                     <input
                       type="text"
                       value={referredToFacility}
@@ -838,7 +1167,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Referral Reason</label>
+                    <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                      Referral Reason
+                    </label>
                     <input
                       type="text"
                       value={referredToReason}
@@ -852,7 +1183,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
 
               {/* Reconciliation Notes */}
               <div className="space-y-1.5">
-                <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reconciliation Notes / Comments</label>
+                <label className="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Reconciliation Notes / Comments
+                </label>
                 <textarea
                   rows={2}
                   value={reconcilerNotes}
@@ -885,4 +1218,3 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
     </div>
   );
 }
-

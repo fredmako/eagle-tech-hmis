@@ -57,23 +57,23 @@ export default function Reception({
   }
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 sm:p-5">
+    <div className="space-y-6">
+      <div className="rounded-3xl border border-border bg-card/90 p-4 shadow-card sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">
-            <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-2.5">
-              <Activity size={18} className="text-teal-400" />
+            <div className="rounded-2xl border border-border-subtle bg-background/80 p-2.5">
+              <Activity size={18} className="text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-100">
+              <h2 className="text-lg font-semibold text-fg-strong">
                 Reception Operations
               </h2>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-fg-muted">
                 Manage patient registration, triage, and live queue flow from
                 one place.
               </p>
-              <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-2.5 py-1 text-[11px] font-semibold text-teal-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-teal-400" />
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                 Global + private model active · {activeDepartment} ·{" "}
                 {activeQueueSubTab}
               </div>
@@ -94,10 +94,10 @@ export default function Reception({
                   onClick={() =>
                     item.key === "queue" ? goToQueue() : setSubTab(item.key)
                   }
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition ${
                     active
-                      ? "bg-teal-500 text-slate-950"
-                      : "bg-slate-850 text-slate-200 hover:bg-slate-800"
+                      ? "border-primary/40 bg-primary text-primary-foreground shadow-glow shadow-primary/10"
+                      : "border-border-subtle bg-background/70 text-fg-body hover:border-border-strong hover:bg-card"
                   }`}
                 >
                   <Icon size={15} />
@@ -109,27 +109,27 @@ export default function Reception({
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
-              <Users size={15} className="text-teal-400" /> Registration
+          <div className="rounded-2xl border border-border-subtle bg-background/70 p-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-fg-strong">
+              <Users size={15} className="text-primary" /> Registration
             </div>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-fg-muted">
               Capture new patients and route them to the correct service.
             </p>
           </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
-              <Stethoscope size={15} className="text-teal-400" /> Triage
+          <div className="rounded-2xl border border-border-subtle bg-background/70 p-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-fg-strong">
+              <Stethoscope size={15} className="text-primary" /> Triage
             </div>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-fg-muted">
               Review patient vitals, priorities, and pending screening tasks.
             </p>
           </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
-              <ListChecks size={15} className="text-teal-400" /> Queue
+          <div className="rounded-2xl border border-border-subtle bg-background/70 p-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-fg-strong">
+              <ListChecks size={15} className="text-primary" /> Queue
             </div>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-fg-muted">
               Follow active visit flow and manage the clinic line efficiently.
             </p>
           </div>

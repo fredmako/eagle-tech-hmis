@@ -398,9 +398,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
   return (
     <div className="space-y-6">
       {/* Visit Ticket Creator Form */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm">
-        <h2 className="text-base font-bold text-slate-100 mb-4 flex items-center gap-2">
-          <PlusCircle size={18} className="text-teal-400" /> Open Clinic Visit (Queue Ticket)
+      <div className="rounded-3xl border border-border bg-card p-6 shadow-card">
+        <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-fg-strong">
+          <PlusCircle size={18} className="text-primary" /> Open Clinic Visit (Queue Ticket)
         </h2>
 
         {message.text && (
@@ -553,7 +553,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
           <button 
             onClick={() => fetchQueueData(true)} 
             disabled={refreshing}
-            className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 hover:border-teal-500/30 text-slate-400 hover:text-teal-400 font-semibold text-[11px] px-3 py-1.5 rounded-lg transition active:scale-[0.97] disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-background/70 px-3 py-1.5 text-[11px] font-semibold text-fg-muted transition hover:border-primary/30 hover:text-primary active:scale-[0.97] disabled:opacity-50"
             title="Refresh active visits queue"
           >
             <RefreshCw size={12} className={refreshing ? 'animate-spin text-teal-400' : ''} />
@@ -602,7 +602,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
             return (
               <div 
                 key={deptName} 
-                className={`bg-slate-900 border border-slate-800/80 ${meta.topBorder || ''} rounded-xl p-4 flex flex-col h-[520px] shrink-0 shadow-sm transition-all duration-350 relative overflow-hidden ${
+                className={`relative flex h-[520px] shrink-0 flex-col overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-card transition-all duration-350 ${meta.topBorder || ''} ${
                   isMobileActive ? 'flex w-full md:w-[290px]' : 'hidden md:flex md:w-[290px]'
                 }`}
               >

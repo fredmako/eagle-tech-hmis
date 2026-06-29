@@ -641,17 +641,17 @@ export default function Triage({ user, architectureModel, onComplete, showNotifi
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       {/* Left Column: Triage Queue List */}
-      <div className={`bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 ${selectedVisit ? 'hidden lg:block' : 'block'}`}>
+      <div className={`space-y-4 rounded-3xl border border-border bg-card p-5 shadow-card ${selectedVisit ? 'hidden lg:block' : 'block'}`}>
         <div>
-          <h2 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
-            <Heart size={16} className="text-teal-400" /> Patients in Triage Queue ({queue.length})
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-fg-strong">
+            <Heart size={16} className="text-primary" /> Patients in Triage Queue ({queue.length})
           </h2>
-          <p className="text-[11px] text-slate-500 mt-0.5">Select a patient to enter vital signs</p>
+          <p className="mt-0.5 text-[11px] text-fg-muted">Select a patient to enter vital signs</p>
           {architectureModel && (
-            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-2.5 py-1 text-[11px] font-semibold text-teal-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-teal-400" />
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               Global + private model active · {architectureModel.private?.forms?.department || "triage"} · {architectureModel.private?.forms?.step || "default"}
             </div>
           )}
@@ -662,21 +662,21 @@ export default function Triage({ user, architectureModel, onComplete, showNotifi
             <button
               key={item.id}
               onClick={() => handleSelectVisit(item)}
-              className={`w-full text-left p-3.5 rounded-xl border transition flex flex-col gap-1.5 ${
+              className={`flex w-full flex-col gap-1.5 rounded-2xl border p-3.5 text-left transition ${
                 selectedVisit?.id === item.id
-                  ? 'border-teal-500/60 bg-teal-500/5'
-                  : 'border-slate-800/80 bg-slate-950 hover:bg-slate-800/50'
+                  ? 'border-primary/40 bg-primary/10'
+                  : 'border-border-subtle bg-background/70 hover:bg-card'
               }`}
             >
-              <div className="flex justify-between items-start w-full">
-                <span className="font-semibold text-slate-200 text-xs truncate max-w-[70%]">{item.patient?.name}</span>
-                <span className={`text-[9px] px-1.5 py-0.5 rounded capitalize ${
-                  item.priority === 'emergency' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                  item.priority === 'urgent' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
-                  'bg-slate-900 border border-slate-800 text-slate-400'
+              <div className="flex w-full items-start justify-between">
+                <span className="max-w-[70%] truncate text-xs font-semibold text-fg-strong">{item.patient?.name}</span>
+                <span className={`rounded capitalize px-1.5 py-0.5 text-[9px] ${
+                  item.priority === 'emergency' ? 'border border-destructive/20 bg-destructive/10 text-destructive' :
+                  item.priority === 'urgent' ? 'border border-amber-500/20 bg-amber-500/10 text-amber-400' :
+                  'border border-border-subtle bg-muted text-fg-muted'
                 }`}>{item.priority}</span>
               </div>
-              <div className="flex justify-between items-center text-2xs text-slate-400 w-full font-mono">
+              <div className="flex w-full items-center justify-between font-mono text-2xs text-fg-muted">
                 <span>{item.patient?.facility_id_code}</span>
                 <span>{new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
               </div>
@@ -684,7 +684,7 @@ export default function Triage({ user, architectureModel, onComplete, showNotifi
           ))}
 
           {queue.length === 0 && (
-            <div className="text-xs text-slate-600 text-center py-16 border border-dashed border-slate-800 rounded-xl">
+            <div className="rounded-2xl border border-dashed border-border-subtle py-16 text-center text-xs text-fg-muted">
               No patients awaiting triage.
             </div>
           )}
@@ -692,7 +692,7 @@ export default function Triage({ user, architectureModel, onComplete, showNotifi
       </div>
 
       {/* Right Column: Vitals Form */}
-      <div className={`lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm ${!selectedVisit ? 'hidden lg:block' : 'block'}`}>
+      <div className={`lg:col-span-2 rounded-3xl border border-border bg-card p-6 shadow-card ${!selectedVisit ? 'hidden lg:block' : 'block'}`}>
         {!selectedVisit ? (
           <div className="flex flex-col items-center justify-center py-28 text-center">
             <Thermometer size={48} className="text-slate-600 mb-2 animate-bounce" />

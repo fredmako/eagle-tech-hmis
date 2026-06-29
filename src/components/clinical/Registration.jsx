@@ -520,13 +520,13 @@ export default function Registration({
   };
 
   return (
-    <div className="bg-slate-100 min-h-screen text-slate-900 font-sans p-6">
+    <div className="min-h-screen bg-background p-6 text-foreground">
       {/* Breadcrumbs & Header Title */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">{getPageTitle()}</h1>
+          <h1 className="text-xl font-semibold text-fg-strong">{getPageTitle()}</h1>
         </div>
-        <div className="text-[10px] text-slate-500 font-medium font-mono uppercase tracking-wider bg-slate-200 px-3 py-1 rounded-full">
+        <div className="rounded-full border border-border-subtle bg-muted px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-fg-muted">
           {getBreadcrumbs()}
         </div>
       </div>
@@ -535,25 +535,25 @@ export default function Registration({
 
       {/* VIEW 1: NEW PATIENT REGISTRATION FORM */}
       {(selectedSubItem === "new_patient" || !selectedSubItem) && (
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
           {/* Form Tabs */}
-          <div className="flex border-b border-slate-200 bg-slate-50">
+          <div className="flex border-b border-border bg-muted">
             <button
               onClick={() => setActiveRegTab("biometric")}
-              className={`flex items-center gap-2 px-6 py-3.5 text-xs font-bold uppercase tracking-wider transition border-r border-slate-200 ${
+              className={`flex items-center gap-2 border-r border-border px-6 py-3.5 text-xs font-semibold uppercase tracking-wider transition ${
                 activeRegTab === "biometric"
-                  ? "bg-white text-blue-600 border-t-2 border-t-blue-600"
-                  : "text-slate-500 hover:bg-slate-100"
+                  ? "border-t-2 border-t-primary bg-card text-primary"
+                  : "text-fg-muted hover:bg-background/70"
               }`}
             >
               <span>✔ Biometric Verification</span>
             </button>
             <button
               onClick={() => setActiveRegTab("register")}
-              className={`flex items-center gap-2 px-6 py-3.5 text-xs font-bold uppercase tracking-wider transition border-r border-slate-200 ${
+              className={`flex items-center gap-2 border-r border-border px-6 py-3.5 text-xs font-semibold uppercase tracking-wider transition ${
                 activeRegTab === "register"
-                  ? "bg-white text-blue-600 border-t-2 border-t-blue-600"
-                  : "text-slate-500 hover:bg-slate-100"
+                  ? "border-t-2 border-t-primary bg-card text-primary"
+                  : "text-fg-muted hover:bg-background/70"
               }`}
             >
               <span>➕ Register Patient</span>
@@ -563,7 +563,7 @@ export default function Registration({
           <div className="p-6 space-y-6">
             {/* 1. Biometric Tab Content */}
             {activeRegTab === "biometric" && (
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 space-y-4">
+              <div className="rounded-2xl border border-border bg-muted/70 p-5 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                   <div className="md:col-span-3">
                     <select
@@ -590,7 +590,7 @@ export default function Registration({
                     <button
                       onClick={handleBiometricSearch}
                       disabled={biometricLoading || !biometricSearchQuery.trim()}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2 px-4 rounded transition active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-1.5"
+                      className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60"
                     >
                       {biometricLoading ? (
                         <>
@@ -968,9 +968,9 @@ export default function Registration({
       {/* VIEW 2: UPDATE PATIENT (SEARCH & EDIT) */}
       {selectedSubItem === "update_patient" && (
         <div className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <FileText size={14} className="text-blue-500" /> Patients Listing (Search & Edit)
+          <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-card">
+            <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-fg-muted">
+              <FileText size={14} className="text-primary" /> Patients Listing (Search & Edit)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
               <div className="md:col-span-9">

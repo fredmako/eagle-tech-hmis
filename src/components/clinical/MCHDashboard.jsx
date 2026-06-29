@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
+import { getNextDepartment } from '../../utils/workflowEngine';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Heart, Baby, Users, ShieldAlert, CheckCircle, RefreshCw,
@@ -376,8 +377,12 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
       const { error } = await supabase.from('anc_visits').insert({ id: randId, ...visitPayload });
       if (error) throw error;
 
-      // Close visit status
-      await supabase.from('visits').update({ status: 'completed' }).eq('id', selectedAncVisit.id);
+      // Close visit status via workflow engine
+      const nextDept = getNextDepartment(selectedAncVisit, 'mch');
+      await supabase.from('visits').update({ 
+        department: nextDept,
+        status: nextDept === 'completed' ? 'completed' : 'waiting'
+      }).eq('id', selectedAncVisit.id);
 
       showNotification?.('success', 'ANC Visit Recorded', `Recorded ANC clinical details for ${selectedAncVisit.patient?.name}`);
       setShowAncVisitModal(false);
@@ -457,8 +462,12 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
       const { error } = await supabase.from('fp_visits').insert({ id: randId, ...visitPayload });
       if (error) throw error;
 
-      // Complete visit status
-      await supabase.from('visits').update({ status: 'completed' }).eq('id', selectedFpVisit.id);
+      // Complete visit status via workflow engine
+      const nextDept = getNextDepartment(selectedFpVisit, 'mch');
+      await supabase.from('visits').update({ 
+        department: nextDept,
+        status: nextDept === 'completed' ? 'completed' : 'waiting'
+      }).eq('id', selectedFpVisit.id);
 
       showNotification?.('success', 'FP Followup Logged', `Dispensing contraceptive updated for ${selectedFpVisit.patient?.name}`);
       setShowFpVisitModal(false);
@@ -531,8 +540,12 @@ export default function MCHDashboard({ user, onClose, showNotification, initialS
       const { error: recErr } = await supabase.from('immunization_records').insert({ id: randRecId, ...recPayload });
       if (recErr) throw recErr;
 
-      // Complete visit queue
-      await supabase.from('visits').update({ status: 'completed' }).eq('id', selectedImmVisit.id);
+      // Complete visit queue via workflow engine
+      const nextDept = getNextDepartment(selectedImmVisit, 'mch');
+      await supabase.from('visits').update({ 
+        department: nextDept,
+        status: nextDept === 'completed' ? 'completed' : 'waiting'
+      }).eq('id', selectedImmVisit.id);
 
       showNotification?.('success', 'Immunization Completed', `Administered vaccine dose successfully.`);
       setShowImmVisitModal(false);

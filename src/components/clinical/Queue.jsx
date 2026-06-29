@@ -19,6 +19,7 @@ import {
   ArrowRightLeft,
   X
 } from 'lucide-react';
+import { getInitialDepartment } from '../../utils/workflowEngine';
 
 const SERVICE_TYPE_META = {
   OPD: { label: 'General OPD', color: 'bg-slate-800/60 text-slate-400 border-slate-800' },
@@ -64,28 +65,9 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
 
   // Auto-route based on service type
   useEffect(() => {
-    if (serviceType === 'LAB') {
-      setDepartment('lab');
-      setPriority('routine');
-    } else if (serviceType === 'PHA') {
-      setDepartment('pharmacy');
-      setPriority('routine');
-    } else if (serviceType === 'IPD') {
-      setDepartment('ward');
-      setPriority('routine');
-    } else if (serviceType === 'EMR') {
-      setDepartment('triage');
-      setPriority('emergency');
-    } else if (serviceType === 'ANC') {
-      setDepartment('triage');
-      setPriority('routine');
-    } else if (serviceType === 'FP' || serviceType === 'IMM') {
-      setDepartment('consultation');
-      setPriority('routine');
-    } else {
-      setDepartment('triage');
-      setPriority('routine');
-    }
+    const initDept = getInitialDepartment(serviceType);
+    setDepartment(initDept);
+    setPriority(serviceType === 'EMR' ? 'emergency' : 'routine');
   }, [serviceType]);
 
   useEffect(() => {

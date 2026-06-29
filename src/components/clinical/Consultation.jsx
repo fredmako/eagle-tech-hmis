@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
+import { getNextDepartment } from "../../utils/workflowEngine";
 import {
   Activity,
   ShieldAlert,
@@ -37,7 +38,7 @@ const getPatientAge = (dobString) => {
   return Math.abs(ageDate.getUTCFullYear() - 1970);
 };
 
-export default function Consultation({ user, onComplete, showNotification }) {
+export default function Consultation({ user, architectureModel, onComplete, showNotification }) {
   const [queue, setQueue] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [triageData, setTriageData] = useState(null);
@@ -1710,16 +1711,12 @@ export default function Consultation({ user, onComplete, showNotification }) {
       }
 
       // 4. Intelligent Routing
-      let nextDept = "completed";
-      if (surgeriesOrdered.length > 0) {
-        nextDept = "surgery";
-      } else if (radsOrdered.length > 0) {
-        nextDept = "radiology";
-      } else if (labsOrdered.length > 0) {
-        nextDept = "lab";
-      } else if (drugPromises.length > 0) {
-        nextDept = "billing";
-      }
+      const nextDept = getNextDepartment(selectedVisit, "consultation", {
+        hasPrescriptions: drugPromises.length > 0 || prescriptions.some(p => p.name),
+        hasLabs: labsOrdered.length > 0,
+        hasRadiology: radsOrdered.length > 0,
+        hasSurgery: surgeriesOrdered.length > 0
+      });
 
       const { error: visitErr } = await supabase
         .from("visits")
@@ -1883,6 +1880,12 @@ export default function Consultation({ user, onComplete, showNotification }) {
           <p className="text-2xs text-slate-500 mt-0.5">
             Select patient for consultation
           </p>
+          {architectureModel && (
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-2.5 py-1 text-[11px] font-semibold text-teal-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-teal-400" />
+              Global + private model active · {architectureModel.private?.forms?.department || "consultation"} · {architectureModel.private?.rules?.specialized ? "specialized" : "general"}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">

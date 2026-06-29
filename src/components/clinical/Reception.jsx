@@ -12,12 +12,16 @@ import {
 
 export default function Reception({
   user,
+  architectureModel,
   initialSubTab = "registration",
   handleNavigate,
   preselectedPatient,
   showNotification,
 }) {
   const [subTab, setSubTab] = useState(initialSubTab);
+  const privateModel = architectureModel?.private;
+  const activeDepartment = privateModel?.forms?.department || "reception";
+  const activeQueueSubTab = privateModel?.queues?.subTab || subTab;
 
   useEffect(() => {
     setSubTab(initialSubTab);
@@ -43,6 +47,11 @@ export default function Reception({
                 Manage patient registration, triage, and live queue flow from
                 one place.
               </p>
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-2.5 py-1 text-[11px] font-semibold text-teal-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-teal-400" />
+                Global + private model active · {activeDepartment} ·{" "}
+                {activeQueueSubTab}
+              </div>
             </div>
           </div>
 
@@ -105,6 +114,7 @@ export default function Reception({
       {subTab === "registration" && (
         <Registration
           user={user}
+          architectureModel={architectureModel}
           onNavigateToQueue={(pt) => {
             if (handleNavigate) handleNavigate("queue");
           }}
@@ -115,6 +125,7 @@ export default function Reception({
       {subTab === "triage" && (
         <Triage
           user={user}
+          architectureModel={architectureModel}
           onComplete={() => {
             if (handleNavigate) handleNavigate("dashboard");
           }}
@@ -123,7 +134,11 @@ export default function Reception({
       )}
 
       {subTab === "queue" && (
-        <Queue user={user} preselectedPatient={preselectedPatient} />
+        <Queue
+          user={user}
+          architectureModel={architectureModel}
+          preselectedPatient={preselectedPatient}
+        />
       )}
     </div>
   );

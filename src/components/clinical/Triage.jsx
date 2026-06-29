@@ -3,8 +3,9 @@ import { supabase } from '../../supabaseClient';
 import { Activity, ShieldAlert, CheckCircle, Heart, Thermometer, AlertOctagon, Zap } from 'lucide-react';
 import InstrumentTracker from './InstrumentTracker';
 import { getTempCache, removeTempCache, setTempCache } from '../../utils/tempCache';
+import { getNextDepartment } from '../../utils/workflowEngine';
 
-export default function Triage({ user, onComplete, showNotification }) {
+export default function Triage({ user, architectureModel, onComplete, showNotification }) {
   const [queue, setQueue] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [patient, setPatient] = useState(null);
@@ -597,11 +598,11 @@ export default function Triage({ user, onComplete, showNotification }) {
       }
 
       // 2. Move patient visit to next queue
-      // If priority is emergency (red), bypass consultation queue straight to ER, or route standard
+      const nextDept = getNextDepartment(selectedVisit, 'triage', { priority: priorityFlag });
       const { error: visitErr } = await supabase.from('visits').update({
-        department: priorityFlag === 'red' ? 'surgery' : 'consultation', // Emergency goes straight to Theatre/ER
+        department: nextDept,
         priority: priorityFlag === 'red' ? 'emergency' : priorityFlag === 'yellow' ? 'urgent' : 'routine',
-        status: 'waiting'
+        status: nextDept === 'completed' ? 'completed' : 'waiting'
       }).eq('id', selectedVisit.id);
 
       if (visitErr) throw visitErr;
@@ -648,6 +649,12 @@ export default function Triage({ user, onComplete, showNotification }) {
             <Heart size={16} className="text-teal-400" /> Patients in Triage Queue ({queue.length})
           </h2>
           <p className="text-[11px] text-slate-500 mt-0.5">Select a patient to enter vital signs</p>
+          {architectureModel && (
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-2.5 py-1 text-[11px] font-semibold text-teal-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-teal-400" />
+              Global + private model active · {architectureModel.private?.forms?.department || "triage"} · {architectureModel.private?.forms?.step || "default"}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2 max-h-112.5 overflow-y-auto pr-1">

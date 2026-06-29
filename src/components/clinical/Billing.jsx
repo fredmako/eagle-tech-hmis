@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { CreditCard, DollarSign, Printer, CheckCircle, AlertCircle, Eye, RefreshCw, Upload, Shield, Plus } from 'lucide-react';
 import { parsePatientContact, sendWhatsAppNotification } from '../../notificationService';
+import { getNextDepartment } from '../../utils/workflowEngine';
 
-export default function Billing({ user, onComplete, showNotification, initialSubTab }) {
+export default function Billing({ user, architectureModel, onComplete, showNotification, initialSubTab }) {
   const [billingVisits, setBillingVisits] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [invoice, setInvoice] = useState(null);
@@ -544,9 +545,9 @@ export default function Billing({ user, onComplete, showNotification, initialSub
 
           if (invErr) throw invErr;
 
-          // Redirect patient to Pharmacy queue or Complete
+          // Redirect patient to Pharmacy queue or Complete via workflow engine
           const hasPrescriptions = orders.some(o => o.type === 'prescription');
-          const nextDept = hasPrescriptions ? 'pharmacy' : 'completed';
+          const nextDept = getNextDepartment(selectedVisit, 'billing', { hasPrescriptions });
 
           const { error: visitErr } = await supabase.from('visits').update({
             department: nextDept,
@@ -586,9 +587,9 @@ export default function Billing({ user, onComplete, showNotification, initialSub
 
         if (invErr) throw invErr;
 
-        // Redirect patient to Pharmacy queue or Complete
+        // Redirect patient to Pharmacy queue or Complete via workflow engine
         const hasPrescriptions = orders.some(o => o.type === 'prescription');
-        const nextDept = hasPrescriptions ? 'pharmacy' : 'completed';
+        const nextDept = getNextDepartment(selectedVisit, 'billing', { hasPrescriptions });
 
         const { error: visitErr } = await supabase.from('visits').update({
           department: nextDept,
@@ -628,9 +629,9 @@ export default function Billing({ user, onComplete, showNotification, initialSub
       const { data: invs } = await supabase.from('invoices').select('*').eq('id', invoice.id);
       const inv = invs && invs[0];
       if (inv && inv.status === 'paid') {
-        // Payment was recorded! Let's update the visit department
+        // Payment was recorded! Let's update the visit department via workflow engine
         const hasPrescriptions = orders.some(o => o.type === 'prescription');
-        const nextDept = hasPrescriptions ? 'pharmacy' : 'completed';
+        const nextDept = getNextDepartment(selectedVisit, 'billing', { hasPrescriptions });
 
         await supabase.from('visits').update({
           department: nextDept,
@@ -915,6 +916,12 @@ export default function Billing({ user, onComplete, showNotification, initialSub
 
   return (
     <div className="space-y-6">
+      {architectureModel && (
+        <div className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-2.5 py-1 text-[11px] font-semibold text-teal-300">
+          <span className="h-1.5 w-1.5 rounded-full bg-teal-400" />
+          Global + private model active · {architectureModel.private?.forms?.department || "billing"} · {architectureModel.private?.state?.activeTab || "billing"}
+        </div>
+      )}
       {/* Top Console Navigation Bar */}
       <div className="flex border-b border-slate-800 pb-2 gap-6">
         <button

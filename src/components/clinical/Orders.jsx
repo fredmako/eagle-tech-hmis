@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../supabaseClient';
+import { getNextDepartment } from '../../utils/workflowEngine';
 import { sendNotification, parsePatientContact, sendWhatsAppNotification } from '../../notificationService';
 import { 
   FlaskConical, 
@@ -1246,10 +1247,11 @@ export default function Orders({ user, onComplete, showNotification }) {
       const allReleased = updatedOrders.every(o => o.status === 'released' || o.status === 'cancelled');
 
       if (allReleased) {
-        // Move visit to selected route target
+        // Move visit to selected route target via workflow engine
+        const nextDept = getNextDepartment(selectedVisit, 'lab', { routeTarget: routeTarget });
         const { error: visitErr } = await supabase.from('visits').update({
-          department: routeTarget,
-          status: 'waiting'
+          department: nextDept,
+          status: nextDept === 'completed' ? 'completed' : 'waiting'
         }).eq('id', selectedVisit.id);
         if (visitErr) throw visitErr;
 

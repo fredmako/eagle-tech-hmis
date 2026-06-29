@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./context/AuthContext";
+import { createArchitectureModel } from "./models/architecture";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import Registration from "./components/clinical/Registration";
@@ -161,8 +162,72 @@ export default function App() {
   const [receptionSubTab, setReceptionSubTab] = useState("registration");
   const [selectedReceptionSubItem, setSelectedReceptionSubItem] =
     useState("new_patient");
+  const [preselectedPatient, setPreselectedPatient] = useState(null);
   const [activeModules, setActiveModules] = useState({});
   const [showTour, setShowTour] = useState(false);
+
+  const architectureModel = useMemo(() => {
+    const normalizedRole = user?.role || "guest";
+    const departmentContext =
+      activeTab === "reception"
+        ? {
+            department: "reception",
+            subTab: receptionSubTab,
+            selectedSubItem: selectedReceptionSubItem,
+          }
+        : {
+            department: activeTab,
+            subTab: null,
+            selectedSubItem: null,
+          };
+
+    return createArchitectureModel(
+      {
+        identity: user,
+        patient: preselectedPatient,
+        billing: activeTab === "billing" ? { active: true } : null,
+        audit: {
+          lastRoute: activeTab,
+          timestamp: new Date().toISOString(),
+        },
+        permissions: {
+          role: normalizedRole,
+          canAccessSharedModules: Boolean(user),
+        },
+        reporting: activeTab === "reports" ? { active: true } : null,
+      },
+      {
+        forms: {
+          department: departmentContext.department,
+          step: departmentContext.subTab || "default",
+        },
+        queues: {
+          department: departmentContext.department,
+          subTab: departmentContext.subTab,
+          selectedSubItem: departmentContext.selectedSubItem,
+        },
+        rules: {
+          department: departmentContext.department,
+          specialized: activeTab !== "dashboard",
+        },
+        validations: {
+          local: activeTab === "reception" || activeTab === "billing",
+        },
+        state: {
+          activeTab,
+          receptionSubTab,
+          selectedReceptionSubItem,
+          preselectedPatient: Boolean(preselectedPatient),
+        },
+      },
+    );
+  }, [
+    user,
+    preselectedPatient,
+    activeTab,
+    receptionSubTab,
+    selectedReceptionSubItem,
+  ]);
 
   const fetchFacilityModules = async () => {
     if (!user?.facility_id) return;
@@ -311,7 +376,6 @@ export default function App() {
     if (tabId === "hr") setHrSubTab(subId);
   };
 
-  const [preselectedPatient, setPreselectedPatient] = useState(null);
   const [pathname, setPathname] = useState(() => {
     const path = window.location.pathname;
     if (
@@ -2388,6 +2452,7 @@ export default function App() {
                   {activeTab === "reception" && (
                     <Reception
                       user={user}
+                      architectureModel={architectureModel}
                       initialSubTab={receptionSubTab}
                       handleNavigate={(tab, subId) => {
                         if (tab === "reception" && subId) {
@@ -2405,6 +2470,7 @@ export default function App() {
                   {activeTab === "consultation" && (
                     <Consultation
                       user={user}
+                      architectureModel={architectureModel}
                       onComplete={() => setActiveTab("dashboard")}
                       showNotification={showNotification}
                     />
@@ -2448,6 +2514,7 @@ export default function App() {
                   {activeTab === "billing" && (
                     <Billing
                       user={user}
+                      architectureModel={architectureModel}
                       initialSubTab={billingSubTab}
                       onComplete={() => setActiveTab("dashboard")}
                       showNotification={showNotification}

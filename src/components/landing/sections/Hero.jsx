@@ -49,8 +49,8 @@ export function Hero({
             <motion.span className="block" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}>Clinical-Grade Hospital</motion.span>
             <motion.span className="block text-primary" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}>Management Software</motion.span>
           </h1>
-          <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }} className="text-base leading-relaxed max-w-lg text-fg-muted font-sans">
-            Eagle Tech HMIS gives Kenyan healthcare facilities a unified digital workspace — from triage to MOH reporting — deployed under your own domain in days.
+          <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }} className="text-base leading-relaxed max-w-xl text-fg-muted font-sans">
+            A unified digital workspace built for the Kenyan healthcare landscape. Deployed on your custom domain in days, it automates patient registration, geofenced staff attendance, triage vital validations, OPD consultations with ICD-10 search, FEFO pharmacy sales, integrated lab orders, visual inpatient bed grids, and MOH-compliant daily reporting.
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.55, ease: 'easeOut' }} className="flex flex-col sm:flex-row gap-3 pt-2 items-start relative">
             {user ? (

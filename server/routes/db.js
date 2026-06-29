@@ -479,11 +479,11 @@ router.post("/insert", async (req, res) => {
       const { id, created_at, ...cleanRow } = row;
       const globalTables = ["facilities", "support_tickets", "demo_requests"];
 
-      // Enforce facility_id for tenant tables if authenticated
+      // Enforce facility_id for tenant tables if authenticated (prevent tenant cross-posting)
       if (
         !globalTables.includes(table) &&
         activeFacId &&
-        !cleanRow.facility_id
+        req.user?.role !== "super_admin"
       ) {
         cleanRow.facility_id = activeFacId;
       }

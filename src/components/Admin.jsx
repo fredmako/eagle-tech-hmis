@@ -18,6 +18,7 @@ import AdminDelegation from "./admin/AdminDelegation";
 import ModulesConfig from "./admin/ModulesConfig";
 import DepartmentActivation from "./admin/DepartmentActivation";
 import LaboratoryManagement from "./admin/LaboratoryManagement";
+import FormBuilder from "./admin/FormBuilder";
 import { hasAccess } from "../utils/permissions";
 
 import { supabase } from "../supabaseClient";
@@ -201,12 +202,13 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
 
   useEffect(() => {
     // If activeSubTab is not allowed, fallback to overview
-    if (activeSubTab === "modules_config" && !isAdminRole) {
+    if ((activeSubTab === "modules_config" || activeSubTab === "form_builder") && !isAdminRole) {
       setActiveSubTab("overview");
     } else if (
       activeSubTab !== "overview" &&
       activeSubTab !== "delegation" &&
-      activeSubTab !== "modules_config"
+      activeSubTab !== "modules_config" &&
+      activeSubTab !== "form_builder"
     ) {
       if (!hasAccess(activeSubTab, user.role, adminDelegation)) {
         setActiveSubTab("overview");
@@ -1438,6 +1440,19 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
 
               {isAdminRole && (
                 <button
+                  onClick={() => setActiveSubTab("form_builder")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
+                    activeSubTab === "form_builder"
+                      ? "bg-slate-850 border border-slate-705 text-teal-400"
+                      : "text-slate-450 hover:text-slate-200"
+                  }`}
+                >
+                  <Sliders size={13} /> Dynamic Forms
+                </button>
+              )}
+
+              {isAdminRole && (
+                <button
                   onClick={() => setActiveSubTab("department_activation")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition flex items-center gap-1.5 ${
                     activeSubTab === "department_activation"
@@ -1661,6 +1676,14 @@ export default function Admin({ user, initialSubTab, onNavigate }) {
                   <ModulesConfig
                     user={user}
                     onClose={() => setActiveSubTab("overview")}
+                  />
+                )}
+
+                {/* TAB: DYNAMIC FORM BUILDER */}
+                {activeSubTab === "form_builder" && (
+                  <FormBuilder
+                    user={user}
+                    showNotification={showNotification}
                   />
                 )}
 

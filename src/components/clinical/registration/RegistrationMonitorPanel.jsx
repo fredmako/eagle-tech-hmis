@@ -12,7 +12,7 @@ export default function RegistrationMonitorPanel({
   timelineData,
 }) {
   return (
-    <div className="hidden lg:block bg-slate-900 border border-slate-800 rounded-2xl p-4 lg:p-5 2xl:p-6 shadow-sm space-y-6 min-w-0">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 lg:p-5 2xl:p-6 shadow-sm space-y-6 min-w-0">
       <div>
         <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
           <Activity size={16} className="text-teal-400" /> Reception Monitor

@@ -23,7 +23,7 @@ export function Pricing() {
             </div>
           </div>
         </Reveal>
-        <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-6" stagger={0.1}>
+        <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" stagger={0.1}>
           {budgetItems.map((b, idx) => {
             const Icon = b.icon;
             return (
@@ -48,7 +48,7 @@ export function Pricing() {
                   <span className="text-sm ml-1.5 text-fg-subtle font-sans">{b.period}</span>
                 </div>
                 <p className="text-sm leading-relaxed text-fg-subtle flex-1 font-sans">{b.desc}</p>
-                <div className="flex items-center gap-1.5 text-xs text-primary font-sans font-semibold"><CheckCircle2 size={13} /> Included in setup</div>
+                <div className="flex items-center gap-1.5 text-xs text-primary font-sans font-semibold"><CheckCircle2 size={13} /> Deploys instantly</div>
               </StaggerItem>
             );
           })}

@@ -14,6 +14,7 @@ export default function Reception({
   user,
   architectureModel,
   initialSubTab = "registration",
+  selectedSubItem,
   handleNavigate,
   preselectedPatient,
   showNotification,
@@ -30,6 +31,30 @@ export default function Reception({
   const goToQueue = (patient) => {
     if (handleNavigate) handleNavigate("queue");
   };
+
+  const isRegistrationSubItem = [
+    "new_patient",
+    "update_patient",
+    "patient_insurance",
+    "patients_in_wards",
+    "sha_registrations",
+    "eligibility_sha",
+    "eligibility_patients"
+  ].includes(selectedSubItem);
+
+  if (isRegistrationSubItem) {
+    return (
+      <Registration
+        user={user}
+        architectureModel={architectureModel}
+        selectedSubItem={selectedSubItem}
+        onNavigateToQueue={(pt) => {
+          if (handleNavigate) handleNavigate("queue");
+        }}
+        showNotification={showNotification}
+      />
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -115,6 +140,7 @@ export default function Reception({
         <Registration
           user={user}
           architectureModel={architectureModel}
+          selectedSubItem={selectedSubItem}
           onNavigateToQueue={(pt) => {
             if (handleNavigate) handleNavigate("queue");
           }}

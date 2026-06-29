@@ -128,6 +128,46 @@ export default function Billing({ user, architectureModel, onComplete, showNotif
       alert('Please fill in all required fields');
       return;
     }
+
+  const handleTransmitShaClaim = async (pa) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('egesa_health_token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiBase}/sha/submit-claim`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          visitId: pa.id || 'vst_sha_' + Date.now(),
+          patientId: pa.member_id || pa.patient_name,
+          invoiceId: 'inv_' + Date.now(),
+          preauthCode: pa.preauth_code,
+          claimedAmount: pa.approved_amount,
+          diagnosisCode: 'Z00.0',
+          lineItems: [{ description: 'SHA Covered Service Package', amount: pa.approved_amount }]
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'e-Claim submission failed.');
+      
+      if (showNotification) {
+        showNotification('success', 'SHA e-Claim Sent', `Claim ${data.claimId} successfully transmitted to SHA Portal!`);
+      } else {
+        setMessage({ type: 'success', text: `Claim ${data.claimId} successfully transmitted to SHA Portal!` });
+      }
+    } catch (err) {
+      if (showNotification) {
+        showNotification('error', 'e-Claim Error', err.message);
+      } else {
+        setMessage({ type: 'error', text: err.message });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
     const pt = allPatients.find(p => p.id === preauthPatientId);
     const newPreauth = {
       id: `PA-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -1707,8 +1747,15 @@ export default function Billing({ user, architectureModel, onComplete, showNotif
                       <div className="col-span-2 text-2xs text-slate-400 leading-normal">
                         Notes: ${pa.notes || 'No extra diagnosis noted.'}
                       </div>
-                      <div className="col-span-2 text-[9px] text-teal-400 flex items-center gap-1 border-t border-slate-800/40 pt-1.5 font-sans">
-                        <Upload size={10} /> Attached Letter: <span className="underline cursor-pointer">${pa.filename}</span>
+                      <div className="col-span-2 text-[9px] text-teal-400 flex items-center justify-between border-t border-slate-800/40 pt-1.5 font-sans">
+                        <span className="flex items-center gap-1"><Upload size={10} /> Attached Letter: <span className="underline cursor-pointer">{pa.filename}</span></span>
+                        <button
+                          type="button"
+                          onClick={() => handleTransmitShaClaim(pa)}
+                          className="bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 text-[10px] font-bold px-2 py-1 rounded transition"
+                        >
+                          Transmit SHA e-Claim
+                        </button>
                       </div>
                     </div>
                   </div>

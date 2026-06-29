@@ -51,6 +51,11 @@ app.use("/api", aiNotifyRouter);
 const supportChatRouter = require("./routes/support-chat");
 app.use("/api", supportChatRouter);
 
+const shaClaimsRouter = require("./routes/shaClaims");
+app.use("/api/sha", shaClaimsRouter);
+const dhis2ExportRouter = require("./routes/dhis2Export");
+app.use("/api/dhis2", dhis2ExportRouter);
+
 const { runMigrations } = require("./utils/migrationRunner");
 
 // Start server

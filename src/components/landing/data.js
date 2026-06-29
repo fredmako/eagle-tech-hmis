@@ -30,9 +30,10 @@ export const stats = [
 ];
 
 export const budgetItems = [
-  { icon: Globe, title: 'Custom Domain Setup', cost: 'Ksh 1,500', period: '/ year', desc: 'Registration of your custom web address (e.g. portal.yourhospital.com) with global DNS routing.', highlight: false },
-  { icon: Server, title: 'Database & Server Infrastructure', cost: 'Ksh 2,900', period: '/ month', desc: 'Secure cloud hosting via dedicated Appwrite instances with automated daily backups and SSL certificates.', highlight: true },
-  { icon: Coins, title: 'White-Label Branding', cost: 'Ksh 4,900', period: 'one-off', desc: 'Complete system styling: upload your logo, define custom dashboard templates, and configure roles.', highlight: false },
+  { icon: Pill, title: 'Independent Pharmacy', cost: 'Ksh 3,900', period: '/ month', desc: 'FEFO stock, walk-in POS dispensing, invoice billing, and low-stock alerts for standalone chemists.', highlight: false },
+  { icon: Stethoscope, title: 'Basic Clinic', cost: 'Ksh 6,500', period: '/ month', desc: 'Up to 5 staff accounts, Triage vitals tracking, OPD consultations, and basic queue management.', highlight: false },
+  { icon: Bed, title: 'Standard Hospital', cost: 'Ksh 19,500', period: '/ month', desc: 'Up to 30 staff accounts, Inpatient ward bed visualizer, integrated lab orders, and MOH 717 auto-reporting.', highlight: true },
+  { icon: Globe, title: 'Enterprise System', cost: 'Ksh 52,000', period: '/ month', desc: 'Unlimited staff and facilities, custom domain setup, full local database configurations, and 24/7 hotline support.', highlight: false },
 ];
 
 export const onboardingSteps = [

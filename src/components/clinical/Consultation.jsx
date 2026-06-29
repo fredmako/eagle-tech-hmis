@@ -60,6 +60,7 @@ export default function Consultation({ user, architectureModel, onComplete, show
   const [prescriptions, setPrescriptions] = useState([
     { name: "", dosage: "", frequency: "1x1", duration: "3 days", price: 0 },
   ]);
+  const [customResponses, setCustomResponses] = useState({});
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -1462,17 +1463,28 @@ export default function Consultation({ user, architectureModel, onComplete, show
       // 0b. Save validated MOH details
       await saveMOHRecords();
 
-      // 1. Insert Consultation Notes
+      // 1. Insert Consultation Notes (composed with dynamic custom fields)
+      let finalHistory = history;
+      if (facilityDetails?.custom_form_schemas) {
+        const dynamicValues = facilityDetails.custom_form_schemas
+          .filter(f => f.department === 'consultation' && customResponses[f.id] !== undefined && customResponses[f.id] !== '')
+          .map(f => `${f.label}: ${customResponses[f.id]}`)
+          .join('\n');
+        if (dynamicValues) {
+          finalHistory = `${finalHistory}\n\n[Custom Fields]\n${dynamicValues}`;
+        }
+      }
+
       const consultRecord = {
         visit_id: selectedVisit.id,
         history:
           activeTemplate === "anc"
-            ? `ANC Visit Notes\nFundal Height: ${ancFundalHeight}cm\nFetal Heart Rate: ${ancFetalHeartRate}bpm\n${history}`
+            ? `ANC Visit Notes\nFundal Height: ${ancFundalHeight}cm\nFetal Heart Rate: ${ancFetalHeartRate}bpm\n${finalHistory}`
             : activeTemplate === "fp"
-              ? `FP Consultation Notes\nMethod Selected: ${fpMethodSelectedId}\nEligibility Category: ${fpEligibilityCategory}\n${history}`
+              ? `FP Consultation Notes\nMethod Selected: ${fpMethodSelectedId}\nEligibility Category: ${fpEligibilityCategory}\n${finalHistory}`
               : activeTemplate === "pediatrics"
-                ? `Pediatric Visit Notes\nWeight: ${pediatricWeight}kg\nHead Circ: ${pediatricHeadCirc}cm\nMilestones: ${pediatricMilestones}\nVaccines: ${pediatricImmunizations.join(", ")}\n${history}`
-                : history,
+                ? `Pediatric Visit Notes\nWeight: ${pediatricWeight}kg\nHead Circ: ${pediatricHeadCirc}cm\nMilestones: ${pediatricMilestones}\nVaccines: ${pediatricImmunizations.join(", ")}\n${finalHistory}`
+                : finalHistory,
         examination: exam,
         diagnosis_icd10: diagnosis,
         treatment_plan: treatmentPlan,
@@ -2910,6 +2922,66 @@ export default function Consultation({ user, architectureModel, onComplete, show
                   />
                 </div>
               </div>
+              {/* Dynamic Custom Fields */}
+              {facilityDetails?.custom_form_schemas &&
+                facilityDetails.custom_form_schemas.filter(f => f.department === 'consultation').length > 0 && (
+                  <div className="bg-slate-950/60 border border-slate-850 p-4 rounded-xl space-y-3">
+                    <h4 className="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Dynamic Facility Fields</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {facilityDetails.custom_form_schemas
+                        .filter(f => f.department === 'consultation')
+                        .map(field => (
+                          <div key={field.id}>
+                            <label className="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                              {field.label} {field.required && <span className="text-red-500">*</span>}
+                            </label>
+                            {field.type === 'textarea' ? (
+                              <textarea
+                                rows="2"
+                                value={customResponses[field.id] || ''}
+                                onChange={(e) => setCustomResponses({ ...customResponses, [field.id]: e.target.value })}
+                                placeholder={`Enter ${field.label.toLowerCase()}...`}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 placeholder:text-slate-700 focus:outline-none focus:border-teal-500 transition"
+                                required={field.required}
+                              />
+                            ) : field.type === 'select' ? (
+                              <select
+                                value={customResponses[field.id] || ''}
+                                onChange={(e) => setCustomResponses({ ...customResponses, [field.id]: e.target.value })}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition cursor-pointer"
+                                required={field.required}
+                              >
+                                <option value="">-- Select --</option>
+                                {field.options.split(',').map(opt => (
+                                  <option key={opt.trim()} value={opt.trim()}>{opt.trim()}</option>
+                                ))}
+                              </select>
+                            ) : field.type === 'boolean' ? (
+                              <div className="flex items-center gap-2 pt-1.5">
+                                <input
+                                  type="checkbox"
+                                  id={field.id}
+                                  checked={Boolean(customResponses[field.id])}
+                                  onChange={(e) => setCustomResponses({ ...customResponses, [field.id]: e.target.checked })}
+                                  className="rounded border-slate-800 bg-slate-900 text-teal-400 focus:ring-0 cursor-pointer"
+                                />
+                                <label htmlFor={field.id} className="text-xs text-slate-300 cursor-pointer">Yes, confirm</label>
+                              </div>
+                            ) : (
+                              <input
+                                type={field.type === 'number' ? 'number' : 'text'}
+                                value={customResponses[field.id] || ''}
+                                onChange={(e) => setCustomResponses({ ...customResponses, [field.id]: e.target.value })}
+                                placeholder={`Enter ${field.label.toLowerCase()}...`}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 placeholder:text-slate-700 focus:outline-none focus:border-teal-500 transition"
+                                required={field.required}
+                              />
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
 
               {/* Diagnosis and Plan */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

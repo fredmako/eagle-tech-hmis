@@ -2408,7 +2408,20 @@ export default function App() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+        <div className={`flex-1 overflow-y-auto ${
+          activeTab === "reception" &&
+          [
+            "new_patient",
+            "update_patient",
+            "patient_insurance",
+            "patients_in_wards",
+            "sha_registrations",
+            "eligibility_sha",
+            "eligibility_patients",
+          ].includes(selectedReceptionSubItem)
+            ? "p-0"
+            : "p-4 md:p-8"
+        }`}>
           <div
             className={
               menuLayout === "topbar" ? "max-w-7xl mx-auto w-full" : ""
@@ -2454,6 +2467,7 @@ export default function App() {
                       user={user}
                       architectureModel={architectureModel}
                       initialSubTab={receptionSubTab}
+                      selectedSubItem={selectedReceptionSubItem}
                       handleNavigate={(tab, subId) => {
                         if (tab === "reception" && subId) {
                           const route = mapReceptionSubItemToRoute(subId);
@@ -2640,6 +2654,7 @@ export default function App() {
                   {activeTab === "support" && <SupportPanel />}
                   {![
                     "dashboard",
+                    "reception",
                     "registration",
                     "queue",
                     "triage",

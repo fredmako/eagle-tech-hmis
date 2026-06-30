@@ -16,7 +16,7 @@ function logKnowledgeError(context, err) {
 }
 
 // GET /api/ai-knowledge/ping - test the upstream knowledge service directly
-router.get("/ping", async (req, res) => {
+async function pingKnowledge(req, res) {
   console.log(`[AI Knowledge] pinging upstream: ${KNOWLEDGE_URL}`);
   try {
     const upstream = await axios.get(KNOWLEDGE_URL, { timeout: 30_000 });
@@ -35,10 +35,10 @@ router.get("/ping", async (req, res) => {
       stack: err.stack,
     });
   }
-});
+}
 
 // GET /api/ai-knowledge — list all knowledge entries
-router.get("/", async (req, res) => {
+async function listKnowledge(req, res) {
   console.log(`[AI Knowledge] GET upstream: ${KNOWLEDGE_URL}`);
   try {
     const { data, status } = await axios.get(KNOWLEDGE_URL, { timeout: 30_000 });
@@ -51,10 +51,10 @@ router.get("/", async (req, res) => {
     }
     return res.status(500).json({ error: err.message });
   }
-});
+}
 
 // POST /api/ai-knowledge — add a new knowledge entry
-router.post("/", async (req, res) => {
+async function addKnowledge(req, res) {
   try {
     const { title, content, tags } = req.body;
     if (!title || !content) {
@@ -74,6 +74,13 @@ router.post("/", async (req, res) => {
     }
     return res.status(500).json({ error: err.message });
   }
-});
+}
+
+// Supports both mount styles:
+// app.use("/api/ai-knowledge", router) -> /
+// app.use("/api", router) -> /ai-knowledge
+router.get(["/ping", "/ai-knowledge/ping"], pingKnowledge);
+router.get(["/", "/ai-knowledge"], listKnowledge);
+router.post(["/", "/ai-knowledge"], addKnowledge);
 
 module.exports = router;

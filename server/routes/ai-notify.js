@@ -27,9 +27,6 @@ Write an improved, professional email notification for this event. Return JSON w
 - priority: "low" | "normal" | "high" | "urgent"
 - summary: one-sentence executive summary of what happened`;
 
-
-`;
-
     const aiRes = await axios.post(
       `${AI_DIAGNOSIS_URL}/chat`,
       {

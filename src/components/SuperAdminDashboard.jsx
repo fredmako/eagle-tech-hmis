@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
+
 import {
   Bar,
   BarChart,
@@ -36,6 +37,7 @@ import {
   ArrowUpDown,
   BarChart3,
   ShieldAlert,
+  Tag,
 } from "lucide-react";
 import KnowledgeBasePanel from "./admin/KnowledgeBasePanel";
 
@@ -895,9 +897,8 @@ export default function SuperAdminDashboard({ user, onSignOut, onLogoClick }) {
             <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
             <span>Refresh Console</span>
           </button>
-
-          <div className="h-6 w-px bg-slate-800"></div>
-
+        </div>
+        <div className="h-6 w-px bg-slate-800">
           <div className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-full bg-teal-500/10 border border-teal-500/25 flex items-center justify-center font-bold text-teal-400 text-xs shadow-inner">
               SA

@@ -24,36 +24,36 @@ import { getInitialDepartment } from "../../utils/workflowEngine";
 const SERVICE_TYPE_META = {
   OPD: {
     label: "General OPD",
-    color: "bg-slate-800/60 text-slate-400 border-slate-800",
+    color: "bg-muted text-fg-muted border-border-subtle",
   },
   ANC: {
     label: "Antenatal Care",
-    color: "bg-teal-500/10 text-teal-400 border-teal-500/20",
+    color: "bg-primary/10 text-primary border-primary/20",
   },
   FP: {
     label: "Family Planning",
-    color: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    color: "bg-secondary/10 text-accent border-accent/20",
   },
   IMM: {
     label: "Immunization",
-    color: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+    color: "bg-primary/5 text-primary/80 border-primary/10",
   },
   LAB: {
     label: "Lab-Only",
-    color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    color: "bg-secondary/5 text-fg-body border-border-subtle",
   },
   PHA: {
     label: "Pharmacy-Only",
-    color: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    color: "bg-secondary/8 text-fg-strong border-border",
   },
   IPD: {
     label: "Inpatient",
-    color: "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20",
+    color: "bg-accent/10 text-accent border-accent/20",
   },
   EMR: {
     label: "Emergency",
     color:
-      "bg-rose-500/10 text-rose-400 border-rose-500/20 font-extrabold animate-pulse",
+      "bg-destructive/10 text-destructive border-destructive/20 font-extrabold animate-pulse",
   },
 };
 
@@ -378,66 +378,66 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
     triage: {
       label: "Triage (Vitals)",
       icon: HeartPulse,
-      color: "text-sky-400",
-      border: "border-sky-500/20",
-      badge: "bg-sky-500/10 text-sky-400",
-      topBorder: "border-t-2 border-t-sky-500",
+      color: "text-primary",
+      border: "border-primary/20",
+      badge: "bg-primary/10 text-primary",
+      topBorder: "border-t-2 border-t-primary",
     },
     consultation: {
       label: "OPD Consult",
       icon: Stethoscope,
-      color: "text-teal-400",
-      border: "border-teal-500/20",
-      badge: "bg-teal-500/10 text-teal-400",
-      topBorder: "border-t-2 border-t-teal-500",
+      color: "text-primary",
+      border: "border-primary/20",
+      badge: "bg-primary/10 text-primary",
+      topBorder: "border-t-2 border-t-primary",
     },
     lab: {
       label: "Laboratory",
       icon: FlaskConical,
-      color: "text-purple-400",
-      border: "border-purple-500/20",
-      badge: "bg-purple-500/10 text-purple-400",
-      topBorder: "border-t-2 border-t-purple-500",
+      color: "text-accent",
+      border: "border-accent/20",
+      badge: "bg-accent/10 text-accent",
+      topBorder: "border-t-2 border-t-accent",
     },
     radiology: {
       label: "Radiology",
       icon: Scan,
-      color: "text-indigo-400",
-      border: "border-indigo-500/20",
-      badge: "bg-indigo-500/10 text-indigo-400",
-      topBorder: "border-t-2 border-t-indigo-500",
+      color: "text-fg-strong",
+      border: "border-border",
+      badge: "bg-secondary/10 text-fg-body",
+      topBorder: "border-t-2 border-t-border",
     },
     surgery: {
       label: "Theatre",
       icon: Activity,
-      color: "text-rose-400",
-      border: "border-rose-500/20",
-      badge: "bg-rose-500/10 text-rose-400",
-      topBorder: "border-t-2 border-t-rose-500",
+      color: "text-destructive",
+      border: "border-destructive/20",
+      badge: "bg-destructive/10 text-destructive",
+      topBorder: "border-t-2 border-t-destructive",
     },
     ward: {
       label: "Inpatient Ward",
       icon: Bed,
-      color: "text-fuchsia-400",
-      border: "border-fuchsia-500/20",
-      badge: "bg-fuchsia-500/10 text-fuchsia-400",
-      topBorder: "border-t-2 border-t-fuchsia-500",
+      color: "text-primary",
+      border: "border-primary/20",
+      badge: "bg-primary/10 text-primary",
+      topBorder: "border-t-2 border-t-primary",
     },
     pharmacy: {
       label: "Pharmacy",
       icon: Pill,
-      color: "text-amber-400",
-      border: "border-amber-500/20",
-      badge: "bg-amber-500/10 text-amber-400",
-      topBorder: "border-t-2 border-t-amber-500",
+      color: "text-fg-body",
+      border: "border-border-subtle",
+      badge: "bg-muted text-fg-muted",
+      topBorder: "border-t-2 border-t-border-subtle",
     },
     billing: {
       label: "Billing Desk",
       icon: DollarSign,
-      color: "text-emerald-400",
-      border: "border-emerald-500/20",
-      badge: "bg-emerald-500/10 text-emerald-400",
-      topBorder: "border-t-2 border-t-emerald-500",
+      color: "text-primary",
+      border: "border-primary/20",
+      badge: "bg-primary/10 text-primary",
+      topBorder: "border-t-2 border-t-primary",
     },
   };
 
@@ -743,18 +743,18 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
           </div>
 
           {/* Referral Fields */}
-          <div className="md:col-span-5 border-t border-slate-800/60 pt-4 mt-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-5 border-t border-border pt-4 mt-2 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center gap-2 h-full pt-6">
               <input
                 type="checkbox"
                 id="isReferral"
                 checked={isReferral}
                 onChange={(e) => setIsReferral(e.target.checked)}
-                className="rounded border-slate-800 text-teal-500 focus:ring-teal-500 bg-slate-950 h-4 w-4"
+                className="rounded border-border text-primary focus:ring-primary bg-input h-4 w-4"
               />
               <label
                 htmlFor="isReferral"
-                className="text-xs font-semibold text-slate-400 cursor-pointer"
+                className="text-xs font-semibold text-fg-muted cursor-pointer"
               >
                 Referred from another facility?
               </label>
@@ -804,7 +804,7 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
             <button
               type="submit"
               disabled={loading}
-              className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-5 rounded-lg shadow-lg shadow-teal-500/10 transition active:scale-[0.98]"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs py-2 px-5 rounded-lg shadow-lg shadow-primary/10 transition active:scale-[0.98]"
             >
               {loading ? "Opening Visit..." : "Open Visit"}
             </button>
@@ -815,8 +815,8 @@ export default function Queue({ preselectedPatient, user, clearPreselected }) {
       {/* Department Grid Board */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Layers size={14} className="text-teal-400" /> Clinical Queue Board
+          <h3 className="text-xs font-bold text-fg-muted uppercase tracking-wider flex items-center gap-1.5">
+            <Layers size={14} className="text-primary" /> Clinical Queue Board
           </h3>
           <button
             onClick={() => fetchQueueData(true)}

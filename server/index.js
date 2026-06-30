@@ -44,7 +44,7 @@ app.use("/api/demo", demoRouter);
 app.use("/api/attendance", attendanceRouter);
 app.use("/api", aiDiagnosisRouter);
 app.use("/api", aiChatRouter);
-app.use("/api", aiKnowledgeRouter);
+app.use("/api/ai-knowledge", aiKnowledgeRouter);
 app.use("/api", aiReportRouter);
 const aiNotifyRouter = require("./routes/ai-notify");
 app.use("/api", aiNotifyRouter);

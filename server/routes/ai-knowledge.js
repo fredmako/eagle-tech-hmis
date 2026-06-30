@@ -5,7 +5,7 @@ const axios = require("axios");
 const AI_DIAGNOSIS_URL = process.env.AI_DIAGNOSIS_URL || "http://142.93.109.200:8000";
 
 // GET /api/ai-knowledge — list all knowledge entries
-router.get("/ai-knowledge", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { data } = await axios.get(`${AI_DIAGNOSIS_URL}/knowledge`, { timeout: 30_000 });
     return res.json(data);
@@ -19,7 +19,7 @@ router.get("/ai-knowledge", async (req, res) => {
 });
 
 // POST /api/ai-knowledge — add a new knowledge entry
-router.post("/ai-knowledge", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const { title, content, tags } = req.body;
     if (!title || !content) {

@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, RefreshCcw, Tag } from 'lucide-react';
+import { Plus, RefreshCcw, Tag } from 'lucide-react';
+
+const API_BASE = (import.meta.env.VITE_API_URL || 'https://seal-app-dfjuz.ondigitalocean.app/api').replace(/\/$/, '');
+const AI_KNOWLEDGE_URL = `${API_BASE}/ai-knowledge`;
 
 export default function KnowledgeBasePanel() {
   const [items, setItems] = useState([]);
@@ -8,15 +11,18 @@ export default function KnowledgeBasePanel() {
   const [form, setForm] = useState({ title: '', content: '', tags: '' });
   const [submitting, setSubmitting] = useState(false);
 
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/ai-knowledge`);
+      const res = await fetch(AI_KNOWLEDGE_URL);
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`GET ${AI_KNOWLEDGE_URL} failed: ${res.status} ${errorText}`);
+      }
       const data = await res.json();
-      setItems(data.items || []);
+      setItems(Array.isArray(data) ? data : data.items || []);
     } catch (err) {
+      console.error('[KnowledgeBasePanel] Failed to load knowledge base:', err);
       setMessage('Failed to load knowledge base.');
     } finally {
       setLoading(false);
@@ -31,7 +37,7 @@ export default function KnowledgeBasePanel() {
     setSubmitting(true);
     setMessage('');
     try {
-      const res = await fetch(`${apiBase}/ai-knowledge`, {
+      const res = await fetch(AI_KNOWLEDGE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -40,11 +46,15 @@ export default function KnowledgeBasePanel() {
           tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
         }),
       });
-      if (!res.ok) throw new Error('Add failed');
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`POST ${AI_KNOWLEDGE_URL} failed: ${res.status} ${errorText}`);
+      }
       setForm({ title: '', content: '', tags: '' });
       await fetchItems();
       setMessage('Entry added successfully.');
     } catch (err) {
+      console.error('[KnowledgeBasePanel] Failed to add knowledge entry:', err);
       setMessage('Failed to add entry.');
     } finally {
       setSubmitting(false);

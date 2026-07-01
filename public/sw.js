@@ -1,4 +1,4 @@
-const CACHE_NAME = 'egesa-health-hmis-v1';
+const CACHE_NAME = 'egesa-health-hmis-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -45,7 +45,18 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          return caches.match(event.request);
+          return caches.match(event.request).then((cachedResponse) => {
+            if (cachedResponse) return cachedResponse;
+
+            if (event.request.mode === 'navigate') {
+              return caches.match('/index.html');
+            }
+
+            return new Response('', {
+              status: 504,
+              statusText: 'Gateway Timeout'
+            });
+          });
         })
     );
   }

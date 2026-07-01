@@ -164,6 +164,9 @@ router.get("/list", authenticateToken, async (req, res) => {
     res.json({ success: true, data: list });
   } catch (err) {
     console.error("Failed to fetch demo requests list:", err);
+    if (/demo_requests|relation .* does not exist|schema cache/i.test(err.message || "")) {
+      return res.json({ success: true, data: [] });
+    }
     res.status(500).json({ error: err.message || "Failed to fetch prospects." });
   }
 });

@@ -567,6 +567,7 @@ const getInitialSandboxData = () => {
         created_at: new Date(Date.now() - 3600000 * 48).toISOString()
       }
     ],
+    demo_requests: [],
     notifications: [],
     duty_rosters: [],
     attendance_logs: [],
@@ -659,6 +660,10 @@ const loadSandboxDB = () => {
     }
     if (!data.support_tickets) {
       data.support_tickets = initial.support_tickets;
+      updated = true;
+    }
+    if (!data.demo_requests) {
+      data.demo_requests = [];
       updated = true;
     }
     if (!data.notifications) {

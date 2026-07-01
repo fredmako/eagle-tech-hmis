@@ -13,7 +13,7 @@ export const PHOTO_PRICING_BAND =
   'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1800&h=600&fit=crop&auto=format';
 
 export const services = [
-  { icon: Heart, title: 'Triage & Vital Signs', desc: 'Real-time logger for blood pressure, temperature, heart rate, and weight with automated BMI computation.', tag: 'Clinical', photo: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=300&h=300&fit=crop&auto=format' },
+  { icon: Heart, title: 'Triage & Vital Signs', desc: 'Real-time logger for blood pressure, temperature, heart rate, and weight with automated BMI computation.', tag: 'Clinical', photo: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=300&h=300&fit=crop&auto=format' },
   { icon: Stethoscope, title: 'OPD Consultation Desk', desc: 'Integrated SOAP clinical notes, drug prescriptions, and direct ICD-10 diagnostic coding search.', tag: 'Clinical', photo: 'https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=300&h=300&fit=crop&auto=format' },
   { icon: FlaskConical, title: 'Laboratory Management', desc: 'Automated order placement, test record workflows, result verification, and digital receipt delivery.', tag: 'Diagnostics', photo: 'https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=300&h=300&fit=crop&auto=format' },
   { icon: Pill, title: 'Pharmacy Stock Control', desc: 'Real-time stock decrementing on dispensing, low-level warning notifications, and inventory tracking.', tag: 'Operations', photo: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=300&h=300&fit=crop&auto=format' },

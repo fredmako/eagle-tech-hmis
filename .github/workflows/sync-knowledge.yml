@@ -1,0 +1,34 @@
+name: Sync AI Knowledge
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "server/**"
+      - ".github/workflows/sync-knowledge.yml"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      KNOWLEDGE_SYNC_SECRET: ${{ secrets.KNOWLEDGE_SYNC_SECRET }}
+    steps:
+      - name: Skip when sync secret is missing
+        if: ${{ env.KNOWLEDGE_SYNC_SECRET == '' }}
+        run: echo "KNOWLEDGE_SYNC_SECRET is not configured; skipping knowledge sync."
+
+      - name: Wait for App Platform deployment
+        if: ${{ env.KNOWLEDGE_SYNC_SECRET != '' }}
+        run: sleep 180
+
+      - name: Trigger knowledge sync
+        if: ${{ env.KNOWLEDGE_SYNC_SECRET != '' }}
+        run: |
+          curl --fail-with-body \
+            -X POST "https://seal-app-dfjuz.ondigitalocean.app/api/ai-knowledge/sync" \
+            -H "Content-Type: application/json" \
+            -H "x-knowledge-sync-secret: $KNOWLEDGE_SYNC_SECRET" \
+            -d '{}'

@@ -57,6 +57,7 @@ const dhis2ExportRouter = require("./routes/dhis2Export");
 app.use("/api/dhis2", dhis2ExportRouter);
 
 const { runMigrations } = require("./utils/migrationRunner");
+const { syncKnowledgeBase } = require("./utils/knowledgeSync");
 
 // Start server
 app.listen(PORT, async () => {
@@ -65,4 +66,19 @@ app.listen(PORT, async () => {
   runMigrations().catch(err => {
     console.error('[MigrationRunner] Migration execution failed:', err);
   });
+  if (process.env.KNOWLEDGE_AUTO_SYNC !== "false") {
+    syncKnowledgeBase()
+      .then(result => {
+        console.log("[Knowledge Sync] completed:", {
+          attempted: result.attempted,
+          created: result.created,
+          updated: result.updated,
+          unchanged: result.unchanged,
+          updateUnavailable: result.updateUnavailable,
+        });
+      })
+      .catch(err => {
+        console.error("[Knowledge Sync] failed:", err.response?.data || err.message);
+      });
+  }
 });

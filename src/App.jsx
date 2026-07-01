@@ -159,6 +159,7 @@ export default function App() {
   const [maternitySubTab, setMaternitySubTab] = useState("dashboard");
   const [adminSubTab, setAdminSubTab] = useState("overview");
   const [hrSubTab, setHrSubTab] = useState("directory");
+  const [reportsSubTab, setReportsSubTab] = useState("dashboards");
   const [receptionSubTab, setReceptionSubTab] = useState("registration");
   const [selectedReceptionSubItem, setSelectedReceptionSubItem] =
     useState("new_patient");
@@ -269,9 +270,21 @@ export default function App() {
     if (itemId === "maternity") return maternitySubTab === subId;
     if (itemId === "admin") return adminSubTab === subId;
     if (itemId === "hr") return hrSubTab === subId;
+    if (itemId === "reports") return reportsSubTab === subId;
     if (itemId === "reception")
       return selectedReceptionSubItem === subId || receptionSubTab === subId;
     return false;
+  };
+
+  const getVisibleSubItems = (item) => {
+    if (!item.subItems) return [];
+    if (item.id === "reports") {
+      if (user?.license_tier === "extensive") {
+        return item.subItems;
+      }
+      return item.subItems.filter((sub) => sub.id === "dashboards");
+    }
+    return item.subItems;
   };
 
   const mapReceptionSubItemToRoute = (subId) => {
@@ -343,6 +356,7 @@ export default function App() {
     if (itemId === "maternity") setMaternitySubTab(subId);
     if (itemId === "admin") setAdminSubTab(subId);
     if (itemId === "hr") setHrSubTab(subId);
+    if (itemId === "reports") setReportsSubTab(subId);
   };
 
   const handleNavigate = (tabId, subId = null) => {
@@ -374,6 +388,7 @@ export default function App() {
     if (tabId === "maternity") setMaternitySubTab(subId);
     if (tabId === "admin") setAdminSubTab(subId);
     if (tabId === "hr") setHrSubTab(subId);
+    if (tabId === "reports") setReportsSubTab(subId);
   };
 
   const [pathname, setPathname] = useState(() => {
@@ -1274,6 +1289,12 @@ export default function App() {
         "diagnosis",
         "discharge summary",
       ],
+      subItems: [
+        { id: "dashboards", label: "Operational Dashboard" },
+        { id: "departments", label: "Department Reports" },
+        { id: "compliance", label: "Compliance & MOH" },
+        { id: "builder", label: "Custom Report Builder" },
+      ],
     },
     {
       id: "patient_dashboard",
@@ -1601,7 +1622,7 @@ export default function App() {
           ? [{ type: "parent", item, label: parentLabel, path: parentLabel }]
           : [];
 
-        (item.subItems || []).forEach((sub) => {
+        getVisibleSubItems(item).forEach((sub) => {
           const subLabel = sub.label || sub.id;
           const subKeywords = (sub.keywords || []).join(" ");
           const subMatches =
@@ -1793,11 +1814,11 @@ export default function App() {
                           <div className="w-72 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl p-2 space-y-1">
                             {catItems.map((item) => {
                               const Icon = item.icon;
-                              const hasSub = item.subItems?.length > 0;
+                              const hasSub = getVisibleSubItems(item).length > 0;
                               const isActive =
                                 item.id === activeTab ||
                                 (hasSub &&
-                                  item.subItems.some((sub) =>
+                                  getVisibleSubItems(item).some((sub) =>
                                     getSubActive(item.id, sub.id),
                                   ));
 
@@ -1850,7 +1871,7 @@ export default function App() {
                                     <div className="absolute top-0 left-full ml-1 w-72 bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl p-2">
                                       {item.id === "reception"
                                         ? Object.entries(
-                                            item.subItems.reduce(
+                                            getVisibleSubItems(item).reduce(
                                               (groups, sub) => {
                                                 const key =
                                                   sub.group || "Other";
@@ -1905,7 +1926,7 @@ export default function App() {
                                               </div>
                                             </div>
                                           ))
-                                        : item.subItems.map((sub) => {
+                                        : getVisibleSubItems(item).map((sub) => {
                                             const isSubActive = getSubActive(
                                               item.id,
                                               sub.id,
@@ -2122,7 +2143,7 @@ export default function App() {
 
                       {isActive && hasSub && (
                         <div className="ml-5 border-l border-slate-800 pl-3.5 py-1 space-y-1 text-left">
-                          {item.subItems.map((sub) => {
+                          {getVisibleSubItems(item).map((sub) => {
                             const isSubActive = getSubActive(item.id, sub.id);
                             return (
                               <button
@@ -2177,7 +2198,7 @@ export default function App() {
                               "triage",
                             ].includes(activeTab)
                           : activeTab === item.id;
-                      const hasSub = item.subItems && item.subItems.length > 0;
+                      const hasSub = getVisibleSubItems(item).length > 0;
                       const isExpanded =
                         isActive || expandedSidebarItem === item.id;
                       return (
@@ -2223,7 +2244,7 @@ export default function App() {
                             <div className="ml-5 border-l border-slate-800 pl-3.5 py-1 space-y-1 text-left">
                               {item.id === "reception"
                                 ? Object.entries(
-                                    item.subItems.reduce((groups, sub) => {
+                                    getVisibleSubItems(item).reduce((groups, sub) => {
                                       const key = sub.group || "Other";
                                       if (!groups[key]) groups[key] = [];
                                       groups[key].push(sub);
@@ -2264,7 +2285,7 @@ export default function App() {
                                       </div>
                                     </div>
                                   ))
-                                : item.subItems.map((sub) => {
+                                : getVisibleSubItems(item).map((sub) => {
                                     const isSubActive = getSubActive(
                                       item.id,
                                       sub.id,
@@ -2534,7 +2555,13 @@ export default function App() {
                       showNotification={showNotification}
                     />
                   )}
-                  {activeTab === "reports" && <Reports user={user} />}
+                   {activeTab === "reports" && (
+                    <Reports
+                      user={user}
+                      activeTab={reportsSubTab}
+                      setActiveTab={setReportsSubTab}
+                    />
+                  )}
                   {activeTab === "patient_dashboard" && <PatientDashboard />}
                   {activeTab === "ward" && (
                     <Ward user={user} showNotification={showNotification} />

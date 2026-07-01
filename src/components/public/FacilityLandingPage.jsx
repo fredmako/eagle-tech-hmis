@@ -73,6 +73,7 @@ export default function FacilityLandingPage() {
 
   // Chatbot states
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatTab, setChatTab] = useState("chat"); // 'chat' | 'dashboards'
   const [chatInput, setChatInput] = useState("");
   const [chatTyping, setChatTyping] = useState(false);
   const [chatSessionId, setChatSessionId] = useState(
@@ -183,6 +184,86 @@ Bot reply: ${lastBot?.text || ""}`,
       ]);
     }
   };
+
+  const handleChatAction = (action) => {
+    if (action === "login") {
+      setIsLoginTab(true);
+      setIsStaffLogin(false);
+      const el = document.getElementById("portal-access");
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+      setChatOpen(false);
+    } else if (action === "register") {
+      setIsLoginTab(false);
+      setIsStaffLogin(false);
+      const el = document.getElementById("portal-access");
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+      setChatOpen(false);
+    } else if (action === "marketing") {
+      const el = document.getElementById("pricing-catalog");
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+      setChatOpen(false);
+    }
+  };
+
+  const renderMessageText = (text) => {
+    if (!text) return "";
+    const parts = [];
+    let lastIndex = 0;
+    const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      const [fullMatch, label, urlOrAction] = match;
+      const matchIndex = match.index;
+
+      if (matchIndex > lastIndex) {
+        parts.push(text.substring(lastIndex, matchIndex));
+      }
+
+      if (urlOrAction.startsWith("action:")) {
+        const action = urlOrAction.substring(7);
+        parts.push(
+          <button
+            key={matchIndex}
+            type="button"
+            onClick={() => handleChatAction(action)}
+            className={`mx-1 my-0.5 px-2.5 py-1 text-[11px] font-bold text-slate-950 rounded-lg shadow-sm transition inline-block cursor-pointer font-sans ${
+              template === "wellness"
+                ? "bg-purple-500 hover:bg-purple-600 text-white"
+                : "bg-teal-400 hover:bg-teal-500 text-slate-950"
+            }`}
+          >
+            {label}
+          </button>
+        );
+      } else {
+        parts.push(
+          <a
+            key={matchIndex}
+            href={urlOrAction}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`mx-1 underline inline-block font-bold font-sans ${
+              template === "wellness"
+                ? "text-purple-400 hover:text-purple-300"
+                : "text-teal-400 hover:text-teal-350"
+            }`}
+          >
+            {label}
+          </a>
+        );
+      }
+
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : text;
+  };
+
   const [facilityDoctors, setFacilityDoctors] = useState([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [bookingDate, setBookingDate] = useState(() => {
@@ -2344,74 +2425,146 @@ Bot reply: ${lastBot?.text || ""}`,
               </button>
             </div>
 
-            {/* Message logs */}
-            <div className="flex-1 p-3 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
-              {chatMessages.map((m, idx) => (
-                <div
-                  key={idx}
-                  className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-2xl py-2 px-3 text-xs leading-relaxed font-sans ${
-                      m.sender === "user"
-                        ? template === "wellness"
-                          ? "bg-purple-500 text-white font-medium rounded-tr-none"
-                          : "bg-teal-400 text-slate-950 font-medium rounded-tr-none"
-                        : "bg-slate-950/60 border border-slate-855 text-slate-200 rounded-tl-none whitespace-pre-line"
-                    }`}
-                  >
-                    {m.text}
-                  </div>
-                </div>
-              ))}
-              {chatTyping && (
-                <div className="flex justify-start">
-                  <div className="bg-slate-950/60 border border-slate-855 text-slate-400 rounded-2xl rounded-tl-none py-1.5 px-3 text-xs flex gap-1">
-                    <span className="h-1 w-1 bg-slate-500 rounded-full animate-bounce" />
-                    <span className="h-1 w-1 bg-slate-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-                    <span className="h-1 w-1 bg-slate-500 rounded-full animate-bounce [animation-delay:0.4s]" />
-                  </div>
-                </div>
-              )}
-              {chatEscalation && (
-                <div className="px-1">
-                  <button
-                    type="button"
-                    onClick={handleChatCreateTicket}
-                    className="text-2xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition"
-                  >
-                    Create support ticket from this chat
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Input Form */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleChatSend(chatInput);
-              }}
-              className="p-2.5 bg-slate-950 border-t border-slate-850 flex gap-2 shrink-0"
-            >
-              <input
-                type="text"
-                placeholder="Ask about pricing, services, or location..."
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500/50"
-              />
+            {/* Tab Selection */}
+            <div className="flex bg-slate-950 border-b border-slate-800 p-1 shrink-0">
               <button
-                type="submit"
-                className={`px-3 py-1.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                  template === "wellness"
-                    ? "bg-purple-500 text-white"
-                    : "bg-teal-400 text-slate-950"
+                type="button"
+                onClick={() => setChatTab("chat")}
+                className={`flex-1 text-center py-1.5 text-2xs font-bold rounded-md transition cursor-pointer ${
+                  chatTab === "chat"
+                    ? template === "wellness"
+                      ? "bg-purple-500 text-white shadow-sm"
+                      : "bg-teal-400 text-slate-950 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                Send
+                Chat Support
               </button>
-            </form>
+              <button
+                type="button"
+                onClick={() => setChatTab("dashboards")}
+                className={`flex-1 text-center py-1.5 text-2xs font-bold rounded-md transition cursor-pointer ${
+                  chatTab === "dashboards"
+                    ? template === "wellness"
+                      ? "bg-purple-500 text-white shadow-sm"
+                      : "bg-teal-400 text-slate-950 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Dashboards
+              </button>
+            </div>
+
+            {/* Chat Tab Body */}
+            {chatTab === "chat" && (
+              <>
+                {/* Message logs */}
+                <div className="flex-1 p-3 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                  {chatMessages.map((m, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-2xl py-2 px-3 text-xs leading-relaxed font-sans ${
+                          m.sender === "user"
+                            ? template === "wellness"
+                              ? "bg-purple-500 text-white font-medium rounded-tr-none"
+                              : "bg-teal-400 text-slate-950 font-medium rounded-tr-none"
+                            : "bg-slate-950/60 border border-slate-855 text-slate-200 rounded-tl-none whitespace-pre-line"
+                        }`}
+                      >
+                        {m.sender === "bot" ? renderMessageText(m.text) : m.text}
+                      </div>
+                    </div>
+                  ))}
+                  {chatTyping && (
+                    <div className="flex justify-start">
+                      <div className="bg-slate-950/60 border border-slate-855 text-slate-400 rounded-2xl rounded-tl-none py-1.5 px-3 text-xs flex gap-1">
+                        <span className="h-1 w-1 bg-slate-500 rounded-full animate-bounce" />
+                        <span className="h-1 w-1 bg-slate-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                        <span className="h-1 w-1 bg-slate-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                      </div>
+                    </div>
+                  )}
+                  {chatEscalation && (
+                    <div className="px-1">
+                      <button
+                        type="button"
+                        onClick={handleChatCreateTicket}
+                        className="text-2xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition cursor-pointer"
+                      >
+                        Create support ticket from this chat
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Input Form */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleChatSend(chatInput);
+                  }}
+                  className="p-2.5 bg-slate-950 border-t border-slate-850 flex gap-2 shrink-0"
+                >
+                  <input
+                    type="text"
+                    placeholder="Ask about pricing, services, or location..."
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500/50"
+                  />
+                  <button
+                    type="submit"
+                    className={`px-3 py-1.5 font-bold text-xs rounded-xl transition cursor-pointer ${
+                      template === "wellness"
+                        ? "bg-purple-500 text-white"
+                        : "bg-teal-400 text-slate-950"
+                    }`}
+                  >
+                    Send
+                  </button>
+                </form>
+              </>
+            )}
+
+            {/* Dashboards Tab Body */}
+            {chatTab === "dashboards" && (
+              <div className="flex-1 p-3 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                <h5 className={`text-2xs font-bold uppercase tracking-wider mb-2 font-mono ${
+                  template === "wellness" ? "text-purple-400" : "text-teal-450"
+                }`}>Available System Dashboards</h5>
+                {[
+                  { name: "Reception & Registration", desc: "Manage patient queues, register demographics, and log visits.", action: "login" },
+                  { name: "Triage Desk", desc: "Record vital signs, heart rate, BP, BMI, and flag emergencies.", action: "login" },
+                  { name: "OPD Consultation", desc: "Access clinical consultation sheets, SOAP logs, and ICD-10 diagnostics.", action: "login" },
+                  { name: "Laboratory Console", desc: "Request tests, verify specimens, and view analyzer results.", action: "login" },
+                  { name: "Pharmacy Dispensing", desc: "Prescription fulfillment, inventory stock levels, and drug retail POS.", action: "login" },
+                  { name: "Billing & Cashier Desk", desc: "Process payments (STK push, cash, insurance splits) and generate invoices.", action: "login" },
+                  { name: "Inpatient Wards", desc: "Track admissions, bed layouts, and clinical ward logs.", action: "login" },
+                  { name: "Maternity & MCH", desc: "Manage maternal antenatal care (ANC), immunization, and child welfare.", action: "login" }
+                ].map((dash, idx) => (
+                  <div key={idx} className="bg-slate-950/60 border border-slate-855 rounded-xl p-3 space-y-2">
+                    <div>
+                      <h6 className="text-xs font-bold text-slate-100">{dash.name}</h6>
+                      <p className="text-[11px] text-slate-400 mt-1 leading-normal font-sans">{dash.desc}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleChatAction(dash.action)}
+                      className={`w-full py-1 px-2 text-[10px] font-bold bg-slate-900 border border-slate-800 hover:border-teal-500/30 rounded-lg transition text-center cursor-pointer font-sans ${
+                        template === "wellness"
+                          ? "text-purple-400 hover:text-purple-350"
+                          : "text-teal-400 hover:text-teal-350"
+                      }`}
+                    >
+                      Access Dashboard
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

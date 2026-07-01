@@ -131,6 +131,7 @@ export default function LandingPage({
 
   // Chatbot Assistant States
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatTab, setChatTab] = useState("chat"); // 'chat' | 'dashboards'
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState([
     {
@@ -407,6 +408,71 @@ Bot reply: ${lastBot?.text || ""}`,
         },
       ]);
     }
+  };
+
+  const handleChatAction = (action) => {
+    if (action === "login") {
+      onNavigateToLogin();
+      setChatOpen(false);
+    } else if (action === "register") {
+      onNavigateToSignup();
+      setChatOpen(false);
+    } else if (action === "marketing") {
+      const el = document.getElementById("pricing");
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+      setChatOpen(false);
+    }
+  };
+
+  const renderMessageText = (text) => {
+    if (!text) return "";
+    const parts = [];
+    let lastIndex = 0;
+    const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      const [fullMatch, label, urlOrAction] = match;
+      const matchIndex = match.index;
+
+      if (matchIndex > lastIndex) {
+        parts.push(text.substring(lastIndex, matchIndex));
+      }
+
+      if (urlOrAction.startsWith("action:")) {
+        const action = urlOrAction.substring(7);
+        parts.push(
+          <button
+            key={matchIndex}
+            type="button"
+            onClick={() => handleChatAction(action)}
+            className="mx-1 my-0.5 px-2.5 py-1 text-[11px] font-bold bg-primary text-primary-foreground hover:bg-primary/95 rounded-lg shadow-sm transition inline-block cursor-pointer font-sans"
+          >
+            {label}
+          </button>
+        );
+      } else {
+        parts.push(
+          <a
+            key={matchIndex}
+            href={urlOrAction}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mx-1 text-teal-400 hover:text-teal-350 underline inline-block font-bold font-sans"
+          >
+            {label}
+          </a>
+        );
+      }
+
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : text;
   };
 
   const handleSupportSubmit = async (e) => {
@@ -1375,100 +1441,162 @@ Bot reply: ${lastBot?.text || ""}`,
               </button>
             </div>
 
-            {/* Chat Messages Logs */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
-              {chatMessages.map((m, idx) => (
-                <div
-                  key={idx}
-                  className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-2xl py-2.5 px-3 text-xs leading-relaxed font-sans ${
-                      m.sender === "user"
-                        ? "bg-primary text-primary-foreground font-medium rounded-tr-none"
-                        : "bg-slate-950/60 border border-slate-855 text-slate-200 rounded-tl-none whitespace-pre-line"
-                    }`}
-                  >
-                    {m.text}
-                  </div>
-                </div>
-              ))}
-              {chatTyping && (
-                <div className="flex justify-start">
-                  <div className="bg-slate-955 border border-slate-855 text-slate-450 rounded-2xl rounded-tl-none py-2 px-3 text-2xs italic flex items-center gap-1.5 font-sans">
-                    <span className="h-1 w-1 bg-slate-400 rounded-full animate-bounce" />
-                    <span className="h-1 w-1 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                    <span className="h-1 w-1 bg-slate-400 rounded-full animate-bounce [animation-delay:0.4s]" />
-                    EagleBot is typing...
-                  </div>
-                </div>
-              )}
-              {chatEscalation && (
-                <div className="px-1">
-                  <button
-                    type="button"
-                    onClick={handleChatCreateTicket}
-                    className="text-2xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition"
-                  >
-                    Create support ticket from this chat
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Quick Ask Suggestion Chips */}
-            <div className="px-4 py-2 bg-slate-950/40 border-t border-slate-900 overflow-x-auto whitespace-nowrap scrollbar-none flex gap-1.5 shrink-0">
-              {[
-                {
-                  label: "Pricing Plans",
-                  text: "What plans do you have and how much do they cost?",
-                },
-                {
-                  label: "Register Hospital",
-                  text: "How do I register a hospital?",
-                },
-                {
-                  label: "Pharmacy Setup",
-                  text: "How do I register and configure a pharmacy?",
-                },
-                {
-                  label: "Lab Sync",
-                  text: "How do we hook up lab analyzers for results sync?",
-                },
-              ].map((chip) => (
-                <button
-                  key={chip.label}
-                  type="button"
-                  onClick={() => handleChatSend(chip.text)}
-                  className="bg-slate-950 border border-slate-850 hover:border-primary/30 text-2xs text-slate-400 hover:text-primary py-1 px-2.5 rounded-full transition cursor-pointer shrink-0 font-sans"
-                >
-                  {chip.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Input Form */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleChatSend(chatInput);
-              }}
-              className="p-3 bg-slate-950 border-t border-slate-800 flex gap-2 shrink-0"
-            >
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask EagleBot a question..."
-                className="flex-1 bg-slate-900 border border-slate-855 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-sans"
-              />
+            {/* Tab Selection */}
+            <div className="flex bg-slate-950 border-b border-slate-800 p-1 shrink-0">
               <button
-                type="submit"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs py-1.5 px-4 rounded-lg transition-all cursor-pointer shadow active:scale-[0.98] font-sans"
+                type="button"
+                onClick={() => setChatTab("chat")}
+                className={`flex-1 text-center py-1.5 text-2xs font-bold rounded-md transition cursor-pointer ${
+                  chatTab === "chat"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
               >
-                Send
+                Chat Support
               </button>
-            </form>
+              <button
+                type="button"
+                onClick={() => setChatTab("dashboards")}
+                className={`flex-1 text-center py-1.5 text-2xs font-bold rounded-md transition cursor-pointer ${
+                  chatTab === "dashboards"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Dashboards
+              </button>
+            </div>
+
+            {/* Chat Tab Body */}
+            {chatTab === "chat" && (
+              <>
+                {/* Chat Messages Logs */}
+                <div className="flex-1 p-4 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                  {chatMessages.map((m, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-2xl py-2.5 px-3 text-xs leading-relaxed font-sans ${
+                          m.sender === "user"
+                            ? "bg-primary text-primary-foreground font-medium rounded-tr-none"
+                            : "bg-slate-950/60 border border-slate-855 text-slate-200 rounded-tl-none whitespace-pre-line"
+                        }`}
+                      >
+                        {m.sender === "bot" ? renderMessageText(m.text) : m.text}
+                      </div>
+                    </div>
+                  ))}
+                  {chatTyping && (
+                    <div className="flex justify-start">
+                      <div className="bg-slate-955 border border-slate-855 text-slate-450 rounded-2xl rounded-tl-none py-2 px-3 text-2xs italic flex items-center gap-1.5 font-sans">
+                        <span className="h-1 w-1 bg-slate-400 rounded-full animate-bounce" />
+                        <span className="h-1 w-1 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                        <span className="h-1 w-1 bg-slate-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+                        EagleBot is typing...
+                      </div>
+                    </div>
+                  )}
+                  {chatEscalation && (
+                    <div className="px-1">
+                      <button
+                        type="button"
+                        onClick={handleChatCreateTicket}
+                        className="text-2xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-teal-500/30 transition cursor-pointer"
+                      >
+                        Create support ticket from this chat
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Ask Suggestion Chips */}
+                <div className="px-4 py-2 bg-slate-950/40 border-t border-slate-900 overflow-x-auto whitespace-nowrap scrollbar-none flex gap-1.5 shrink-0">
+                  {[
+                    {
+                      label: "Pricing Plans",
+                      text: "What plans do you have and how much do they cost?",
+                    },
+                    {
+                      label: "Register Hospital",
+                      text: "How do I register a hospital?",
+                    },
+                    {
+                      label: "Pharmacy Setup",
+                      text: "How do I register and configure a pharmacy?",
+                    },
+                    {
+                      label: "Lab Sync",
+                      text: "How do we hook up lab analyzers for results sync?",
+                    },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => handleChatSend(chip.text)}
+                      className="bg-slate-955 border border-slate-850 hover:border-primary/30 text-2xs text-slate-400 hover:text-primary py-1 px-2.5 rounded-full transition cursor-pointer shrink-0 font-sans"
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Input Form */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleChatSend(chatInput);
+                  }}
+                  className="p-3 bg-slate-950 border-t border-slate-800 flex gap-2 shrink-0"
+                >
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Ask EagleBot a question..."
+                    className="flex-1 bg-slate-900 border border-slate-855 rounded-lg py-1.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-teal-500 transition font-sans"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs py-1.5 px-4 rounded-lg transition-all cursor-pointer shadow active:scale-[0.98] font-sans"
+                  >
+                    Send
+                  </button>
+                </form>
+              </>
+            )}
+
+            {/* Dashboards Tab Body */}
+            {chatTab === "dashboards" && (
+              <div className="flex-1 p-4 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                <h5 className="text-2xs font-bold text-teal-400 uppercase tracking-wider mb-2 font-mono">Available System Dashboards</h5>
+                {[
+                  { name: "Reception & Registration", desc: "Manage patient queues, register demographics, and log visits.", action: "login" },
+                  { name: "Triage Desk", desc: "Record vital signs, heart rate, BP, BMI, and flag emergencies.", action: "login" },
+                  { name: "OPD Consultation", desc: "Access clinical consultation sheets, SOAP logs, and ICD-10 diagnostics.", action: "login" },
+                  { name: "Laboratory Console", desc: "Request tests, verify specimens, and view analyzer results.", action: "login" },
+                  { name: "Pharmacy Dispensing", desc: "Prescription fulfillment, inventory stock levels, and drug retail POS.", action: "login" },
+                  { name: "Billing & Cashier Desk", desc: "Process payments (STK push, cash, insurance splits) and generate invoices.", action: "login" },
+                  { name: "Inpatient Wards", desc: "Track admissions, bed layouts, and clinical ward logs.", action: "login" },
+                  { name: "Maternity & MCH", desc: "Manage maternal antenatal care (ANC), immunization, and child welfare.", action: "login" }
+                ].map((dash, idx) => (
+                  <div key={idx} className="bg-slate-950/60 border border-slate-855 rounded-xl p-3 space-y-2">
+                    <div>
+                      <h6 className="text-xs font-bold text-slate-100">{dash.name}</h6>
+                      <p className="text-[11px] text-slate-400 mt-1 leading-normal font-sans">{dash.desc}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleChatAction(dash.action)}
+                      className="w-full py-1 px-2 text-[10px] font-bold bg-slate-900 border border-slate-800 text-teal-400 hover:text-teal-350 hover:border-teal-500/30 rounded-lg transition text-center cursor-pointer font-sans"
+                    >
+                      Access Dashboard
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

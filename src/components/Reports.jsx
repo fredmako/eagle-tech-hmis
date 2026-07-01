@@ -31,7 +31,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-export default function Reports({ user }) {
+export default function Reports({ user, activeTab: activeTabProp, setActiveTab: setActiveTabProp }) {
   const [patients, setPatients] = useState([]);
   const [visits, setVisits] = useState([]);
   const [triages, setTriages] = useState([]);
@@ -122,7 +122,15 @@ export default function Reports({ user }) {
   };
 
   // Tab Navigation states
-  const [activeTab, setActiveTab] = useState("dashboards");
+  const [localActiveTab, setLocalActiveTab] = useState("dashboards");
+  const activeTab = activeTabProp || localActiveTab;
+  const setActiveTab = setActiveTabProp || setLocalActiveTab;
+
+  useEffect(() => {
+    if (user?.license_tier !== "extensive" && activeTab !== "dashboards") {
+      setActiveTab("dashboards");
+    }
+  }, [activeTab, user, setActiveTab]);
 
   // Operational Dashboard states
   const [syncStatus, setSyncStatus] = useState("active_warnings");
@@ -2182,7 +2190,7 @@ export default function Reports({ user }) {
             { id: "departments", label: "Department Reports" },
             { id: "compliance", label: "Compliance & MOH" },
             { id: "builder", label: "Custom Report Builder" },
-          ].map((tab) => (
+          ].filter(tab => user?.license_tier === "extensive" || tab.id === "dashboards").map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}

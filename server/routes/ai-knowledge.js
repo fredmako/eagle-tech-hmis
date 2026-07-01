@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const axios = require("axios");
+const { knowledgeEntries, syncKnowledgeBase } = require("../utils/knowledgeSync");
 
 const AI_DIAGNOSIS_URL = process.env.AI_DIAGNOSIS_URL || "http://142.93.109.200:8000";
 const KNOWLEDGE_URL = `${AI_DIAGNOSIS_URL}/knowledge`;
@@ -76,10 +77,40 @@ async function addKnowledge(req, res) {
   }
 }
 
+async function syncKnowledge(req, res) {
+  const expectedSecret = process.env.KNOWLEDGE_SYNC_SECRET;
+  const providedSecret = req.headers["x-knowledge-sync-secret"];
+
+  if (!expectedSecret) {
+    return res.status(503).json({ error: "Knowledge sync endpoint is not configured." });
+  }
+
+  if (expectedSecret && providedSecret !== expectedSecret) {
+    return res.status(401).json({ error: "Invalid knowledge sync secret." });
+  }
+
+  try {
+    const entries = Array.isArray(req.body?.entries) && req.body.entries.length > 0
+      ? req.body.entries
+      : knowledgeEntries;
+    const result = await syncKnowledgeBase({ entries });
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    logKnowledgeError("SYNC", err);
+    return res.status(500).json({
+      error: "AI knowledge sync failed.",
+      message: err.message,
+      status: err.response?.status || null,
+      body: err.response?.data || null,
+    });
+  }
+}
+
 // Supports both mount styles:
 // app.use("/api/ai-knowledge", router) -> /
 // app.use("/api", router) -> /ai-knowledge
 router.get(["/ping", "/ai-knowledge/ping"], pingKnowledge);
+router.post(["/sync", "/ai-knowledge/sync"], syncKnowledge);
 router.get(["/", "/ai-knowledge"], listKnowledge);
 router.post(["/", "/ai-knowledge"], addKnowledge);
 

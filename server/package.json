@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "sync:knowledge": "node scripts/sync-knowledge.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
